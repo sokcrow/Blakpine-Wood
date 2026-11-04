@@ -1748,6 +1748,12 @@ if(type==='light_fixture'){
  const kind=fixtureKind||'bulb';
  if(!window.FHLights?.isWall(kind)&&!room){toast(window.FH_LIGHT_TEXT.outside);return null;}
  Object.assign(it,window.FHLights.presetFields(kind));
+ if(window.FHLights.isWall(kind)){
+  const mount=ForestShared.switchWallMount(current().items,p,{maxDistance:.55});
+  if(!mount){toast(window.FH_LIGHT_TEXT.wall);return null;}
+  it.x=mount.point.x;it.y=mount.point.y;it.rotation=mount.rotation;it.wallId=mount.wallId;
+  room=mount.room||null;
+ }
  it.roomId=room?.roomId||room?.id||'';
  it.zoneId=room?.zoneId&&room.zoneId!=='main'?room.zoneId:selectedCircuit()||'main';
  current().lightingManual=true;
@@ -2160,7 +2166,16 @@ function addItem(it){if(!it)return;
  selection=selectedId;const newRoomIds=record();if(it.type==='breaker_panel')refreshCircuits(it.circuits?.[0]?.zoneId||it.zoneId);if(DOOR_TYPES.has(it.type)||it.type==='spawn'||it.type==='elevator'||it.type==='light_switch'||it.type==='breaker_panel'||it.type==='battery_pickup'||AREA_TYPES.has(it.type))openInspector();if(STRUCTURAL_TYPES.has(it.type)&&newRoomIds.length)autoRoomNameDialog(newRoomIds)
 }
 function hitTest(s){let px=toWorld(s),gp=toGrid(px),r=Math.max(11/view.scale,11),gx=gridX(),gy=gridY();let items=current().items;let candidates=[];for(let i=0;i<items.length;i++){let it=items[i],priority=0,dist=Infinity;if(activeLayer==='lighting'&&!LIGHTING_TYPES.has(it.type))continue;if(layerForItem(it)!==activeLayer)continue;if(SEGMENT_TYPES.has(it.type)){let a=toPixel(it.a),b=toPixel(it.b),dx=b.x-a.x,dy=b.y-a.y,den=dx*dx+dy*dy;let t=den?Math.max(0,Math.min(1,((px.x-a.x)*dx+(px.y-a.y)*dy)/den)):0;dist=Math.hypot(px.x-(a.x+dx*t),px.y-(a.y+dy*t));priority=2}else if(AREA_TYPES.has(it.type)){if(it.spans?.length){const sp=it.spans.find(v=>gp.x>=v.x&&gp.x<=v.x+v.w&&gp.y>=v.y&&gp.y<=v.y+v.h);if(sp){dist=0;priority=0}}else if(it.cells?.length){const cell=it.cells.find(c=>gp.x>=c.x&&gp.x<=c.x+1&&gp.y>=c.y&&gp.y<=c.y+1);if(cell){dist=Math.min(Math.abs(px.x-cell.x),Math.abs(px.x-(cell.x+1)),Math.abs(px.y-cell.y),Math.abs(px.y-(cell.y+1)));priority=0}}else{let q=toPixel(it),w=it.w*gx,h=it.h*gy;if(px.x>=q.x&&px.x<=q.x+w&&px.y>=q.y&&px.y<=q.y+h){dist=0;priority=0}}}else{let q=toPixel(it),w=it.w*gx/2,h=it.h*gy/2;if(Math.abs(px.x-q.x)<=w+r&&Math.abs(px.y-q.y)<=h+r){dist=Math.max(Math.abs(px.x-q.x)-w,Math.abs(px.y-q.y)-h,0);priority=3}}if(dist<=r||priority===3&&dist<=2*r)candidates.push({it,dist,priority})}candidates.sort((a,b)=>b.priority-a.priority||a.dist-b.dist);return candidates[0]?.it||null}
-function moveItem(it,delta,original){if(it.type==='light_switch'){
+function moveItem(it,delta,original){
+ if(it.type==='light_fixture'&&window.FHLights?.isWall(it.lightKind)){
+  const aim={x:original.x+delta.x,y:original.y+delta.y};
+  const mount=ForestShared.switchWallMount(current().items,aim,{maxDistance:.55,rotation:original.rotation});
+  if(!mount){Object.assign(it,clone(original));return;}
+  Object.assign(it,{x:mount.point.x,y:mount.point.y,rotation:mount.rotation,wallId:mount.wallId,
+   roomId:mount.room?.roomId||mount.room?.id||''});
+  return;
+ }
+ if(it.type==='light_switch'){
  const target={x:original.x+delta.x,y:original.y+delta.y};const mount=ForestShared.switchWallMount(current().items,target,{maxDistance:.55,rotation:original.rotation});
  if(!mount){Object.assign(it,clone(original));return;}
  Object.assign(it,{x:mount.point.x,y:mount.point.y,wallId:mount.wallId,rotation:mount.rotation,roomId:mount.room?.roomId||mount.room?.id||'',apartmentId:mount.room?.apartmentId||''});return;
@@ -2189,7 +2204,7 @@ if(tool==='zone_assign'){
  toast('Toca una habitación para conectar todo; usa Seleccionar para una lámpara individual.');return;
 }
 if(tool==='erase'){let hit=hitTest(pt);if(hit&&current().items.some(s=>s.type==='light_switch'&&s.wallId===hit.id)){toast('Esa pared tiene un interruptor. Muévelo o bórralo primero.');return}if(hit?.autoLanding){toast('La bajada se gestiona desde la escalera del Piso 1.');return}if(hit){current().items=current().items.filter(it=>it.id!==hit.id);if(selection===hit.id){selection=null;closeInspector()}record()}return}
-if(tool==='select'){if(a.hit&&doDrag){const it=current().items.find(v=>v.id===a.hit);if(it&&current().items.some(s=>s.type==='light_switch'&&s.wallId===it.id)){toast('Mueve primero el interruptor anclado a esta pared.');return}if(it?.autoLanding){syncStairLinks();render();toast('Edita esta escalera desde Piso 1.');return}if(it&&!SEGMENT_TYPES.has(it.type)&&!AREA_TYPES.has(it.type)&&it.type!=='light_switch'){
+if(tool==='select'){if(a.hit&&doDrag){const it=current().items.find(v=>v.id===a.hit);if(it&&current().items.some(s=>s.type==='light_switch'&&s.wallId===it.id)){toast('Mueve primero el interruptor anclado a esta pared.');return}if(it?.autoLanding){syncStairLinks();render();toast('Edita esta escalera desde Piso 1.');return}if(it&&!SEGMENT_TYPES.has(it.type)&&!AREA_TYPES.has(it.type)&&it.type!=='light_switch'&&!(it.type==='light_fixture'&&window.FHLights.isWall(it.lightKind))){
  const room=current().items.find(r=>r.type==='room'&&roomHasPosition(r,{x:it.x,y:it.y}));
  if(it.type==='light_fixture'&&!window.FHLights.isWall(it.lightKind)&&!room){Object.assign(it,a.original);toast(window.FH_LIGHT_TEXT.outside);render();return;}
  it.roomId=room?.roomId||'';it.apartmentId=room?.apartmentId||'';
@@ -2207,6 +2222,18 @@ function setItemField(id,key,val){const it=current().items.find(v=>v.id===id);if
   const p=window.FHLights.presetFields(String(val));
   if(!window.FHLights.isWall(p.lightKind)&&!current().items.some(r=>r.type==='room'&&roomHasPosition(r,{x:it.x,y:it.y}))){Object.assign(it,before);toast(window.FH_LIGHT_TEXT.outside);openInspector();return;}
   Object.assign(it,p);
+  if(window.FHLights.isWall(p.lightKind)){
+   const mount=ForestShared.switchWallMount(current().items,{x:it.x,y:it.y},{maxDistance:.55,rotation:it.rotation});
+   if(!mount){Object.assign(it,before);toast(window.FH_LIGHT_TEXT.wall);openInspector();return;}
+   Object.assign(it,{x:mount.point.x,y:mount.point.y,rotation:mount.rotation,wallId:mount.wallId,
+    roomId:mount.room?.roomId||mount.room?.id||''});
+  }else delete it.wallId;
+ }
+ if(it.type==='light_fixture'&&window.FHLights.isWall(it.lightKind)&&['x','y','rotation'].includes(key)){
+  const mount=ForestShared.switchWallMount(current().items,{x:it.x,y:it.y},{maxDistance:.55,rotation:it.rotation});
+  if(!mount){Object.assign(it,before);toast(window.FH_LIGHT_TEXT.wall);openInspector();return;}
+  Object.assign(it,{x:mount.point.x,y:mount.point.y,rotation:mount.rotation,wallId:mount.wallId,
+   roomId:mount.room?.roomId||mount.room?.id||''});
  }
  if(it.type==='light_fixture'&&key==='lightRadiusFt')it.lightRadiusFt=Math.min(80,Math.max(5,it.lightRadiusFt));
  if(it.type==='light_fixture'&&key==='beamAngleDeg')it.beamAngleDeg=Math.min(360,Math.max(20,it.beamAngleDeg));
