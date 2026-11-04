@@ -113,7 +113,7 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
 <body>
 <div id="app">
  <header id="head"><div id="brand"><strong>FOREST HORROR</strong><small>EDITOR DE MAPAS · CUADRÍCULA LIBRE</small></div><div id="headActions"><button id="fileBtn" title="Poner una imagen como plantilla">▧ Imagen</button><button id="editorLandscapeBtn" title="Solicitar pantalla completa horizontal">⛶ Horizontal</button><button id="menuBtn" class="primary">☰ Proyecto</button><button id="helpBtn" aria-label="Ayuda">?</button></div></header>
- <div id="subbar"><div id="floorTabs"><button id="floor1Btn" class="selected">Piso 1</button><button id="floor2Btn">Piso 2</button></div><button id="addFloorBtn" title="Añadir nivel">+ Piso</button><button id="editFloorBtn" title="Nombre y elevación del piso">⚙ Piso</button><div id="quickGrid" aria-label="Editar cuadrícula"><label for="quickColumns">Columnas<input id="quickColumns" type="number" inputmode="numeric" min="1" max="500" step="1" aria-label="Número de columnas"></label><label for="quickRows">Filas<input id="quickRows" type="number" inputmode="numeric" min="1" max="500" step="1" aria-label="Número de filas"></label><button id="applyQuickGrid" aria-label="Aplicar columnas y filas" title="Aplicar cuadrícula">✓</button></div><span id="floorElevation">Altura: 0 pies</span><button id="undoBtn" title="Deshacer">↶</button><button id="redoBtn" title="Rehacer">↷</button><button id="fitBtn">⛶ Ajustar</button><button id="gridBtn" class="active">▦ Cuadrícula</button><button id="jointsBtn" class="active" title="Mostrar uniones de paredes y extremos abiertos">◎ Uniones</button><button id="roomsBtn" title="Lista para renombrar habitaciones">⌂ Cuartos</button><button id="copyFloorWallsBtn" title="Copiar paredes y accesos del piso 1 al piso 2, sin muebles">▥ Copiar muros ↑</button><button id="spawnQuickBtn" title="Poner punto de aparición">📍 Spawn</button><button id="testBtn" title="Probar este mismo mapa con el sprite en 3D">▶ Probar 3D</button><button id="gridDimensionsBtn" title="Ajustes avanzados de cuadrícula">⚙ Cuadrícula</button><button id="optionsBtn">⚙ Escala</button></div>
+ <div id="subbar"><div id="floorTabs"><button id="floor1Btn" class="selected">Piso 1</button><button id="floor2Btn">Piso 2</button></div><button id="addFloorBtn" title="Añadir nivel">+ Piso</button><button id="editFloorBtn" title="Nombre y elevación del piso">⚙ Piso</button><div id="quickGrid" aria-label="Editar cuadrícula"><label for="quickColumns">Columnas<input id="quickColumns" type="number" inputmode="numeric" min="1" max="500" step="1" aria-label="Número de columnas"></label><label for="quickRows">Filas<input id="quickRows" type="number" inputmode="numeric" min="1" max="500" step="1" aria-label="Número de filas"></label><button id="applyQuickGrid" aria-label="Aplicar columnas y filas" title="Aplicar cuadrícula">✓</button></div><span id="floorElevation">Altura: 0 pies</span><button id="undoBtn" title="Deshacer">↶</button><button id="redoBtn" title="Rehacer">↷</button><button id="fitBtn">⛶ Ajustar</button><button id="gridBtn" class="active">▦ Cuadrícula</button><button id="jointsBtn" class="active" title="Mostrar uniones de paredes y extremos abiertos">◎ Uniones</button><button id="roomsBtn" title="Lista para renombrar habitaciones">⌂ Cuartos</button><button id="copyFloorWallsBtn" title="Copiar perímetro rojo, paredes y accesos al piso superior, respetando muros existentes">▥ Copiar muros ↑</button><button id="spawnQuickBtn" title="Poner punto de aparición">📍 Spawn</button><button id="testBtn" title="Probar este mismo mapa con el sprite en 3D">▶ Probar 3D</button><button id="gridDimensionsBtn" title="Ajustes avanzados de cuadrícula">⚙ Cuadrícula</button><button id="optionsBtn">⚙ Escala</button></div>
  <main id="stage"><canvas id="map" aria-label="Editor de mapa con cuadrícula"></canvas><div id="stageHint">Pared: toca inicio y final, o arrastra. Usa Imán en Esquina para colocar exacto. Cierra paredes y coloca una puerta: el cuarto se reconoce solo. Entra a la puerta para marcarla como entrada de apartamento.</div><div id="stageBadge">● Piso 1</div><div id="coords">Casilla —, —</div><div id="zoomControls"><button id="plusBtn" aria-label="Acercar">+</button><div id="zoomLabel">100%</div><button id="minusBtn" aria-label="Alejar">−</button></div></main>
  <section id="palette"><div id="layerSwitch" aria-label="Capas de edición"><button type="button" data-layer="architecture" class="active">▥ Plano</button><button type="button" data-layer="furniture">▣ Muebles</button><button type="button" data-layer="lighting">✦ Luz</button></div><div id="circuitTools" hidden><label for="circuitChooser">Circuito</label><select id="circuitChooser" aria-label="Circuito activo"></select><label for="circuitColor">Color</label><input type="color" id="circuitColor" value="#dc5656" aria-label="Color del circuito"><label class="circuit-all"><input type="checkbox" id="circuitShowAll"> Todos</label><button type="button" id="circuitAudit" title="Verificar habitaciones y dispositivos conectados">▤ Conexiones</button><span id="circuitStatus" role="status" aria-live="polite">Crea un breaker</span></div><button type="button" id="paletteCategoriesToggle" aria-expanded="false">≡ Categorías</button><div id="categories"><button data-cat="structure" class="active">▥ Estructura</button><button data-cat="furniture">▧ Muebles</button><button data-cat="lighting">✦ Luz</button><button data-cat="areas">◇ Áreas y accesos</button><button data-cat="navigate">✋ Editar / mover</button></div><div id="tools"></div><div id="paletteFoot"><label><input id="snapCheck" type="checkbox" checked> Imán</label><div class="snapModes"><button id="snap1Btn" class="active" type="button">Esquina</button><button id="snapHalfBtn" type="button">½</button><button id="snapQuarterBtn" type="button">¼</button></div><label><input id="axisCheck" type="checkbox" checked> Recto H/V</label><span id="autosave">Borrador local</span></div></section>
 </div>
@@ -2024,27 +2024,66 @@ function buildingSlabs(sourceIndex=0){
  }
  roofCache.key=key;roofCache.slabs={enabled:hasOutline,spans,regions,micro};return roofCache.slabs;
 }
-// Repetir la distribución de paredes es deliberado y nunca destructivo.
-function segmentKey(it){if(!it.a||!it.b)return '';const a=`${rounded(it.a.x,4)},${rounded(it.a.y,4)}`,b=`${rounded(it.b.x,4)},${rounded(it.b.y,4)}`;return `${it.type}:${[a,b].sort().join('/')}`}
+// Copia el perímetro rojo y la distribución al piso superior.
+// Respeta cualquier tramo ya existente, incluso de otro color o solapado parcialmente.
+function freeCopySegments(segment,occupied){
+ const a=segment.a,b=segment.b,c=occupied.a,d=occupied.b;
+ if(!a||!b||!c||!d)return [segment];
+ const vx=b.x-a.x,vy=b.y-a.y,wx=d.x-c.x,wy=d.y-c.y;
+ const len=Math.hypot(vx,vy),otherLen=Math.hypot(wx,wy);
+ if(len<.05||otherLen<.05)return [segment];
+ if(Math.abs(vx*wy-vy*wx)/(len*otherLen)>.008)return [segment];
+ const ux=vx/len,uy=vy/len;
+ const side=p=>Math.abs((p.x-a.x)*uy-(p.y-a.y)*ux);
+ if(side(c)>.045||side(d)>.045)return [segment];
+ const projection=p=>(p.x-a.x)*ux+(p.y-a.y)*uy;
+ const lo=Math.max(0,Math.min(projection(c),projection(d)));
+ const hi=Math.min(len,Math.max(projection(c),projection(d)));
+ if(hi-lo<=.04)return [segment];
+ const point=t=>({x:rounded(a.x+ux*t,4),y:rounded(a.y+uy*t,4)});
+ const result=[];
+ if(lo>.04){const first=clone(segment);first.b=point(lo);result.push(first)}
+ if(len-hi>.04){const second=clone(segment);second.a=point(hi);result.push(second)}
+ return result;
+}
 function copyInteriorLayout(){
- const sourceIndex=Math.min(floorIndex,project.floors.length-2);const targetIndex=sourceIndex+1;
+ const sourceIndex=Math.min(floorIndex,project.floors.length-2),targetIndex=sourceIndex+1;
  if(sourceIndex<0){toast('Añade otro piso para copiar muros.');return}
- const slab=buildingSlabs(sourceIndex);if(!slab.spans.length){toast(`Cierra primero las paredes rojas de ${project.floors[sourceIndex].name}.`);return}
+ const slab=buildingSlabs(sourceIndex);
+ if(!slab.spans.length){toast(`Cierra primero las paredes rojas de ${project.floors[sourceIndex].name}.`);return}
  const source=project.floors[sourceIndex].items,target=project.floors[targetIndex];
- const eligible=new Set(['wall','half_wall','door','peephole_door','window','opening']);
+ const eligible=new Set(['red_wall','wall','half_wall','door','peephole_door','window','opening']);
  const inSlab=p=>slab.spans.some(s=>p.x>=s.x-.015&&p.x<=s.x+s.w+.015&&p.y>=s.y-.015&&p.y<=s.y+s.h+.015);
- const candidates=source.filter(it=>eligible.has(it.type)&&it.a&&it.b&&inSlab(it.a)&&inSlab(it.b));
- if(!candidates.length){toast('No hay paredes interiores ni accesos para copiar en el edificio.');return}
- const existing=new Set(target.items.filter(it=>eligible.has(it.type)).map(segmentKey));let added=0;
- for(const it of candidates){const k=segmentKey(it);if(existing.has(k))continue;const cp=clone(it);cp.id=numId();cp.apartmentId='';delete cp.roomId;delete cp.connections;target.items.push(cp);existing.add(k);added++}
+ // El perímetro rojo y sus aberturas pueden estar en el borde de la losa.
+ const candidates=source.filter(it=>eligible.has(it.type)&&it.a&&it.b&&
+  (it.type==='red_wall'||it.roofBoundary||inSlab(it.a)&&inSlab(it.b)));
+ if(!candidates.length){toast('No hay muros ni accesos para copiar en el edificio.');return}
+ // Siempre prevalece lo que ya fue dibujado arriba, sea rojo o de otro color.
+ const occupied=target.items.filter(it=>STRUCTURAL_TYPES.has(it.type)&&it.a&&it.b);
+ let added=0;
+ for(const item of candidates){
+  let remaining=[item];
+  for(const existing of occupied){
+   remaining=remaining.flatMap(segment=>freeCopySegments(segment,existing));
+   if(!remaining.length)break;
+  }
+  for(const segment of remaining){
+   const cp=clone(segment);cp.id=numId();cp.apartmentId='';
+   delete cp.roomId;delete cp.connections;
+   target.items.push(cp);occupied.push(cp);added++;
+  }
+ }
  if(!added){toast(`${target.name} ya tiene esa distribución; no se duplicó nada.`);return}
- recalcAllSpaces();record();toast(`${target.name}: ${added} tramos copiados. Sin muebles ni paredes rojas.`);
+ recalcAllSpaces();record();
+ toast(`${target.name}: ${added} tramos copiados, incluidas paredes rojas. Sin reemplazar muros existentes.`);
 }
 function confirmCopyInteriorLayout(){
- const sourceIndex=Math.min(floorIndex,project.floors.length-2);if(sourceIndex<0){toast('Añade otro piso primero.');return}
+ const sourceIndex=Math.min(floorIndex,project.floors.length-2);
+ if(sourceIndex<0){toast('Añade otro piso primero.');return}
  const srcName=project.floors[sourceIndex].name,dstName=project.floors[sourceIndex+1].name;
- const s=buildingSlabs();if(!s.spans.length){toast('Primero dibuja y cierra el perímetro con paredes rojas en Piso 1.');return}
- modal(`<h2>Copiar distribución a ${dstName}</h2><p>Se copiarán las <b>paredes interiores, sus puertas, ventanas y huecos</b> ubicados dentro de las losas rojas cerradas de ${srcName}.</p><div class="tip">No se copiarán muebles, habitaciones calculadas ni paredes rojas. ${dstName} conservará sus objetos actuales y se evitarán duplicados.</div><div class="actions"><button id="roofCopyAccept" class="primary">Copiar muros y accesos</button><button id="roofCopyCancel">Cancelar</button></div>`,()=>{
+ const s=buildingSlabs(sourceIndex);
+ if(!s.spans.length){toast('Primero dibuja y cierra el perímetro con paredes rojas en Piso 1.');return}
+ modal(`<h2>Copiar distribución a ${dstName}</h2><p>Se copiarán las <b>paredes rojas del perímetro, las paredes interiores y sus puertas, ventanas y huecos</b> de ${srcName}.</p><div class="tip">Los tramos existentes en ${dstName} tendrán prioridad, incluso si son de otro color. No se copiarán muebles ni habitaciones calculadas; se evitarán duplicados y superposiciones.</div><div class="actions"><button id="roofCopyAccept" class="primary">Copiar muros y accesos</button><button id="roofCopyCancel">Cancelar</button></div>`,()=>{
   $('#roofCopyCancel').onclick=closeModal;
   $('#roofCopyAccept').onclick=()=>{closeModal();copyInteriorLayout();changeFloor(Math.min(sourceIndex+1,project.floors.length-1))};
  });
