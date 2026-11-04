@@ -1,0 +1,15 @@
+{
+  "pack": "seguridad_06",
+  "addedModels": 1,
+  "libraryModels": 78,
+  "glbFiles": 78,
+  "thumbnails": 78,
+  "cameraTriangles": 196,
+  "libraryTriangles": 13736,
+  "meshesInCamera": 2,
+  "materialCount": 1,
+  "pivot": "CAM_YAW",
+  "animation": "Barrido_Seguridad",
+  "angleLimitDegrees": 48,
+  "key": "Los 77 GLB anteriores se conservan sin cambios; la integración de animación al motor no está hecha."
+}

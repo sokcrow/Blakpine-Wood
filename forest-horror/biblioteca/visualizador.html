@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111718">
+  <title>Forest Horror — Taller de mobiliario</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg:#101617; --panel:#151b1d; --panel-2:#1a2223; --inset:#0e1415;
+      --line:#2a3435; --line-hi:#43504e; --ink:#e6e1d7; --muted:#95a09c;
+      --soft:#6f7f7b; --accent:#e1b878; --accent-muted:#9b805c; --teal:#83b0a9;
+      --sans:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      --mono:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0}
+    body{font:14px/1.4 var(--sans);background:var(--bg);color:var(--ink)}
+    button,input,select{font:inherit}
+    button{cursor:pointer}
+    button:focus-visible,input:focus-visible,select:focus-visible,label:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+    button:disabled{opacity:.45;cursor:not-allowed}
+    .screen{display:grid;grid-template-rows:72px minmax(0,1fr);height:100dvh;min-height:640px}
+    .topbar{display:flex;align-items:center;gap:22px;justify-content:space-between;padding:0 27px;border-bottom:1px solid var(--line);background:#141b1c}
+    .brand{display:flex;align-items:center;gap:14px;min-width:0}
+    .mark{position:relative;width:30px;height:30px;border:1px solid var(--accent-muted);display:grid;grid-template-columns:1fr 1fr;gap:3px;padding:5px;flex-shrink:0;transform:rotate(-5deg)}
+    .mark i{display:block;background:var(--accent);opacity:.9}
+    .mark i:nth-child(2){opacity:.3}.mark i:nth-child(3){opacity:.3}
+    .brand strong{display:block;font:700 13px/1.3 var(--mono);letter-spacing:.12em;text-transform:uppercase;white-space:nowrap}
+    .brand span{display:block;margin-top:3px;color:var(--muted);font-size:11px;letter-spacing:.045em}
+    .topbar-right{display:flex;align-items:center;gap:18px}
+    .version{font:11px var(--mono);color:var(--soft);letter-spacing:.08em;white-space:nowrap}
+    .topbar-btn{border:1px solid #595444;color:var(--accent);background:transparent;padding:10px 14px;font:600 11px var(--mono);letter-spacing:.04em;white-space:nowrap}
+    .topbar-btn:hover{background:#292720}
+    .workspace{display:grid;grid-template-columns:302px minmax(360px,1fr) 310px;min-height:0}
+    .sidebar,.inspector{background:var(--panel);min-height:0;overflow:auto;scrollbar-color:#364342 transparent;scrollbar-width:thin}
+    .sidebar{border-right:1px solid var(--line);padding:26px 0 20px}
+    .inspector{border-left:1px solid var(--line);padding:26px 0 22px}
+    .side-head{padding:0 22px 23px;border-bottom:1px solid var(--line)}
+    .eyebrow{font:700 10px var(--mono);letter-spacing:.16em;color:var(--accent);text-transform:uppercase}
+    .side-head h1,.inspector-head h2{margin:8px 0 7px;font-size:23px;font-weight:590;line-height:1.15;letter-spacing:-.035em}
+    .side-head p{margin:0;color:var(--muted);font-size:12px;line-height:1.5}
+    .filters{padding:22px 20px 14px}
+    .search-label{font:600 11px var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.09em;display:block;margin-bottom:9px}
+    .search-wrap{display:flex;align-items:center;border:1px solid var(--line-hi);height:40px;background:var(--inset);padding:0 12px;gap:9px}
+    .search-wrap svg{width:15px;height:15px;stroke:var(--soft);flex-shrink:0}
+    .search-wrap input{min-width:0;width:100%;background:transparent;border:0;color:var(--ink);outline:none;font-size:12px}
+    input::placeholder{color:#6d7b77}
+    .chips{display:flex;flex-wrap:wrap;gap:6px;padding-top:13px}
+    .chip{border:1px solid #354141;background:transparent;color:#b5bfba;font-size:11px;padding:7px 9px;border-radius:3px}
+    .chip[aria-pressed=true]{color:#181913;background:var(--accent);border-color:var(--accent);font-weight:700}
+    .list-top{margin:5px 21px 10px;display:flex;justify-content:space-between;align-items:center;color:var(--soft);font:10px var(--mono);letter-spacing:.12em}
+    .asset-list{padding:0 12px;display:grid;gap:6px}
+    .asset{display:grid;grid-template-columns:54px 1fr 15px;gap:12px;align-items:center;width:100%;text-align:left;color:var(--ink);padding:10px 10px;border:1px solid transparent;background:transparent;min-height:72px;border-radius:3px}
+    .asset:hover{background:#1d2728;border-color:#2e3b3b}
+    .asset[aria-pressed=true]{background:#242c2a;border-color:#746348;box-shadow:inset 3px 0 0 var(--accent)}
+    .asset-swatch{position:relative;width:54px;height:50px;display:grid;place-items:center;background:linear-gradient(135deg,#34332d,#202b29);border:1px solid #404941;overflow:hidden}
+    .asset-swatch:before{content:"";position:absolute;top:12px;left:8px;width:38px;height:24px;transform:skewY(-18deg);background:rgba(9,11,11,.2)}
+    .asset-swatch span{font:700 19px var(--mono);color:#b9a17b;position:relative;letter-spacing:-.03em}
+    .asset-swatch img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;image-rendering:pixelated;z-index:2}
+    .asset-name{font-size:12px;font-weight:620;line-height:1.35}
+    .asset-sub{color:var(--muted);font:10px var(--mono);margin-top:5px}
+    .asset-chevron{color:var(--soft);font-size:19px;justify-self:end}
+    .asset[aria-pressed=true] .asset-chevron{color:var(--accent)}
+    .no-results{color:var(--muted);font-size:12px;line-height:1.6;padding:26px 17px}
+    .stage{position:relative;background:#101819;min-height:0;overflow:hidden;isolation:isolate}
+    .stage:before{content:"";pointer-events:none;position:absolute;inset:0;background:radial-gradient(ellipse 65% 50% at 48% 42%,#27302b 0%,#182021 65%,#111819 100%);z-index:-1}
+    #canvas-container{position:absolute;inset:0;touch-action:none}
+    #canvas-container canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+    #canvas-container canvas:active{cursor:grabbing}
+    .stage-rail{position:absolute;top:25px;left:26px;right:24px;display:flex;justify-content:space-between;gap:20px;pointer-events:none}
+    .stage-rail .eyebrow{color:var(--teal)}
+    .stage-selected{font:650 19px var(--sans);letter-spacing:-.02em;margin-top:5px}
+    .stage-mode{font:10px var(--mono);color:var(--muted);text-align:right;letter-spacing:.06em}
+    .stage-mode strong{display:block;color:var(--ink);font-size:12px;margin-top:6px;font-weight:500}
+    .stage-footer{position:absolute;bottom:23px;left:26px;right:26px;display:flex;align-items:end;justify-content:space-between;gap:16px;pointer-events:none}
+    .stage-hint{color:#a7b0aa;font:11px/1.7 var(--mono);background:#101819cc;padding:8px 10px}
+    .view-buttons{display:flex;gap:4px;pointer-events:auto}
+    .view-btn{min-width:65px;background:#182122de;color:#cad0c7;border:1px solid #3a4945;padding:9px 10px;font:11px var(--mono)}
+    .view-btn:hover{background:#303a35}
+    .view-btn[aria-pressed=true]{background:#d3b077;color:#1c221e;border-color:#d3b077;font-weight:700}
+    .viewer-message{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);min-width:240px;max-width:390px;text-align:center;background:#11191ae8;border:1px solid #586058;padding:24px 22px;color:#d5d4c8;z-index:3;line-height:1.6;font-size:13px}
+    .viewer-message[hidden]{display:none}
+    .inspector-head{padding:0 23px 22px;border-bottom:1px solid var(--line)}
+    .inspector-head h2{font-size:20px}
+    .inspector-head p{margin:0;color:var(--muted);line-height:1.6;font-size:12px}
+    .property-block{padding:21px 23px;border-bottom:1px solid var(--line)}
+    .section-title{font:700 10px var(--mono);letter-spacing:.13em;color:#aebbb3;margin-bottom:15px;text-transform:uppercase}
+    .metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+    .metric{background:#1d2526;border:1px solid #2e3b3b;padding:11px 7px;min-width:0}
+    .metric span{display:block;color:#93a19b;font:10px var(--mono);margin-bottom:8px}
+    .metric strong{font:700 19px var(--mono);letter-spacing:-.05em;white-space:nowrap}
+    .metric small{font:9px var(--mono);margin-left:2px;color:var(--accent)}
+    .detail-rows{display:grid;gap:12px}
+    .detail-row{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12px}
+    .detail-row span:first-child{color:var(--muted)}
+    .detail-row code{color:#ddd5c5;font:11px var(--mono)}
+    .toggle-row{display:flex;align-items:center;gap:10px;padding:7px 0;color:#c8ccc5;font-size:12px;cursor:pointer}
+    .toggle-row input{accent-color:var(--accent);width:15px;height:15px;margin:0}
+    .info{margin:13px 0 0;font-size:11px;color:#98a8a0;line-height:1.55}
+    .warn{background:#27251e;border-left:2px solid #af8f57;padding:10px 12px;color:#c6b99c;font-size:11px;line-height:1.55;margin-top:14px}
+    .field{display:grid;gap:7px;margin:12px 0}
+    .field label{font:11px var(--mono);color:var(--muted)}
+    .field input,.field select{width:100%;border:1px solid #43514e;background:#101819;color:var(--ink);padding:10px 11px;border-radius:2px;min-height:39px}
+    .two-cols{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+    .file-picker{display:block;border:1px dashed #5b665d;padding:11px 12px;color:var(--accent);font:11px var(--mono);cursor:pointer;text-align:center}
+    .file-picker:hover{background:#242b27}
+    .file-picker input{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
+    .map-status{margin:10px 0 0;color:var(--muted);font-size:11px;line-height:1.5;overflow-wrap:anywhere}
+    .primary-btn{display:block;width:100%;padding:12px;margin-top:10px;background:var(--accent);border:1px solid #dcb479;color:#1d211b;font:700 11px var(--mono);text-align:center;letter-spacing:.015em}
+    .primary-btn:hover{background:#f2cd93}
+    .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#e1bd84;color:#1e221b;border:1px solid #f2daa9;padding:11px 16px;font:12px var(--mono);box-shadow:0 10px 30px #0006;z-index:12;max-width:calc(100vw - 24px)}
+    .toast[hidden]{display:none}
+    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+    @media (max-width:1180px){.workspace{grid-template-columns:248px minmax(290px,1fr) 280px}.topbar{padding:0 18px}.sidebar .side-head{padding-left:17px;padding-right:17px}.side-head h1{font-size:20px}.filters{padding-left:15px;padding-right:15px}.inspector-head,.property-block{padding-left:17px;padding-right:17px}}
+    @media (max-width:850px){.screen{height:auto;min-height:100dvh;grid-template-rows:66px auto}.workspace{grid-template-columns:220px minmax(0,1fr);grid-template-rows:minmax(480px,65vh) auto}.sidebar{grid-column:1;grid-row:1;max-height:65vh}.stage{grid-column:2;grid-row:1;min-height:480px}.inspector{grid-column:1/-1;grid-row:2;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border-left:0;border-top:1px solid var(--line)}.inspector-head{grid-column:1/-1}.stage-rail{left:15px;right:15px;top:17px}.stage-footer{left:12px;right:12px;bottom:13px;flex-wrap:wrap}.stage-hint{display:none}}
+    @media (max-width:590px){.screen{display:block}.topbar{height:65px}.brand strong{font-size:11px}.brand span{font-size:10px}.topbar-right .version{display:none}.topbar-btn{font-size:10px;padding:8px}.workspace{display:flex;flex-direction:column}.stage{order:0;min-height:52dvh;height:52dvh}.sidebar{order:1;max-height:none;border-right:0;border-top:1px solid var(--line)}.inspector{order:2;display:block}.side-head{padding-top:3px;padding-bottom:10px}.side-head h1{font-size:18px}.filters{padding-top:14px;padding-bottom:10px}.asset-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.asset{grid-template-columns:42px 1fr;min-height:65px;gap:8px;padding:6px}.asset-swatch{width:42px;height:43px}.asset-swatch span{font-size:14px}.asset-chevron{display:none}.stage-selected{font-size:15px}.stage-mode{font-size:9px}.view-btn{min-width:56px;padding:9px 7px}.stage-footer{justify-content:end}}
+    @media (prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+  </style>
+</head>
+<body>
+<div class="screen">
+  <header class="topbar">
+    <div class="brand"><div class="mark" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+      <div><strong data-i18n="appTitle">Taller de mobiliario</strong><span data-i18n="appSubtitle">Forest Horror · Catálogo doméstico / 01</span></div>
+    </div>
+    <div class="topbar-right"><span class="version">FH / ASSETS / v6.0</span><button type="button" class="topbar-btn" id="download-catalog" data-i18n="exportCatalog">Descargar catálogo</button></div>
+  </header>
+  <div class="workspace">
+    <aside class="sidebar" aria-label="Catálogo de muebles">
+      <div class="side-head"><div class="eyebrow">DOMÉSTICO + COCINA + DELIVERY + OFICINA + BAÑOS + SEGURIDAD / 01—06</div><h1 data-i18n="catalog">CATÁLOGO</h1><p>78 modelos 3D · escala real · texturas pixeladas</p></div>
+      <div class="filters"><label class="search-label" for="search" data-i18n="search">Buscar mueble</label>
+        <div class="search-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.75" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></svg><input id="search" autocomplete="off" type="search" data-placeholder="searchPlaceholder" placeholder="Nombre o habitación…"></div>
+        <div id="pack-chips" class="chips" role="group" aria-label="Filtrar colección"></div>
+        <div id="category-chips" class="chips" role="group" aria-label="Filtrar categoría"></div>
+      </div>
+      <div class="list-top"><span>INVENTARIO</span><span id="count">78 / 78</span></div>
+      <div id="asset-list" class="asset-list" aria-label="Muebles disponibles"></div>
+    </aside>
+    <main class="stage" aria-label="Vista de mueble 3D">
+      <div id="canvas-container"></div>
+      <div class="stage-rail"><div><div class="eyebrow" data-i18n="preview">VISUALIZADOR</div><div id="stage-selected" class="stage-selected">Silla de madera</div></div><div class="stage-mode">THREE.JS / r128<strong>FT → METROS</strong></div></div>
+      <div id="viewer-message" class="viewer-message" role="status" data-i18n="pendingThree">Cargando visualizador 3D…</div>
+      <div class="stage-footer"><span class="stage-hint" data-i18n="help">Arrastra para girar · rueda para acercar · botón derecho para desplazar</span>
+        <div class="view-buttons" role="group" aria-label="Vistas de cámara">
+          <button type="button" class="view-btn" data-view="iso" aria-pressed="true" data-i18n="iso">Perspectiva</button>
+          <button type="button" class="view-btn" data-view="front" aria-pressed="false" data-i18n="front">Frente</button>
+          <button type="button" class="view-btn" data-view="top" aria-pressed="false" data-i18n="top">Planta</button>
+          <button type="button" class="view-btn" id="reset-camera" title="Restablecer vista" aria-label="Restablecer vista">↺</button>
+        </div>
+      </div>
+    </main>
+    <aside class="inspector" aria-label="Propiedades del mueble">
+      <div class="inspector-head"><div class="eyebrow" data-i18n="properties">PROPIEDADES</div><h2 id="property-name">Silla de madera</h2><p id="property-description"></p></div>
+      <section class="property-block" aria-label="Dimensiones"><div class="section-title" data-i18n="dimensions">DIMENSIONES REALES</div><div class="metrics">
+        <div class="metric"><span data-i18n="width">Ancho</span><strong id="width">1.75</strong><small>ft</small></div>
+        <div class="metric"><span data-i18n="depth">Fondo</span><strong id="depth">1.75</strong><small>ft</small></div>
+        <div class="metric"><span data-i18n="height">Alto</span><strong id="height">3.25</strong><small>ft</small></div>
+      </div><p class="info" data-i18n="dimensionNote">1 unidad Three.js = 1 metro. Medidas originales preservadas en ft.</p></section>
+      <section class="property-block" aria-label="Cuadrícula"><div class="section-title" data-i18n="canvas">LIENZO DE REFERENCIA</div>
+        <label class="toggle-row"><input id="toggle-grid" type="checkbox" checked><span data-i18n="grid">Cuadrícula 1 ft</span></label>
+        <label class="toggle-row"><input id="toggle-base" type="checkbox" checked><span data-i18n="baseCanvas">Lienzo base 3 × 3 ft</span></label>
+        <label class="toggle-row"><input id="toggle-cell" type="checkbox" checked><span data-i18n="worldCell">Celda mundo 5 × 5 ft</span></label>
+      </section>
+      <section id="security-controls" class="property-block" aria-label="Animación de vigilancia" hidden>
+        <div class="section-title" data-i18n="cameraMovement">GIRO DE VIGILANCIA</div>
+        <label class="toggle-row"><input id="security-sweep" type="checkbox" checked><span data-i18n="cameraMovement">Giro de vigilancia</span></label>
+        <p class="info" data-i18n="cameraMovementDescription">Vista previa del barrido; el motor deberá activarlo cuando corresponda.</p>
+      </section>
+      <section class="property-block" aria-label="Ocupación"><div class="section-title" data-i18n="footprint">OCUPACIÓN EN MAPA</div><div class="detail-rows">
+        <div class="detail-row"><span data-i18n="xCells">Ancho en celdas</span><code id="cells-x">0.35</code></div>
+        <div class="detail-row"><span data-i18n="yCells">Fondo en celdas</span><code id="cells-y">0.35</code></div>
+        <div class="detail-row"><span data-i18n="zCells">Altura en celdas</span><code id="cells-z">0.65</code></div>
+        <div class="detail-row"><span>Paso de medida</span><code>0.25 ft</code></div>
+        <div class="detail-row"><span>Huella de colisión</span><code id="collision">Rectángulo</code></div>
+      </div></section>
+      <section class="property-block" aria-label="Inserción en mapa"><div class="section-title" data-i18n="mapSection">INSERCIÓN EN MAPA</div>
+        <label class="file-picker" for="map-file"><span data-i18n="loadMap">Cargar mapa JSON</span><input id="map-file" type="file" accept=".json,application/json"></label>
+        <p class="map-status" id="map-status" data-i18n="sampleMap">Escala del mapa de referencia: 5 ft por celda</p>
+        <div class="field"><label for="floor" data-i18n="floor">Piso</label><select id="floor"><option value="floor1">Piso 1</option></select></div>
+        <div class="two-cols">
+          <div class="field"><label for="map-x" data-i18n="coordinateX">X de cuadrícula</label><input id="map-x" type="number" min="0" step="0.05" value="6"></div>
+          <div class="field"><label for="map-y" data-i18n="coordinateY">Y de cuadrícula</label><input id="map-y" type="number" min="0" step="0.05" value="6"></div>
+        </div>
+        <button type="button" id="copy-item" class="primary-btn" data-i18n="copyItem">Copiar elemento JSON</button>
+        <p class="warn" data-i18n="engineNote">El elemento exportado usa forest-horror-map-v1, pero el motor necesita un renderer para type: furniture antes de mostrarlo en el juego.</p>
+      </section>
+    </aside>
+  </div>
+</div>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+<script src="textos_es.js"></script>
+<script src="muebles.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js'"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script>
+(function () {
+  'use strict';
+  const T = window.FH_TEXTOS;
+  const FH = window.FH_MUEBLES;
+  const $ = id => document.getElementById(id);
+  const catalog = FH.list;
+  let selected = catalog.find(item => item.pack === 'seguridad_06').id, category = 'Todos', search = '', pack = 'seguridad_06';
+  let feetPerCell = 5;
+  let activeMap = null;
+  const packs = [{id:'all',name:T.packAll},{id:'domestico_01',name:T.packDomestic},{id:'cocina_02',name:T.packKitchen},{id:'delivery_03',name:T.packDelivery},{id:'oficina_electronica_04',name:T.packOffice},{id:'banos_05',name:T.packBathroom},{id:'seguridad_06',name:T.packSecurity}];
+  const state = {three:false, camera:null, renderer:null, scene:null, grid:null, base:null, cell:null, footprint:null, current:null, radius:3, theta:.75, phi:1.05, target:null, pending:false, loadToken:0};
+  let toastTimeout = null;
+  let sweepStart = null;
+  const sweepClock = {duration:7.2,rad:48*Math.PI/180};
+  const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  for (const el of document.querySelectorAll('[data-i18n]')) el.textContent = T[el.dataset.i18n] || el.textContent;
+  for (const el of document.querySelectorAll('[data-placeholder]')) el.placeholder = T[el.dataset.placeholder] || el.placeholder;
+
+  function showToast(message) {
+    $('toast').textContent = message;
+    $('toast').hidden = false;
+    clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => $('toast').hidden = true, 3200);
+  }
+  function number(v) { return Number(v).toFixed(2).replace(/\.00$/, ''); }
+  function makeButton(label, selectedValue, callback) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'chip';
+    btn.textContent = label;
+    btn.setAttribute('aria-pressed', String(selectedValue));
+    btn.addEventListener('click', callback);
+    return btn;
+  }
+  function renderChips() {
+    const packHolder = $('pack-chips');
+    packHolder.replaceChildren();
+    for (const p of packs) packHolder.appendChild(makeButton(p.name,pack === p.id, () => {
+      pack = p.id; category = 'Todos'; renderChips(); renderCatalog();
+      const first = catalog.find(a => pack === 'all' || a.pack === pack);
+      if (first) choose(first.id);
+    }));
+    const holder = $('category-chips');
+    holder.replaceChildren();
+    const choices = catalog.filter(a => pack === 'all' || a.pack === pack);
+    const categories = ['Todos', ...new Set(choices.map(a => a.category))];
+    for (const cat of categories) holder.appendChild(makeButton(cat, category === cat, () => {
+      category = cat; renderChips(); renderCatalog();
+    }));
+  }
+  function renderCatalog() {
+    const holder = $('asset-list');
+    holder.replaceChildren();
+    const needle = search.trim().toLocaleLowerCase('es');
+    const visible = catalog.filter(a => (pack === 'all' || a.pack === pack) && (category === 'Todos' || a.category === category) && (!needle || (a.name + ' ' + a.category + ' ' + a.tags.join(' ')).toLocaleLowerCase('es').includes(needle)));
+    $('count').textContent = String(visible.length).padStart(2,'0') + ' / ' + String(catalog.length).padStart(2,'0');
+    for (const item of visible) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'asset';
+      btn.setAttribute('aria-pressed', String(item.id === selected));
+      btn.setAttribute('aria-label', item.name);
+      const swatch = document.createElement('div'); swatch.className = 'asset-swatch';
+      const abbrev = document.createElement('span'); abbrev.textContent = item.shortCode; swatch.appendChild(abbrev);
+      const thumbnail=document.createElement('img');thumbnail.src=item.thumbnail;thumbnail.alt='';thumbnail.loading='lazy';thumbnail.addEventListener('error',()=>thumbnail.remove());swatch.appendChild(thumbnail);
+      const content = document.createElement('div');
+      const title = document.createElement('div'); title.className = 'asset-name'; title.textContent = item.name;
+      const dim = document.createElement('div'); dim.className = 'asset-sub'; dim.textContent = number(item.widthFt) + ' × ' + number(item.depthFt) + ' ft';
+      const arrow = document.createElement('span'); arrow.className = 'asset-chevron'; arrow.textContent = '›'; arrow.setAttribute('aria-hidden','true');
+      content.append(title, dim); btn.append(swatch, content, arrow);
+      btn.addEventListener('click', () => choose(item.id));
+      holder.appendChild(btn);
+    }
+    if (!visible.length) { const empty=document.createElement('p'); empty.className='no-results'; empty.textContent=T.noResults; holder.appendChild(empty); }
+  }
+  function choose(id) {
+    const item = FH.get(id);
+    if (!item) return;
+    selected = id;
+    $('security-controls').hidden = item.pack !== 'seguridad_06';
+    sweepStart=null;
+    $('stage-selected').textContent = item.name;
+    $('property-name').textContent = item.name;
+    $('property-description').textContent = item.description;
+    $('width').textContent = number(item.widthFt);
+    $('depth').textContent = number(item.depthFt);
+    $('height').textContent = number(item.heightFt);
+    $('cells-x').textContent = number(item.widthFt / feetPerCell);
+    $('cells-y').textContent = number(item.depthFt / feetPerCell);
+    $('cells-z').textContent = number(item.heightFt / feetPerCell);
+    $('collision').textContent = item.blocksMovement ? 'Sí · huella rectangular' : 'No';
+    renderCatalog();
+    if (state.three) loadAsset(item);
+  }
+  function animateSecurity(time) {
+    if (state.three && selected === 'camara_seguridad' && state.current) {
+      const pivot = state.current.getObjectByName('CAM_YAW');
+      if (pivot) {
+        const enabled = $('security-sweep').checked && !reduceMotion && !document.hidden;
+        if (enabled) {
+          if (sweepStart === null) sweepStart = time;
+          // 0° → −48° → 0° → +48° → 0°, ciclo suave de 7.2 s.
+          const phase=((time-sweepStart)/1000/sweepClock.duration)*Math.PI*2;
+          pivot.rotation.y = -sweepClock.rad*Math.sin(phase);
+          requestRender();
+        } else if (sweepStart !== null || pivot.rotation.y !== 0) { sweepStart=null; pivot.rotation.y=0; requestRender(); }
+      }
+    }
+    requestAnimationFrame(animateSecurity);
+  }
+  function requestRender() {
+    if (!state.three || state.pending) return;
+    state.pending = true;
+    requestAnimationFrame(() => { state.pending = false; state.renderer.render(state.scene, state.camera); });
+  }
+  function updateCamera() {
+    if (!state.three) return;
+    const r = state.radius;
+    const x = r * Math.sin(state.phi) * Math.sin(state.theta);
+    const z = r * Math.sin(state.phi) * Math.cos(state.theta);
+    const y = r * Math.cos(state.phi);
+    state.camera.position.set(state.target.x + x, state.target.y + y, state.target.z + z);
+    state.camera.lookAt(state.target);
+    requestRender();
+  }
+  function view(mode) {
+    const item = FH.get(selected);
+    const maxDim = Math.max(item.widthFt, item.depthFt, item.heightFt) * .3048;
+    state.radius = Math.max(maxDim * 1.85, 1.75);
+    state.target.set(0, item.heightFt * .3048 * .42, 0);
+    if (mode === 'front') {state.theta=0;state.phi=Math.PI/2.12;}
+    else if (mode === 'top') {state.theta=.01;state.phi=.06;}
+    else {state.theta=Math.PI/4;state.phi=1.08;}
+    for (const btn of document.querySelectorAll('[data-view]')) btn.setAttribute('aria-pressed', String(btn.dataset.view === mode));
+    updateCamera();
+  }
+  function lineRectangle(THREE, group, w, d, color, y, opacity) {
+    const x=w*.3048/2, z=d*.3048/2;
+    const coords=[-x,y,-z, x,y,-z, x,y,-z, x,y,z, x,y,z,-x,y,z,-x,y,z,-x,y,-z];
+    const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(coords,3));
+    const line=new THREE.LineSegments(geo,new THREE.LineBasicMaterial({color,transparent:true,opacity,depthWrite:false}));
+    group.add(line);
+  }
+  function buildFloorOverlays(THREE,item) {
+    for (const k of ['grid','base','cell','footprint']) {
+      if (state[k]) {state.scene.remove(state[k]);state[k].traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material)o.material.dispose();});}
+    }
+    const spanFt = Math.max(7, Math.ceil(Math.max(item.widthFt,item.depthFt)+1));
+    const pts=[];
+    for (let n=-Math.ceil(spanFt/2); n <= Math.ceil(spanFt/2); n++) {
+      let v=n*.3048, h=spanFt*.3048/2;
+      pts.push(-h,.012,v, h,.012,v, v,.012,-h,v,.012,h);
+    }
+    state.grid=new THREE.Group();
+    const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(pts,3));
+    state.grid.add(new THREE.LineSegments(geo,new THREE.LineBasicMaterial({color:0x536260,transparent:true,opacity:.46,depthWrite:false})));
+    state.base=new THREE.Group(); lineRectangle(THREE,state.base,3,3,0xdbb47f,.021,.86);
+    state.cell=new THREE.Group(); lineRectangle(THREE,state.cell,feetPerCell,feetPerCell,0x6dafa6,.018,.62);
+    state.footprint=new THREE.Group();lineRectangle(THREE,state.footprint,item.widthFt,item.depthFt,0xd6a96c,.032,.70);
+    for (const k of ['grid','base','cell','footprint']) state.scene.add(state[k]);
+    syncOverlays();
+  }
+  function syncOverlays() {
+    if (!state.three) return;
+    state.grid.visible = $('toggle-grid').checked;
+    state.base.visible = $('toggle-base').checked;
+    state.cell.visible = $('toggle-cell').checked;
+    requestRender();
+  }
+  function loadAsset(item) {
+    try {
+      if (state.current) { state.scene.remove(state.current); FH.disposeFurniture(state.current); }
+      const loadToken=++state.loadToken;
+      state.current = FH.createFurniture(item.id, window.THREE);
+      state.scene.add(state.current);
+      buildFloorOverlays(window.THREE, item);
+      view('iso');
+      // GLB original, incluida textura real y rig. En file:// se conserva la
+      // vista previa procedural, porque los navegadores bloquean fetch local.
+      if (item.id === 'camara_seguridad' && location.protocol !== 'file:' && window.THREE.GLTFLoader) {
+        const loader = new window.THREE.GLTFLoader();
+        loader.load(item.glb, gltf => {
+          if (state.loadToken !== loadToken || selected !== item.id) return;
+          state.scene.remove(state.current);
+          FH.disposeFurniture(state.current);
+          state.current = gltf.scene;
+          state.current.name = 'fh_furniture__' + item.id;
+          state.current.traverse(node => { if(node.isMesh){node.castShadow=true;node.receiveShadow=true;} });
+          state.scene.add(state.current);
+          sweepStart=null;
+          requestRender();
+        }, undefined, error => console.warn('GLB no disponible; usando vista procedural:',error));
+      }
+    } catch (err) { $('viewer-message').textContent=T.modelError + ' ' + err.message; $('viewer-message').hidden=false; }
+  }
+  function setupThree() {
+    if (!window.THREE || !window.THREE.WebGLRenderer) { $('viewer-message').textContent = T.noWebgl; return; }
+    const THREE=window.THREE;
+    const holder=$('canvas-container');
+    try {
+      const renderer=new THREE.WebGLRenderer({antialias:false,alpha:false,powerPreference:'high-performance'});
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1,1.5));
+      renderer.setSize(Math.max(holder.clientWidth,1),Math.max(holder.clientHeight,1));
+      renderer.setClearColor(0x121a1b,1);
+      renderer.shadowMap.enabled=true;
+      renderer.shadowMap.type=THREE.PCFShadowMap;
+      renderer.outputEncoding=THREE.sRGBEncoding;
+      holder.appendChild(renderer.domElement);
+      const scene=new THREE.Scene();
+      scene.background=new THREE.Color(0x151d1e);
+      scene.fog=new THREE.Fog(0x151d1e,3.9,10.5);
+      const camera=new THREE.PerspectiveCamera(39, Math.max(holder.clientWidth,1)/Math.max(holder.clientHeight,1), .01, 40);
+      const ambient=new THREE.HemisphereLight(0xd2d0bd,0x263331,.95);scene.add(ambient);
+      const light=new THREE.DirectionalLight(0xffddaa,1.25);
+      light.position.set(-1.8,4.5,3.2);
+      light.castShadow=true;
+      light.shadow.mapSize.width=light.shadow.mapSize.height=1024;
+      light.shadow.camera.left=-5;light.shadow.camera.right=5;light.shadow.camera.top=5;light.shadow.camera.bottom=-5;
+      scene.add(light);
+      const rim=new THREE.DirectionalLight(0x779f9c,.45);rim.position.set(2.3,2.2,-3);scene.add(rim);
+      const ground=new THREE.Mesh(new THREE.PlaneGeometry(40,40),new THREE.MeshLambertMaterial({color:0x222d2b}));
+      ground.rotation.x=-Math.PI/2;ground.position.y=-.009;ground.receiveShadow=true;scene.add(ground);
+      Object.assign(state,{three:true,renderer,scene,camera,target:new THREE.Vector3()});
+      $('viewer-message').hidden=true;
+      loadAsset(FH.get(selected));
+      requestAnimationFrame(animateSecurity);
+      const canvas=renderer.domElement;
+      const drag={active:false,x:0,y:0,button:0};
+      canvas.addEventListener('contextmenu',e=>e.preventDefault());
+      canvas.addEventListener('pointerdown',e=>{if(e.button!==0 && e.button!==2)return;drag.active=true;drag.x=e.clientX;drag.y=e.clientY;drag.button=e.button;canvas.setPointerCapture(e.pointerId);});
+      canvas.addEventListener('pointerup',()=>{drag.active=false;});
+      canvas.addEventListener('pointercancel',()=>{drag.active=false;});
+      canvas.addEventListener('pointermove',e=>{
+        if(!drag.active)return;
+        const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.x=e.clientX;drag.y=e.clientY;
+        if(drag.button===2){
+          const right=new THREE.Vector3().setFromMatrixColumn(camera.matrix,0).multiplyScalar(-dx*.0016*state.radius);
+          const up=new THREE.Vector3().setFromMatrixColumn(camera.matrix,1).multiplyScalar(dy*.0016*state.radius);
+          state.target.add(right).add(up);
+        } else {state.theta-=dx*.009;state.phi=Math.max(.06,Math.min(Math.PI-.08,state.phi+dy*.009));}
+        for(const btn of document.querySelectorAll('[data-view]'))btn.setAttribute('aria-pressed','false');
+        updateCamera();
+      });
+      canvas.addEventListener('wheel',e=>{e.preventDefault();state.radius=Math.max(.5,Math.min(17,state.radius*Math.exp(e.deltaY*.001)));updateCamera();},{passive:false});
+      // Pantallas táctiles: arrastrar = orbitar, pellizco = zoom.
+      const fingers=new Map();let lastPinch=null;
+      canvas.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'){fingers.set(e.pointerId,[e.clientX,e.clientY]);if(fingers.size===2)lastPinch=null;}});
+      canvas.addEventListener('pointermove',e=>{
+        if(e.pointerType!=='touch'||!fingers.has(e.pointerId))return;
+        fingers.set(e.pointerId,[e.clientX,e.clientY]);
+        if(fingers.size!==2)return;
+        const [[ax,ay],[bx,by]]=Array.from(fingers.values());
+        const distance=Math.hypot(ax-bx,ay-by);
+        if(lastPinch!=null && distance>0){state.radius=Math.max(.5,Math.min(17,state.radius*lastPinch/distance));updateCamera();}
+        lastPinch=distance;
+      });
+      for(const event of ['pointerup','pointercancel'])canvas.addEventListener(event,e=>{fingers.delete(e.pointerId);if(fingers.size<2)lastPinch=null;});
+      function resize(){if(!state.three)return;const w=Math.max(holder.clientWidth,1),h=Math.max(holder.clientHeight,1);camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h);requestRender();}
+      if('ResizeObserver'in window)new ResizeObserver(resize).observe(holder);else window.addEventListener('resize',resize);
+      requestRender();
+    } catch(err){console.error(err);$('viewer-message').textContent=T.noWebgl+' '+err.message;}
+  }
+  function updateScale() {
+    const item=FH.get(selected);
+    $('cells-x').textContent=number(item.widthFt/feetPerCell);
+    $('cells-y').textContent=number(item.depthFt/feetPerCell);
+    $('cells-z').textContent=number(item.heightFt/feetPerCell);
+    if(state.three)buildFloorOverlays(window.THREE,item);
+  }
+  $('security-sweep').addEventListener('change',()=>{sweepStart=null;requestRender();});
+  $('search').addEventListener('input',e=>{search=e.target.value;renderCatalog();});
+  for(const id of ['toggle-grid','toggle-base','toggle-cell'])$(id).addEventListener('change',syncOverlays);
+  for(const btn of document.querySelectorAll('[data-view]'))btn.addEventListener('click',()=>{if(state.three)view(btn.dataset.view);});
+  $('reset-camera').addEventListener('click',()=>{if(state.three)view('iso');});
+  $('download-catalog').addEventListener('click',()=>{
+    const blob=new Blob([JSON.stringify(FH.catalog,null,2)],{type:'application/json;charset=utf-8'});
+    const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='catalogo_muebles.json';a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),3000);showToast(T.cachedMessage);
+  });
+  $('map-file').addEventListener('change',async e=>{
+    const file=e.target.files?.[0];if(!file)return;
+    try {
+      const raw=JSON.parse(await file.text());
+      if(raw.schema!=='forest-horror-map-v1'||!raw.units||!Number.isFinite(raw.units.feetPerCell)||raw.units.feetPerCell<=0||!Array.isArray(raw.floors))throw new Error(T.failedMap);
+      activeMap=raw;feetPerCell=raw.units.feetPerCell;
+      $('map-status').textContent=T.importedMap+(raw.title||file.name)+' · '+feetPerCell+' ft/celda';
+      const select=$('floor');select.replaceChildren();
+      raw.floors.forEach(f=>{const o=document.createElement('option');o.value=String(f.id);o.textContent=f.name||f.id;select.appendChild(o);});
+      updateScale();
+    } catch(error){showToast(T.failedMap);e.target.value='';}
+  });
+  $('copy-item').addEventListener('click',async()=>{
+    const x=Number($('map-x').value),y=Number($('map-y').value);
+    if(!Number.isFinite(x)||!Number.isFinite(y)||x<0||y<0){showToast('Las coordenadas deben ser números no negativos.');return;}
+    const floor=$('floor').value;
+    // La lista de elementos es por piso. No se agrega floorId al item exportado.
+    const item=FH.makeMapItem(selected,{x,y,feetPerCell,instanceId:'mueble_'+selected+'_'+Math.round(x*100)+'_'+Math.round(y*100)});
+    const data=JSON.stringify(item,null,2);
+    try {
+      if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(data);}
+      else {const ta=document.createElement('textarea');ta.value=data;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();if(!document.execCommand('copy'))throw new Error('clipboard');ta.remove();}
+      showToast(T.copied+' '+(activeMap?('Inserta el objeto en items de '+floor+'.'):'Inserta el objeto en items del piso correspondiente.'));
+    } catch(err){
+      const win=window.open('','_blank');
+      if(win){win.document.title='Elemento JSON';const pre=win.document.createElement('pre');pre.textContent=data;win.document.body.appendChild(pre);}
+      showToast(T.clipboardError);
+    }
+  });
+  window.addEventListener('fh:parcel-texture-ready', requestRender);
+  renderChips();
+  choose(selected);
+  setupThree();
+})();
+</script>
+</body>
+</html>

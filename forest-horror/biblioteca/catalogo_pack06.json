@@ -1,0 +1,43 @@
+{
+  "pack": "seguridad_06",
+  "name": "Seguridad - cámara giratoria",
+  "count": 1,
+  "furniture": [
+    {
+      "id": "camara_seguridad",
+      "name": "Cámara de seguridad giratoria",
+      "category": "Cámaras de seguridad",
+      "shortCode": "CS",
+      "pack": "seguridad_06",
+      "widthFt": 1.75,
+      "depthFt": 2.0,
+      "heightFt": 1.25,
+      "blocksMovement": false,
+      "placement": "wall",
+      "mountHeightFt": 7.0,
+      "description": "Cámara analógica de vigilancia con soporte fijo y cabezal que puede barrer horizontalmente.",
+      "tags": [
+        "seguridad",
+        "vigilancia",
+        "pared",
+        "cámara",
+        "animación",
+        "electrónica",
+        "noventas"
+      ],
+      "glb": "modelos_glb/camara_seguridad.glb",
+      "thumbnail": "miniaturas/camara_seguridad.png",
+      "rig": {
+        "type": "transform",
+        "pivot": "CAM_YAW",
+        "axis": "Y",
+        "minDegrees": -48,
+        "maxDegrees": 48,
+        "defaultDegrees": 0,
+        "animation": "Barrido_Seguridad",
+        "loopSeconds": 7.2
+      },
+      "animationOptional": true
+    }
+  ]
+}

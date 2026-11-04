@@ -1,0 +1,1257 @@
+{
+  "schema": "forest-horror-map-v1",
+  "version": 1,
+  "title": "Apartamento ejemplo · 4 habitaciones",
+  "createdAt": "2026-11-03T12:19:10.124Z",
+  "units": {
+    "gridPx": 70,
+    "columns": 16,
+    "rows": 22,
+    "fitGridToImage": true,
+    "feetPerCell": 5,
+    "metersPerCell": 1.524,
+    "snapCell": 1,
+    "originPx": {
+      "x": 0,
+      "y": 0
+    }
+  },
+  "floors": [
+    {
+      "id": "floor1",
+      "name": "Piso 1",
+      "elevationFt": 0,
+      "ceilingHeightFt": 11.5,
+      "items": [
+        {
+          "id": "obj_mw0nn1hq_dlhwbe",
+          "type": "peephole_door",
+          "a": {
+            "x": 6,
+            "y": 4
+          },
+          "b": {
+            "x": 7,
+            "y": 4
+          },
+          "heightFt": 7,
+          "widthFt": 3,
+          "open": false,
+          "locked": true,
+          "peekSide": 1,
+          "doorRole": "entrance",
+          "apartmentId": "apto_ejemplo",
+          "label": "",
+          "peekTo": {
+            "x": 0,
+            "y": 1
+          },
+          "peekFrom": {
+            "x": 0,
+            "y": -1
+          },
+          "keyId": "llave_b"
+        },
+        {
+          "id": "obj_mw0nn1hq_ykcwd8",
+          "type": "door",
+          "a": {
+            "x": 5,
+            "y": 8
+          },
+          "b": {
+            "x": 6,
+            "y": 8
+          },
+          "heightFt": 7,
+          "widthFt": 3,
+          "open": false,
+          "locked": false,
+          "peekSide": 1,
+          "doorRole": "interior",
+          "apartmentId": "",
+          "label": ""
+        },
+        {
+          "id": "obj_mw0nn1hq_mlph88",
+          "type": "door",
+          "a": {
+            "x": 9,
+            "y": 10
+          },
+          "b": {
+            "x": 9,
+            "y": 11
+          },
+          "heightFt": 7,
+          "widthFt": 3,
+          "open": false,
+          "locked": false,
+          "peekSide": 1,
+          "doorRole": "interior",
+          "apartmentId": "",
+          "label": ""
+        },
+        {
+          "id": "obj_mw0nn1hq_3rivt8",
+          "type": "door",
+          "a": {
+            "x": 10,
+            "y": 9
+          },
+          "b": {
+            "x": 11,
+            "y": 9
+          },
+          "heightFt": 7,
+          "widthFt": 3,
+          "open": false,
+          "locked": false,
+          "peekSide": 1,
+          "doorRole": "interior",
+          "apartmentId": "",
+          "label": ""
+        },
+        {
+          "id": "obj_mw0nn1hq_ltbkya",
+          "type": "window",
+          "a": {
+            "x": 11,
+            "y": 4
+          },
+          "b": {
+            "x": 12,
+            "y": 4
+          },
+          "heightFt": 7,
+          "widthFt": 3,
+          "open": false,
+          "locked": false,
+          "peekSide": 1,
+          "doorRole": "window",
+          "apartmentId": "",
+          "label": ""
+        },
+        {
+          "id": "obj_mw0nn1hq_w4c3ts",
+          "type": "kitchen",
+          "x": 6.7,
+          "y": 6.4,
+          "w": 2,
+          "h": 1,
+          "rotation": 0,
+          "label": "",
+          "heightFt": 2,
+          "roomId": "cocina",
+          "apartmentId": "apto_ejemplo",
+          "blocksMovement": true,
+          "interact": {
+            "id": "demo_kitchen",
+            "verb": "search",
+            "label": "Revisar cajón",
+            "once": true,
+            "cooldownSec": 0,
+            "conditions": [],
+            "effects": [
+              {
+                "type": "say",
+                "text": "Encuentras una llave pequeña en el cajón."
+              },
+              {
+                "type": "giveItem",
+                "id": "llave_b"
+              },
+              {
+                "type": "setFlag",
+                "id": "cajon_visto",
+                "value": true
+              },
+              {
+                "type": "playSound",
+                "id": "drawer_open"
+              }
+            ],
+            "failText": "Ya revisaste este cajón."
+          }
+        },
+        {
+          "id": "obj_mw0nn1hq_409fnu",
+          "type": "table",
+          "x": 5.5,
+          "y": 6.8,
+          "w": 1.35,
+          "h": 1,
+          "rotation": 0,
+          "label": "",
+          "heightFt": 2,
+          "roomId": "cocina",
+          "apartmentId": "apto_ejemplo",
+          "blocksMovement": true,
+          "interact": {
+            "id": "demo_note_table",
+            "verb": "read",
+            "label": "Encontrar diario",
+            "once": true,
+            "cooldownSec": 0,
+            "conditions": [],
+            "effects": [
+              {
+                "type": "giveItem",
+                "id": "nota_portero"
+              },
+              {
+                "type": "say",
+                "text": "Encuentras una página doblada."
+              }
+            ],
+            "failText": "Ya recogiste la página."
+          }
+        },
+        {
+          "id": "obj_mw0nn1hq_fengzq",
+          "type": "sofa",
+          "x": 6.5,
+          "y": 10.4,
+          "w": 2,
+          "h": 1,
+          "rotation": 0,
+          "label": "",
+          "heightFt": 2,
+          "roomId": "sala_y_comedor",
+          "apartmentId": "apto_ejemplo",
+          "blocksMovement": true
+        },
+        {
+          "id": "obj_mw0nn1hq_r8dsrn",
+          "type": "tv",
+          "x": 6.5,
+          "y": 13,
+          "w": 2,
+          "h": 1,
+          "rotation": 0,
+          "label": "",
+          "heightFt": 2,
+          "roomId": "sala_y_comedor",
+          "apartmentId": "apto_ejemplo",
+          "blocksMovement": true,
+          "interact": {
+            "id": "demo_tv",
+            "verb": "use",
+            "label": "Encender / apagar TV",
+            "once": false,
+            "cooldownSec": 0.3,
+            "conditions": [],
+            "effects": [
+              {
+                "type": "toggleFlag",
+                "id": "tv_on"
+              },
+              {
+                "type": "playSound",
+                "id": "tv_static"
+              }
+            ],
+            "failText": "La televisión aún está reaccionando."
+          }
+        },
+        {
+          "id": "obj_mw0nn1hq_7xfykb",
+          "type": "dining",
+          "x": 7,
+          "y": 11.6,
+          "w": 2,
+          "h": 2,
+          "rotation": 0,
+          "label": "",
+          "heightFt": 2,
+          "roomId": "sala_y_comedor",
+          "apartmentId": "apto_ejemplo",
+          "blocksMovement": true
+        },
+        {
+          "id": "obj_mw0nn1hq_k0uphf",
+          "type": "toilet",
+          "x": 11.8,
+          "y": 6.4,
+          "w": 0.65,
+          "h": 0.75,
+          "rotation": 0,
+          "label": "",
+          "heightFt": 2,
+          "roomId": "bano",
+          "apartmentId": "apto_ejemplo",
+          "blocksMovement": true
+        },
+        {
+          "id": "obj_mw0nn1hq_4fq4ai",
+          "type": "bath",
+          "x": 10.8,
+          "y": 7.3,
+          "w": 1,
+          "h": 2,
+          "rotation": 0,
+          "label": "",
+          "heightFt": 2,
+          "roomId": "bano",
+          "apartmentId": "apto_ejemplo",
+          "blocksMovement": true
+        },
+        {
+          "id": "obj_mw0nn1hq_7yowl0",
+          "type": "bed",
+          "x": 11.4,
+          "y": 12,
+          "w": 1,
+          "h": 2,
+          "rotation": 0,
+          "label": "",
+          "heightFt": 2,
+          "roomId": "recamara",
+          "apartmentId": "apto_ejemplo",
+          "blocksMovement": true,
+          "interact": {
+            "id": "demo_bed",
+            "verb": "hide",
+            "label": "Esconderse",
+            "once": false,
+            "cooldownSec": 0.3,
+            "conditions": [],
+            "effects": [
+              {
+                "type": "playSound",
+                "id": "fabric_rustle"
+              }
+            ],
+            "failText": "Espera un momento."
+          }
+        },
+        {
+          "id": "obj_mw0nn1hq_4f24b0",
+          "type": "chair",
+          "x": 10.3,
+          "y": 12.8,
+          "w": 0.65,
+          "h": 0.65,
+          "rotation": 0,
+          "label": "",
+          "heightFt": 2,
+          "roomId": "recamara",
+          "apartmentId": "apto_ejemplo",
+          "blocksMovement": true
+        },
+        {
+          "id": "obj_mw0nn1hq_i9z84s",
+          "type": "wall",
+          "a": {
+            "x": 4,
+            "y": 4
+          },
+          "b": {
+            "x": 6,
+            "y": 4
+          },
+          "heightFt": 9,
+          "widthFt": 0,
+          "open": false,
+          "locked": false,
+          "peekSide": 1,
+          "apartmentId": "",
+          "label": ""
+        },
+        {
+          "id": "obj_mw0nn1hr_ncqqsc",
+          "type": "wall",
+          "a": {
+            "x": 7,
+            "y": 4
+          },
+          "b": {
+            "x": 11,
+            "y": 4
+          },
+          "heightFt": 9,
+          "widthFt": 0,
+          "open": false,
+          "locked": false,
+          "peekSide": 1,
+          "apartmentId": "",
+          "label": ""
+        },
+        {
+          "id": "obj_mw0nn1hr_q07t4t",
+          "type": "wall",
+          "a": {
+            "x": 12,
+            "y": 4
+          },
+          "b": {
+            "x": 13,
+            "y": 4
+          },
+          "heightFt": 9,
+          "widthFt": 0,
+          "open": false,
+          "locked": false,
+          "peekSide": 1,
+          "apartmentId": "",
+          "label": ""
+        },
+        {
+          "id": "obj_mw0nn1hq_izadyx",
+          "type": "wall",
+          "a": {
+            "x": 4,
+            "y": 4
+          },
+          "b": {
+            "x": 4,
+            "y": 14
+          },
+          "heightFt": 9,
+          "widthFt": 0,
+          "open": false,
+          "locked": false,
+          "peekSide": 1,
+          "apartmentId": "",
+          "label": ""
+        },
+        {
+          "id": "obj_mw0nn1hq_0q0i7v",
+          "type": "wall",
+          "a": {
+            "x": 4,
+            "y": 14
+          },
+          "b": {
+            "x": 13,
+            "y": 14
+          },
+          "heightFt": 9,
+          "widthFt": 0,
+          "open": false,
+          "locked": false,
+          "peekSide": 1,
+          "apartmentId": "",
+          "label": ""
+        },
+        {
+          "id": "obj_mw0nn1hq_fb89nl",
+          "type": "wall",
+          "a": {
+            "x": 13,
+            "y": 4
+          },
+          "b": {
+            "x": 13,
+            "y": 14
+          },
+          "heightFt": 9,
+          "widthFt": 0,
+          "open": false,
+          "locked": false,
+          "peekSide": 1,
+          "apartmentId": "",
+          "label": ""
+        },
+        {
+          "id": "obj_mw0nn1hq_jl7jcw",
+          "type": "wall",
+          "a": {
+            "x": 9,
+            "y": 4
+          },
+          "b": {
+            "x": 9,
+            "y": 10
+          },
+          "heightFt": 9,
+          "widthFt": 0,
+          "open": false,
+          "locked": false,
+          "peekSide": 1,
+          "apartmentId": "",
+          "label": ""
+        },
+        {
+          "id": "obj_mw0nn1hr_bqj0f7",
+          "type": "wall",
+          "a": {
+            "x": 9,
+            "y": 11
+          },
+          "b": {
+            "x": 9,
+            "y": 14
+          },
+          "heightFt": 9,
+          "widthFt": 0,
+          "open": false,
+          "locked": false,
+          "peekSide": 1,
+          "apartmentId": "",
+          "label": ""
+        },
+        {
+          "id": "obj_mw0nn1hq_08mipj",
+          "type": "wall",
+          "a": {
+            "x": 4,
+            "y": 8
+          },
+          "b": {
+            "x": 5,
+            "y": 8
+          },
+          "heightFt": 9,
+          "widthFt": 0,
+          "open": false,
+          "locked": false,
+          "peekSide": 1,
+          "apartmentId": "",
+          "label": ""
+        },
+        {
+          "id": "obj_mw0nn1hr_z00sb3",
+          "type": "wall",
+          "a": {
+            "x": 6,
+            "y": 8
+          },
+          "b": {
+            "x": 9,
+            "y": 8
+          },
+          "heightFt": 9,
+          "widthFt": 0,
+          "open": false,
+          "locked": false,
+          "peekSide": 1,
+          "apartmentId": "",
+          "label": ""
+        },
+        {
+          "id": "obj_mw0nn1hq_5d0rve",
+          "type": "wall",
+          "a": {
+            "x": 9,
+            "y": 9
+          },
+          "b": {
+            "x": 10,
+            "y": 9
+          },
+          "heightFt": 9,
+          "widthFt": 0,
+          "open": false,
+          "locked": false,
+          "peekSide": 1,
+          "apartmentId": "",
+          "label": ""
+        },
+        {
+          "id": "obj_mw0nn1hr_9ayip7",
+          "type": "wall",
+          "a": {
+            "x": 11,
+            "y": 9
+          },
+          "b": {
+            "x": 13,
+            "y": 9
+          },
+          "heightFt": 9,
+          "widthFt": 0,
+          "open": false,
+          "locked": false,
+          "peekSide": 1,
+          "apartmentId": "",
+          "label": ""
+        },
+        {
+          "id": "obj_mw0nn1hx_adoqne",
+          "type": "room",
+          "autoGenerated": true,
+          "x": 4,
+          "y": 4,
+          "w": 5,
+          "h": 4,
+          "spans": [
+            {
+              "x": 4,
+              "y": 4,
+              "w": 5,
+              "h": 0.25
+            },
+            {
+              "x": 4,
+              "y": 4.25,
+              "w": 5,
+              "h": 0.25
+            },
+            {
+              "x": 4,
+              "y": 4.5,
+              "w": 5,
+              "h": 0.25
+            },
+            {
+              "x": 4,
+              "y": 4.75,
+              "w": 5,
+              "h": 0.25
+            },
+            {
+              "x": 4,
+              "y": 5,
+              "w": 5,
+              "h": 0.25
+            },
+            {
+              "x": 4,
+              "y": 5.25,
+              "w": 5,
+              "h": 0.25
+            },
+            {
+              "x": 4,
+              "y": 5.5,
+              "w": 5,
+              "h": 0.25
+            },
+            {
+              "x": 4,
+              "y": 5.75,
+              "w": 5,
+              "h": 0.25
+            },
+            {
+              "x": 4,
+              "y": 6,
+              "w": 5,
+              "h": 0.25
+            },
+            {
+              "x": 4,
+              "y": 6.25,
+              "w": 5,
+              "h": 0.25
+            },
+            {
+              "x": 4,
+              "y": 6.5,
+              "w": 5,
+              "h": 0.25
+            },
+            {
+              "x": 4,
+              "y": 6.75,
+              "w": 5,
+              "h": 0.25
+            },
+            {
+              "x": 4,
+              "y": 7,
+              "w": 5,
+              "h": 0.25
+            },
+            {
+              "x": 4,
+              "y": 7.25,
+              "w": 5,
+              "h": 0.25
+            },
+            {
+              "x": 4,
+              "y": 7.5,
+              "w": 5,
+              "h": 0.25
+            },
+            {
+              "x": 4,
+              "y": 7.75,
+              "w": 5,
+              "h": 0.25
+            }
+          ],
+          "label": "Cocina",
+          "roomId": "cocina",
+          "apartmentId": "apto_ejemplo",
+          "manualApartmentId": "",
+          "blocksViewOutside": true,
+          "doorIds": [
+            "obj_mw0nn1hq_ykcwd8",
+            "obj_mw0nn1hq_dlhwbe"
+          ],
+          "exitCount": 2,
+          "areaCells": 20,
+          "connections": [
+            {
+              "doorId": "obj_mw0nn1hq_ykcwd8",
+              "doorRole": "interior",
+              "toRoomId": "sala_y_comedor",
+              "toExterior": false
+            },
+            {
+              "doorId": "obj_mw0nn1hq_dlhwbe",
+              "doorRole": "entrance",
+              "toRoomId": null,
+              "toExterior": true
+            }
+          ],
+          "status": "confirmed"
+        },
+        {
+          "id": "obj_mw0nn1hx_bv8e5e",
+          "type": "room",
+          "autoGenerated": true,
+          "x": 9,
+          "y": 4,
+          "w": 4,
+          "h": 5,
+          "spans": [
+            {
+              "x": 9,
+              "y": 4,
+              "w": 4,
+              "h": 0.25
+            },
+            {
+              "x": 9,
+              "y": 4.25,
+              "w": 4,
+              "h": 0.25
+            },
+            {
+              "x": 9,
+              "y": 4.5,
+              "w": 4,
+              "h": 0.25
+            },
+            {
+              "x": 9,
+              "y": 4.75,
+              "w": 4,
+              "h": 0.25
+            },
+            {
+              "x": 9,
+              "y": 5,
+              "w": 4,
+              "h": 0.25
+            },
+            {
+              "x": 9,
+              "y": 5.25,
+              "w": 4,
+              "h": 0.25
+            },
+            {
+              "x": 9,
+              "y": 5.5,
+              "w": 4,
+              "h": 0.25
+            },
+            {
+              "x": 9,
+              "y": 5.75,
+              "w": 4,
+              "h": 0.25
+            },
+            {
+              "x": 9,
+              "y": 6,
+              "w": 4,
+              "h": 0.25
+            },
+            {
+              "x": 9,
+              "y": 6.25,
+              "w": 4,
+              "h": 0.25
+            },
+            {
+              "x": 9,
+              "y": 6.5,
+              "w": 4,
+              "h": 0.25
+            },
+            {
+              "x": 9,
+              "y": 6.75,
+              "w": 4,
+              "h": 0.25
+            },
+            {
+              "x": 9,
+              "y": 7,
+              "w": 4,
+              "h": 0.25
+            },
+            {
+              "x": 9,
+              "y": 7.25,
+              "w": 4,
+              "h": 0.25
+            },
+            {
+              "x": 9,
+              "y": 7.5,
+              "w": 4,
+              "h": 0.25
+            },
+            {
+              "x": 9,
+              "y": 7.75,
+              "w": 4,
+              "h": 0.25
+            },
+            {
+              "x": 9,
+              "y": 8,
+              "w": 4,
+              "h": 0.25
+            },
+            {
+              "x": 9,
+              "y": 8.25,
+              "w": 4,
+              "h": 0.25
+            },
+            {
+              "x": 9,
+              "y": 8.5,
+              "w": 4,
+              "h": 0.25
+            },
+            {
+              "x": 9,
+              "y": 8.75,
+              "w": 4,
+              "h": 0.25
+            }
+          ],
+          "label": "Baño",
+          "roomId": "bano",
+          "apartmentId": "apto_ejemplo",
+          "manualApartmentId": "",
+          "blocksViewOutside": true,
+          "doorIds": [
+            "obj_mw0nn1hq_3rivt8"
+          ],
+          "exitCount": 1,
+          "areaCells": 20,
+          "connections": [
+            {
+              "doorId": "obj_mw0nn1hq_3rivt8",
+              "doorRole": "interior",
+              "toRoomId": "recamara",
+              "toExterior": false
+            }
+          ],
+          "status": "confirmed"
+        },
+        {
+          "id": "obj_mw0nn1hx_esx1no",
+          "type": "room",
+          "autoGenerated": true,
+          "x": 4,
+          "y": 8,
+          "w": 5,
+          "h": 6,
+          "spans": [
+            {
+              "x": 4,
+              "y": 8,
+              "w": 5,
+              "h": 0.25
+            },
+            {
+              "x": 4,
+              "y": 8.25,
+              "w": 5,
+              "h": 0.25
+            },
+            {
+              "x": 4,
+              "y": 8.5,
+              "w": 5,
+              "h": 0.25
+            },
+            {
+              "x": 4,
+              "y": 8.75,
+              "w": 5,
+              "h": 0.25
+            },
+            {
+              "x": 4,
+              "y": 9,
+              "w": 5,
+              "h": 0.25
+            },
+            {
+              "x": 4,
+              "y": 9.25,
+              "w": 5,
+              "h": 0.25
+            },
+            {
+              "x": 4,
+              "y": 9.5,
+              "w": 5,
+              "h": 0.25
+            },
+            {
+              "x": 4,
+              "y": 9.75,
+              "w": 5,
+              "h": 0.25
+            },
+            {
+              "x": 4,
+              "y": 10,
+              "w": 5,
+              "h": 0.25
+            },
+            {
+              "x": 4,
+              "y": 10.25,
+              "w": 5,
+              "h": 0.25
+            },
+            {
+              "x": 4,
+              "y": 10.5,
+              "w": 5,
+              "h": 0.25
+            },
+            {
+              "x": 4,
+              "y": 10.75,
+              "w": 5,
+              "h": 0.25
+            },
+            {
+              "x": 4,
+              "y": 11,
+              "w": 5,
+              "h": 0.25
+            },
+            {
+              "x": 4,
+              "y": 11.25,
+              "w": 5,
+              "h": 0.25
+            },
+            {
+              "x": 4,
+              "y": 11.5,
+              "w": 5,
+              "h": 0.25
+            },
+            {
+              "x": 4,
+              "y": 11.75,
+              "w": 5,
+              "h": 0.25
+            },
+            {
+              "x": 4,
+              "y": 12,
+              "w": 5,
+              "h": 0.25
+            },
+            {
+              "x": 4,
+              "y": 12.25,
+              "w": 5,
+              "h": 0.25
+            },
+            {
+              "x": 4,
+              "y": 12.5,
+              "w": 5,
+              "h": 0.25
+            },
+            {
+              "x": 4,
+              "y": 12.75,
+              "w": 5,
+              "h": 0.25
+            },
+            {
+              "x": 4,
+              "y": 13,
+              "w": 5,
+              "h": 0.25
+            },
+            {
+              "x": 4,
+              "y": 13.25,
+              "w": 5,
+              "h": 0.25
+            },
+            {
+              "x": 4,
+              "y": 13.5,
+              "w": 5,
+              "h": 0.25
+            },
+            {
+              "x": 4,
+              "y": 13.75,
+              "w": 5,
+              "h": 0.25
+            }
+          ],
+          "label": "Sala y comedor",
+          "roomId": "sala_y_comedor",
+          "apartmentId": "apto_ejemplo",
+          "manualApartmentId": "",
+          "blocksViewOutside": true,
+          "doorIds": [
+            "obj_mw0nn1hq_ykcwd8",
+            "obj_mw0nn1hq_mlph88"
+          ],
+          "exitCount": 2,
+          "areaCells": 30,
+          "connections": [
+            {
+              "doorId": "obj_mw0nn1hq_ykcwd8",
+              "doorRole": "interior",
+              "toRoomId": "cocina",
+              "toExterior": false
+            },
+            {
+              "doorId": "obj_mw0nn1hq_mlph88",
+              "doorRole": "interior",
+              "toRoomId": "recamara",
+              "toExterior": false
+            }
+          ],
+          "status": "confirmed"
+        },
+        {
+          "id": "obj_mw0nn1hx_z5amhz",
+          "type": "room",
+          "autoGenerated": true,
+          "x": 9,
+          "y": 9,
+          "w": 4,
+          "h": 5,
+          "spans": [
+            {
+              "x": 9,
+              "y": 9,
+              "w": 4,
+              "h": 0.25
+            },
+            {
+              "x": 9,
+              "y": 9.25,
+              "w": 4,
+              "h": 0.25
+            },
+            {
+              "x": 9,
+              "y": 9.5,
+              "w": 4,
+              "h": 0.25
+            },
+            {
+              "x": 9,
+              "y": 9.75,
+              "w": 4,
+              "h": 0.25
+            },
+            {
+              "x": 9,
+              "y": 10,
+              "w": 4,
+              "h": 0.25
+            },
+            {
+              "x": 9,
+              "y": 10.25,
+              "w": 4,
+              "h": 0.25
+            },
+            {
+              "x": 9,
+              "y": 10.5,
+              "w": 4,
+              "h": 0.25
+            },
+            {
+              "x": 9,
+              "y": 10.75,
+              "w": 4,
+              "h": 0.25
+            },
+            {
+              "x": 9,
+              "y": 11,
+              "w": 4,
+              "h": 0.25
+            },
+            {
+              "x": 9,
+              "y": 11.25,
+              "w": 4,
+              "h": 0.25
+            },
+            {
+              "x": 9,
+              "y": 11.5,
+              "w": 4,
+              "h": 0.25
+            },
+            {
+              "x": 9,
+              "y": 11.75,
+              "w": 4,
+              "h": 0.25
+            },
+            {
+              "x": 9,
+              "y": 12,
+              "w": 4,
+              "h": 0.25
+            },
+            {
+              "x": 9,
+              "y": 12.25,
+              "w": 4,
+              "h": 0.25
+            },
+            {
+              "x": 9,
+              "y": 12.5,
+              "w": 4,
+              "h": 0.25
+            },
+            {
+              "x": 9,
+              "y": 12.75,
+              "w": 4,
+              "h": 0.25
+            },
+            {
+              "x": 9,
+              "y": 13,
+              "w": 4,
+              "h": 0.25
+            },
+            {
+              "x": 9,
+              "y": 13.25,
+              "w": 4,
+              "h": 0.25
+            },
+            {
+              "x": 9,
+              "y": 13.5,
+              "w": 4,
+              "h": 0.25
+            },
+            {
+              "x": 9,
+              "y": 13.75,
+              "w": 4,
+              "h": 0.25
+            }
+          ],
+          "label": "Recámara",
+          "roomId": "recamara",
+          "apartmentId": "apto_ejemplo",
+          "manualApartmentId": "",
+          "blocksViewOutside": true,
+          "doorIds": [
+            "obj_mw0nn1hq_3rivt8",
+            "obj_mw0nn1hq_mlph88"
+          ],
+          "exitCount": 2,
+          "areaCells": 20,
+          "connections": [
+            {
+              "doorId": "obj_mw0nn1hq_3rivt8",
+              "doorRole": "interior",
+              "toRoomId": "bano",
+              "toExterior": false
+            },
+            {
+              "doorId": "obj_mw0nn1hq_mlph88",
+              "doorRole": "interior",
+              "toRoomId": "sala_y_comedor",
+              "toExterior": false
+            }
+          ],
+          "status": "confirmed"
+        },
+        {
+          "id": "demo_spawn",
+          "type": "spawn",
+          "x": 6.75,
+          "y": 6.2,
+          "w": 0.4,
+          "h": 0.4,
+          "rotation": 0,
+          "blocksMovement": false,
+          "label": "Inicio"
+        }
+      ],
+      "apartments": [
+        {
+          "id": "apto_ejemplo",
+          "name": "apto_ejemplo",
+          "roomIds": [
+            "cocina",
+            "bano",
+            "sala_y_comedor",
+            "recamara"
+          ],
+          "entranceDoorIds": [
+            "obj_mw0nn1hq_dlhwbe"
+          ],
+          "roomObjectIds": [
+            "obj_mw0nn1hx_adoqne",
+            "obj_mw0nn1hx_bv8e5e",
+            "obj_mw0nn1hx_esx1no",
+            "obj_mw0nn1hx_z5amhz"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "floor2",
+      "name": "Piso 2",
+      "elevationFt": 12,
+      "ceilingHeightFt": 11.5,
+      "items": [],
+      "apartments": []
+    }
+  ],
+  "notes": "Coordenadas x/y en casillas; cada casilla equivale a 5 pies. El eje Y crece hacia abajo en la referencia. Cada mirilla tiene dirección peekTo.",
+  "exportedAt": "2026-11-03T12:19:11.650Z",
+  "itemDefs": [
+    {
+      "id": "llave_b",
+      "name": "Llave del apartamento",
+      "icon": "🗝",
+      "description": "Una llave pequeña de latón, marcada con el número del apartamento.",
+      "kind": "key",
+      "stackable": false,
+      "apartmentId": "apto_ejemplo",
+      "consumeOnUnlock": false
+    },
+    {
+      "id": "nota_portero",
+      "name": "Diario del portero",
+      "icon": "📄",
+      "description": "Una hoja doblada escrita a mano.",
+      "kind": "note",
+      "stackable": false,
+      "text": "3 de noviembre\n\nLa luz del pasillo volvió a parpadear. Dejé la llave donde siempre, por si alguien necesitaba salir.\n\nNo sé quién camina en el piso de arriba cuando todos duermen.\n\nVoy a comprobar las puertas antes de cerrar."
+    }
+  ]
+}

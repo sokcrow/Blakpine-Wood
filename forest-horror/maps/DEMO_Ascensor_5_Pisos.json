@@ -1,0 +1,565 @@
+{
+  "schema": "forest-horror-map-v1",
+  "version": 2,
+  "title": "Forest Horror · DEMO ascensor cinco pisos",
+  "units": {
+    "gridPx": 70,
+    "columns": 16,
+    "rows": 22,
+    "fitGridToImage": true,
+    "feetPerCell": 5,
+    "metersPerCell": 1.524,
+    "snapCell": 1,
+    "originPx": {
+      "x": 0,
+      "y": 0
+    }
+  },
+  "floors": [
+    {
+      "id": "floor1",
+      "name": "Piso 1",
+      "elevationFt": 0,
+      "ceilingHeightFt": 11.5,
+      "reference": {
+        "name": "Referencia 1",
+        "width": 1145,
+        "height": 1536,
+        "opacity": 0.73
+      },
+      "items": [
+        {
+          "id": "wall_0_0",
+          "type": "wall",
+          "a": {
+            "x": 4,
+            "y": 4
+          },
+          "b": {
+            "x": 12,
+            "y": 4
+          },
+          "heightFt": 9,
+          "widthFt": 0
+        },
+        {
+          "id": "wall_0_1",
+          "type": "wall",
+          "a": {
+            "x": 12,
+            "y": 4
+          },
+          "b": {
+            "x": 12,
+            "y": 12
+          },
+          "heightFt": 9,
+          "widthFt": 0
+        },
+        {
+          "id": "wall_0_2",
+          "type": "wall",
+          "a": {
+            "x": 12,
+            "y": 12
+          },
+          "b": {
+            "x": 4,
+            "y": 12
+          },
+          "heightFt": 9,
+          "widthFt": 0
+        },
+        {
+          "id": "wall_0_3",
+          "type": "wall",
+          "a": {
+            "x": 4,
+            "y": 12
+          },
+          "b": {
+            "x": 4,
+            "y": 4
+          },
+          "heightFt": 9,
+          "widthFt": 0
+        },
+        {
+          "id": "spawn_0",
+          "type": "spawn",
+          "x": 7,
+          "y": 5,
+          "w": 0.4,
+          "h": 0.4,
+          "blocksMovement": false
+        },
+        {
+          "id": "ascensor_1",
+          "type": "elevator",
+          "label": "Ascensor central",
+          "x": 8,
+          "y": 8,
+          "w": 1.5,
+          "h": 1.5,
+          "rotation": 0,
+          "enabled": true,
+          "shaftId": "central",
+          "doorsOpen": false,
+          "requiresPower": true,
+          "powerFlag": "breaker_on",
+          "blocksMovement": false
+        },
+        {
+          "id": "breaker",
+          "type": "misc",
+          "x": 7,
+          "y": 6,
+          "w": 0.75,
+          "h": 0.75,
+          "rotation": 0,
+          "blocksMovement": false,
+          "label": "Tablero eléctrico",
+          "interact": {
+            "id": "breaker_1",
+            "verb": "use",
+            "label": "Activar breaker",
+            "once": false,
+            "cooldownSec": 0.3,
+            "conditions": [],
+            "effects": [
+              {
+                "type": "toggleFlag",
+                "id": "breaker_on"
+              },
+              {
+                "type": "say",
+                "text": "Escuchas que los motores del ascensor vuelven a arrancar."
+              }
+            ],
+            "failText": "El tablero no responde."
+          }
+        },
+        {
+          "id": "area_floor1",
+          "type": "hall",
+          "x": 4.25,
+          "y": 4.25,
+          "w": 7.5,
+          "h": 7.5,
+          "label": "Planta del ascensor"
+        }
+      ]
+    },
+    {
+      "id": "floor2",
+      "name": "Piso 2",
+      "elevationFt": 12,
+      "ceilingHeightFt": 11.5,
+      "reference": {
+        "name": "Referencia 2",
+        "width": 1145,
+        "height": 1536,
+        "opacity": 0.73
+      },
+      "items": [
+        {
+          "id": "wall_1_0",
+          "type": "wall",
+          "a": {
+            "x": 4,
+            "y": 4
+          },
+          "b": {
+            "x": 12,
+            "y": 4
+          },
+          "heightFt": 9,
+          "widthFt": 0
+        },
+        {
+          "id": "wall_1_1",
+          "type": "wall",
+          "a": {
+            "x": 12,
+            "y": 4
+          },
+          "b": {
+            "x": 12,
+            "y": 12
+          },
+          "heightFt": 9,
+          "widthFt": 0
+        },
+        {
+          "id": "wall_1_2",
+          "type": "wall",
+          "a": {
+            "x": 12,
+            "y": 12
+          },
+          "b": {
+            "x": 4,
+            "y": 12
+          },
+          "heightFt": 9,
+          "widthFt": 0
+        },
+        {
+          "id": "wall_1_3",
+          "type": "wall",
+          "a": {
+            "x": 4,
+            "y": 12
+          },
+          "b": {
+            "x": 4,
+            "y": 4
+          },
+          "heightFt": 9,
+          "widthFt": 0
+        },
+        {
+          "id": "ascensor_2",
+          "type": "elevator",
+          "label": "Ascensor central",
+          "x": 8,
+          "y": 8,
+          "w": 1.5,
+          "h": 1.5,
+          "rotation": 0,
+          "enabled": true,
+          "shaftId": "central",
+          "doorsOpen": false,
+          "requiresPower": true,
+          "powerFlag": "breaker_on",
+          "blocksMovement": false
+        },
+        {
+          "id": "area_floor2",
+          "type": "hall",
+          "x": 4.25,
+          "y": 4.25,
+          "w": 7.5,
+          "h": 7.5,
+          "label": "Planta del ascensor"
+        }
+      ]
+    },
+    {
+      "id": "floor3",
+      "name": "Piso 3",
+      "elevationFt": 24,
+      "ceilingHeightFt": 11.5,
+      "reference": {
+        "name": "Referencia 3",
+        "width": 1145,
+        "height": 1536,
+        "opacity": 0.73
+      },
+      "items": [
+        {
+          "id": "wall_2_0",
+          "type": "wall",
+          "a": {
+            "x": 4,
+            "y": 4
+          },
+          "b": {
+            "x": 12,
+            "y": 4
+          },
+          "heightFt": 9,
+          "widthFt": 0
+        },
+        {
+          "id": "wall_2_1",
+          "type": "wall",
+          "a": {
+            "x": 12,
+            "y": 4
+          },
+          "b": {
+            "x": 12,
+            "y": 12
+          },
+          "heightFt": 9,
+          "widthFt": 0
+        },
+        {
+          "id": "wall_2_2",
+          "type": "wall",
+          "a": {
+            "x": 12,
+            "y": 12
+          },
+          "b": {
+            "x": 4,
+            "y": 12
+          },
+          "heightFt": 9,
+          "widthFt": 0
+        },
+        {
+          "id": "wall_2_3",
+          "type": "wall",
+          "a": {
+            "x": 4,
+            "y": 12
+          },
+          "b": {
+            "x": 4,
+            "y": 4
+          },
+          "heightFt": 9,
+          "widthFt": 0
+        },
+        {
+          "id": "ascensor_3",
+          "type": "elevator",
+          "label": "Ascensor central",
+          "x": 8,
+          "y": 8,
+          "w": 1.5,
+          "h": 1.5,
+          "rotation": 0,
+          "enabled": true,
+          "shaftId": "central",
+          "doorsOpen": false,
+          "requiresPower": true,
+          "powerFlag": "breaker_on",
+          "blocksMovement": false
+        },
+        {
+          "id": "area_floor3",
+          "type": "hall",
+          "x": 4.25,
+          "y": 4.25,
+          "w": 7.5,
+          "h": 7.5,
+          "label": "Planta del ascensor"
+        }
+      ]
+    },
+    {
+      "id": "floor4",
+      "name": "Piso 4",
+      "elevationFt": 36,
+      "ceilingHeightFt": 11.5,
+      "reference": {
+        "name": "Referencia 4",
+        "width": 1145,
+        "height": 1536,
+        "opacity": 0.73
+      },
+      "items": [
+        {
+          "id": "wall_3_0",
+          "type": "wall",
+          "a": {
+            "x": 4,
+            "y": 4
+          },
+          "b": {
+            "x": 12,
+            "y": 4
+          },
+          "heightFt": 9,
+          "widthFt": 0
+        },
+        {
+          "id": "wall_3_1",
+          "type": "wall",
+          "a": {
+            "x": 12,
+            "y": 4
+          },
+          "b": {
+            "x": 12,
+            "y": 12
+          },
+          "heightFt": 9,
+          "widthFt": 0
+        },
+        {
+          "id": "wall_3_2",
+          "type": "wall",
+          "a": {
+            "x": 12,
+            "y": 12
+          },
+          "b": {
+            "x": 4,
+            "y": 12
+          },
+          "heightFt": 9,
+          "widthFt": 0
+        },
+        {
+          "id": "wall_3_3",
+          "type": "wall",
+          "a": {
+            "x": 4,
+            "y": 12
+          },
+          "b": {
+            "x": 4,
+            "y": 4
+          },
+          "heightFt": 9,
+          "widthFt": 0
+        },
+        {
+          "id": "ascensor_4",
+          "type": "elevator",
+          "label": "Ascensor central",
+          "x": 8,
+          "y": 8,
+          "w": 1.5,
+          "h": 1.5,
+          "rotation": 0,
+          "enabled": true,
+          "shaftId": "central",
+          "doorsOpen": false,
+          "requiresPower": true,
+          "powerFlag": "breaker_on",
+          "blocksMovement": false
+        },
+        {
+          "id": "area_floor4",
+          "type": "hall",
+          "x": 4.25,
+          "y": 4.25,
+          "w": 7.5,
+          "h": 7.5,
+          "label": "Planta del ascensor"
+        }
+      ]
+    },
+    {
+      "id": "floor5",
+      "name": "Piso 5",
+      "elevationFt": 48,
+      "ceilingHeightFt": 11.5,
+      "reference": {
+        "name": "Referencia 5",
+        "width": 1145,
+        "height": 1536,
+        "opacity": 0.73
+      },
+      "items": [
+        {
+          "id": "wall_4_0",
+          "type": "wall",
+          "a": {
+            "x": 4,
+            "y": 4
+          },
+          "b": {
+            "x": 12,
+            "y": 4
+          },
+          "heightFt": 9,
+          "widthFt": 0
+        },
+        {
+          "id": "wall_4_1",
+          "type": "wall",
+          "a": {
+            "x": 12,
+            "y": 4
+          },
+          "b": {
+            "x": 12,
+            "y": 12
+          },
+          "heightFt": 9,
+          "widthFt": 0
+        },
+        {
+          "id": "wall_4_2",
+          "type": "wall",
+          "a": {
+            "x": 12,
+            "y": 12
+          },
+          "b": {
+            "x": 4,
+            "y": 12
+          },
+          "heightFt": 9,
+          "widthFt": 0
+        },
+        {
+          "id": "wall_4_3",
+          "type": "wall",
+          "a": {
+            "x": 4,
+            "y": 12
+          },
+          "b": {
+            "x": 4,
+            "y": 4
+          },
+          "heightFt": 9,
+          "widthFt": 0
+        },
+        {
+          "id": "ascensor_5",
+          "type": "elevator",
+          "label": "Ascensor central",
+          "x": 8,
+          "y": 8,
+          "w": 1.5,
+          "h": 1.5,
+          "rotation": 0,
+          "enabled": true,
+          "shaftId": "central",
+          "doorsOpen": false,
+          "requiresPower": true,
+          "powerFlag": "breaker_on",
+          "blocksMovement": false
+        },
+        {
+          "id": "area_floor5",
+          "type": "hall",
+          "x": 4.25,
+          "y": 4.25,
+          "w": 7.5,
+          "h": 7.5,
+          "label": "Planta del ascensor"
+        }
+      ]
+    }
+  ],
+  "slabsByLevel": [
+    {
+      "enabled": false,
+      "spans": []
+    },
+    {
+      "enabled": false,
+      "spans": []
+    },
+    {
+      "enabled": false,
+      "spans": []
+    },
+    {
+      "enabled": false,
+      "spans": []
+    }
+  ],
+  "elevatorEvents": {
+    "seed": 1202,
+    "stopChance": 0.18,
+    "wrongFloorChance": 0.12,
+    "lightFlickerChance": 0.35,
+    "maxHoldSec": 6,
+    "secondsPerFloor": 2.2
+  },
+  "initialGameState": {
+    "flags": {
+      "breaker_on": false
+    }
+  }
+}
