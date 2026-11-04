@@ -2666,7 +2666,7 @@ function prepareGLBEngineDoc(source){
   if(start<0||end<=start)throw Error('No se encontró el renderizado original de lámparas');
   return text.slice(0,start)+lightingLampBody+text.slice(end);
  }
- const cameraLightAfter=" const lightDistance=camDistance+(window.FHLights?.cameraBonus(roomLampEntries,lighting,currentFloor,user.x,user.z)||0);\\n const ahead=lighting.state.enabled?.80:0;target.x+=flashDir.x*ahead;target.z+=flashDir.z*ahead;\\n const desired=new THREE.Vector3(user.x+behind.x*lightDistance,y+.88+lightDistance*Math.tan(Math.PI/6),user.z+behind.z*lightDistance);";
+ const cameraLightAfter=" const lightDistance=camDistance+(window.FHLights?.cameraBonus(roomLampEntries,lighting,currentFloor,user.x,user.z)||0);\n const ahead=lighting.state.enabled?0.80:0;target.x+=flashDir.x*ahead;target.z+=flashDir.z*ahead;\n const desired=new THREE.Vector3(user.x+behind.x*lightDistance,y+.88+lightDistance*Math.tan(Math.PI/6),user.z+behind.z*lightDistance);";
  return addLightToEngine(source).replace(cameraBefore,cameraAfter).replace(cameraBefore,cameraLightAfter).replace(loopBefore,loopAfter)
   .replace(maskBefore,maskAfter).replace(wakeHUDBefore,wakeHUDAfter)
   .split(wakeBefore).join(wakeAfter)
