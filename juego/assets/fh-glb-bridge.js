@@ -10,6 +10,12 @@
   const mirrors = new WeakMap();
   let catalogPromise = null;
   let loaderPromise = null;
+  let sightMaskInstaller = null;
+
+  function setSightMaskInstaller(applyMask) {
+    if (typeof applyMask !== 'function') throw new TypeError('Se requiere el FOW del motor existente');
+    sightMaskInstaller = applyMask;
+  }
 
   function catalog() {
     if (!catalogPromise) {
@@ -79,10 +85,14 @@
   }
 
   function replaceVisual(root, scene) {
-    // The original group survives: FOW, rotation and colliders reference it.
-    // Until load succeeds its procedural placeholder remains visible.
+    // Los GLB llegan después de installVisibility: deben compartir su shader FOW.
+    // Si aún no existe el enmascarador, conservamos el mueble provisional.
+    if (!sightMaskInstaller) throw new Error('La máscara FOW aún no está lista');
+    const instance = scene.clone(true);
+    sightMaskInstaller(instance);
+    // Preserve the group used by collisions, item sight, camera and rotations.
     while (root.children.length) root.remove(root.children[0]);
-    root.add(scene.clone(true));
+    root.add(instance);
   }
 
   function mirror(source, duplicate) {
@@ -121,5 +131,5 @@
     });
   }
 
-  global.FHAssets = Object.freeze({ catalog, load, attach, mirror });
+  global.FHAssets = Object.freeze({ catalog, load, attach, mirror, setSightMaskInstaller });
 })(window);
