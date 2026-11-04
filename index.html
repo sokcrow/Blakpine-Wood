@@ -2523,8 +2523,11 @@ function prepareGLBEngineDoc(source){
   throw new Error('No coincide la estructura del motor 3D con los puntos de integración GLB');
  const ruleScript='<script src="'+new URL('./juego/assets/fh-furniture-rules.js',document.baseURI).href+'"></'+'script>';
  const bridge='<script src="'+new URL('./juego/assets/fh-glb-bridge.js',document.baseURI).href+'"></'+'script>';
+ const heroScaleBefore='const HERO_H=1.68,HERO_VISUAL_SCALE=1.15,';
+ if(!source.includes(heroScaleBefore))throw Error('No se encontró el multiplicador visual original del personaje');
  if(!source.includes('ForestShared.loadProject(DATA);'))throw Error('No se encontró la validación del mapa del motor');
- return source.replace('ForestShared.loadProject(DATA);',
+ return source.replace(heroScaleBefore,'const HERO_H=1.68,HERO_VISUAL_SCALE=1,')
+  .replace('ForestShared.loadProject(DATA);',
     'window.FHFurnitureRules?.upgradeMap(DATA,ForestShared);\nForestShared.loadProject(DATA);')
   .replace(attachBefore,' window.FHAssets?.attach(g,a);\n'+attachBefore)
   .replace(cloneBefore,'const clone=source.clone(true);\n   window.FHAssets?.mirror(source,clone);\n   clone.position.y+=floorElev[f];')
