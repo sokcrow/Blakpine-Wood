@@ -2569,6 +2569,23 @@ function prepareGLBEngineDoc(source){
   throw new Error('No coincide la estructura del motor 3D con los puntos de integración GLB');
  const ruleScript='<script src="'+new URL('./juego/assets/fh-furniture-rules.js',document.baseURI).href+'"></'+'script>';
  const bridge='<script src="'+new URL('./juego/assets/fh-glb-bridge.js',document.baseURI).href+'"></'+'script>';
+ const sleepStrings='<script src="'+new URL('./juego/assets/fh-sleep-strings.js',document.baseURI).href+'"></'+'script>';
+ const sleepModule='<script src="'+new URL('./juego/assets/fh-sleep.js',document.baseURI).href+'"></'+'script>';
+ const cameraBefore=" const desired=new THREE.Vector3(user.x+behind.x*camDistance,y+.88+camDistance*Math.tan(Math.PI/6),user.z+behind.z*camDistance);",cameraAfter=" const desired=new THREE.Vector3(user.x+behind.x*camDistance,y+.88+camDistance*Math.tan(Math.PI/6),user.z+behind.z*camDistance);\n const sleepFocus=window.FHSleep?.viewWeight()||0;\n if(sleepFocus>0){const weight=sleepFocus*sleepFocus*(3-2*sleepFocus);\n  target.lerp(new THREE.Vector3(user.x,y+.55,user.z),weight);\n  desired.lerp(new THREE.Vector3(user.x+.12,y+6.1,user.z+.42),weight);\n }";
+ const cameraCount=source.split(cameraBefore).length-1;
+ if(cameraCount!==1)throw Error('Hook de sueño camera: '+cameraCount);
+ const loopBefore=" cameraUpdate(dt);updateCabinIsolation();",loopAfter=" window.FHSleep?.update(dt,playerPose.state.phase,playerPose.state.verb,playerPoseItem?.type,GameEvents);\n cameraUpdate(dt);updateCabinIsolation();";
+ const loopCount=source.split(loopBefore).length-1;
+ if(loopCount!==1)throw Error('Hook de sueño loop: '+loopCount);
+ const maskBefore="function circleMask(){mctx.clearRect(0,0,innerWidth,innerHeight);if(!peeking)return;",maskAfter="function circleMask(){mctx.clearRect(0,0,innerWidth,innerHeight);\n if(!peeking&&window.FHSleep?.viewWeight()>0){\n  const p=new THREE.Vector3(hero.position.x,hero.position.y+.15,hero.position.z).project(cam);\n  const viewRect=$('view').getBoundingClientRect(),maskRect=mist.getBoundingClientRect();\n  const cx=viewRect.left-maskRect.left+(p.x+1)*viewRect.width*.5;\n  const cy=viewRect.top-maskRect.top+(1-p.y)*viewRect.height*.5;\n  if(window.FHSleep.renderMask(mctx,innerWidth,innerHeight,cx,cy))return;\n }\n if(!peeking)return;";
+ const maskCount=source.split(maskBefore).length-1;
+ if(maskCount!==1)throw Error('Hook de sueño mask: '+maskCount);
+ const wakeHUDBefore=" if(playerPose.occupied){$('use').textContent=POSTURE_TEXT.stand;return;}",wakeHUDAfter=" if(playerPose.occupied){\n  const stage=window.FHSleep?.status().stage;\n  $('use').textContent=stage==='asleep'?window.FH_SLEEP_TEXT.wake:stage==='waking'?window.FH_SLEEP_TEXT.waking:POSTURE_TEXT.stand;\n  return;\n }";
+ const wakeHUDCount=source.split(wakeHUDBefore).length-1;
+ if(wakeHUDCount!==1)throw Error('Hook de sueño wakeHUD: '+wakeHUDCount);
+ const wakeBefore="if(playerPose.occupied)return exitPropPose();",wakeAfter="if(playerPose.occupied)return window.FHSleep?.requestWake(()=>exitPropPose())??exitPropPose();";
+ const wakeCount=source.split(wakeBefore).length-1;
+ if(wakeCount!==2)throw Error('Hook de sueño wake: '+wakeCount);
  const chairSelection=' const sitting=selectSeatInteractable(visible,user,yaw,CELL,\n  (item,anchor)=>canWalk(user.x,user.z)&&safePoseRoute(item,{x:user.x,z:user.z},anchor));';
  if(!source.includes(chairSelection))throw Error('No se encontró el selector de sillas');
  const fowStart='function installVisibility(){const used=new Set();scene.traverse(mesh=>{';
@@ -2578,7 +2595,10 @@ function prepareGLBEngineDoc(source){
  const heroScaleBefore='const HERO_H=1.68,HERO_VISUAL_SCALE=1.15,';
  if(!source.includes(heroScaleBefore))throw Error('No se encontró el multiplicador visual original del personaje');
  if(!source.includes('ForestShared.loadProject(DATA);'))throw Error('No se encontró la validación del mapa del motor');
- return source.replace(chairSelection," const poseReachable=(item,anchor)=>canWalk(user.x,user.z)&&safePoseRoute(item,{x:user.x,z:user.z},anchor);\n const stockSeat=selectSeatInteractable(visible,user,yaw,CELL,poseReachable);\n const glbChair=window.FHFurnitureRules?.findReachableChair(visible,user,yaw,CELL,poseReachable,ForestShared);\n const sitting=glbChair&&(!stockSeat||glbChair.score<stockSeat.score)?glbChair:stockSeat;")
+ return source.replace(cameraBefore,cameraAfter).replace(loopBefore,loopAfter)
+  .replace(maskBefore,maskAfter).replace(wakeHUDBefore,wakeHUDAfter)
+  .split(wakeBefore).join(wakeAfter)
+  .replace(chairSelection," const poseReachable=(item,anchor)=>canWalk(user.x,user.z)&&safePoseRoute(item,{x:user.x,z:user.z},anchor);\n const stockSeat=selectSeatInteractable(visible,user,yaw,CELL,poseReachable);\n const glbChair=window.FHFurnitureRules?.findReachableChair(visible,user,yaw,CELL,poseReachable,ForestShared);\n const sitting=glbChair&&(!stockSeat||glbChair.score<stockSeat.score)?glbChair:stockSeat;")
   .replace(fowStart,'const fhSightMaskedMaterials=new WeakSet();function installVisibility(root=scene){root.traverse(mesh=>{')
   .replace(fowMaterials,'if(!m||fhSightMaskedMaterials.has(m)||m.userData?.fhWholeDoor)continue;fhSightMaskedMaterials.add(m);const previous=m.onBeforeCompile;')
   .replace(fowReady,'installVisibility();window.FHAssets?.setSightMaskInstaller(installVisibility);\nconst tex={}')
@@ -2587,7 +2607,7 @@ function prepareGLBEngineDoc(source){
     'window.FHFurnitureRules?.upgradeMap(DATA,ForestShared);\nForestShared.loadProject(DATA);')
   .replace(attachBefore,' window.FHAssets?.attach(g,a);\n'+attachBefore)
   .replace(cloneBefore,'const clone=source.clone(true);\n   window.FHAssets?.mirror(source,clone);\n   clone.position.y+=floorElev[f];')
-  .replace('</head>',ruleScript+bridge+'</head>');
+  .replace('</head>',ruleScript+bridge+sleepStrings+sleepModule+'</head>');
 }
 function start3DPreview(){
  if(preview3DActive)return;
