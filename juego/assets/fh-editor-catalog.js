@@ -74,12 +74,8 @@
  createObject=function(type,pos){
   const item=oldCreate(type,pos);
   if(item&&type==='misc'&&chosen){
-   const feetPerCell=Number(project.units?.feetPerCell)||5;
-   item.modelId=chosen.id;item.label=chosen.name;
-   item.w=Number(chosen.widthFt)/feetPerCell;item.h=Number(chosen.depthFt)/feetPerCell;
-   item.heightFt=Number(chosen.heightFt)||2;item.blocksMovement=chosen.blocksMovement!==false;
-   item.placement=chosen.placement||'floor';
-   if(Number.isFinite(Number(chosen.mountHeightFt)))item.mountHeightFt=Number(chosen.mountHeightFt);
+   window.FHFurnitureRules.applyCatalogModel(
+    item,chosen,ForestShared,Number(project.units?.feetPerCell)||5);
   }
   return item;
  };

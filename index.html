@@ -2521,10 +2521,14 @@ function prepareGLBEngineDoc(source){
  const cloneBefore='const clone=source.clone(true);\n   clone.position.y+=floorElev[f];';
  if(!source.includes(attachBefore)||!source.includes(cloneBefore)||!source.includes('</head>'))
   throw new Error('No coincide la estructura del motor 3D con los puntos de integración GLB');
+ const ruleScript='<script src="'+new URL('./juego/assets/fh-furniture-rules.js',document.baseURI).href+'"></'+'script>';
  const bridge='<script src="'+new URL('./juego/assets/fh-glb-bridge.js',document.baseURI).href+'"></'+'script>';
- return source.replace(attachBefore,' window.FHAssets?.attach(g,a);\n'+attachBefore)
+ if(!source.includes('ForestShared.loadProject(DATA);'))throw Error('No se encontró la validación del mapa del motor');
+ return source.replace('ForestShared.loadProject(DATA);',
+    'window.FHFurnitureRules?.upgradeMap(DATA,ForestShared);\nForestShared.loadProject(DATA);')
+  .replace(attachBefore,' window.FHAssets?.attach(g,a);\n'+attachBefore)
   .replace(cloneBefore,'const clone=source.clone(true);\n   window.FHAssets?.mirror(source,clone);\n   clone.position.y+=floorElev[f];')
-  .replace('</head>',bridge+'</head>');
+  .replace('</head>',ruleScript+bridge+'</head>');
 }
 function start3DPreview(){
  if(preview3DActive)return;
@@ -2589,6 +2593,7 @@ setupPlayMode();
 init();
 </script>
 <script src="./juego/assets/fh-strings.js"></script>
+<script src="./juego/assets/fh-furniture-rules.js"></script>
 <script src="./juego/assets/fh-editor-catalog.js"></script>
 </body>
 </html>

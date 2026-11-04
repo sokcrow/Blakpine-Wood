@@ -93,8 +93,13 @@
   }
 
   function attach(root, item) {
-    if (!root || !item || typeof item.modelId !== 'string' || !item.modelId) return;
-    const modelId = item.modelId;
+    if (!root || !item) return;
+    // Objects created before the GLB library still use their original
+    // type, interaction anchors and collider, but now display a real model.
+    const modelId = typeof item.modelId === 'string' && item.modelId
+      ? item.modelId
+      : global.FHFurnitureRules?.defaultFor(item.type);
+    if (!modelId) return;
     root.userData.fhModelId = modelId;
     load(modelId).then(({ gltf, entry }) => {
       if (root.userData.fhModelId !== modelId) return;
