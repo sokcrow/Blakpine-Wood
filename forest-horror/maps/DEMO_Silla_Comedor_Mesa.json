@@ -1,0 +1,518 @@
+{
+  "schema": "forest-horror-map-v1",
+  "version": 2,
+  "title": "Forest Horror — silla de comedor y mesa delante (acceso posterior/lateral)",
+  "createdAt": "2026-11-04T11:03:26.596Z",
+  "itemDefs": [
+    {
+      "id": "flashlight_battery",
+      "kind": "consumable",
+      "name": "Batería de linterna",
+      "description": "Recarga el 50 % de la linterna.",
+      "stackable": true,
+      "icon": "▤"
+    }
+  ],
+  "units": {
+    "gridPx": 70,
+    "columns": 16,
+    "rows": 22,
+    "fitGridToImage": true,
+    "feetPerCell": 5,
+    "metersPerCell": 1.524,
+    "snapCell": 1,
+    "originPx": {
+      "x": 0,
+      "y": 0
+    }
+  },
+  "floors": [
+    {
+      "id": "floor1",
+      "name": "Piso 1",
+      "elevationFt": 0,
+      "ceilingHeightFt": 11.5,
+      "reference": {
+        "name": "Referencia original Piso 1",
+        "width": 1145,
+        "height": 1536,
+        "opacity": 0.73,
+        "imageIncluded": false
+      },
+      "items": [
+        {
+          "id": "obj_mw20di49_spieic",
+          "type": "room",
+          "x": 3,
+          "y": 3,
+          "w": 4,
+          "h": 4,
+          "label": "Habitación de prueba",
+          "apartmentId": "",
+          "blocksViewOutside": true,
+          "roomId": "habitacion_prueba",
+          "zoneId": "floor1_0di62_lve9t2_c1"
+        },
+        {
+          "id": "obj_mw20di4j_cbzzl7",
+          "type": "hall",
+          "x": 2,
+          "y": 1.5,
+          "w": 6,
+          "h": 1.5,
+          "label": "Pasillo exterior",
+          "apartmentId": "",
+          "blocksViewOutside": false,
+          "roomId": ""
+        },
+        {
+          "id": "obj_mw20di5v_sc41zt",
+          "type": "door",
+          "a": {
+            "x": 4.5,
+            "y": 3
+          },
+          "b": {
+            "x": 5.5,
+            "y": 3
+          },
+          "heightFt": 7,
+          "widthFt": 3,
+          "open": false,
+          "locked": false,
+          "peekSide": 1,
+          "doorRole": "auto",
+          "apartmentId": "",
+          "label": "Puerta de prueba"
+        },
+        {
+          "id": "obj_mw20di62_lve9t2",
+          "type": "breaker_panel",
+          "x": 2.3,
+          "y": 2.35,
+          "w": 0.75,
+          "h": 0.4,
+          "rotation": 0,
+          "label": "Tablero prueba",
+          "heightFt": 5,
+          "roomId": "",
+          "apartmentId": "",
+          "blocksMovement": false,
+          "powerScope": "zone",
+          "powerFlag": "",
+          "zoneId": "floor1_0di62_lve9t2_c1",
+          "circuitColor": "#dc5656",
+          "circuits": [
+            {
+              "id": "floor1_0di62_lve9t2_c1",
+              "zoneId": "floor1_0di62_lve9t2_c1",
+              "name": "Habitación de prueba",
+              "powerScope": "zone",
+              "circuitColor": "#dc5656"
+            }
+          ]
+        },
+        {
+          "id": "obj_mw20di6f_twy0t0",
+          "type": "light_switch",
+          "x": 6.2,
+          "y": 3,
+          "w": 0.4,
+          "h": 0.28,
+          "rotation": 0,
+          "label": "Interruptor",
+          "heightFt": 4,
+          "roomId": "habitacion_prueba",
+          "apartmentId": "",
+          "blocksMovement": false,
+          "wallId": "obj_mw20di5c_wlgbf3",
+          "zoneId": "floor1_0di62_lve9t2_c1"
+        },
+        {
+          "id": "obj_mw20di6v_gpd5oo",
+          "type": "light_fixture",
+          "x": 5,
+          "y": 5,
+          "w": 0.4,
+          "h": 0.4,
+          "rotation": 0,
+          "label": "Lámpara",
+          "heightFt": 8,
+          "roomId": "habitacion_prueba",
+          "apartmentId": "",
+          "blocksMovement": false,
+          "zoneId": "floor1_0di62_lve9t2_c1"
+        },
+        {
+          "id": "obj_mw20di73_oyvlwj",
+          "type": "spawn",
+          "x": 6.0,
+          "y": 3.75,
+          "w": 0.4,
+          "h": 0.4,
+          "rotation": 0,
+          "label": "",
+          "heightFt": 0,
+          "roomId": "",
+          "apartmentId": "",
+          "blocksMovement": false
+        },
+        {
+          "id": "obj_mw20di53_025cwe",
+          "type": "wall",
+          "a": {
+            "x": 3,
+            "y": 3
+          },
+          "b": {
+            "x": 4.5,
+            "y": 3
+          },
+          "heightFt": 9,
+          "widthFt": 0,
+          "open": false,
+          "locked": false,
+          "peekSide": 1,
+          "doorRole": "auto",
+          "apartmentId": "",
+          "label": ""
+        },
+        {
+          "id": "obj_mw20di5c_wlgbf3",
+          "type": "wall",
+          "a": {
+            "x": 5.5,
+            "y": 3
+          },
+          "b": {
+            "x": 7,
+            "y": 3
+          },
+          "heightFt": 9,
+          "widthFt": 0,
+          "open": false,
+          "locked": false,
+          "peekSide": 1,
+          "doorRole": "auto",
+          "apartmentId": "",
+          "label": ""
+        },
+        {
+          "id": "obj_mw20di5i_dan3qj",
+          "type": "wall",
+          "a": {
+            "x": 7,
+            "y": 3
+          },
+          "b": {
+            "x": 7,
+            "y": 7
+          },
+          "heightFt": 9,
+          "widthFt": 0,
+          "open": false,
+          "locked": false,
+          "peekSide": 1,
+          "doorRole": "auto",
+          "apartmentId": "",
+          "label": ""
+        },
+        {
+          "id": "obj_mw20di5m_gbt2yv",
+          "type": "wall",
+          "a": {
+            "x": 7,
+            "y": 7
+          },
+          "b": {
+            "x": 3,
+            "y": 7
+          },
+          "heightFt": 9,
+          "widthFt": 0,
+          "open": false,
+          "locked": false,
+          "peekSide": 1,
+          "doorRole": "auto",
+          "apartmentId": "",
+          "label": ""
+        },
+        {
+          "id": "obj_mw20di5q_jo01zl",
+          "type": "wall",
+          "a": {
+            "x": 3,
+            "y": 7
+          },
+          "b": {
+            "x": 3,
+            "y": 3
+          },
+          "heightFt": 9,
+          "widthFt": 0,
+          "open": false,
+          "locked": false,
+          "peekSide": 1,
+          "doorRole": "auto",
+          "apartmentId": "",
+          "label": ""
+        },
+        {
+          "id": "fh_silla_descanso",
+          "type": "chair",
+          "x": 6.0,
+          "y": 4.7,
+          "w": 0.5,
+          "h": 0.5,
+          "rotation": 0,
+          "label": "Silla de comedor: acceder por detrás o costado",
+          "heightFt": 2,
+          "blocksMovement": true,
+          "roomId": "habitacion_prueba",
+          "anchors": [
+            {
+              "type": "sit",
+              "x": 0,
+              "y": 0.25,
+              "facing": 0
+            }
+          ],
+          "interact": {
+            "id": "sit_silla_prueba",
+            "verb": "sit",
+            "label": "Sentarse (desde atrás o lado)",
+            "once": false,
+            "cooldownSec": 0,
+            "conditions": [],
+            "effects": []
+          }
+        },
+        {
+          "id": "fh_mesa_comedor_prueba",
+          "type": "dining",
+          "label": "Mesa delante de la silla",
+          "x": 6.0,
+          "y": 5.73,
+          "w": 1.4,
+          "h": 0.75,
+          "rotation": 0,
+          "blocksMovement": true
+        }
+      ],
+      "buildingComponents": [
+        {
+          "id": "building_component_1",
+          "nodeIds": [
+            "v0",
+            "v2",
+            "v5",
+            "v4",
+            "v3",
+            "v1"
+          ],
+          "edgeIds": [
+            "e0",
+            "e1",
+            "e5",
+            "e4",
+            "e3",
+            "e2"
+          ],
+          "bounds": {
+            "x": 3,
+            "y": 3,
+            "w": 4,
+            "h": 4
+          },
+          "isClosed": true,
+          "hasWalls": true
+        }
+      ],
+      "apartments": [
+        {
+          "id": "apto_0di5v_sc41zt",
+          "name": "apto_0di5v_sc41zt",
+          "roomIds": [
+            "habitacion_prueba"
+          ],
+          "entranceDoorIds": [
+            "obj_mw20di5v_sc41zt"
+          ],
+          "roomObjectIds": [
+            "obj_mw20di49_spieic"
+          ]
+        }
+      ],
+      "architectureGraph": {
+        "nodes": [
+          {
+            "id": "v0",
+            "x": 4.5,
+            "y": 3,
+            "degree": 2,
+            "edgeIds": [
+              "e0",
+              "e1"
+            ]
+          },
+          {
+            "id": "v1",
+            "x": 5.5,
+            "y": 3,
+            "degree": 2,
+            "edgeIds": [
+              "e0",
+              "e2"
+            ]
+          },
+          {
+            "id": "v2",
+            "x": 3,
+            "y": 3,
+            "degree": 2,
+            "edgeIds": [
+              "e1",
+              "e5"
+            ]
+          },
+          {
+            "id": "v3",
+            "x": 7,
+            "y": 3,
+            "degree": 2,
+            "edgeIds": [
+              "e2",
+              "e3"
+            ]
+          },
+          {
+            "id": "v4",
+            "x": 7,
+            "y": 7,
+            "degree": 2,
+            "edgeIds": [
+              "e3",
+              "e4"
+            ]
+          },
+          {
+            "id": "v5",
+            "x": 3,
+            "y": 7,
+            "degree": 2,
+            "edgeIds": [
+              "e4",
+              "e5"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "id": "e0",
+            "type": "door",
+            "sourceItemId": "obj_mw20di5v_sc41zt",
+            "from": "v0",
+            "to": "v1"
+          },
+          {
+            "id": "e1",
+            "type": "wall",
+            "sourceItemId": "obj_mw20di53_025cwe",
+            "from": "v2",
+            "to": "v0"
+          },
+          {
+            "id": "e2",
+            "type": "wall",
+            "sourceItemId": "obj_mw20di5c_wlgbf3",
+            "from": "v1",
+            "to": "v3"
+          },
+          {
+            "id": "e3",
+            "type": "wall",
+            "sourceItemId": "obj_mw20di5i_dan3qj",
+            "from": "v3",
+            "to": "v4"
+          },
+          {
+            "id": "e4",
+            "type": "wall",
+            "sourceItemId": "obj_mw20di5m_gbt2yv",
+            "from": "v4",
+            "to": "v5"
+          },
+          {
+            "id": "e5",
+            "type": "wall",
+            "sourceItemId": "obj_mw20di5q_jo01zl",
+            "from": "v5",
+            "to": "v2"
+          }
+        ],
+        "components": [
+          {
+            "id": "building_component_1",
+            "nodeIds": [
+              "v0",
+              "v2",
+              "v5",
+              "v4",
+              "v3",
+              "v1"
+            ],
+            "edgeIds": [
+              "e0",
+              "e1",
+              "e5",
+              "e4",
+              "e3",
+              "e2"
+            ],
+            "bounds": {
+              "x": 3,
+              "y": 3,
+              "w": 4,
+              "h": 4
+            },
+            "isClosed": true,
+            "hasWalls": true
+          }
+        ]
+      },
+      "grid": {
+        "columns": 16,
+        "rows": 22,
+        "fitToImage": true,
+        "cellWidthPx": 71.5625,
+        "cellHeightPx": 69.81818,
+        "feetPerCell": 5
+      }
+    }
+  ],
+  "notes": "Pulsa Probar 3D: acércate a la silla desde atrás o un costado. La mesa impide usarla a través de ella. Usa de nuevo para levantarte en un espacio libre.",
+  "buildingSlabs": {
+    "enabled": false,
+    "spans": [],
+    "regions": [],
+    "micro": 1
+  },
+  "slabsByLevel": [
+    {
+      "enabled": false,
+      "spans": [],
+      "regions": [],
+      "micro": 1
+    }
+  ],
+  "exportedAt": "2026-11-04T11:03:27.343Z",
+  "initialGameState": {
+    "flags": {},
+    "inventory": [],
+    "player": {
+      "floorId": "floor1",
+      "x": 7.62,
+      "z": 3.6576
+    }
+  }
+}

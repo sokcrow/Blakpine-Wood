@@ -1,0 +1,414 @@
+{
+  "pack": "banos_05",
+  "name": "Baños y sanitarios",
+  "count": 20,
+  "furniture": [
+    {
+      "id": "inodoro_clasico",
+      "name": "Inodoro clásico",
+      "category": "Sanitarios",
+      "shortCode": "IC",
+      "widthFt": 2.25,
+      "depthFt": 2.5,
+      "heightFt": 3.0,
+      "blocksMovement": true,
+      "description": "Inodoro de porcelana beige con cisterna baja y asiento oscuro.",
+      "tags": [
+        "baño",
+        "noventas",
+        "terror"
+      ],
+      "glb": "modelos_glb/inodoro_clasico.glb",
+      "thumbnail": "miniaturas/inodoro_clasico.png",
+      "pack": "banos_05",
+      "placement": "floor"
+    },
+    {
+      "id": "inodoro_antiguo",
+      "name": "Inodoro de cisterna alta",
+      "category": "Sanitarios",
+      "shortCode": "IA",
+      "widthFt": 2.25,
+      "depthFt": 2.75,
+      "heightFt": 5.25,
+      "blocksMovement": true,
+      "description": "Sanitario con depósito alto, bajante metálico y palanca retro.",
+      "tags": [
+        "baño",
+        "noventas",
+        "terror"
+      ],
+      "glb": "modelos_glb/inodoro_antiguo.glb",
+      "thumbnail": "miniaturas/inodoro_antiguo.png",
+      "pack": "banos_05",
+      "placement": "floor"
+    },
+    {
+      "id": "lavabo_pedestal",
+      "name": "Lavabo con pedestal",
+      "category": "Sanitarios",
+      "shortCode": "LP",
+      "widthFt": 2.25,
+      "depthFt": 1.75,
+      "heightFt": 3.25,
+      "blocksMovement": true,
+      "description": "Lavamanos de cerámica con pedestal, grifo y desagüe.",
+      "tags": [
+        "baño",
+        "noventas",
+        "terror"
+      ],
+      "glb": "modelos_glb/lavabo_pedestal.glb",
+      "thumbnail": "miniaturas/lavabo_pedestal.png",
+      "pack": "banos_05",
+      "placement": "floor"
+    },
+    {
+      "id": "lavabo_gabinete",
+      "name": "Lavabo con gabinete",
+      "category": "Sanitarios",
+      "shortCode": "LG",
+      "widthFt": 3.0,
+      "depthFt": 2.25,
+      "heightFt": 3.25,
+      "blocksMovement": true,
+      "description": "Encimera con cubeta, dos puertas y herrajes.",
+      "tags": [
+        "baño",
+        "noventas",
+        "terror"
+      ],
+      "glb": "modelos_glb/lavabo_gabinete.glb",
+      "thumbnail": "miniaturas/lavabo_gabinete.png",
+      "pack": "banos_05",
+      "placement": "floor"
+    },
+    {
+      "id": "mingitorio_pared",
+      "name": "Mingitorio de pared",
+      "category": "Sanitarios",
+      "shortCode": "MI",
+      "widthFt": 1.75,
+      "depthFt": 1.25,
+      "heightFt": 2.5,
+      "blocksMovement": false,
+      "description": "Mingitorio mural de porcelana con tubería superior.",
+      "tags": [
+        "baño",
+        "noventas",
+        "terror"
+      ],
+      "glb": "modelos_glb/mingitorio_pared.glb",
+      "thumbnail": "miniaturas/mingitorio_pared.png",
+      "pack": "banos_05",
+      "placement": "wall",
+      "mountHeightFt": 1.0
+    },
+    {
+      "id": "banera_clasica",
+      "name": "Bañera clásica",
+      "category": "Baños y duchas",
+      "shortCode": "BA",
+      "widthFt": 5.75,
+      "depthFt": 2.75,
+      "heightFt": 2.25,
+      "blocksMovement": true,
+      "description": "Bañera recta con borde esmaltado, desagüe y grifería.",
+      "tags": [
+        "baño",
+        "noventas",
+        "terror"
+      ],
+      "glb": "modelos_glb/banera_clasica.glb",
+      "thumbnail": "miniaturas/banera_clasica.png",
+      "pack": "banos_05",
+      "placement": "floor"
+    },
+    {
+      "id": "banera_patas",
+      "name": "Bañera antigua con patas",
+      "category": "Baños y duchas",
+      "shortCode": "BP",
+      "widthFt": 5.75,
+      "depthFt": 2.75,
+      "heightFt": 2.5,
+      "blocksMovement": true,
+      "description": "Bañera retro elevada con patas de metal y borde grueso.",
+      "tags": [
+        "baño",
+        "noventas",
+        "terror"
+      ],
+      "glb": "modelos_glb/banera_patas.glb",
+      "thumbnail": "miniaturas/banera_patas.png",
+      "pack": "banos_05",
+      "placement": "floor"
+    },
+    {
+      "id": "plato_ducha",
+      "name": "Plato de ducha",
+      "category": "Baños y duchas",
+      "shortCode": "PD",
+      "widthFt": 3.0,
+      "depthFt": 3.0,
+      "heightFt": 0.5,
+      "blocksMovement": true,
+      "description": "Base cuadrada de ducha con canaleta y desagüe.",
+      "tags": [
+        "baño",
+        "noventas",
+        "terror"
+      ],
+      "glb": "modelos_glb/plato_ducha.glb",
+      "thumbnail": "miniaturas/plato_ducha.png",
+      "pack": "banos_05",
+      "placement": "floor"
+    },
+    {
+      "id": "cabina_ducha",
+      "name": "Cabina de ducha",
+      "category": "Baños y duchas",
+      "shortCode": "CD",
+      "widthFt": 3.25,
+      "depthFt": 3.25,
+      "heightFt": 7.25,
+      "blocksMovement": true,
+      "description": "Cabina de paneles de vidrio ahumado, marcos y grifería.",
+      "tags": [
+        "baño",
+        "noventas",
+        "terror"
+      ],
+      "glb": "modelos_glb/cabina_ducha.glb",
+      "thumbnail": "miniaturas/cabina_ducha.png",
+      "pack": "banos_05",
+      "placement": "floor"
+    },
+    {
+      "id": "regadera_pared",
+      "name": "Regadera de pared",
+      "category": "Baños y duchas",
+      "shortCode": "RP",
+      "widthFt": 1.5,
+      "depthFt": 1.0,
+      "heightFt": 2.0,
+      "blocksMovement": false,
+      "description": "Cabezal, brazo de metal y controles de regadera de pared.",
+      "tags": [
+        "baño",
+        "noventas",
+        "terror"
+      ],
+      "glb": "modelos_glb/regadera_pared.glb",
+      "thumbnail": "miniaturas/regadera_pared.png",
+      "pack": "banos_05",
+      "placement": "wall",
+      "mountHeightFt": 5.0
+    },
+    {
+      "id": "espejo_rectangular",
+      "name": "Espejo rectangular",
+      "category": "Mobiliario de baño",
+      "shortCode": "ER",
+      "widthFt": 2.5,
+      "depthFt": 0.25,
+      "heightFt": 3.0,
+      "blocksMovement": false,
+      "description": "Espejo de pared con marco metálico oxidado.",
+      "tags": [
+        "baño",
+        "noventas",
+        "terror"
+      ],
+      "glb": "modelos_glb/espejo_rectangular.glb",
+      "thumbnail": "miniaturas/espejo_rectangular.png",
+      "pack": "banos_05",
+      "placement": "wall",
+      "mountHeightFt": 3.5
+    },
+    {
+      "id": "espejo_redondo",
+      "name": "Espejo redondo",
+      "category": "Mobiliario de baño",
+      "shortCode": "EO",
+      "widthFt": 2.25,
+      "depthFt": 0.25,
+      "heightFt": 2.25,
+      "blocksMovement": false,
+      "description": "Espejo circular biselado de doce lados con marco antiguo.",
+      "tags": [
+        "baño",
+        "noventas",
+        "terror"
+      ],
+      "glb": "modelos_glb/espejo_redondo.glb",
+      "thumbnail": "miniaturas/espejo_redondo.png",
+      "pack": "banos_05",
+      "placement": "wall",
+      "mountHeightFt": 4.0
+    },
+    {
+      "id": "botiquin_pared",
+      "name": "Botiquín de pared",
+      "category": "Mobiliario de baño",
+      "shortCode": "BT",
+      "widthFt": 2.5,
+      "depthFt": 1.0,
+      "heightFt": 2.25,
+      "blocksMovement": false,
+      "description": "Armario colgado con espejo frontal, bisagras y manija.",
+      "tags": [
+        "baño",
+        "noventas",
+        "terror"
+      ],
+      "glb": "modelos_glb/botiquin_pared.glb",
+      "thumbnail": "miniaturas/botiquin_pared.png",
+      "pack": "banos_05",
+      "placement": "wall",
+      "mountHeightFt": 3.5
+    },
+    {
+      "id": "gabinete_bano",
+      "name": "Gabinete de baño",
+      "category": "Mobiliario de baño",
+      "shortCode": "GB",
+      "widthFt": 2.75,
+      "depthFt": 1.75,
+      "heightFt": 4.5,
+      "blocksMovement": true,
+      "description": "Gabinete alto para toallas con dos puertas y repisa abierta.",
+      "tags": [
+        "baño",
+        "noventas",
+        "terror"
+      ],
+      "glb": "modelos_glb/gabinete_bano.glb",
+      "thumbnail": "miniaturas/gabinete_bano.png",
+      "pack": "banos_05",
+      "placement": "floor"
+    },
+    {
+      "id": "toallero",
+      "name": "Toallero de pared",
+      "category": "Mobiliario de baño",
+      "shortCode": "TO",
+      "widthFt": 2.5,
+      "depthFt": 0.5,
+      "heightFt": 0.75,
+      "blocksMovement": false,
+      "description": "Barra metálica con una toalla colgada.",
+      "tags": [
+        "baño",
+        "noventas",
+        "terror"
+      ],
+      "glb": "modelos_glb/toallero.glb",
+      "thumbnail": "miniaturas/toallero.png",
+      "pack": "banos_05",
+      "placement": "wall",
+      "mountHeightFt": 3.25
+    },
+    {
+      "id": "portarrollos",
+      "name": "Portarrollos",
+      "category": "Mobiliario de baño",
+      "shortCode": "PR",
+      "widthFt": 1.0,
+      "depthFt": 0.75,
+      "heightFt": 0.75,
+      "blocksMovement": false,
+      "description": "Soporte metálico con papel enrollado.",
+      "tags": [
+        "baño",
+        "noventas",
+        "terror"
+      ],
+      "glb": "modelos_glb/portarrollos.glb",
+      "thumbnail": "miniaturas/portarrollos.png",
+      "pack": "banos_05",
+      "placement": "wall",
+      "mountHeightFt": 2.0
+    },
+    {
+      "id": "cesto_basura",
+      "name": "Cesto de basura",
+      "category": "Mobiliario de baño",
+      "shortCode": "CB",
+      "widthFt": 1.5,
+      "depthFt": 1.5,
+      "heightFt": 2.0,
+      "blocksMovement": true,
+      "description": "Papelera metálica octagonal con aro oscuro.",
+      "tags": [
+        "baño",
+        "noventas",
+        "terror"
+      ],
+      "glb": "modelos_glb/cesto_basura.glb",
+      "thumbnail": "miniaturas/cesto_basura.png",
+      "pack": "banos_05",
+      "placement": "floor"
+    },
+    {
+      "id": "dispensador_jabon",
+      "name": "Dispensador de jabón",
+      "category": "Accesorios de baño",
+      "shortCode": "DJ",
+      "widthFt": 0.5,
+      "depthFt": 0.5,
+      "heightFt": 0.75,
+      "blocksMovement": false,
+      "description": "Frasco de jabón líquido con bomba metálica.",
+      "tags": [
+        "baño",
+        "noventas",
+        "terror"
+      ],
+      "glb": "modelos_glb/dispensador_jabon.glb",
+      "thumbnail": "miniaturas/dispensador_jabon.png",
+      "pack": "banos_05",
+      "placement": "surface"
+    },
+    {
+      "id": "papel_higienico",
+      "name": "Rollo de papel higiénico",
+      "category": "Accesorios de baño",
+      "shortCode": "PH",
+      "widthFt": 0.5,
+      "depthFt": 0.5,
+      "heightFt": 0.5,
+      "blocksMovement": false,
+      "description": "Rollo compacto de papel de baño.",
+      "tags": [
+        "baño",
+        "noventas",
+        "terror"
+      ],
+      "glb": "modelos_glb/papel_higienico.glb",
+      "thumbnail": "miniaturas/papel_higienico.png",
+      "pack": "banos_05",
+      "placement": "surface"
+    },
+    {
+      "id": "toallas_dobladas",
+      "name": "Toallas dobladas",
+      "category": "Accesorios de baño",
+      "shortCode": "TD",
+      "widthFt": 1.0,
+      "depthFt": 1.0,
+      "heightFt": 0.5,
+      "blocksMovement": false,
+      "description": "Conjunto de dos toallas plegadas de distinto tono.",
+      "tags": [
+        "baño",
+        "noventas",
+        "terror"
+      ],
+      "glb": "modelos_glb/toallas_dobladas.glb",
+      "thumbnail": "miniaturas/toallas_dobladas.png",
+      "pack": "banos_05",
+      "placement": "surface"
+    }
+  ]
+}

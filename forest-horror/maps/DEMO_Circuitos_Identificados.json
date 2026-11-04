@@ -1,0 +1,726 @@
+{
+  "schema": "forest-horror-map-v1",
+  "version": 2,
+  "title": "Forest Horror · Demo 5 pisos, 8 palancas por ID y color",
+  "units": {
+    "gridPx": 70,
+    "columns": 16,
+    "rows": 22,
+    "fitGridToImage": true,
+    "feetPerCell": 5,
+    "metersPerCell": 1.524,
+    "snapCell": 1,
+    "originPx": {
+      "x": 0,
+      "y": 0
+    }
+  },
+  "floors": [
+    {
+      "id": "floor1",
+      "name": "Piso 1",
+      "elevationFt": 0,
+      "ceilingHeightFt": 11.5,
+      "reference": {
+        "name": "Referencia 1",
+        "width": 1145,
+        "height": 1536,
+        "opacity": 0.73
+      },
+      "items": [
+        {
+          "id": "wall_0_0",
+          "type": "wall",
+          "a": {
+            "x": 4,
+            "y": 4
+          },
+          "b": {
+            "x": 12,
+            "y": 4
+          },
+          "heightFt": 9,
+          "widthFt": 0
+        },
+        {
+          "id": "wall_0_1",
+          "type": "wall",
+          "a": {
+            "x": 12,
+            "y": 4
+          },
+          "b": {
+            "x": 12,
+            "y": 12
+          },
+          "heightFt": 9,
+          "widthFt": 0
+        },
+        {
+          "id": "wall_0_2",
+          "type": "wall",
+          "a": {
+            "x": 12,
+            "y": 12
+          },
+          "b": {
+            "x": 4,
+            "y": 12
+          },
+          "heightFt": 9,
+          "widthFt": 0
+        },
+        {
+          "id": "wall_0_3",
+          "type": "wall",
+          "a": {
+            "x": 4,
+            "y": 12
+          },
+          "b": {
+            "x": 4,
+            "y": 4
+          },
+          "heightFt": 9,
+          "widthFt": 0
+        },
+        {
+          "id": "spawn_0",
+          "type": "spawn",
+          "x": 6,
+          "y": 6,
+          "w": 0.4,
+          "h": 0.4,
+          "blocksMovement": false
+        },
+        {
+          "id": "habitacion_0",
+          "type": "room",
+          "x": 4,
+          "y": 4,
+          "w": 8,
+          "h": 8,
+          "roomId": "sala_0",
+          "zoneId": "zona_roja",
+          "label": "Sala · Piso 1",
+          "blocksMovement": false
+        },
+        {
+          "id": "ascensor_0",
+          "type": "elevator",
+          "x": 10,
+          "y": 10,
+          "w": 1.5,
+          "h": 1.5,
+          "rotation": 0,
+          "shaftId": "demo_central",
+          "enabled": true,
+          "doorsOpen": false,
+          "requiresPower": true,
+          "powerFlag": "breaker_on",
+          "zoneId": "main",
+          "blocksMovement": false
+        },
+        {
+          "id": "interruptor_0",
+          "type": "light_switch",
+          "x": 5.5,
+          "y": 7,
+          "w": 0.4,
+          "h": 0.28,
+          "rotation": 0,
+          "roomId": "sala_0",
+          "zoneId": "zona_roja",
+          "blocksMovement": false,
+          "label": "Interruptor"
+        },
+        {
+          "id": "breaker_general",
+          "type": "breaker_panel",
+          "x": 7,
+          "y": 7,
+          "w": 0.75,
+          "h": 0.4,
+          "rotation": 0,
+          "zoneId": "main",
+          "powerScope": "global",
+          "powerFlag": "breaker_on",
+          "label": "Tablero central · 8 circuitos",
+          "blocksMovement": false,
+          "circuits": [
+            {
+              "id": "general",
+              "name": "Suministro general",
+              "powerScope": "global",
+              "powerFlag": "breaker_on",
+              "circuitColor": "#e6b851"
+            },
+            {
+              "id": "piso_1",
+              "name": "Piso 1",
+              "powerScope": "floor",
+              "floorId": "floor1",
+              "circuitColor": "#71ba81"
+            },
+            {
+              "id": "piso_2",
+              "name": "Piso 2",
+              "powerScope": "floor",
+              "floorId": "floor2",
+              "circuitColor": "#b38ae2"
+            },
+            {
+              "id": "piso_3",
+              "name": "Piso 3",
+              "powerScope": "floor",
+              "floorId": "floor3",
+              "circuitColor": "#d77fb7"
+            },
+            {
+              "id": "piso_4",
+              "name": "Piso 4",
+              "powerScope": "floor",
+              "floorId": "floor4",
+              "circuitColor": "#7cc7bc"
+            },
+            {
+              "id": "piso_5",
+              "name": "Piso 5",
+              "powerScope": "floor",
+              "floorId": "floor5",
+              "circuitColor": "#c29b67"
+            },
+            {
+              "id": "zona_roja",
+              "name": "Apartamento 1 · Sala",
+              "powerScope": "zone",
+              "zoneId": "zona_roja",
+              "circuitColor": "#dc5656"
+            },
+            {
+              "id": "zona_azul",
+              "name": "Pasillo",
+              "powerScope": "zone",
+              "zoneId": "zona_azul",
+              "circuitColor": "#56a9e6"
+            }
+          ]
+        },
+        {
+          "id": "battery_1",
+          "type": "battery_pickup",
+          "x": 6,
+          "y": 6.8,
+          "w": 0.5,
+          "h": 0.5,
+          "rotation": 0,
+          "label": "Batería",
+          "blocksMovement": false,
+          "interact": {
+            "id": "pickup_battery_1",
+            "verb": "take",
+            "label": "Recoger batería",
+            "once": true,
+            "cooldownSec": 0,
+            "conditions": [],
+            "effects": [
+              {
+                "type": "giveItem",
+                "id": "flashlight_battery"
+              }
+            ],
+            "failText": "Ya recogiste esta batería."
+          }
+        }
+      ]
+    },
+    {
+      "id": "floor2",
+      "name": "Piso 2",
+      "elevationFt": 12,
+      "ceilingHeightFt": 11.5,
+      "reference": {
+        "name": "Referencia 2",
+        "width": 1145,
+        "height": 1536,
+        "opacity": 0.73
+      },
+      "items": [
+        {
+          "id": "wall_1_0",
+          "type": "wall",
+          "a": {
+            "x": 4,
+            "y": 4
+          },
+          "b": {
+            "x": 12,
+            "y": 4
+          },
+          "heightFt": 9,
+          "widthFt": 0
+        },
+        {
+          "id": "wall_1_1",
+          "type": "wall",
+          "a": {
+            "x": 12,
+            "y": 4
+          },
+          "b": {
+            "x": 12,
+            "y": 12
+          },
+          "heightFt": 9,
+          "widthFt": 0
+        },
+        {
+          "id": "wall_1_2",
+          "type": "wall",
+          "a": {
+            "x": 12,
+            "y": 12
+          },
+          "b": {
+            "x": 4,
+            "y": 12
+          },
+          "heightFt": 9,
+          "widthFt": 0
+        },
+        {
+          "id": "wall_1_3",
+          "type": "wall",
+          "a": {
+            "x": 4,
+            "y": 12
+          },
+          "b": {
+            "x": 4,
+            "y": 4
+          },
+          "heightFt": 9,
+          "widthFt": 0
+        },
+        {
+          "id": "habitacion_1",
+          "type": "room",
+          "x": 4,
+          "y": 4,
+          "w": 8,
+          "h": 8,
+          "roomId": "sala_1",
+          "zoneId": "zona_azul",
+          "label": "Sala · Piso 2",
+          "blocksMovement": false
+        },
+        {
+          "id": "ascensor_1",
+          "type": "elevator",
+          "x": 10,
+          "y": 10,
+          "w": 1.5,
+          "h": 1.5,
+          "rotation": 0,
+          "shaftId": "demo_central",
+          "enabled": true,
+          "doorsOpen": false,
+          "requiresPower": true,
+          "powerFlag": "breaker_on",
+          "zoneId": "main",
+          "blocksMovement": false
+        },
+        {
+          "id": "interruptor_1",
+          "type": "light_switch",
+          "x": 5.5,
+          "y": 7,
+          "w": 0.4,
+          "h": 0.28,
+          "rotation": 0,
+          "roomId": "sala_1",
+          "zoneId": "zona_azul",
+          "blocksMovement": false,
+          "label": "Interruptor"
+        }
+      ]
+    },
+    {
+      "id": "floor3",
+      "name": "Piso 3",
+      "elevationFt": 24,
+      "ceilingHeightFt": 11.5,
+      "reference": {
+        "name": "Referencia 3",
+        "width": 1145,
+        "height": 1536,
+        "opacity": 0.73
+      },
+      "items": [
+        {
+          "id": "wall_2_0",
+          "type": "wall",
+          "a": {
+            "x": 4,
+            "y": 4
+          },
+          "b": {
+            "x": 12,
+            "y": 4
+          },
+          "heightFt": 9,
+          "widthFt": 0
+        },
+        {
+          "id": "wall_2_1",
+          "type": "wall",
+          "a": {
+            "x": 12,
+            "y": 4
+          },
+          "b": {
+            "x": 12,
+            "y": 12
+          },
+          "heightFt": 9,
+          "widthFt": 0
+        },
+        {
+          "id": "wall_2_2",
+          "type": "wall",
+          "a": {
+            "x": 12,
+            "y": 12
+          },
+          "b": {
+            "x": 4,
+            "y": 12
+          },
+          "heightFt": 9,
+          "widthFt": 0
+        },
+        {
+          "id": "wall_2_3",
+          "type": "wall",
+          "a": {
+            "x": 4,
+            "y": 12
+          },
+          "b": {
+            "x": 4,
+            "y": 4
+          },
+          "heightFt": 9,
+          "widthFt": 0
+        },
+        {
+          "id": "habitacion_2",
+          "type": "room",
+          "x": 4,
+          "y": 4,
+          "w": 8,
+          "h": 8,
+          "roomId": "sala_2",
+          "zoneId": "main",
+          "label": "Sala · Piso 3",
+          "blocksMovement": false
+        },
+        {
+          "id": "ascensor_2",
+          "type": "elevator",
+          "x": 10,
+          "y": 10,
+          "w": 1.5,
+          "h": 1.5,
+          "rotation": 0,
+          "shaftId": "demo_central",
+          "enabled": true,
+          "doorsOpen": false,
+          "requiresPower": true,
+          "powerFlag": "breaker_on",
+          "zoneId": "main",
+          "blocksMovement": false
+        },
+        {
+          "id": "interruptor_2",
+          "type": "light_switch",
+          "x": 5.5,
+          "y": 7,
+          "w": 0.4,
+          "h": 0.28,
+          "rotation": 0,
+          "roomId": "sala_2",
+          "zoneId": "main",
+          "blocksMovement": false,
+          "label": "Interruptor"
+        }
+      ]
+    },
+    {
+      "id": "floor4",
+      "name": "Piso 4",
+      "elevationFt": 36,
+      "ceilingHeightFt": 11.5,
+      "reference": {
+        "name": "Referencia 4",
+        "width": 1145,
+        "height": 1536,
+        "opacity": 0.73
+      },
+      "items": [
+        {
+          "id": "wall_3_0",
+          "type": "wall",
+          "a": {
+            "x": 4,
+            "y": 4
+          },
+          "b": {
+            "x": 12,
+            "y": 4
+          },
+          "heightFt": 9,
+          "widthFt": 0
+        },
+        {
+          "id": "wall_3_1",
+          "type": "wall",
+          "a": {
+            "x": 12,
+            "y": 4
+          },
+          "b": {
+            "x": 12,
+            "y": 12
+          },
+          "heightFt": 9,
+          "widthFt": 0
+        },
+        {
+          "id": "wall_3_2",
+          "type": "wall",
+          "a": {
+            "x": 12,
+            "y": 12
+          },
+          "b": {
+            "x": 4,
+            "y": 12
+          },
+          "heightFt": 9,
+          "widthFt": 0
+        },
+        {
+          "id": "wall_3_3",
+          "type": "wall",
+          "a": {
+            "x": 4,
+            "y": 12
+          },
+          "b": {
+            "x": 4,
+            "y": 4
+          },
+          "heightFt": 9,
+          "widthFt": 0
+        },
+        {
+          "id": "habitacion_3",
+          "type": "room",
+          "x": 4,
+          "y": 4,
+          "w": 8,
+          "h": 8,
+          "roomId": "sala_3",
+          "zoneId": "main",
+          "label": "Sala · Piso 4",
+          "blocksMovement": false
+        },
+        {
+          "id": "ascensor_3",
+          "type": "elevator",
+          "x": 10,
+          "y": 10,
+          "w": 1.5,
+          "h": 1.5,
+          "rotation": 0,
+          "shaftId": "demo_central",
+          "enabled": true,
+          "doorsOpen": false,
+          "requiresPower": true,
+          "powerFlag": "breaker_on",
+          "zoneId": "main",
+          "blocksMovement": false
+        },
+        {
+          "id": "interruptor_3",
+          "type": "light_switch",
+          "x": 5.5,
+          "y": 7,
+          "w": 0.4,
+          "h": 0.28,
+          "rotation": 0,
+          "roomId": "sala_3",
+          "zoneId": "main",
+          "blocksMovement": false,
+          "label": "Interruptor"
+        }
+      ]
+    },
+    {
+      "id": "floor5",
+      "name": "Piso 5",
+      "elevationFt": 48,
+      "ceilingHeightFt": 11.5,
+      "reference": {
+        "name": "Referencia 5",
+        "width": 1145,
+        "height": 1536,
+        "opacity": 0.73
+      },
+      "items": [
+        {
+          "id": "wall_4_0",
+          "type": "wall",
+          "a": {
+            "x": 4,
+            "y": 4
+          },
+          "b": {
+            "x": 12,
+            "y": 4
+          },
+          "heightFt": 9,
+          "widthFt": 0
+        },
+        {
+          "id": "wall_4_1",
+          "type": "wall",
+          "a": {
+            "x": 12,
+            "y": 4
+          },
+          "b": {
+            "x": 12,
+            "y": 12
+          },
+          "heightFt": 9,
+          "widthFt": 0
+        },
+        {
+          "id": "wall_4_2",
+          "type": "wall",
+          "a": {
+            "x": 12,
+            "y": 12
+          },
+          "b": {
+            "x": 4,
+            "y": 12
+          },
+          "heightFt": 9,
+          "widthFt": 0
+        },
+        {
+          "id": "wall_4_3",
+          "type": "wall",
+          "a": {
+            "x": 4,
+            "y": 12
+          },
+          "b": {
+            "x": 4,
+            "y": 4
+          },
+          "heightFt": 9,
+          "widthFt": 0
+        },
+        {
+          "id": "habitacion_4",
+          "type": "room",
+          "x": 4,
+          "y": 4,
+          "w": 8,
+          "h": 8,
+          "roomId": "sala_4",
+          "zoneId": "main",
+          "label": "Sala · Piso 5",
+          "blocksMovement": false
+        },
+        {
+          "id": "ascensor_4",
+          "type": "elevator",
+          "x": 10,
+          "y": 10,
+          "w": 1.5,
+          "h": 1.5,
+          "rotation": 0,
+          "shaftId": "demo_central",
+          "enabled": true,
+          "doorsOpen": false,
+          "requiresPower": true,
+          "powerFlag": "breaker_on",
+          "zoneId": "main",
+          "blocksMovement": false
+        },
+        {
+          "id": "interruptor_4",
+          "type": "light_switch",
+          "x": 5.5,
+          "y": 7,
+          "w": 0.4,
+          "h": 0.28,
+          "rotation": 0,
+          "roomId": "sala_4",
+          "zoneId": "main",
+          "blocksMovement": false,
+          "label": "Interruptor"
+        }
+      ]
+    }
+  ],
+  "slabsByLevel": [
+    {
+      "enabled": false,
+      "spans": []
+    },
+    {
+      "enabled": false,
+      "spans": []
+    },
+    {
+      "enabled": false,
+      "spans": []
+    },
+    {
+      "enabled": false,
+      "spans": []
+    }
+  ],
+  "itemDefs": [
+    {
+      "id": "flashlight_battery",
+      "kind": "consumable",
+      "name": "Batería de linterna",
+      "description": "Recarga el 50 % de la linterna.",
+      "stackable": true,
+      "icon": "▤"
+    }
+  ],
+  "initialGameState": {
+    "flags": {
+      "power_global": false,
+      "breaker_on": false,
+      "power_floor:floor1": false,
+      "power_zone:zona_roja": false,
+      "power_zone:zona_azul": false,
+      "section_complete:general": true,
+      "section_complete:piso_1": true
+    },
+    "flashlight": {
+      "enabled": false,
+      "charge": 15
+    },
+    "inventory": []
+  }
+}

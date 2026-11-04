@@ -1,0 +1,1601 @@
+{
+  "schema": "forest-horror-furniture-catalog-v1",
+  "version": 6,
+  "units": {
+    "length": "ft",
+    "metersPerFoot": 0.3048,
+    "defaultCanvasFt": {
+      "width": 3,
+      "depth": 3
+    },
+    "minWidthFt": 0.25,
+    "maxWidthFt": 15,
+    "sizeStepFt": 0.25,
+    "referenceMapFeetPerCell": 5
+  },
+  "renderer": "Three.js r128",
+  "style": "low-poly / pixel art / terror doméstico",
+  "furniture": [
+    {
+      "id": "silla_madera",
+      "name": "Silla de madera",
+      "category": "Asientos",
+      "shortCode": "SI",
+      "widthFt": 1.75,
+      "depthFt": 1.75,
+      "heightFt": 3.25,
+      "blocksMovement": true,
+      "description": "Asiento de madera desgastada, respaldo de travesaños y cuatro patas.",
+      "tags": [
+        "comedor",
+        "cocina",
+        "sala"
+      ],
+      "glb": "modelos_glb/silla_madera.glb",
+      "thumbnail": "miniaturas/silla_madera.png",
+      "pack": "domestico_01"
+    },
+    {
+      "id": "mesa_pequena",
+      "name": "Mesa pequeña",
+      "category": "Superficies",
+      "shortCode": "ME",
+      "widthFt": 2.75,
+      "depthFt": 2.75,
+      "heightFt": 2.5,
+      "blocksMovement": true,
+      "description": "Mesa cuadrada de cuatro patas con tablones visibles en la superficie.",
+      "tags": [
+        "comedor",
+        "sala"
+      ],
+      "glb": "modelos_glb/mesa_pequena.glb",
+      "thumbnail": "miniaturas/mesa_pequena.png",
+      "pack": "domestico_01"
+    },
+    {
+      "id": "buro",
+      "name": "Buró de dos cajones",
+      "category": "Almacenamiento",
+      "shortCode": "BU",
+      "widthFt": 1.75,
+      "depthFt": 1.5,
+      "heightFt": 2.0,
+      "blocksMovement": true,
+      "description": "Buró compacto con dos cajones, tiradores y madera oscurecida.",
+      "tags": [
+        "recámara"
+      ],
+      "glb": "modelos_glb/buro.glb",
+      "thumbnail": "miniaturas/buro.png",
+      "pack": "domestico_01"
+    },
+    {
+      "id": "estante_bajo",
+      "name": "Estante bajo",
+      "category": "Almacenamiento",
+      "shortCode": "ES",
+      "widthFt": 2.75,
+      "depthFt": 1.25,
+      "heightFt": 3.5,
+      "blocksMovement": true,
+      "description": "Estante abierto de tres niveles con algunos objetos decorativos.",
+      "tags": [
+        "sala",
+        "pasillo"
+      ],
+      "glb": "modelos_glb/estante_bajo.glb",
+      "thumbnail": "miniaturas/estante_bajo.png",
+      "pack": "domestico_01"
+    },
+    {
+      "id": "cajonera",
+      "name": "Cajonera",
+      "category": "Almacenamiento",
+      "shortCode": "CA",
+      "widthFt": 2.75,
+      "depthFt": 1.5,
+      "heightFt": 3.25,
+      "blocksMovement": true,
+      "description": "Cajonera de cuatro niveles con tiradores metálicos.",
+      "tags": [
+        "recámara",
+        "pasillo"
+      ],
+      "glb": "modelos_glb/cajonera.glb",
+      "thumbnail": "miniaturas/cajonera.png",
+      "pack": "domestico_01"
+    },
+    {
+      "id": "cama_individual",
+      "name": "Cama individual",
+      "category": "Descanso",
+      "shortCode": "CM",
+      "widthFt": 3.25,
+      "depthFt": 6.5,
+      "heightFt": 2.75,
+      "blocksMovement": true,
+      "description": "Cama individual de cabecero alto, almohada y cobija envejecida.",
+      "tags": [
+        "recámara"
+      ],
+      "glb": "modelos_glb/cama_individual.glb",
+      "thumbnail": "miniaturas/cama_individual.png",
+      "pack": "domestico_01"
+    },
+    {
+      "id": "armario",
+      "name": "Armario de dos puertas",
+      "category": "Almacenamiento",
+      "shortCode": "AR",
+      "widthFt": 4,
+      "depthFt": 2,
+      "heightFt": 6.75,
+      "blocksMovement": true,
+      "description": "Armario alto de dos puertas con paneles y herrajes.",
+      "tags": [
+        "recámara",
+        "pasillo"
+      ],
+      "glb": "modelos_glb/armario.glb",
+      "thumbnail": "miniaturas/armario.png",
+      "pack": "domestico_01"
+    },
+    {
+      "id": "sofa",
+      "name": "Sofá de tres plazas",
+      "category": "Asientos",
+      "shortCode": "SO",
+      "widthFt": 6,
+      "depthFt": 2.75,
+      "heightFt": 3.0,
+      "blocksMovement": true,
+      "description": "Sofá viejo con cojines individuales, apoyabrazos y tela gastada.",
+      "tags": [
+        "sala"
+      ],
+      "glb": "modelos_glb/sofa.glb",
+      "thumbnail": "miniaturas/sofa.png",
+      "pack": "domestico_01"
+    },
+    {
+      "id": "mesa_cocina_cuadrada",
+      "name": "Mesa cuadrada de cocina",
+      "category": "Mesas y sillas",
+      "pack": "cocina_02",
+      "shortCode": "MC",
+      "widthFt": 3,
+      "depthFt": 3,
+      "heightFt": 2.75,
+      "blocksMovement": true,
+      "description": "Mesa de madera envejecida con cuatro patas y uniones visibles.",
+      "tags": [
+        "cocina",
+        "comedor"
+      ],
+      "glb": "modelos_glb/mesa_cocina_cuadrada.glb",
+      "thumbnail": "miniaturas/mesa_cocina_cuadrada.png"
+    },
+    {
+      "id": "mesa_cocina_redonda",
+      "name": "Mesa redonda de comedor",
+      "category": "Mesas y sillas",
+      "pack": "cocina_02",
+      "shortCode": "MR",
+      "widthFt": 3,
+      "depthFt": 3,
+      "heightFt": 2.75,
+      "blocksMovement": true,
+      "description": "Mesa circular de pedestal central y base radial de madera.",
+      "tags": [
+        "cocina",
+        "comedor"
+      ],
+      "glb": "modelos_glb/mesa_cocina_redonda.glb",
+      "thumbnail": "miniaturas/mesa_cocina_redonda.png"
+    },
+    {
+      "id": "mesa_cocina_rectangular",
+      "name": "Mesa rectangular de comedor",
+      "category": "Mesas y sillas",
+      "pack": "cocina_02",
+      "shortCode": "MT",
+      "widthFt": 5.5,
+      "depthFt": 3,
+      "heightFt": 2.75,
+      "blocksMovement": true,
+      "description": "Mesa familiar de tablones y refuerzos de madera.",
+      "tags": [
+        "cocina",
+        "comedor"
+      ],
+      "glb": "modelos_glb/mesa_cocina_rectangular.glb",
+      "thumbnail": "miniaturas/mesa_cocina_rectangular.png"
+    },
+    {
+      "id": "silla_comedor",
+      "name": "Silla de comedor",
+      "category": "Mesas y sillas",
+      "pack": "cocina_02",
+      "shortCode": "SC",
+      "widthFt": 1.75,
+      "depthFt": 1.75,
+      "heightFt": 3.25,
+      "blocksMovement": true,
+      "description": "Silla de travesaños con respaldo alto de madera.",
+      "tags": [
+        "cocina",
+        "comedor"
+      ],
+      "glb": "modelos_glb/silla_comedor.glb",
+      "thumbnail": "miniaturas/silla_comedor.png"
+    },
+    {
+      "id": "banco_cocina",
+      "name": "Banco de cocina",
+      "category": "Mesas y sillas",
+      "pack": "cocina_02",
+      "shortCode": "BC",
+      "widthFt": 1.5,
+      "depthFt": 1.5,
+      "heightFt": 2.75,
+      "blocksMovement": true,
+      "description": "Banco redondo de cuatro patas y reposapiés.",
+      "tags": [
+        "cocina",
+        "barra"
+      ],
+      "glb": "modelos_glb/banco_cocina.glb",
+      "thumbnail": "miniaturas/banco_cocina.png"
+    },
+    {
+      "id": "silla_acolchada",
+      "name": "Silla acolchada retro",
+      "category": "Mesas y sillas",
+      "pack": "cocina_02",
+      "shortCode": "SA",
+      "widthFt": 1.75,
+      "depthFt": 1.75,
+      "heightFt": 3.25,
+      "blocksMovement": true,
+      "description": "Silla de metal y vinilo gastado con asiento acolchado.",
+      "tags": [
+        "cocina",
+        "comedor"
+      ],
+      "glb": "modelos_glb/silla_acolchada.glb",
+      "thumbnail": "miniaturas/silla_acolchada.png"
+    },
+    {
+      "id": "gabinete_inferior",
+      "name": "Gabinete inferior doble",
+      "category": "Gabinetes",
+      "pack": "cocina_02",
+      "shortCode": "GI",
+      "widthFt": 3,
+      "depthFt": 2.25,
+      "heightFt": 3,
+      "blocksMovement": true,
+      "description": "Módulo bajo de dos puertas con encimera y herrajes.",
+      "tags": [
+        "cocina",
+        "almacenamiento"
+      ],
+      "glb": "modelos_glb/gabinete_inferior.glb",
+      "thumbnail": "miniaturas/gabinete_inferior.png"
+    },
+    {
+      "id": "alacena_superior",
+      "name": "Alacena de pared",
+      "category": "Gabinetes",
+      "pack": "cocina_02",
+      "shortCode": "AL",
+      "widthFt": 3,
+      "depthFt": 1.75,
+      "heightFt": 2.5,
+      "blocksMovement": false,
+      "description": "Gabinete alto para montaje en pared, con dos puertas.",
+      "tags": [
+        "cocina",
+        "almacenamiento",
+        "pared"
+      ],
+      "glb": "modelos_glb/alacena_superior.glb",
+      "thumbnail": "miniaturas/alacena_superior.png",
+      "placement": "wall",
+      "mountHeightFt": 4.25
+    },
+    {
+      "id": "fregadero_mueble",
+      "name": "Fregadero con gabinete",
+      "category": "Gabinetes",
+      "pack": "cocina_02",
+      "shortCode": "FR",
+      "widthFt": 3,
+      "depthFt": 2.5,
+      "heightFt": 3.75,
+      "blocksMovement": true,
+      "description": "Fregadero con cubeta metálica, grifo y puertas inferiores.",
+      "tags": [
+        "cocina",
+        "agua"
+      ],
+      "glb": "modelos_glb/fregadero_mueble.glb",
+      "thumbnail": "miniaturas/fregadero_mueble.png"
+    },
+    {
+      "id": "despensa_alta",
+      "name": "Despensa alta",
+      "category": "Gabinetes",
+      "pack": "cocina_02",
+      "shortCode": "DP",
+      "widthFt": 3,
+      "depthFt": 2.25,
+      "heightFt": 7,
+      "blocksMovement": true,
+      "description": "Alacena de suelo a techo con paneles y doble hoja.",
+      "tags": [
+        "cocina",
+        "almacenamiento"
+      ],
+      "glb": "modelos_glb/despensa_alta.glb",
+      "thumbnail": "miniaturas/despensa_alta.png"
+    },
+    {
+      "id": "barra_cocina",
+      "name": "Barra desayunadora",
+      "category": "Gabinetes",
+      "pack": "cocina_02",
+      "shortCode": "BR",
+      "widthFt": 5,
+      "depthFt": 2.5,
+      "heightFt": 3.75,
+      "blocksMovement": true,
+      "description": "Barra alargada con voladizo para bancos y cubierta mineral.",
+      "tags": [
+        "cocina",
+        "comedor"
+      ],
+      "glb": "modelos_glb/barra_cocina.glb",
+      "thumbnail": "miniaturas/barra_cocina.png"
+    },
+    {
+      "id": "encimera_simple",
+      "name": "Encimera modular",
+      "category": "Gabinetes",
+      "pack": "cocina_02",
+      "shortCode": "EN",
+      "widthFt": 3,
+      "depthFt": 2.25,
+      "heightFt": 3,
+      "blocksMovement": true,
+      "description": "Módulo bajo de cocina con cubierta lisa para alinear con otros.",
+      "tags": [
+        "cocina",
+        "modular"
+      ],
+      "glb": "modelos_glb/encimera_simple.glb",
+      "thumbnail": "miniaturas/encimera_simple.png"
+    },
+    {
+      "id": "refrigerador",
+      "name": "Refrigerador retro",
+      "category": "Electrodomésticos",
+      "pack": "cocina_02",
+      "shortCode": "RF",
+      "widthFt": 3,
+      "depthFt": 3.0,
+      "heightFt": 6.5,
+      "blocksMovement": true,
+      "description": "Refrigerador de dos puertas con agarraderas de metal.",
+      "tags": [
+        "cocina",
+        "eléctrico"
+      ],
+      "glb": "modelos_glb/refrigerador.glb",
+      "thumbnail": "miniaturas/refrigerador.png"
+    },
+    {
+      "id": "estufa_horno",
+      "name": "Estufa con horno",
+      "category": "Electrodomésticos",
+      "pack": "cocina_02",
+      "shortCode": "EH",
+      "widthFt": 3,
+      "depthFt": 2.75,
+      "heightFt": 3.5,
+      "blocksMovement": true,
+      "description": "Estufa de cuatro quemadores, perillas y puerta de horno.",
+      "tags": [
+        "cocina",
+        "cocción"
+      ],
+      "glb": "modelos_glb/estufa_horno.glb",
+      "thumbnail": "miniaturas/estufa_horno.png"
+    },
+    {
+      "id": "microondas",
+      "name": "Microondas antiguo",
+      "category": "Electrodomésticos",
+      "pack": "cocina_02",
+      "shortCode": "MW",
+      "widthFt": 2,
+      "depthFt": 1.75,
+      "heightFt": 1.25,
+      "blocksMovement": false,
+      "description": "Horno microondas con visor oscuro, botones y ventilación lateral.",
+      "tags": [
+        "cocina",
+        "eléctrico",
+        "encimera"
+      ],
+      "glb": "modelos_glb/microondas.glb",
+      "thumbnail": "miniaturas/microondas.png",
+      "placement": "surface"
+    },
+    {
+      "id": "campana_extractora",
+      "name": "Campana extractora",
+      "category": "Electrodomésticos",
+      "pack": "cocina_02",
+      "shortCode": "CE",
+      "widthFt": 3,
+      "depthFt": 2,
+      "heightFt": 1.75,
+      "blocksMovement": false,
+      "description": "Extractor metálico de pared sobre estufa con filtro inferior.",
+      "tags": [
+        "cocina",
+        "eléctrico",
+        "pared"
+      ],
+      "glb": "modelos_glb/campana_extractora.glb",
+      "thumbnail": "miniaturas/campana_extractora.png",
+      "placement": "wall",
+      "mountHeightFt": 4.75
+    },
+    {
+      "id": "cafetera",
+      "name": "Cafetera de filtro",
+      "category": "Utensilios",
+      "pack": "cocina_02",
+      "shortCode": "CF",
+      "widthFt": 1,
+      "depthFt": 1,
+      "heightFt": 1.75,
+      "blocksMovement": false,
+      "description": "Cafetera de goteo retro con jarra y base calefactora.",
+      "tags": [
+        "cocina",
+        "encimera"
+      ],
+      "glb": "modelos_glb/cafetera.glb",
+      "thumbnail": "miniaturas/cafetera.png",
+      "placement": "surface"
+    },
+    {
+      "id": "tostadora",
+      "name": "Tostadora de dos ranuras",
+      "category": "Utensilios",
+      "pack": "cocina_02",
+      "shortCode": "TO",
+      "widthFt": 1.5,
+      "depthFt": 0.75,
+      "heightFt": 1.0,
+      "blocksMovement": false,
+      "description": "Tostadora metálica compacta con dos ranuras y palanca.",
+      "tags": [
+        "cocina",
+        "encimera"
+      ],
+      "glb": "modelos_glb/tostadora.glb",
+      "thumbnail": "miniaturas/tostadora.png",
+      "placement": "surface"
+    },
+    {
+      "id": "olla",
+      "name": "Olla con tapa",
+      "category": "Utensilios",
+      "pack": "cocina_02",
+      "shortCode": "OL",
+      "widthFt": 1.0,
+      "depthFt": 0.75,
+      "heightFt": 1.0,
+      "blocksMovement": false,
+      "description": "Olla metálica de dos asas y tapa.",
+      "tags": [
+        "cocina",
+        "encimera"
+      ],
+      "glb": "modelos_glb/olla.glb",
+      "thumbnail": "miniaturas/olla.png",
+      "placement": "surface"
+    },
+    {
+      "id": "sarten",
+      "name": "Sartén",
+      "category": "Utensilios",
+      "pack": "cocina_02",
+      "shortCode": "ST",
+      "widthFt": 1.75,
+      "depthFt": 1,
+      "heightFt": 0.5,
+      "blocksMovement": false,
+      "description": "Sartén plana con mango de madera oscuro.",
+      "tags": [
+        "cocina",
+        "encimera"
+      ],
+      "glb": "modelos_glb/sarten.glb",
+      "thumbnail": "miniaturas/sarten.png",
+      "placement": "surface"
+    },
+    {
+      "id": "platos_apilados",
+      "name": "Platos apilados",
+      "category": "Utensilios",
+      "pack": "cocina_02",
+      "shortCode": "PL",
+      "widthFt": 1,
+      "depthFt": 1,
+      "heightFt": 0.5,
+      "blocksMovement": false,
+      "description": "Cuatro platos de cerámica apilados con bordes visibles.",
+      "tags": [
+        "cocina",
+        "encimera"
+      ],
+      "glb": "modelos_glb/platos_apilados.glb",
+      "thumbnail": "miniaturas/platos_apilados.png",
+      "placement": "surface"
+    },
+    {
+      "id": "vasos",
+      "name": "Pareja de vasos",
+      "category": "Utensilios",
+      "pack": "cocina_02",
+      "shortCode": "VA",
+      "widthFt": 0.75,
+      "depthFt": 0.5,
+      "heightFt": 0.75,
+      "blocksMovement": false,
+      "description": "Dos vasos pixelados con bordes y bases visibles.",
+      "tags": [
+        "cocina",
+        "encimera"
+      ],
+      "glb": "modelos_glb/vasos.glb",
+      "thumbnail": "miniaturas/vasos.png",
+      "placement": "surface"
+    },
+    {
+      "id": "tabla_cortar",
+      "name": "Tabla de cortar",
+      "category": "Utensilios",
+      "pack": "cocina_02",
+      "shortCode": "TC",
+      "widthFt": 1.25,
+      "depthFt": 0.75,
+      "heightFt": 0.25,
+      "blocksMovement": false,
+      "description": "Tabla de madera con asa y marcas de uso.",
+      "tags": [
+        "cocina",
+        "encimera"
+      ],
+      "glb": "modelos_glb/tabla_cortar.glb",
+      "thumbnail": "miniaturas/tabla_cortar.png",
+      "placement": "surface"
+    },
+    {
+      "id": "cubiertos",
+      "name": "Juego de cubiertos",
+      "category": "Utensilios",
+      "pack": "cocina_02",
+      "shortCode": "CU",
+      "widthFt": 0.75,
+      "depthFt": 0.5,
+      "heightFt": 0.25,
+      "blocksMovement": false,
+      "description": "Cubiertos de metal sobre servilleta de tela.",
+      "tags": [
+        "cocina",
+        "encimera"
+      ],
+      "glb": "modelos_glb/cubiertos.glb",
+      "thumbnail": "miniaturas/cubiertos.png",
+      "placement": "surface"
+    },
+    {
+      "id": "recipientes",
+      "name": "Recipientes de cocina",
+      "category": "Utensilios",
+      "pack": "cocina_02",
+      "shortCode": "RC",
+      "widthFt": 1.5,
+      "depthFt": 1.25,
+      "heightFt": 1,
+      "blocksMovement": false,
+      "description": "Conjunto de recipientes cerámicos y caja de conservas.",
+      "tags": [
+        "cocina",
+        "encimera"
+      ],
+      "glb": "modelos_glb/recipientes.glb",
+      "thumbnail": "miniaturas/recipientes.png",
+      "placement": "surface"
+    },
+    {
+      "id": "caja_carton_pequena",
+      "name": "Caja de cartón pequeña",
+      "category": "Paquetería",
+      "pack": "delivery_03",
+      "shortCode": "P1",
+      "widthFt": 2.5,
+      "depthFt": 2.5,
+      "heightFt": 2.5,
+      "sizeTiles": {
+        "width": 0.5,
+        "depth": 0.5,
+        "height": 0.5
+      },
+      "parcelSize": "pequena",
+      "blocksMovement": true,
+      "description": "Caja de cartón sellada con cinta y etiqueta impresas en textura pixel art. Geometría de 12 triángulos.",
+      "tags": [
+        "caja",
+        "delivery",
+        "paquete",
+        "envío",
+        "cartón"
+      ],
+      "glb": "modelos_glb/caja_carton_pequena.glb",
+      "thumbnail": "miniaturas/caja_carton_pequena.png",
+      "texture": "texturas_carton/caja_carton_pequena.png",
+      "placement": "floor"
+    },
+    {
+      "id": "caja_carton_mediana",
+      "name": "Caja de cartón mediana",
+      "category": "Paquetería",
+      "pack": "delivery_03",
+      "shortCode": "P2",
+      "widthFt": 5,
+      "depthFt": 5,
+      "heightFt": 5,
+      "sizeTiles": {
+        "width": 1,
+        "depth": 1,
+        "height": 1
+      },
+      "parcelSize": "mediana",
+      "blocksMovement": true,
+      "description": "Caja de cartón sellada con cinta y etiqueta impresas en textura pixel art. Geometría de 12 triángulos.",
+      "tags": [
+        "caja",
+        "delivery",
+        "paquete",
+        "envío",
+        "cartón"
+      ],
+      "glb": "modelos_glb/caja_carton_mediana.glb",
+      "thumbnail": "miniaturas/caja_carton_mediana.png",
+      "texture": "texturas_carton/caja_carton_mediana.png",
+      "placement": "floor"
+    },
+    {
+      "id": "caja_carton_grande",
+      "name": "Caja de cartón grande (alta)",
+      "category": "Paquetería",
+      "pack": "delivery_03",
+      "shortCode": "P3",
+      "widthFt": 5,
+      "depthFt": 5,
+      "heightFt": 10,
+      "sizeTiles": {
+        "width": 1,
+        "depth": 1,
+        "height": 2
+      },
+      "parcelSize": "grande",
+      "blocksMovement": true,
+      "description": "Caja de cartón sellada con cinta y etiqueta impresas en textura pixel art. Geometría de 12 triángulos.",
+      "tags": [
+        "caja",
+        "delivery",
+        "paquete",
+        "envío",
+        "cartón"
+      ],
+      "glb": "modelos_glb/caja_carton_grande.glb",
+      "thumbnail": "miniaturas/caja_carton_grande.png",
+      "texture": "texturas_carton/caja_carton_grande.png",
+      "placement": "floor"
+    },
+    {
+      "id": "escritorio_clasico",
+      "name": "Escritorio clásico",
+      "category": "Mobiliario",
+      "pack": "oficina_electronica_04",
+      "shortCode": "EC",
+      "widthFt": 4.5,
+      "depthFt": 2.5,
+      "heightFt": 2.75,
+      "blocksMovement": true,
+      "description": "Escritorio de madera con cajones laterales y espacio para las piernas.",
+      "tags": [
+        "oficina",
+        "electrónica",
+        "retro",
+        "terror"
+      ],
+      "glb": "modelos_glb/escritorio_clasico.glb",
+      "thumbnail": "miniaturas/escritorio_clasico.png",
+      "placement": "floor"
+    },
+    {
+      "id": "escritorio_pc",
+      "name": "Escritorio para computadora",
+      "category": "Mobiliario",
+      "pack": "oficina_electronica_04",
+      "shortCode": "EP",
+      "widthFt": 4.25,
+      "depthFt": 2.5,
+      "heightFt": 3.75,
+      "blocksMovement": true,
+      "description": "Mesa de computadora de los años noventa con bandeja para teclado y repisa.",
+      "tags": [
+        "oficina",
+        "electrónica",
+        "retro",
+        "terror"
+      ],
+      "glb": "modelos_glb/escritorio_pc.glb",
+      "thumbnail": "miniaturas/escritorio_pc.png",
+      "placement": "floor"
+    },
+    {
+      "id": "escritorio_l",
+      "name": "Escritorio en L",
+      "category": "Mobiliario",
+      "pack": "oficina_electronica_04",
+      "shortCode": "EL",
+      "widthFt": 6.5,
+      "depthFt": 5,
+      "heightFt": 2.75,
+      "blocksMovement": true,
+      "description": "Escritorio de esquina con dos alas y patas de metal.",
+      "tags": [
+        "oficina",
+        "electrónica",
+        "retro",
+        "terror"
+      ],
+      "glb": "modelos_glb/escritorio_l.glb",
+      "thumbnail": "miniaturas/escritorio_l.png",
+      "placement": "floor"
+    },
+    {
+      "id": "silla_oficina",
+      "name": "Silla de oficina giratoria",
+      "category": "Mobiliario",
+      "pack": "oficina_electronica_04",
+      "shortCode": "SG",
+      "widthFt": 2.25,
+      "depthFt": 2.25,
+      "heightFt": 4,
+      "blocksMovement": true,
+      "description": "Silla acolchada de oficina con respaldo y base de cinco apoyos.",
+      "tags": [
+        "oficina",
+        "electrónica",
+        "retro",
+        "terror"
+      ],
+      "glb": "modelos_glb/silla_oficina.glb",
+      "thumbnail": "miniaturas/silla_oficina.png",
+      "placement": "floor"
+    },
+    {
+      "id": "silla_plegable",
+      "name": "Silla plegable metálica",
+      "category": "Mobiliario",
+      "pack": "oficina_electronica_04",
+      "shortCode": "SP",
+      "widthFt": 1.75,
+      "depthFt": 1.75,
+      "heightFt": 3.25,
+      "blocksMovement": true,
+      "description": "Silla de tubo pintado y asiento plegable.",
+      "tags": [
+        "oficina",
+        "electrónica",
+        "retro",
+        "terror"
+      ],
+      "glb": "modelos_glb/silla_plegable.glb",
+      "thumbnail": "miniaturas/silla_plegable.png",
+      "placement": "floor"
+    },
+    {
+      "id": "archivero_metalico",
+      "name": "Archivero metálico",
+      "category": "Mobiliario",
+      "pack": "oficina_electronica_04",
+      "shortCode": "AM",
+      "widthFt": 1.75,
+      "depthFt": 2,
+      "heightFt": 4,
+      "blocksMovement": true,
+      "description": "Archivero con tres cajones rotulados y tiradores.",
+      "tags": [
+        "oficina",
+        "electrónica",
+        "retro",
+        "terror"
+      ],
+      "glb": "modelos_glb/archivero_metalico.glb",
+      "thumbnail": "miniaturas/archivero_metalico.png",
+      "placement": "floor"
+    },
+    {
+      "id": "lampara_escritorio",
+      "name": "Lámpara de escritorio",
+      "category": "Mobiliario",
+      "pack": "oficina_electronica_04",
+      "shortCode": "LE",
+      "widthFt": 1.5,
+      "depthFt": 1.5,
+      "heightFt": 1.75,
+      "blocksMovement": false,
+      "description": "Lámpara metálica articulada con pantalla cónica simplificada.",
+      "tags": [
+        "oficina",
+        "electrónica",
+        "retro",
+        "terror"
+      ],
+      "glb": "modelos_glb/lampara_escritorio.glb",
+      "thumbnail": "miniaturas/lampara_escritorio.png",
+      "placement": "surface"
+    },
+    {
+      "id": "monitor_crt",
+      "name": "Monitor CRT",
+      "category": "Computadoras",
+      "pack": "oficina_electronica_04",
+      "shortCode": "MC",
+      "widthFt": 2,
+      "depthFt": 1.5,
+      "heightFt": 1.75,
+      "blocksMovement": false,
+      "description": "Monitor de tubo beige con pantalla oscura verdosa.",
+      "tags": [
+        "oficina",
+        "electrónica",
+        "retro",
+        "terror"
+      ],
+      "glb": "modelos_glb/monitor_crt.glb",
+      "thumbnail": "miniaturas/monitor_crt.png",
+      "placement": "surface"
+    },
+    {
+      "id": "gabinete_pc",
+      "name": "Gabinete de PC",
+      "category": "Computadoras",
+      "pack": "oficina_electronica_04",
+      "shortCode": "GP",
+      "widthFt": 0.75,
+      "depthFt": 1.75,
+      "heightFt": 2,
+      "blocksMovement": false,
+      "description": "Torre de computadora beige con disquetera, ranuras y testigos.",
+      "tags": [
+        "oficina",
+        "electrónica",
+        "retro",
+        "terror"
+      ],
+      "glb": "modelos_glb/gabinete_pc.glb",
+      "thumbnail": "miniaturas/gabinete_pc.png",
+      "placement": "floor"
+    },
+    {
+      "id": "teclado_pc",
+      "name": "Teclado retro",
+      "category": "Computadoras",
+      "pack": "oficina_electronica_04",
+      "shortCode": "TP",
+      "widthFt": 1.5,
+      "depthFt": 0.75,
+      "heightFt": 0.25,
+      "blocksMovement": false,
+      "description": "Teclado beige de perfil bajo con teclas pixeladas.",
+      "tags": [
+        "oficina",
+        "electrónica",
+        "retro",
+        "terror"
+      ],
+      "glb": "modelos_glb/teclado_pc.glb",
+      "thumbnail": "miniaturas/teclado_pc.png",
+      "placement": "surface"
+    },
+    {
+      "id": "mouse_pc",
+      "name": "Ratón con cable",
+      "category": "Computadoras",
+      "pack": "oficina_electronica_04",
+      "shortCode": "MP",
+      "widthFt": 0.5,
+      "depthFt": 0.75,
+      "heightFt": 0.25,
+      "blocksMovement": false,
+      "description": "Ratón de bola antiguo con botones diferenciados.",
+      "tags": [
+        "oficina",
+        "electrónica",
+        "retro",
+        "terror"
+      ],
+      "glb": "modelos_glb/mouse_pc.glb",
+      "thumbnail": "miniaturas/mouse_pc.png",
+      "placement": "surface"
+    },
+    {
+      "id": "impresora_matricial",
+      "name": "Impresora matricial",
+      "category": "Computadoras",
+      "pack": "oficina_electronica_04",
+      "shortCode": "IM",
+      "widthFt": 2.5,
+      "depthFt": 2,
+      "heightFt": 1.25,
+      "blocksMovement": false,
+      "description": "Impresora antigua con papel continuo y carcasa gris.",
+      "tags": [
+        "oficina",
+        "electrónica",
+        "retro",
+        "terror"
+      ],
+      "glb": "modelos_glb/impresora_matricial.glb",
+      "thumbnail": "miniaturas/impresora_matricial.png",
+      "placement": "surface"
+    },
+    {
+      "id": "telefono_fijo",
+      "name": "Teléfono fijo",
+      "category": "Telefonía",
+      "pack": "oficina_electronica_04",
+      "shortCode": "TF",
+      "widthFt": 1.5,
+      "depthFt": 1.25,
+      "heightFt": 0.75,
+      "blocksMovement": false,
+      "description": "Teléfono alámbrico de escritorio con auricular y teclado.",
+      "tags": [
+        "oficina",
+        "electrónica",
+        "retro",
+        "terror"
+      ],
+      "glb": "modelos_glb/telefono_fijo.glb",
+      "thumbnail": "miniaturas/telefono_fijo.png",
+      "placement": "surface"
+    },
+    {
+      "id": "telefono_pared",
+      "name": "Teléfono de pared",
+      "category": "Telefonía",
+      "pack": "oficina_electronica_04",
+      "shortCode": "TW",
+      "widthFt": 1,
+      "depthFt": 0.75,
+      "heightFt": 2,
+      "blocksMovement": false,
+      "description": "Teléfono de pared vertical con auricular al costado.",
+      "tags": [
+        "oficina",
+        "electrónica",
+        "retro",
+        "terror"
+      ],
+      "glb": "modelos_glb/telefono_pared.glb",
+      "thumbnail": "miniaturas/telefono_pared.png",
+      "placement": "wall",
+      "mountHeightFt": 3.75
+    },
+    {
+      "id": "contestadora",
+      "name": "Contestadora de casete",
+      "category": "Telefonía",
+      "pack": "oficina_electronica_04",
+      "shortCode": "CT",
+      "widthFt": 1.5,
+      "depthFt": 1.25,
+      "heightFt": 0.75,
+      "blocksMovement": false,
+      "description": "Contestadora con pantalla, controles y tapa del casete.",
+      "tags": [
+        "oficina",
+        "electrónica",
+        "retro",
+        "terror"
+      ],
+      "glb": "modelos_glb/contestadora.glb",
+      "thumbnail": "miniaturas/contestadora.png",
+      "placement": "surface"
+    },
+    {
+      "id": "fax",
+      "name": "Fax de oficina",
+      "category": "Telefonía",
+      "pack": "oficina_electronica_04",
+      "shortCode": "FX",
+      "widthFt": 2.25,
+      "depthFt": 2,
+      "heightFt": 1.25,
+      "blocksMovement": false,
+      "description": "Fax con bandeja de papel, ranura de salida y teclado.",
+      "tags": [
+        "oficina",
+        "electrónica",
+        "retro",
+        "terror"
+      ],
+      "glb": "modelos_glb/fax.glb",
+      "thumbnail": "miniaturas/fax.png",
+      "placement": "surface"
+    },
+    {
+      "id": "televisor_crt",
+      "name": "Televisor CRT",
+      "category": "Electrónica retro",
+      "pack": "oficina_electronica_04",
+      "shortCode": "TV",
+      "widthFt": 3,
+      "depthFt": 2.5,
+      "heightFt": 2.75,
+      "blocksMovement": true,
+      "description": "Televisor de tubo con gabinete gris, pantalla y dial.",
+      "tags": [
+        "oficina",
+        "electrónica",
+        "retro",
+        "terror"
+      ],
+      "glb": "modelos_glb/televisor_crt.glb",
+      "thumbnail": "miniaturas/televisor_crt.png",
+      "placement": "floor"
+    },
+    {
+      "id": "videocasetera_vhs",
+      "name": "Videocasetera VHS",
+      "category": "Electrónica retro",
+      "pack": "oficina_electronica_04",
+      "shortCode": "VH",
+      "widthFt": 2,
+      "depthFt": 1.5,
+      "heightFt": 0.5,
+      "blocksMovement": false,
+      "description": "Reproductor VHS con ranura frontal y mandos.",
+      "tags": [
+        "oficina",
+        "electrónica",
+        "retro",
+        "terror"
+      ],
+      "glb": "modelos_glb/videocasetera_vhs.glb",
+      "thumbnail": "miniaturas/videocasetera_vhs.png",
+      "placement": "surface"
+    },
+    {
+      "id": "radio_portatil",
+      "name": "Radio portátil",
+      "category": "Electrónica retro",
+      "pack": "oficina_electronica_04",
+      "shortCode": "RP",
+      "widthFt": 1.5,
+      "depthFt": 0.75,
+      "heightFt": 1,
+      "blocksMovement": false,
+      "description": "Radio de transistores con rejilla y dial.",
+      "tags": [
+        "oficina",
+        "electrónica",
+        "retro",
+        "terror"
+      ],
+      "glb": "modelos_glb/radio_portatil.glb",
+      "thumbnail": "miniaturas/radio_portatil.png",
+      "placement": "surface"
+    },
+    {
+      "id": "grabadora_boombox",
+      "name": "Grabadora de casetes",
+      "category": "Electrónica retro",
+      "pack": "oficina_electronica_04",
+      "shortCode": "GB",
+      "widthFt": 2.5,
+      "depthFt": 1,
+      "heightFt": 1.25,
+      "blocksMovement": false,
+      "description": "Boombox con dos altavoces, casetera central y asa.",
+      "tags": [
+        "oficina",
+        "electrónica",
+        "retro",
+        "terror"
+      ],
+      "glb": "modelos_glb/grabadora_boombox.glb",
+      "thumbnail": "miniaturas/grabadora_boombox.png",
+      "placement": "surface"
+    },
+    {
+      "id": "reloj_digital",
+      "name": "Reloj digital",
+      "category": "Electrónica retro",
+      "pack": "oficina_electronica_04",
+      "shortCode": "RD",
+      "widthFt": 1.25,
+      "depthFt": 0.75,
+      "heightFt": 0.75,
+      "blocksMovement": false,
+      "description": "Reloj LED de mesa con números y carcasa oscura.",
+      "tags": [
+        "oficina",
+        "electrónica",
+        "retro",
+        "terror"
+      ],
+      "glb": "modelos_glb/reloj_digital.glb",
+      "thumbnail": "miniaturas/reloj_digital.png",
+      "placement": "surface"
+    },
+    {
+      "id": "inodoro_clasico",
+      "name": "Inodoro clásico",
+      "category": "Sanitarios",
+      "shortCode": "IC",
+      "widthFt": 2.25,
+      "depthFt": 2.5,
+      "heightFt": 3.0,
+      "blocksMovement": true,
+      "description": "Inodoro de porcelana beige con cisterna baja y asiento oscuro.",
+      "tags": [
+        "baño",
+        "noventas",
+        "terror"
+      ],
+      "glb": "modelos_glb/inodoro_clasico.glb",
+      "thumbnail": "miniaturas/inodoro_clasico.png",
+      "pack": "banos_05",
+      "placement": "floor"
+    },
+    {
+      "id": "inodoro_antiguo",
+      "name": "Inodoro de cisterna alta",
+      "category": "Sanitarios",
+      "shortCode": "IA",
+      "widthFt": 2.25,
+      "depthFt": 2.75,
+      "heightFt": 5.25,
+      "blocksMovement": true,
+      "description": "Sanitario con depósito alto, bajante metálico y palanca retro.",
+      "tags": [
+        "baño",
+        "noventas",
+        "terror"
+      ],
+      "glb": "modelos_glb/inodoro_antiguo.glb",
+      "thumbnail": "miniaturas/inodoro_antiguo.png",
+      "pack": "banos_05",
+      "placement": "floor"
+    },
+    {
+      "id": "lavabo_pedestal",
+      "name": "Lavabo con pedestal",
+      "category": "Sanitarios",
+      "shortCode": "LP",
+      "widthFt": 2.25,
+      "depthFt": 1.75,
+      "heightFt": 3.25,
+      "blocksMovement": true,
+      "description": "Lavamanos de cerámica con pedestal, grifo y desagüe.",
+      "tags": [
+        "baño",
+        "noventas",
+        "terror"
+      ],
+      "glb": "modelos_glb/lavabo_pedestal.glb",
+      "thumbnail": "miniaturas/lavabo_pedestal.png",
+      "pack": "banos_05",
+      "placement": "floor"
+    },
+    {
+      "id": "lavabo_gabinete",
+      "name": "Lavabo con gabinete",
+      "category": "Sanitarios",
+      "shortCode": "LG",
+      "widthFt": 3.0,
+      "depthFt": 2.25,
+      "heightFt": 3.25,
+      "blocksMovement": true,
+      "description": "Encimera con cubeta, dos puertas y herrajes.",
+      "tags": [
+        "baño",
+        "noventas",
+        "terror"
+      ],
+      "glb": "modelos_glb/lavabo_gabinete.glb",
+      "thumbnail": "miniaturas/lavabo_gabinete.png",
+      "pack": "banos_05",
+      "placement": "floor"
+    },
+    {
+      "id": "mingitorio_pared",
+      "name": "Mingitorio de pared",
+      "category": "Sanitarios",
+      "shortCode": "MI",
+      "widthFt": 1.75,
+      "depthFt": 1.25,
+      "heightFt": 2.5,
+      "blocksMovement": false,
+      "description": "Mingitorio mural de porcelana con tubería superior.",
+      "tags": [
+        "baño",
+        "noventas",
+        "terror"
+      ],
+      "glb": "modelos_glb/mingitorio_pared.glb",
+      "thumbnail": "miniaturas/mingitorio_pared.png",
+      "pack": "banos_05",
+      "placement": "wall",
+      "mountHeightFt": 1.0
+    },
+    {
+      "id": "banera_clasica",
+      "name": "Bañera clásica",
+      "category": "Baños y duchas",
+      "shortCode": "BA",
+      "widthFt": 5.75,
+      "depthFt": 2.75,
+      "heightFt": 2.25,
+      "blocksMovement": true,
+      "description": "Bañera recta con borde esmaltado, desagüe y grifería.",
+      "tags": [
+        "baño",
+        "noventas",
+        "terror"
+      ],
+      "glb": "modelos_glb/banera_clasica.glb",
+      "thumbnail": "miniaturas/banera_clasica.png",
+      "pack": "banos_05",
+      "placement": "floor"
+    },
+    {
+      "id": "banera_patas",
+      "name": "Bañera antigua con patas",
+      "category": "Baños y duchas",
+      "shortCode": "BP",
+      "widthFt": 5.75,
+      "depthFt": 2.75,
+      "heightFt": 2.5,
+      "blocksMovement": true,
+      "description": "Bañera retro elevada con patas de metal y borde grueso.",
+      "tags": [
+        "baño",
+        "noventas",
+        "terror"
+      ],
+      "glb": "modelos_glb/banera_patas.glb",
+      "thumbnail": "miniaturas/banera_patas.png",
+      "pack": "banos_05",
+      "placement": "floor"
+    },
+    {
+      "id": "plato_ducha",
+      "name": "Plato de ducha",
+      "category": "Baños y duchas",
+      "shortCode": "PD",
+      "widthFt": 3.0,
+      "depthFt": 3.0,
+      "heightFt": 0.5,
+      "blocksMovement": true,
+      "description": "Base cuadrada de ducha con canaleta y desagüe.",
+      "tags": [
+        "baño",
+        "noventas",
+        "terror"
+      ],
+      "glb": "modelos_glb/plato_ducha.glb",
+      "thumbnail": "miniaturas/plato_ducha.png",
+      "pack": "banos_05",
+      "placement": "floor"
+    },
+    {
+      "id": "cabina_ducha",
+      "name": "Cabina de ducha",
+      "category": "Baños y duchas",
+      "shortCode": "CD",
+      "widthFt": 3.25,
+      "depthFt": 3.25,
+      "heightFt": 7.25,
+      "blocksMovement": true,
+      "description": "Cabina de paneles de vidrio ahumado, marcos y grifería.",
+      "tags": [
+        "baño",
+        "noventas",
+        "terror"
+      ],
+      "glb": "modelos_glb/cabina_ducha.glb",
+      "thumbnail": "miniaturas/cabina_ducha.png",
+      "pack": "banos_05",
+      "placement": "floor"
+    },
+    {
+      "id": "regadera_pared",
+      "name": "Regadera de pared",
+      "category": "Baños y duchas",
+      "shortCode": "RP",
+      "widthFt": 1.5,
+      "depthFt": 1.0,
+      "heightFt": 2.0,
+      "blocksMovement": false,
+      "description": "Cabezal, brazo de metal y controles de regadera de pared.",
+      "tags": [
+        "baño",
+        "noventas",
+        "terror"
+      ],
+      "glb": "modelos_glb/regadera_pared.glb",
+      "thumbnail": "miniaturas/regadera_pared.png",
+      "pack": "banos_05",
+      "placement": "wall",
+      "mountHeightFt": 5.0
+    },
+    {
+      "id": "espejo_rectangular",
+      "name": "Espejo rectangular",
+      "category": "Mobiliario de baño",
+      "shortCode": "ER",
+      "widthFt": 2.5,
+      "depthFt": 0.25,
+      "heightFt": 3.0,
+      "blocksMovement": false,
+      "description": "Espejo de pared con marco metálico oxidado.",
+      "tags": [
+        "baño",
+        "noventas",
+        "terror"
+      ],
+      "glb": "modelos_glb/espejo_rectangular.glb",
+      "thumbnail": "miniaturas/espejo_rectangular.png",
+      "pack": "banos_05",
+      "placement": "wall",
+      "mountHeightFt": 3.5
+    },
+    {
+      "id": "espejo_redondo",
+      "name": "Espejo redondo",
+      "category": "Mobiliario de baño",
+      "shortCode": "EO",
+      "widthFt": 2.25,
+      "depthFt": 0.25,
+      "heightFt": 2.25,
+      "blocksMovement": false,
+      "description": "Espejo circular biselado de doce lados con marco antiguo.",
+      "tags": [
+        "baño",
+        "noventas",
+        "terror"
+      ],
+      "glb": "modelos_glb/espejo_redondo.glb",
+      "thumbnail": "miniaturas/espejo_redondo.png",
+      "pack": "banos_05",
+      "placement": "wall",
+      "mountHeightFt": 4.0
+    },
+    {
+      "id": "botiquin_pared",
+      "name": "Botiquín de pared",
+      "category": "Mobiliario de baño",
+      "shortCode": "BT",
+      "widthFt": 2.5,
+      "depthFt": 1.0,
+      "heightFt": 2.25,
+      "blocksMovement": false,
+      "description": "Armario colgado con espejo frontal, bisagras y manija.",
+      "tags": [
+        "baño",
+        "noventas",
+        "terror"
+      ],
+      "glb": "modelos_glb/botiquin_pared.glb",
+      "thumbnail": "miniaturas/botiquin_pared.png",
+      "pack": "banos_05",
+      "placement": "wall",
+      "mountHeightFt": 3.5
+    },
+    {
+      "id": "gabinete_bano",
+      "name": "Gabinete de baño",
+      "category": "Mobiliario de baño",
+      "shortCode": "GB",
+      "widthFt": 2.75,
+      "depthFt": 1.75,
+      "heightFt": 4.5,
+      "blocksMovement": true,
+      "description": "Gabinete alto para toallas con dos puertas y repisa abierta.",
+      "tags": [
+        "baño",
+        "noventas",
+        "terror"
+      ],
+      "glb": "modelos_glb/gabinete_bano.glb",
+      "thumbnail": "miniaturas/gabinete_bano.png",
+      "pack": "banos_05",
+      "placement": "floor"
+    },
+    {
+      "id": "toallero",
+      "name": "Toallero de pared",
+      "category": "Mobiliario de baño",
+      "shortCode": "TO",
+      "widthFt": 2.5,
+      "depthFt": 0.5,
+      "heightFt": 0.75,
+      "blocksMovement": false,
+      "description": "Barra metálica con una toalla colgada.",
+      "tags": [
+        "baño",
+        "noventas",
+        "terror"
+      ],
+      "glb": "modelos_glb/toallero.glb",
+      "thumbnail": "miniaturas/toallero.png",
+      "pack": "banos_05",
+      "placement": "wall",
+      "mountHeightFt": 3.25
+    },
+    {
+      "id": "portarrollos",
+      "name": "Portarrollos",
+      "category": "Mobiliario de baño",
+      "shortCode": "PR",
+      "widthFt": 1.0,
+      "depthFt": 0.75,
+      "heightFt": 0.75,
+      "blocksMovement": false,
+      "description": "Soporte metálico con papel enrollado.",
+      "tags": [
+        "baño",
+        "noventas",
+        "terror"
+      ],
+      "glb": "modelos_glb/portarrollos.glb",
+      "thumbnail": "miniaturas/portarrollos.png",
+      "pack": "banos_05",
+      "placement": "wall",
+      "mountHeightFt": 2.0
+    },
+    {
+      "id": "cesto_basura",
+      "name": "Cesto de basura",
+      "category": "Mobiliario de baño",
+      "shortCode": "CB",
+      "widthFt": 1.5,
+      "depthFt": 1.5,
+      "heightFt": 2.0,
+      "blocksMovement": true,
+      "description": "Papelera metálica octagonal con aro oscuro.",
+      "tags": [
+        "baño",
+        "noventas",
+        "terror"
+      ],
+      "glb": "modelos_glb/cesto_basura.glb",
+      "thumbnail": "miniaturas/cesto_basura.png",
+      "pack": "banos_05",
+      "placement": "floor"
+    },
+    {
+      "id": "dispensador_jabon",
+      "name": "Dispensador de jabón",
+      "category": "Accesorios de baño",
+      "shortCode": "DJ",
+      "widthFt": 0.5,
+      "depthFt": 0.5,
+      "heightFt": 0.75,
+      "blocksMovement": false,
+      "description": "Frasco de jabón líquido con bomba metálica.",
+      "tags": [
+        "baño",
+        "noventas",
+        "terror"
+      ],
+      "glb": "modelos_glb/dispensador_jabon.glb",
+      "thumbnail": "miniaturas/dispensador_jabon.png",
+      "pack": "banos_05",
+      "placement": "surface"
+    },
+    {
+      "id": "papel_higienico",
+      "name": "Rollo de papel higiénico",
+      "category": "Accesorios de baño",
+      "shortCode": "PH",
+      "widthFt": 0.5,
+      "depthFt": 0.5,
+      "heightFt": 0.5,
+      "blocksMovement": false,
+      "description": "Rollo compacto de papel de baño.",
+      "tags": [
+        "baño",
+        "noventas",
+        "terror"
+      ],
+      "glb": "modelos_glb/papel_higienico.glb",
+      "thumbnail": "miniaturas/papel_higienico.png",
+      "pack": "banos_05",
+      "placement": "surface"
+    },
+    {
+      "id": "toallas_dobladas",
+      "name": "Toallas dobladas",
+      "category": "Accesorios de baño",
+      "shortCode": "TD",
+      "widthFt": 1.0,
+      "depthFt": 1.0,
+      "heightFt": 0.5,
+      "blocksMovement": false,
+      "description": "Conjunto de dos toallas plegadas de distinto tono.",
+      "tags": [
+        "baño",
+        "noventas",
+        "terror"
+      ],
+      "glb": "modelos_glb/toallas_dobladas.glb",
+      "thumbnail": "miniaturas/toallas_dobladas.png",
+      "pack": "banos_05",
+      "placement": "surface"
+    },
+    {
+      "id": "camara_seguridad",
+      "name": "Cámara de seguridad giratoria",
+      "category": "Cámaras de seguridad",
+      "shortCode": "CS",
+      "pack": "seguridad_06",
+      "widthFt": 1.75,
+      "depthFt": 2.0,
+      "heightFt": 1.25,
+      "blocksMovement": false,
+      "placement": "wall",
+      "mountHeightFt": 7.0,
+      "description": "Cámara analógica de vigilancia con soporte fijo y cabezal que puede barrer horizontalmente.",
+      "tags": [
+        "seguridad",
+        "vigilancia",
+        "pared",
+        "cámara",
+        "animación",
+        "electrónica",
+        "noventas"
+      ],
+      "glb": "modelos_glb/camara_seguridad.glb",
+      "thumbnail": "miniaturas/camara_seguridad.png",
+      "rig": {
+        "type": "transform",
+        "pivot": "CAM_YAW",
+        "axis": "Y",
+        "minDegrees": -48,
+        "maxDegrees": 48,
+        "defaultDegrees": 0,
+        "animation": "Barrido_Seguridad",
+        "loopSeconds": 7.2
+      },
+      "animationOptional": true
+    }
+  ]
+}

@@ -1,0 +1,105 @@
+{
+  "schema": "forest-horror-furniture-catalog-v1",
+  "version": 3,
+  "units": {
+    "length": "ft",
+    "metersPerFoot": 0.3048,
+    "defaultCanvasFt": {
+      "width": 3,
+      "depth": 3
+    },
+    "minWidthFt": 0.25,
+    "maxWidthFt": 15,
+    "sizeStepFt": 0.25,
+    "referenceMapFeetPerCell": 5
+  },
+  "furniture": [
+    {
+      "id": "caja_carton_pequena",
+      "name": "Caja de cartón pequeña",
+      "category": "Paquetería",
+      "pack": "delivery_03",
+      "shortCode": "P1",
+      "widthFt": 2.5,
+      "depthFt": 2.5,
+      "heightFt": 2.5,
+      "sizeTiles": {
+        "width": 0.5,
+        "depth": 0.5,
+        "height": 0.5
+      },
+      "parcelSize": "pequena",
+      "blocksMovement": true,
+      "description": "Caja de cartón sellada con cinta y etiqueta impresas en textura pixel art. Geometría de 12 triángulos.",
+      "tags": [
+        "caja",
+        "delivery",
+        "paquete",
+        "envío",
+        "cartón"
+      ],
+      "glb": "modelos_glb/caja_carton_pequena.glb",
+      "thumbnail": "miniaturas/caja_carton_pequena.png",
+      "texture": "texturas_carton/caja_carton_pequena.png",
+      "placement": "floor"
+    },
+    {
+      "id": "caja_carton_mediana",
+      "name": "Caja de cartón mediana",
+      "category": "Paquetería",
+      "pack": "delivery_03",
+      "shortCode": "P2",
+      "widthFt": 5,
+      "depthFt": 5,
+      "heightFt": 5,
+      "sizeTiles": {
+        "width": 1,
+        "depth": 1,
+        "height": 1
+      },
+      "parcelSize": "mediana",
+      "blocksMovement": true,
+      "description": "Caja de cartón sellada con cinta y etiqueta impresas en textura pixel art. Geometría de 12 triángulos.",
+      "tags": [
+        "caja",
+        "delivery",
+        "paquete",
+        "envío",
+        "cartón"
+      ],
+      "glb": "modelos_glb/caja_carton_mediana.glb",
+      "thumbnail": "miniaturas/caja_carton_mediana.png",
+      "texture": "texturas_carton/caja_carton_mediana.png",
+      "placement": "floor"
+    },
+    {
+      "id": "caja_carton_grande",
+      "name": "Caja de cartón grande (alta)",
+      "category": "Paquetería",
+      "pack": "delivery_03",
+      "shortCode": "P3",
+      "widthFt": 5,
+      "depthFt": 5,
+      "heightFt": 10,
+      "sizeTiles": {
+        "width": 1,
+        "depth": 1,
+        "height": 2
+      },
+      "parcelSize": "grande",
+      "blocksMovement": true,
+      "description": "Caja de cartón sellada con cinta y etiqueta impresas en textura pixel art. Geometría de 12 triángulos.",
+      "tags": [
+        "caja",
+        "delivery",
+        "paquete",
+        "envío",
+        "cartón"
+      ],
+      "glb": "modelos_glb/caja_carton_grande.glb",
+      "thumbnail": "miniaturas/caja_carton_grande.png",
+      "texture": "texturas_carton/caja_carton_grande.png",
+      "placement": "floor"
+    }
+  ]
+}

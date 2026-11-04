@@ -1,0 +1,461 @@
+{
+  "schema": "forest-horror-furniture-catalog-v1",
+  "version": 4,
+  "pack": "oficina_electronica_04",
+  "units": {
+    "length": "ft",
+    "metersPerFoot": 0.3048,
+    "defaultCanvasFt": {
+      "width": 3,
+      "depth": 3
+    },
+    "minWidthFt": 0.25,
+    "maxWidthFt": 15,
+    "sizeStepFt": 0.25,
+    "referenceMapFeetPerCell": 5
+  },
+  "furniture": [
+    {
+      "id": "escritorio_clasico",
+      "name": "Escritorio clásico",
+      "category": "Mobiliario",
+      "pack": "oficina_electronica_04",
+      "shortCode": "EC",
+      "widthFt": 4.5,
+      "depthFt": 2.5,
+      "heightFt": 2.75,
+      "blocksMovement": true,
+      "description": "Escritorio de madera con cajones laterales y espacio para las piernas.",
+      "tags": [
+        "oficina",
+        "electrónica",
+        "retro",
+        "terror"
+      ],
+      "glb": "modelos_glb/escritorio_clasico.glb",
+      "thumbnail": "miniaturas/escritorio_clasico.png",
+      "placement": "floor"
+    },
+    {
+      "id": "escritorio_pc",
+      "name": "Escritorio para computadora",
+      "category": "Mobiliario",
+      "pack": "oficina_electronica_04",
+      "shortCode": "EP",
+      "widthFt": 4.25,
+      "depthFt": 2.5,
+      "heightFt": 3.75,
+      "blocksMovement": true,
+      "description": "Mesa de computadora de los años noventa con bandeja para teclado y repisa.",
+      "tags": [
+        "oficina",
+        "electrónica",
+        "retro",
+        "terror"
+      ],
+      "glb": "modelos_glb/escritorio_pc.glb",
+      "thumbnail": "miniaturas/escritorio_pc.png",
+      "placement": "floor"
+    },
+    {
+      "id": "escritorio_l",
+      "name": "Escritorio en L",
+      "category": "Mobiliario",
+      "pack": "oficina_electronica_04",
+      "shortCode": "EL",
+      "widthFt": 6.5,
+      "depthFt": 5,
+      "heightFt": 2.75,
+      "blocksMovement": true,
+      "description": "Escritorio de esquina con dos alas y patas de metal.",
+      "tags": [
+        "oficina",
+        "electrónica",
+        "retro",
+        "terror"
+      ],
+      "glb": "modelos_glb/escritorio_l.glb",
+      "thumbnail": "miniaturas/escritorio_l.png",
+      "placement": "floor"
+    },
+    {
+      "id": "silla_oficina",
+      "name": "Silla de oficina giratoria",
+      "category": "Mobiliario",
+      "pack": "oficina_electronica_04",
+      "shortCode": "SG",
+      "widthFt": 2.25,
+      "depthFt": 2.25,
+      "heightFt": 4,
+      "blocksMovement": true,
+      "description": "Silla acolchada de oficina con respaldo y base de cinco apoyos.",
+      "tags": [
+        "oficina",
+        "electrónica",
+        "retro",
+        "terror"
+      ],
+      "glb": "modelos_glb/silla_oficina.glb",
+      "thumbnail": "miniaturas/silla_oficina.png",
+      "placement": "floor"
+    },
+    {
+      "id": "silla_plegable",
+      "name": "Silla plegable metálica",
+      "category": "Mobiliario",
+      "pack": "oficina_electronica_04",
+      "shortCode": "SP",
+      "widthFt": 1.75,
+      "depthFt": 1.75,
+      "heightFt": 3.25,
+      "blocksMovement": true,
+      "description": "Silla de tubo pintado y asiento plegable.",
+      "tags": [
+        "oficina",
+        "electrónica",
+        "retro",
+        "terror"
+      ],
+      "glb": "modelos_glb/silla_plegable.glb",
+      "thumbnail": "miniaturas/silla_plegable.png",
+      "placement": "floor"
+    },
+    {
+      "id": "archivero_metalico",
+      "name": "Archivero metálico",
+      "category": "Mobiliario",
+      "pack": "oficina_electronica_04",
+      "shortCode": "AM",
+      "widthFt": 1.75,
+      "depthFt": 2,
+      "heightFt": 4,
+      "blocksMovement": true,
+      "description": "Archivero con tres cajones rotulados y tiradores.",
+      "tags": [
+        "oficina",
+        "electrónica",
+        "retro",
+        "terror"
+      ],
+      "glb": "modelos_glb/archivero_metalico.glb",
+      "thumbnail": "miniaturas/archivero_metalico.png",
+      "placement": "floor"
+    },
+    {
+      "id": "lampara_escritorio",
+      "name": "Lámpara de escritorio",
+      "category": "Mobiliario",
+      "pack": "oficina_electronica_04",
+      "shortCode": "LE",
+      "widthFt": 1.5,
+      "depthFt": 1.5,
+      "heightFt": 1.75,
+      "blocksMovement": false,
+      "description": "Lámpara metálica articulada con pantalla cónica simplificada.",
+      "tags": [
+        "oficina",
+        "electrónica",
+        "retro",
+        "terror"
+      ],
+      "glb": "modelos_glb/lampara_escritorio.glb",
+      "thumbnail": "miniaturas/lampara_escritorio.png",
+      "placement": "surface"
+    },
+    {
+      "id": "monitor_crt",
+      "name": "Monitor CRT",
+      "category": "Computadoras",
+      "pack": "oficina_electronica_04",
+      "shortCode": "MC",
+      "widthFt": 2,
+      "depthFt": 1.5,
+      "heightFt": 1.75,
+      "blocksMovement": false,
+      "description": "Monitor de tubo beige con pantalla oscura verdosa.",
+      "tags": [
+        "oficina",
+        "electrónica",
+        "retro",
+        "terror"
+      ],
+      "glb": "modelos_glb/monitor_crt.glb",
+      "thumbnail": "miniaturas/monitor_crt.png",
+      "placement": "surface"
+    },
+    {
+      "id": "gabinete_pc",
+      "name": "Gabinete de PC",
+      "category": "Computadoras",
+      "pack": "oficina_electronica_04",
+      "shortCode": "GP",
+      "widthFt": 0.75,
+      "depthFt": 1.75,
+      "heightFt": 2,
+      "blocksMovement": false,
+      "description": "Torre de computadora beige con disquetera, ranuras y testigos.",
+      "tags": [
+        "oficina",
+        "electrónica",
+        "retro",
+        "terror"
+      ],
+      "glb": "modelos_glb/gabinete_pc.glb",
+      "thumbnail": "miniaturas/gabinete_pc.png",
+      "placement": "floor"
+    },
+    {
+      "id": "teclado_pc",
+      "name": "Teclado retro",
+      "category": "Computadoras",
+      "pack": "oficina_electronica_04",
+      "shortCode": "TP",
+      "widthFt": 1.5,
+      "depthFt": 0.75,
+      "heightFt": 0.25,
+      "blocksMovement": false,
+      "description": "Teclado beige de perfil bajo con teclas pixeladas.",
+      "tags": [
+        "oficina",
+        "electrónica",
+        "retro",
+        "terror"
+      ],
+      "glb": "modelos_glb/teclado_pc.glb",
+      "thumbnail": "miniaturas/teclado_pc.png",
+      "placement": "surface"
+    },
+    {
+      "id": "mouse_pc",
+      "name": "Ratón con cable",
+      "category": "Computadoras",
+      "pack": "oficina_electronica_04",
+      "shortCode": "MP",
+      "widthFt": 0.5,
+      "depthFt": 0.75,
+      "heightFt": 0.25,
+      "blocksMovement": false,
+      "description": "Ratón de bola antiguo con botones diferenciados.",
+      "tags": [
+        "oficina",
+        "electrónica",
+        "retro",
+        "terror"
+      ],
+      "glb": "modelos_glb/mouse_pc.glb",
+      "thumbnail": "miniaturas/mouse_pc.png",
+      "placement": "surface"
+    },
+    {
+      "id": "impresora_matricial",
+      "name": "Impresora matricial",
+      "category": "Computadoras",
+      "pack": "oficina_electronica_04",
+      "shortCode": "IM",
+      "widthFt": 2.5,
+      "depthFt": 2,
+      "heightFt": 1.25,
+      "blocksMovement": false,
+      "description": "Impresora antigua con papel continuo y carcasa gris.",
+      "tags": [
+        "oficina",
+        "electrónica",
+        "retro",
+        "terror"
+      ],
+      "glb": "modelos_glb/impresora_matricial.glb",
+      "thumbnail": "miniaturas/impresora_matricial.png",
+      "placement": "surface"
+    },
+    {
+      "id": "telefono_fijo",
+      "name": "Teléfono fijo",
+      "category": "Telefonía",
+      "pack": "oficina_electronica_04",
+      "shortCode": "TF",
+      "widthFt": 1.5,
+      "depthFt": 1.25,
+      "heightFt": 0.75,
+      "blocksMovement": false,
+      "description": "Teléfono alámbrico de escritorio con auricular y teclado.",
+      "tags": [
+        "oficina",
+        "electrónica",
+        "retro",
+        "terror"
+      ],
+      "glb": "modelos_glb/telefono_fijo.glb",
+      "thumbnail": "miniaturas/telefono_fijo.png",
+      "placement": "surface"
+    },
+    {
+      "id": "telefono_pared",
+      "name": "Teléfono de pared",
+      "category": "Telefonía",
+      "pack": "oficina_electronica_04",
+      "shortCode": "TW",
+      "widthFt": 1,
+      "depthFt": 0.75,
+      "heightFt": 2,
+      "blocksMovement": false,
+      "description": "Teléfono de pared vertical con auricular al costado.",
+      "tags": [
+        "oficina",
+        "electrónica",
+        "retro",
+        "terror"
+      ],
+      "glb": "modelos_glb/telefono_pared.glb",
+      "thumbnail": "miniaturas/telefono_pared.png",
+      "placement": "wall",
+      "mountHeightFt": 3.75
+    },
+    {
+      "id": "contestadora",
+      "name": "Contestadora de casete",
+      "category": "Telefonía",
+      "pack": "oficina_electronica_04",
+      "shortCode": "CT",
+      "widthFt": 1.5,
+      "depthFt": 1.25,
+      "heightFt": 0.75,
+      "blocksMovement": false,
+      "description": "Contestadora con pantalla, controles y tapa del casete.",
+      "tags": [
+        "oficina",
+        "electrónica",
+        "retro",
+        "terror"
+      ],
+      "glb": "modelos_glb/contestadora.glb",
+      "thumbnail": "miniaturas/contestadora.png",
+      "placement": "surface"
+    },
+    {
+      "id": "fax",
+      "name": "Fax de oficina",
+      "category": "Telefonía",
+      "pack": "oficina_electronica_04",
+      "shortCode": "FX",
+      "widthFt": 2.25,
+      "depthFt": 2,
+      "heightFt": 1.25,
+      "blocksMovement": false,
+      "description": "Fax con bandeja de papel, ranura de salida y teclado.",
+      "tags": [
+        "oficina",
+        "electrónica",
+        "retro",
+        "terror"
+      ],
+      "glb": "modelos_glb/fax.glb",
+      "thumbnail": "miniaturas/fax.png",
+      "placement": "surface"
+    },
+    {
+      "id": "televisor_crt",
+      "name": "Televisor CRT",
+      "category": "Electrónica retro",
+      "pack": "oficina_electronica_04",
+      "shortCode": "TV",
+      "widthFt": 3,
+      "depthFt": 2.5,
+      "heightFt": 2.75,
+      "blocksMovement": true,
+      "description": "Televisor de tubo con gabinete gris, pantalla y dial.",
+      "tags": [
+        "oficina",
+        "electrónica",
+        "retro",
+        "terror"
+      ],
+      "glb": "modelos_glb/televisor_crt.glb",
+      "thumbnail": "miniaturas/televisor_crt.png",
+      "placement": "floor"
+    },
+    {
+      "id": "videocasetera_vhs",
+      "name": "Videocasetera VHS",
+      "category": "Electrónica retro",
+      "pack": "oficina_electronica_04",
+      "shortCode": "VH",
+      "widthFt": 2,
+      "depthFt": 1.5,
+      "heightFt": 0.5,
+      "blocksMovement": false,
+      "description": "Reproductor VHS con ranura frontal y mandos.",
+      "tags": [
+        "oficina",
+        "electrónica",
+        "retro",
+        "terror"
+      ],
+      "glb": "modelos_glb/videocasetera_vhs.glb",
+      "thumbnail": "miniaturas/videocasetera_vhs.png",
+      "placement": "surface"
+    },
+    {
+      "id": "radio_portatil",
+      "name": "Radio portátil",
+      "category": "Electrónica retro",
+      "pack": "oficina_electronica_04",
+      "shortCode": "RP",
+      "widthFt": 1.5,
+      "depthFt": 0.75,
+      "heightFt": 1,
+      "blocksMovement": false,
+      "description": "Radio de transistores con rejilla y dial.",
+      "tags": [
+        "oficina",
+        "electrónica",
+        "retro",
+        "terror"
+      ],
+      "glb": "modelos_glb/radio_portatil.glb",
+      "thumbnail": "miniaturas/radio_portatil.png",
+      "placement": "surface"
+    },
+    {
+      "id": "grabadora_boombox",
+      "name": "Grabadora de casetes",
+      "category": "Electrónica retro",
+      "pack": "oficina_electronica_04",
+      "shortCode": "GB",
+      "widthFt": 2.5,
+      "depthFt": 1,
+      "heightFt": 1.25,
+      "blocksMovement": false,
+      "description": "Boombox con dos altavoces, casetera central y asa.",
+      "tags": [
+        "oficina",
+        "electrónica",
+        "retro",
+        "terror"
+      ],
+      "glb": "modelos_glb/grabadora_boombox.glb",
+      "thumbnail": "miniaturas/grabadora_boombox.png",
+      "placement": "surface"
+    },
+    {
+      "id": "reloj_digital",
+      "name": "Reloj digital",
+      "category": "Electrónica retro",
+      "pack": "oficina_electronica_04",
+      "shortCode": "RD",
+      "widthFt": 1.25,
+      "depthFt": 0.75,
+      "heightFt": 0.75,
+      "blocksMovement": false,
+      "description": "Reloj LED de mesa con números y carcasa oscura.",
+      "tags": [
+        "oficina",
+        "electrónica",
+        "retro",
+        "terror"
+      ],
+      "glb": "modelos_glb/reloj_digital.glb",
+      "thumbnail": "miniaturas/reloj_digital.png",
+      "placement": "surface"
+    }
+  ]
+}
