@@ -2569,6 +2569,8 @@ function prepareGLBEngineDoc(source){
   throw new Error('No coincide la estructura del motor 3D con los puntos de integración GLB');
  const ruleScript='<script src="'+new URL('./juego/assets/fh-furniture-rules.js',document.baseURI).href+'"></'+'script>';
  const bridge='<script src="'+new URL('./juego/assets/fh-glb-bridge.js',document.baseURI).href+'"></'+'script>';
+ const chairSelection=' const sitting=selectSeatInteractable(visible,user,yaw,CELL,\n  (item,anchor)=>canWalk(user.x,user.z)&&safePoseRoute(item,{x:user.x,z:user.z},anchor));';
+ if(!source.includes(chairSelection))throw Error('No se encontró el selector de sillas');
  const fowStart='function installVisibility(){const used=new Set();scene.traverse(mesh=>{';
  const fowMaterials='if(used.has(m)||m.userData?.fhWholeDoor)continue;used.add(m);const previous=m.onBeforeCompile;';
  const fowReady='installVisibility();\nconst tex={}';
@@ -2576,7 +2578,8 @@ function prepareGLBEngineDoc(source){
  const heroScaleBefore='const HERO_H=1.68,HERO_VISUAL_SCALE=1.15,';
  if(!source.includes(heroScaleBefore))throw Error('No se encontró el multiplicador visual original del personaje');
  if(!source.includes('ForestShared.loadProject(DATA);'))throw Error('No se encontró la validación del mapa del motor');
- return source.replace(fowStart,'const fhSightMaskedMaterials=new WeakSet();function installVisibility(root=scene){root.traverse(mesh=>{')
+ return source.replace(chairSelection," const poseReachable=(item,anchor)=>canWalk(user.x,user.z)&&safePoseRoute(item,{x:user.x,z:user.z},anchor);\n const stockSeat=selectSeatInteractable(visible,user,yaw,CELL,poseReachable);\n const glbChair=window.FHFurnitureRules?.findReachableChair(visible,user,yaw,CELL,poseReachable,ForestShared);\n const sitting=glbChair&&(!stockSeat||glbChair.score<stockSeat.score)?glbChair:stockSeat;")
+  .replace(fowStart,'const fhSightMaskedMaterials=new WeakSet();function installVisibility(root=scene){root.traverse(mesh=>{')
   .replace(fowMaterials,'if(!m||fhSightMaskedMaterials.has(m)||m.userData?.fhWholeDoor)continue;fhSightMaskedMaterials.add(m);const previous=m.onBeforeCompile;')
   .replace(fowReady,'installVisibility();window.FHAssets?.setSightMaskInstaller(installVisibility);\nconst tex={}')
   .replace(heroScaleBefore,'const HERO_H=1.68,HERO_VISUAL_SCALE=1,')
