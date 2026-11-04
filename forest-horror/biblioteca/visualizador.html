@@ -375,7 +375,7 @@
       view('iso');
       // GLB original, incluida textura real y rig. En file:// se conserva la
       // vista previa procedural, porque los navegadores bloquean fetch local.
-      if (item.id === 'camara_seguridad' && location.protocol !== 'file:' && window.THREE.GLTFLoader) {
+      if (location.protocol !== 'file:' && window.THREE.GLTFLoader) {
         const loader = new window.THREE.GLTFLoader();
         loader.load(item.glb, gltf => {
           if (state.loadToken !== loadToken || selected !== item.id) return;

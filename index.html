@@ -2516,6 +2516,16 @@ function makeCurrent3DProject(){
    ceilingHeightFt:f.ceilingHeightFt,items:clone(f.items),apartments:clone(f.apartments||[])}))};
 }
 function show3DStatus(message){play3DState.textContent=message;play3DState.classList.remove('hide')}
+function prepareGLBEngineDoc(source){
+ const attachBefore=' return g;\n}\nfunction windowModel(f,it){';
+ const cloneBefore='const clone=source.clone(true);\n   clone.position.y+=floorElev[f];';
+ if(!source.includes(attachBefore)||!source.includes(cloneBefore)||!source.includes('</head>'))
+  throw new Error('No coincide la estructura del motor 3D con los puntos de integración GLB');
+ const bridge='<script src="'+new URL('./juego/assets/fh-glb-bridge.js',document.baseURI).href+'"></'+'script>';
+ return source.replace(attachBefore,' window.FHAssets?.attach(g,a);\n'+attachBefore)
+  .replace(cloneBefore,'const clone=source.clone(true);\n   window.FHAssets?.mirror(source,clone);\n   clone.position.y+=floorElev[f];')
+  .replace('</head>',bridge+'</head>');
+}
 function start3DPreview(){
  if(preview3DActive)return;
  const spawn=project.floors.findIndex(f=>f.items.some(it=>it.type==='spawn'));
@@ -2526,7 +2536,9 @@ function start3DPreview(){
  show3DStatus('Preparando tu mapa actual en 3D…');
  play3DLayer.classList.add('show');play3DLayer.setAttribute('aria-hidden','false');
  // La vista se crea fresca en cada prueba: las puertas abiertas durante juego no editan el mapa.
- play3DFrame.srcdoc=new TextDecoder('utf-8').decode(Uint8Array.from(atob(PREVIEW_ENGINE_DOC_B64),c=>c.charCodeAt(0)));
+ const originalEngineDoc=new TextDecoder('utf-8').decode(Uint8Array.from(atob(PREVIEW_ENGINE_DOC_B64),c=>c.charCodeAt(0)));
+ try{play3DFrame.srcdoc=prepareGLBEngineDoc(originalEngineDoc);}
+ catch(error){console.warn('[Forest Horror GLB]',error);play3DFrame.srcdoc=originalEngineDoc;}
 }
 function close3DPreview(){
  if(!preview3DActive)return;
