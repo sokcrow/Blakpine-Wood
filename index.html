@@ -1684,7 +1684,7 @@ function makeDefaultLightsEditable(){
   toast(count?window.FH_LIGHT_TEXT.autoReady(count):window.FH_LIGHT_TEXT.autoEmpty);
  }
 }
-function setLayer(layer){activeLayer=layer;document.body.classList.toggle('layer-lighting',layer==='lighting');$('#layerSwitch button').forEach(b=>b.classList.toggle('active',b.dataset.layer===layer));$('#circuitTools').hidden=layer!=='lighting';if(layer==='lighting'){makeDefaultLightsEditable();refreshCircuits();}selection=null;anchor=null;preview=null;closeInspector();render()}
+function setLayer(layer){activeLayer=layer;document.body.classList.toggle('layer-lighting',layer==='lighting');$$('#layerSwitch button').forEach(b=>b.classList.toggle('active',b.dataset.layer===layer));$('#circuitTools').hidden=layer!=='lighting';if(layer==='lighting'){makeDefaultLightsEditable();refreshCircuits();}selection=null;anchor=null;preview=null;closeInspector();render()}
 // Dibujo no invasivo: solo contornos y cableado lógico, jamás relleno de habitaciones.
 const circuitOutlineCache=new WeakMap();
 function drawLightingOverlay(c,z){
