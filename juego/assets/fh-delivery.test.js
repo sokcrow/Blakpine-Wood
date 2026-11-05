@@ -1,0 +1,14 @@
+const assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('node:fs'),path=require('node:path');
+const code=fs.readFileSync(path.join(__dirname,'fh-delivery.js'),'utf8');
+const context={window:{addEventListener(){},FH_DELIVERY_TEXT:{}},document:{baseURI:'https://example.test/juego/assets/'},URL,Date,console,structuredClone};
+context.window.window=context.window;vm.runInNewContext(code,context);
+const D=context.window.FHDelivery;let state={};
+D.ensureState(state);assert.equal(state.clock.minutes,480);assert.deepEqual(Array.from(state.delivery.orders),[]);
+assert.equal(D.parcelSize({widthFt:2,depthFt:2,heightFt:2}),'pequena');
+assert.equal(D.parcelSize({widthFt:4,depthFt:4,heightFt:4}),'mediana');
+assert.equal(D.parcelSize({widthFt:7,depthFt:3,heightFt:3}),'grande');
+const p=D.normalizeProduct({id:'sofa',name:'Sofá',widthFt:6,depthFt:3,heightFt:3},'https://example.test/');
+const o=D.createOrder(state,p,{paymentMethod:'card',doorId:'door1',floor:0});
+o.status='waiting';assert.equal(D.activeOrderForDoor(state,'door1').id,o.id);assert.equal(o.payment.required,true);
+D.advanceTime(state,20);assert.equal(state.clock.minutes,500);assert.equal(D.formatClock(state),'08:20');
+console.log('PASS fh-delivery core');
