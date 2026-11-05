@@ -2939,7 +2939,7 @@ function fhDeliveryDoor(pc,f){
 function fhDeliveryDoorById(id,f){return (doorList[f]||[]).find(d=>d.id===id)||null}
 window.FHDeliveryRuntime=window.FHDelivery?.createRuntime({
  state:GameState,save:saveProgress,notice,CELL:CELL,cell:CELL,feetPerCell:Number(DATA.units.feetPerCell)||5,
- floorItems:f=>DATA.floors[f]?.items||[],
+ floorItems:f=>DATA.floors[f]?.items||[],currentFloor:()=>currentFloor,
  clockMinutesPerSecond:1,deliveryLeadMinutes:60,
  baseUrl:new URL('./juego/assets/fh-delivery.js',document.baseURI).href,
  freeze:on=>{fhDeliveryUiActive=!!on;user.vx=user.vz=0;clearStick();},
