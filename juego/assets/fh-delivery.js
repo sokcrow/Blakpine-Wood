@@ -60,15 +60,15 @@ function createRuntime(options){
  function syncProductsToTerminal(){try{terminal?.contentWindow?.ForestTerminal3D?.setHamazonProducts(products)}catch{}}
  async function loadCatalogs(){
   try{
-   const [f,d]=await Promise.all([
-    fetch(new URL('../../forest-horror/biblioteca/catalogo_muebles.json',base)).then(r=>r.ok?r.json():Promise.reject(Error(r.status))),
-    fetch(new URL('../../forest-horror/biblioteca/catalogo_delivery.json',base)).then(r=>r.ok?r.json():Promise.reject(Error(r.status)))
-   ]);
+   const furnitureUrl=new URL('../../forest-horror/biblioteca/catalogo_muebles.json',base);
+   const deliveryUrl=new URL('../../forest-horror/biblioteca/catalogo_delivery.json',base);
+   const f=await fetch(furnitureUrl).then(r=>r.ok?r.json():Promise.reject(Error(r.status)));
+   const d=await fetch(deliveryUrl).then(r=>r.ok?r.json():Promise.reject(Error(r.status))).catch(err=>{console.warn('Hamazon: catálogo de paquetería no disponible',err);return {furniture:[]}});
    const catalogBase=new URL('../../forest-horror/biblioteca/',base);
    products=(f.furniture||[]).map(p=>normalizeProduct({...p,kind:'furniture'},catalogBase));
    boxes=(d.furniture||[]).map(p=>({...p,modelId:p.id,parcelSize:p.parcelSize||parcelSize(p)}));
    ready=true;syncProductsToTerminal();syncOrdersToTerminal();resume();
-  }catch(err){console.warn('Hamazon: catálogos no disponibles',err)}
+  }catch(err){console.warn('Hamazon: catálogo de muebles no disponible',err)}
  }
  function ensureTerminal(){
   if(terminal)return terminal;
