@@ -103,7 +103,7 @@ test('Una estación nueva requiere piezas y el motor permite usarla sentado',()=
  assert.match(pc,/function inspect\(/);
  assert.match(pc,/function frontTarget\(/);
  assert.match(furnitureRules,/pcAssemblyRequired=true/);
- assert.match(delivery,/pcAssemblyRequired===true/);
+ assert.match(delivery,/pcAssemblyRequired!==true/);
  assert.match(index,/fh-pc-assembly\.js/);
  assert.match(index,/floorItems:f=>DATA\.floors/);
  assert.match(index,/fhUseFrontFromSeat/);
@@ -113,5 +113,15 @@ test('Hamazon espera confirmación del motor antes de declarar éxito',()=>{
  assert.match(delivery,/FOREST_TERMINAL_RESPONSE/);
  assert.match(terminal,/hamazon-order-result/);
  assert.doesNotMatch(terminal,/say\('Pedido enviado a Hamazon\.'/);
+});
+test('Mesas de cualquier modelo con piezas cercanas se vuelven estaciones interactuables',()=>{
+ const pc=fs.readFileSync(path.join(__dirname,'fh-pc-assembly.js'),'utf8');
+ assert.match(pc,/function isTerminalCandidate\(/);
+ assert.match(pc,/function isWorkSurface\(/);
+ assert.match(pc,/function nearAnchor\(/);
+ assert.match(index,/window\.FHPcAssembly\?\.isTerminalCandidate\(it,f\.items/);
+ assert.match(index,/currentFloor:\(\)=>currentFloor/);
+ assert.match(delivery,/FHPcAssembly\?\.isTerminalCandidate/);
+ assert.match(delivery,/if\(!legacy\)/);
 });
 console.log(passed+' pruebas correctas');

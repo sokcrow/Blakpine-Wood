@@ -107,7 +107,11 @@ function createRuntime(options){
   return frame;
  }
  function openPc(item,floor=0){
-  if(item?.pcAssemblyRequired===true){
+  if(!isPc(item,floor))return false;
+  // Las estaciones antiguas etiquetadas como PC conservan su uso;
+  // cualquier mesa nueva con piezas sí comprueba los cuatro componentes.
+  const legacy=(item?.pcTerminal===true||item?.modelId==='escritorio_pc')&&item?.pcAssemblyRequired!==true;
+  if(!legacy){
    if(!global.FHPcAssembly?.inspect){say(TEXT.pcSystemMissing,2400);return false;}
    const assembly=global.FHPcAssembly.inspect(item,options.floorItems?.(floor),options.feetPerCell||5);
    if(!assembly.ready){
@@ -265,7 +269,8 @@ function createRuntime(options){
   else update(0);
   return true;
  }
- function isPc(item){return !!item&&(item.pcTerminal===true||item.modelId==='escritorio_pc')}
+ function isPc(item,floor=options.currentFloor?.()??pcFloor){return !!item&&(item.pcTerminal===true||item.modelId==='escritorio_pc'||
+  !!global.FHPcAssembly?.isTerminalCandidate(item,options.floorItems?.(floor),options.feetPerCell||5))}
  function actionLabel(item){return isPc(item)?(TEXT.pcAction||'Usar PC'):isPackage(item)?(TEXT.packageAction||'Abrir paquete'):isDeliveredFurniture(item)?(TEXT.decorateAction||'Mover / decorar'):null}
  function onMessage(event){
   if(!terminal||event.source!==terminal.contentWindow||event.data?.type!=='FOREST_TERMINAL_EVENT')return;
