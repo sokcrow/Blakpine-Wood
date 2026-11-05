@@ -269,7 +269,7 @@ function createRuntime(options){
   else update(0);
   return true;
  }
- function isPc(item,floor=pcFloor){return !!item&&(item.pcTerminal===true||item.modelId==='escritorio_pc'||
+ function isPc(item,floor=options.currentFloor?.()??pcFloor){return !!item&&(item.pcTerminal===true||item.modelId==='escritorio_pc'||
   !!global.FHPcAssembly?.isTerminalCandidate(item,options.floorItems?.(floor),options.feetPerCell||5))}
  function actionLabel(item){return isPc(item)?(TEXT.pcAction||'Usar PC'):isPackage(item)?(TEXT.packageAction||'Abrir paquete'):isDeliveredFurniture(item)?(TEXT.decorateAction||'Mover / decorar'):null}
  function onMessage(event){
