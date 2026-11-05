@@ -54,6 +54,8 @@ test('Los pedidos esperan su ETA antes de llamar a la puerta',()=>{
  assert.match(index,/clockMinutesPerSecond:1,deliveryLeadMinutes:60/);
  assert.match(index,/FHDeliveryRuntime\?\.update\(dt\)/);
  assert.match(terminal,/LLEGA /);
+ assert.match(terminal,/setGameClock\(value\)/);
+ assert.match(delivery,/syncClockToTerminal/);
 });
 
 test('La caja no bloquea la entrada hasta existir decoración runtime',()=>{
