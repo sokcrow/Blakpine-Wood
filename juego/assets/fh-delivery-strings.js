@@ -20,6 +20,7 @@ window.FH_DELIVERY_TEXT=Object.freeze({
  cash:'El pedido indica pago en efectivo al recibir.',
  card:'El pedido indica pago con tarjeta al recibir.',
  openDoor:'Abrir la puerta',
+ talkThroughDoor:'Hablar con el repartidor',
  askPackage:'¿Qué trae?',
  askPayment:'¿Cómo se paga?',
  closeTalk:'Terminar conversación',
