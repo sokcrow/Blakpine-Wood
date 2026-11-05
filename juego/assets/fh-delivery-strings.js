@@ -32,6 +32,7 @@ window.FH_DELIVERY_TEXT=Object.freeze({
  decorateNeedsSurface:'Necesita una superficie.',
  decorateNeedsWall:'Necesita una pared cercana.',
  decoratePlaced:'Objeto colocado.',
+ decorateRequired:'Debes colocar este objeto en una posición válida antes de salir.',
  packageOpened:(name,minutes)=>'Desempacas '+name+(minutes?'. Pasan '+minutes+' min.':'.'),
  packageMissing:'No se pudo preparar el paquete.',
  productMissing:'Ese producto ya no está disponible en Hamazon.',
