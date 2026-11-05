@@ -143,6 +143,31 @@ function wallpaperEditor(){
  });
 }
 function attachInspector(item,fields){
+ if(['door','peephole_door'].includes(item.type)){
+  const property=root.FHPropertyZones?.doorAt(doc(),floor().id,item)||P().propertyAt(doc(),floor().id,{x:(item.a.x+item.b.x)/2,y:(item.a.y+item.b.y)/2});
+  if(property){
+   const holder=document.createElement('label');holder.style.gridColumn='1/-1';
+   holder.textContent='Acceso de propiedad: '+(property.name||property.id);
+   const select=document.createElement('select');
+   for(const [value,label] of [['','Sin asignar'],['main','Puerta principal'],['rear','Puerta trasera'],['extra','Puerta adicional']]){
+    const op=document.createElement('option');op.value=value;op.textContent=label;select.append(op);
+   }
+   select.value=['main','rear','extra'].includes(item.propertyDoorRole)?item.propertyDoorRole:'';
+   select.onchange=()=>{
+    if(!admin()&&!P().canEditItem(doc(),floor().id,item,actor,false)){env.toast(T().denied);return;}
+    if(select.value==='main'){
+     for(const other of floor().items.filter(it=>it.id!==item.id&&['door','peephole_door'].includes(it.type)&&it.propertyDoorRole==='main')){
+      const p=root.FHPropertyZones?.doorAt(doc(),floor().id,other);
+      if(p?.id===property.id)delete other.propertyDoorRole;
+     }
+    }
+    if(select.value)item.propertyDoorRole=select.value;
+    else delete item.propertyDoorRole;
+    env.record();env.toast('Tipo de acceso de propiedad guardado.');
+   };
+   holder.append(select);fields.append(holder);
+  }
+ }
  if(['wall','red_wall','property_wall','half_wall'].includes(item.type)){
   const a=document.createElement('button');a.textContent='▨ Pintar cara A';a.onclick=()=>paintWall(item,'A');
   const b=document.createElement('button');b.textContent='▨ Pintar cara B';b.onclick=()=>paintWall(item,'B');
