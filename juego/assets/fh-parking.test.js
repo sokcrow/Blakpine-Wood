@@ -53,6 +53,33 @@ const assert=typeof require==='function'?require('node:assert/strict'):null;
   check('Se rechaza decal desconocido',denied);
   const safe=P.createStalls({x:0,y:0},{count:1,rotation:NaN},()=>('q_'+(++id)))[0];
   check('Rotación inválida usa valor seguro',safe.rotation===0);
+  // Un solo canvas por marca para la vista 2D y su CanvasTexture de Three.js.
+  const previousDocument=globalThis.document;
+  const ctx={fillRect(){},clearRect(){},beginPath(){},stroke(){},moveTo(){},lineTo(){},
+   arc(){},fillText(){},save(){},restore(){},translate(){},transform(){},
+   rotate(){},strokeRect(){},setLineDash(){},drawImage(image){this.lastImage=image;}};
+  if(!globalThis.document)globalThis.document={createElement(name){
+   if(name!=='canvas')throw Error('Se esperaba canvas');return {width:0,height:0,getContext:()=>ctx};
+  }};
+  class CanvasTexture{constructor(image){this.image=image}}
+  class PlaneGeometry{constructor(width,height){this.parameters={width,height}}}
+  class MeshBasicMaterial{constructor(config){Object.assign(this,config)}}
+  class Mesh{constructor(geometry,material){this.geometry=geometry;this.material=material;this.rotation={};}}
+  class Group{constructor(){this.children=[];this.rotation={};this.position={set:(x,y,z)=>this.coords={x,y,z}};}add(item){this.children.push(item);}}
+  const THREE={CanvasTexture,PlaneGeometry,MeshBasicMaterial,Mesh,Group,
+   NearestFilter:10,sRGBEncoding:11,DoubleSide:12};
+  try{
+   const story=new Group(),meshes=P.attachFloor(THREE,{floors:[{items:stalls}],units:{feetPerCell:5}},story,0,1.524);
+   check('Ocho mallas planas en 3D',meshes.length===8&&story.children.length===8);
+   const geometry=meshes[0].children[0].geometry.parameters;
+   check('Geometría 3D de 9×18 pies',Math.abs(geometry.width-9*.3048)<1e-8&&Math.abs(geometry.height-18*.3048)<1e-8);
+   check('Decals elevados sobre los pisos',meshes.every(m=>m.coords.y>.039));
+   check('No escribir profundidad al dibujar marcas',meshes.every(m=>m.children[0].material.depthWrite===false));
+   check('Mosaico 72×144 sin suavizado',meshes[0].children[0].material.map.image.width===72&&
+    meshes[0].children[0].material.map.image.height===144&&meshes[0].children[0].material.map.minFilter===THREE.NearestFilter);
+   P.draw2D(ctx,stalls[0],p=>({x:p.x,y:p.y}),1,1,false,5);
+   check('Canvas idéntico en editor y Three.js',ctx.lastImage===meshes[0].children[0].material.map.image);
+  }finally{if(previousDocument===undefined)delete globalThis.document;else globalThis.document=previousDocument;}
   return {passed,total,fixture:project};
  };
 });
