@@ -99,6 +99,7 @@
   }
   function floorStyle(room){return style(room.surfaceStyle,{preset:'madera',color:'#846B52',pattern:null},'floor');}
   function authority(map,floorId,p){
+    if(properties(map,floorId).filter(q=>inside(p,q.polygon)).length>1)return {id:'overlap:'+floorId,ownerId:''};
     const prop=propertyAt(map,floorId,p);
     if(prop)return {id:'property:'+prop.id,ownerId:prop.ownerId};
     const building=buildingAt(map,floorId,p);
@@ -118,6 +119,14 @@
   function roomInProperty(room,prop){
     const spans=room.spans?.length?room.spans:[room];
     return spans.every(s=>[[s.x+.001,s.y+.001],[s.x+s.w-.001,s.y+.001],[s.x+.001,s.y+s.h-.001],[s.x+s.w-.001,s.y+s.h-.001]].every(([x,y])=>inside({x,y},prop.polygon)));
+  }
+  function canEditAt(map,floorId,p,actor,isAdmin=false){const scope=authority(map,floorId,p);return isAdmin||!!actor&&!!scope.ownerId&&scope.ownerId===actor;}
+  function canEditItem(map,floorId,item,actor,isAdmin=false){
+    if(isAdmin)return true;if(!item)return false;
+    if(item.a&&item.b)return canPaintWall(map,floorId,item,'A',actor,false)&&canPaintWall(map,floorId,item,'B',actor,false);
+    if(item.type==='room'||item.spans?.length)return canPaintRoom(map,floorId,item,actor,false);
+    if(!Number.isFinite(item.x)||!Number.isFinite(item.y))return false;
+    return canEditAt(map,floorId,{x:item.x,y:item.y},actor,false);
   }
   function canPaintRoom(map,floorId,room,actor,isAdmin=false){
     if(isAdmin)return true;
@@ -196,6 +205,6 @@
   function validateMap(map){if(map?.patterns)validatePatterns(map.patterns);return map;}
   return Object.freeze({TEXEL_PER_FOOT,MAX_PATTERNS,MAX_PNG_BYTES,MAX_COLORS,WALL_PRESETS,FLOOR_PRESETS,
     sideAt,sample,inside,closedLoops,buildings,properties,propertyAt,buildingAt,reconcileProperties,style,wallStyle,floorStyle,
-    canPaintWall,canPaintRoom,paintWall,paintRoomWalls,paintFloor,roomContains,roomInProperty,splitAtPropertyLimits,
+    canPaintWall,canPaintRoom,canEditAt,canEditItem,paintWall,paintRoomWalls,paintFloor,roomContains,roomInProperty,splitAtPropertyLimits,
     pngInfo,validatePatterns,validateMap});
 });
