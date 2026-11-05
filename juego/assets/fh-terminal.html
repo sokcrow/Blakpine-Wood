@@ -180,6 +180,7 @@ const DATA = {
  cameras:[{id:'CAM-01',place:'VESTÍBULO',online:true},{id:'CAM-02',place:'PASILLO NORTE',online:true},{id:'CAM-03',place:'ENFERMERÍA',online:true},{id:'CAM-04',place:'MANTENIMIENTO',online:false}],
  hamazonProducts:[],
  hamazonOrders:[],
+ gameClock:'08:00',
  logs:[
   {t:'23:18',type:'ACCESO',txt:'Cerradura norte activada.\nOrden firmada: ADMIN-03.\nLa apertura manual queda deshabilitada.'},
   {t:'22:47',type:'VÍDEO',txt:'CAM-04 dejó de transmitir.\nCausa no determinada.\nÚltimo fotograma no disponible.'},
@@ -252,8 +253,10 @@ function renderHamazon(body){
  }
  side.append(node('strong','','PEDIDOS'));
  if(!DATA.hamazonOrders.length)side.append(node('div','hamazon-empty','No hay pedidos.'));
+ const orderStatus={scheduled:'PROGRAMADO',queued:'EN COLA',waiting:'EN LA PUERTA',payment:'ESPERANDO PAGO',delivering:'ENTREGANDO',delivered:'ENTREGADO',unboxed:'ABIERTO',placed:'PROGRAMADO'};
  for(const o of DATA.hamazonOrders.slice().reverse()){
-  const row=node('div','hamazon-order');row.append(node('strong','',o.name||o.productId),node('div','',(o.status||'pending').toUpperCase()+' · '+(o.paymentMethod||'prepaid').toUpperCase()));side.append(row);
+  const label=orderStatus[o.status]||(o.status||'pending').toUpperCase(),eta=['scheduled','queued','placed'].includes(o.status)&&o.eta?' · LLEGA '+o.eta:'';
+  const row=node('div','hamazon-order');row.append(node('strong','',o.name||o.productId),node('div','',label+eta+' · '+(o.paymentMethod||'prepaid').toUpperCase()));side.append(row);
  }
 }
 function drawCamera(t){let cnv=$('camCanvas');if(!cnv||!state.power)return;const c=cnv.getContext('2d');c.imageSmoothingEnabled=false;const w=cnv.width,h=cnv.height;let cam=DATA.cameras[state.camera];c.fillStyle='#0b1b24';c.fillRect(0,0,w,h);
@@ -266,12 +269,13 @@ function drawCamera(t){let cnv=$('camCanvas');if(!cnv||!state.power)return;const
  const sec=Math.floor(t/1000),clock='23:'+String(47+Math.floor(sec/60)%12).padStart(2,'0')+':'+String(sec%60).padStart(2,'0');c.fillStyle='#d2ece1';c.font='bold 12px monospace';c.fillText(cam.id+' / '+clock,9,16);c.fillStyle='#e19393';c.fillText('REC',270,16);
 }
 function paintText(text,x,y,color='#e3e6c8',size=12){pctx.fillStyle=color;pctx.font='bold '+size+'px monospace';pctx.textBaseline='top';pctx.fillText(String(text),x,y)}
+function syncGameClock(value){const clock=/^\d{2}:\d{2}$/.test(String(value||''))?String(value):'08:00';DATA.gameClock=clock;const el=document.querySelector('.os-date');if(el)el.textContent='USUARIO: GUARDIA_03   │   '+clock;previewPaint();}
 function previewPaint(){const c=pctx,W=512,H=320;c.fillStyle='#020708';c.fillRect(0,0,W,H);
  if(!state.power){c.fillStyle='#091317';c.fillRect(0,0,W,H);c.fillStyle='#102025';c.fillRect(0,0,W,14);paintText('RAVEN 486 / SIN ENERGÍA',158,153,'#51645c',12);if(texture)texture.needsUpdate=true;return}
  if(state.boot){c.fillStyle='#163530';c.fillRect(0,0,W,H);paintText('RAVEN BIOS 1.9',38,62,'#afe9ba',18);paintText('COMPROBACIÓN DE MEMORIA... OK',38,112,'#b9cfae',12);paintText('INICIANDO RAVEN/OS...',38,146,'#f2d09f',12);if(texture)texture.needsUpdate=true;return}
  c.fillStyle='#356f78';c.fillRect(0,0,W,H);c.fillStyle='#518c91';for(let i=0;i<13;i++){c.fillRect((i*83+23)%512,(i*39+14)%320,3,3)}
  c.fillStyle='#e1d4a3';c.fillRect(385,40,53,53);c.fillStyle='#214450';for(let i=0;i<9;i++)c.fillRect(265+i*26,220-(i%3)*20,34,130);
- c.fillStyle='#dbc99d';c.fillRect(0,0,W,29);c.fillStyle='#b99f76';c.fillRect(0,26,W,3);paintText('▣ RAVEN/OS',12,9,'#2b4d53',13);paintText('GUARDIA_03   23:47',352,10,'#6c6a5c',10);
+ c.fillStyle='#dbc99d';c.fillRect(0,0,W,29);c.fillStyle='#b99f76';c.fillRect(0,26,W,3);paintText('▣ RAVEN/OS',12,9,'#2b4d53',13);paintText('GUARDIA_03   '+DATA.gameClock,352,10,'#6c6a5c',10);
  const colors=['#edc49f','#94d0b4','#9ebdde','#c4a5cc','#e5bf78'],symbols=['✉','▧','◉','▣','H'];APPS.forEach((app,i)=>{c.fillStyle=colors[i];c.fillRect(19,44+i*50,39,31);paintText(symbols[i],30,49+i*50,'#243f44',15);paintText(LABELS[app].slice(0,9),13,76+i*50,'#f4e8c9',9)});
  const app=state.front;if(app&&winEls.has(app)&&winEls.get(app).style.display!=='none'){
  let appIndex=APPS.indexOf(app),col=colors[appIndex];c.fillStyle='#15282f';c.fillRect(115,54,363,237);c.fillStyle='#eee5c9';c.fillRect(111,50,363,235);c.fillStyle=col;c.fillRect(115,54,355,27);paintText('■ '+LABELS[app],127,61,'#244049',12);c.fillStyle='#ecdcb7';c.fillRect(441,57,22,20);paintText('×',448,59,'#493d3c',14);c.fillStyle='#d1cbb6';c.fillRect(125,93,334,176);
@@ -315,11 +319,12 @@ window.ForestTerminal3D={
  setLogs(logs){if(!Array.isArray(logs))return;DATA.logs=logs.map(l=>({t:String(l.t??''),type:String(l.type??''),txt:Array.isArray(l.txt)?l.txt.join('\n'):String(l.txt??'')}));state.log=0;renderWindow('files');previewPaint()},
  setHamazonProducts(items){if(!Array.isArray(items))return;DATA.hamazonProducts=items.map(p=>({...p,id:String(p.id??''),name:String(p.name??p.id??''),kind:String(p.kind??'furniture')}));renderWindow('hamazon');previewPaint()},
  setHamazonOrders(items){DATA.hamazonOrders=Array.isArray(items)?items.map(o=>({...o})):[];renderWindow('hamazon');previewPaint()},
- getState(){return{power:state.power,zoom:state.zoom,windows:[...state.windows],front:state.front,floor:state.floor,room:state.room,camera:state.camera}}
+ setGameClock(value){syncGameClock(value)},
+ getState(){return{power:state.power,zoom:state.zoom,windows:[...state.windows],front:state.front,floor:state.floor,room:state.room,camera:state.camera,gameClock:DATA.gameClock}}
 };
 // Three.js r128 es la única dependencia: sin red se presenta el monitor CSS interactivo.
 function loadThree(){if(window.THREE){initThree();return}const script=document.createElement('script');script.src='https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';script.onload=initThree;script.onerror=()=>{$('fallback').style.display='flex'};document.head.appendChild(script)}
-syncPower();loadThree();requestAnimationFrame(animation);
+syncGameClock(DATA.gameClock);syncPower();loadThree();requestAnimationFrame(animation);
 </script>
 </body>
 </html>
