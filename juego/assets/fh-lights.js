@@ -24,8 +24,8 @@ const presetFor=kind=>PRESETS[Object.prototype.hasOwnProperty.call(PRESETS,kind)
 const kindForTool=tool=>Object.prototype.hasOwnProperty.call(TOOL_PRESET,tool)?TOOL_PRESET[tool]:null;
 const isWall=kind=>presetFor(kind).mount==='wall';
 function dimFalloffFt(lamp,brightRadiusFt){
- const p=presetFor(lamp?.lightKind),bright=clamp(finite(brightRadiusFt,finite(lamp?.lightRadiusFt,p.radiusFt)),5,MAX_LIGHT_RADIUS_FT);
- const explicit=Number(lamp?.lightDimFalloffFt);
+ const p=presetFor(lamp?.lightKind),explicit=Number(lamp?.lightDimFalloffFt),maxBright=Number.isFinite(explicit)?MAX_LIGHT_RADIUS_FT:80;
+ const bright=clamp(finite(brightRadiusFt,finite(lamp?.lightRadiusFt,p.radiusFt)),5,maxBright);
  if(Number.isFinite(explicit))return clamp(explicit,0,MAX_DIM_FALLOFF_FT);
  const legacyOuter=Number(lamp?.lightDimRadiusFt);
  if(Number.isFinite(legacyOuter))return clamp(legacyOuter,bright,LEGACY_MAX_DIM_RADIUS_FT)-bright;
@@ -46,7 +46,8 @@ function resolve(floorIndex,floor,rooms,roomAtGrid,cell){
  const byId=new Map(rooms.map(r=>[r.roomId||r.id,r]));
  function emit(lamp,room){
   const preset=presetFor(lamp.lightKind),kind=preset.mount==='wall'?presetFor(lamp.lightKind)===PRESETS.wall_flood?'wall_flood':'wall_sconce':Object.prototype.hasOwnProperty.call(PRESETS,lamp.lightKind)?lamp.lightKind:'bulb';
-  const radiusFt=clamp(finite(lamp.lightRadiusFt,preset.radiusFt),5,MAX_LIGHT_RADIUS_FT);
+  const explicitDim=Number(lamp.lightDimFalloffFt);
+  const radiusFt=clamp(finite(lamp.lightRadiusFt,preset.radiusFt),5,Number.isFinite(explicitDim)?MAX_LIGHT_RADIUS_FT:80);
   const dimRadiusFt=radiusFt+dimFalloffFt(lamp,radiusFt);
   const beamAngleDeg=clamp(finite(lamp.beamAngleDeg,preset.beamAngleDeg),20,360);
   let x=Number(lamp.x)*cell,z=Number(lamp.y)*cell;
