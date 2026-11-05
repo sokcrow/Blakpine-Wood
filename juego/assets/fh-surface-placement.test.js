@@ -9,7 +9,7 @@ let checks=0;const test=(desc,fn)=>{fn();checks++;console.log('OK',desc)};
 test('Coloca un objeto surface sobre la mesa y guarda la relación',()=>{
  const host=table(),item=phone();const result=S.place(item,[host],5,provider);
  assert.equal(result.ok,true);assert.equal(result.supported,true);
- assert.deepEqual(item.support,{parentItemId:'table',surfaceId:'top',offsetXFt:0,offsetZFt:0});
+ assert.deepEqual(item.support,{parentItemId:'table',surfaceId:'top',offsetXFt:0,offsetZFt:0,rotationOffsetDeg:0});
  assert.equal(S.worldPose([host,item],item,5,provider).heightFt,2.5);
 });
 
@@ -34,7 +34,7 @@ test('La rotación del mueble padre mueve al hijo con el mismo offset local',()=
  const host=table(),item=phone({x:10.3,y:10});S.place(item,[host],5,provider);
  assert.equal(item.support.offsetXFt,1.5);assert.equal(item.support.offsetZFt,0);
  host.rotation=90;S.syncChildren([host,item],host.id,5,provider);
- assert.ok(Math.abs(item.x-10)<1e-9);assert.ok(Math.abs(item.y-10.3)<1e-9);
+ assert.ok(Math.abs(item.x-10)<1e-9);assert.ok(Math.abs(item.y-10.3)<1e-9);assert.equal(item.rotation,90);
 });
 
 test('El encaje funciona con superficies rotadas',()=>{
@@ -45,7 +45,7 @@ test('El encaje funciona con superficies rotadas',()=>{
 
 test('Una relación rota vuelve a la posición absoluta sin elevar el objeto',()=>{
  const item=phone({x:7,y:8,support:{parentItemId:'missing',surfaceId:'top',offsetXFt:0,offsetZFt:0}});
- assert.deepEqual(S.worldPose([item],item,5,provider),{x:7,y:8,heightFt:0,supported:false,parent:null,surface:null});
+ assert.deepEqual(S.worldPose([item],item,5,provider),{x:7,y:8,heightFt:0,rotation:0,supported:false,parent:null,surface:null});
 });
 
 test('La altura se acumula si un soporte está sobre otro soporte',()=>{
