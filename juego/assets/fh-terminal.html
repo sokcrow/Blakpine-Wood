@@ -160,12 +160,15 @@ button:focus:not(:focus-visible){outline:none}button:focus-visible,[tabindex]:fo
  </div></div>
 </div>
 <script src="fh-delivery-strings.js"></script>
+<script src="fh-computer-strings.js"></script>
 <script>
 'use strict';
 // Prototipo independiente. No modifica ni carga mapas forest-horror-map-v1.
 const $ = id => document.getElementById(id);
 const LABELS = {mail:'CORREOS',map:'MAPA',cams:'CÁMARAS',files:'ARCHIVOS',hamazon:'HAMAZON'};
 const APPS = ['mail','map','cams','files','hamazon'];
+const COMPUTER_TEXT=window.FH_COMPUTER_TEXT||{};
+let sessionApps=APPS.slice(),sessionStationId='',sessionUserId='GUARDIA_03';
 const DATA = {
  mails:[
   {id:'M-015',from:'ADMINISTRACIÓN',subject:'Acceso al ala norte',date:'23:18',body:'Personal del turno nocturno:\n\nEl acceso al ala norte permanece restringido desde las 22:00. No utilicen la puerta de servicio.\n\nEl código de ingreso fue retirado del sistema. El supervisor recogerá las llaves mañana.\n\nNo intenten comprobar el bloqueo durante la noche.\n\nDirección / 03'},
@@ -213,8 +216,9 @@ function bringFront(app){let win=winEls.get(app);if(!win)return;win.style.displa
 function closeWindow(app){let win=winEls.get(app);if(!win)return;win.remove();winEls.delete(app);state.windows=state.windows.filter(v=>v!==app);state.front=state.windows.at(-1)||null;drawTasks();previewPaint();emit('ventana',{app,open:false})}
 function drawTasks(){const task=$('taskItems');clear(task);state.windows.forEach(app=>{let b=labelButton(LABELS[app],'task-app'+(state.front===app?' selected':''),()=>bringFront(app));task.append(b)})}
 function closeStart(){ $('startMenu').classList.remove('open'); $('startButton').setAttribute('aria-expanded','false'); }
-function initStart(){const menu=$('startMenu'),symbols={mail:'✉',map:'▧',cams:'◉',files:'▣',hamazon:'H'};APPS.forEach(app=>menu.append(labelButton(symbols[app]+'  '+LABELS[app],'',()=>{closeStart();openWindow(app)})));menu.append(labelButton('⏻  APAGAR TERMINAL','',()=>{closeStart();setPower(false)}));$('startButton').addEventListener('click',()=>{const open=menu.classList.toggle('open');$('startButton').setAttribute('aria-expanded',String(open))});document.addEventListener('pointerdown',ev=>{if(!menu.contains(ev.target)&&ev.target!==$('startButton'))closeStart()})}
-function makeIcons(){let layer=$('desktopIcons');clear(layer);let icons={mail:['✉','symbol-mail'],map:['▧','symbol-map'],cams:['◉','symbol-cams'],files:['▣','symbol-files'],hamazon:['H','symbol-hamazon']};for(const app of APPS){const b=labelButton('', 'desktop-icon',()=>openWindow(app));b.setAttribute('aria-label','Abrir '+LABELS[app]);const icon=node('span','pixel-symbol '+icons[app][1],icons[app][0]);b.append(icon,node('span','',LABELS[app]));layer.append(b)}}
+function refreshStartMenu(){const menu=$('startMenu'),symbols={mail:'✉',map:'▧',cams:'◉',files:'▣',hamazon:'H'};clear(menu);sessionApps.forEach(app=>menu.append(labelButton(symbols[app]+'  '+LABELS[app],'',()=>{closeStart();openWindow(app)})));menu.append(labelButton('⏻  APAGAR TERMINAL','',()=>{closeStart();setPower(false)}))}
+function initStart(){const menu=$('startMenu');refreshStartMenu();$('startButton').addEventListener('click',()=>{const open=menu.classList.toggle('open');$('startButton').setAttribute('aria-expanded',String(open))});document.addEventListener('pointerdown',ev=>{if(!menu.contains(ev.target)&&ev.target!==$('startButton'))closeStart()})}
+function makeIcons(){let layer=$('desktopIcons');clear(layer);let icons={mail:['✉','symbol-mail'],map:['▧','symbol-map'],cams:['◉','symbol-cams'],files:['▣','symbol-files'],hamazon:['H','symbol-hamazon']};for(const app of sessionApps){const b=labelButton('', 'desktop-icon',()=>openWindow(app));b.setAttribute('aria-label','Abrir '+LABELS[app]);const icon=node('span','pixel-symbol '+icons[app][1],icons[app][0]);b.append(icon,node('span','',LABELS[app]));layer.append(b)}}
 function createWindow(app){const win=node('section','window win-'+app);win.dataset.app=app;win.setAttribute('aria-label',LABELS[app]);win.style.width=(app==='hamazon'?'760px':app==='map'?'620px':app==='cams'?'610px':'590px');win.style.height=(app==='hamazon'?'470px':app==='mail'?'420px':'400px');let idx=APPS.indexOf(app);win.style.left=(Math.max(110,(innerWidth-720)/2)+idx*21)+'px';win.style.top=(Math.max(44,(innerHeight-460)/2)+idx*16)+'px';
  const title=node('div','window-title');title.style.touchAction='none';title.append(node('span','window-name','▣ '+LABELS[app]),node('span','window-type','RAVEN / LOCAL'));
  const mini=labelButton('–','wm',()=>{win.style.display='none';win.dataset.minimized='yes';state.front=null;drawTasks();previewPaint()});mini.setAttribute('aria-label','Minimizar '+LABELS[app]);const maxi=labelButton('□','wm',()=>{win.classList.toggle('maximized');bringFront(app)});maxi.setAttribute('aria-label','Maximizar '+LABELS[app]);const close=labelButton('×','wm',()=>closeWindow(app));close.setAttribute('aria-label','Cerrar '+LABELS[app]);title.append(mini,maxi,close);
@@ -222,7 +226,7 @@ function createWindow(app){const win=node('section','window win-'+app);win.datas
  title.addEventListener('pointerdown',ev=>{if(ev.target.closest('button')||innerWidth<730||win.classList.contains('maximized'))return;if(ev.button!==0)return;bringFront(app);let x=ev.clientX,y=ev.clientY,left=parseFloat(win.style.left),top=parseFloat(win.style.top);const move=e=>{const container=$('desktop').getBoundingClientRect();const bounds=win.getBoundingClientRect();win.style.left=Math.max(0,Math.min(container.width-bounds.width,left+e.clientX-x))+'px';win.style.top=Math.max(30,Math.min(container.height-65,top+e.clientY-y))+'px'};const stop=()=>{window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',stop);previewPaint()};window.addEventListener('pointermove',move);window.addEventListener('pointerup',stop,{once:true})});win.addEventListener('pointerdown',()=>bringFront(app));
  return win;
 }
-function openWindow(app){if(!APPS.includes(app))return;if(!state.power){say('Enciende la computadora primero.');return}if(state.boot)return;let win=winEls.get(app);if(!win){win=createWindow(app);winEls.set(app,win);state.windows.push(app);$('windowsLayer').append(win);renderWindow(app);emit('ventana',{app,open:true})}win.style.display='flex';win.dataset.minimized='';bringFront(app)}
+function openWindow(app){if(!APPS.includes(app))return;if(!sessionApps.includes(app)){say(COMPUTER_TEXT.appUnavailable||'Esta aplicación no está instalada.');return}if(!state.power){say('Enciende la computadora primero.');return}if(state.boot)return;let win=winEls.get(app);if(!win){win=createWindow(app);winEls.set(app,win);state.windows.push(app);$('windowsLayer').append(win);renderWindow(app);emit('ventana',{app,open:true})}win.style.display='flex';win.dataset.minimized='';bringFront(app)}
 function renderWindow(app){const body=$('body-'+app);if(!body)return;let preservedScroll=body.scrollTop;clear(body);if(app==='mail')renderMail(body);if(app==='map')renderMap(body);if(app==='cams')renderCams(body);if(app==='files')renderFiles(body);if(app==='hamazon')renderHamazon(body);body.scrollTop=preservedScroll;}
 function renderMail(body){let layout=node('div','mail-layout');let list=node('div','mail-list');let reading=node('article','mail-reading');layout.append(list,reading);body.append(layout);
  DATA.mails.forEach((m,i)=>{let b=labelButton('', 'mail-choice'+(state.mail===i?' selected':''),()=>{state.mail=i;renderWindow('mail');emit('correo',{id:m.id})});b.append(node('span','',m.date+' • '+m.from),node('strong','',m.subject));list.append(b)});
@@ -233,6 +237,7 @@ function renderMap(body){let tabs=node('div','floor-tabs');let map=node('div','m
  map.append(node('div','map-detail','SELECCIÓN: '+state.room+'  /  '+(floor.locked?.includes(state.room)?'ACCESO RESTRINGIDO':'REGISTRO DISPONIBLE')));
 }
 function renderCams(body){let layout=node('div','cams-layout'),list=node('div','cams-list'),view=node('div','cam-view');layout.append(list,view);body.append(layout);
+ if(!DATA.cameras.length){body.append(node('div','hamazon-empty',COMPUTER_TEXT.noCameras||'No hay cámaras conectadas.'));return;}
  DATA.cameras.forEach((m,i)=>{let b=labelButton('', 'cam-choice'+(state.camera===i?' selected':''),()=>{state.camera=i;renderWindow('cams');emit('camara',{id:m.id})});b.append(node('span','',m.id),node('small','',m.online?'● EN LÍNEA':'× SIN SEÑAL'));list.append(b)});
  let canvas=node('canvas','');canvas.id='camCanvas';canvas.width=320;canvas.height=184;canvas.setAttribute('aria-label','Vista simulada de cámara de seguridad');view.append(canvas);const cap=node('div','cam-caption');cap.append(node('span','',DATA.cameras[state.camera]?.place||'SIN DATOS'),node('span','','IMAGEN SIMULADA'));view.append(cap);drawCamera(performance.now())}
 function renderFiles(body){let layout=node('div','files-layout'),list=node('div','files-list'),read=node('article','file-reading');layout.append(list,read);body.append(layout);
@@ -274,14 +279,14 @@ function drawCamera(t){let cnv=$('camCanvas');if(!cnv||!state.power)return;const
  const sec=Math.floor(t/1000),clock='23:'+String(47+Math.floor(sec/60)%12).padStart(2,'0')+':'+String(sec%60).padStart(2,'0');c.fillStyle='#d2ece1';c.font='bold 12px monospace';c.fillText(cam.id+' / '+clock,9,16);c.fillStyle='#e19393';c.fillText('REC',270,16);
 }
 function paintText(text,x,y,color='#e3e6c8',size=12){pctx.fillStyle=color;pctx.font='bold '+size+'px monospace';pctx.textBaseline='top';pctx.fillText(String(text),x,y)}
-function syncGameClock(value){const clock=/^\d{2}:\d{2}$/.test(String(value||''))?String(value):'08:00';DATA.gameClock=clock;const el=document.querySelector('.os-date');if(el)el.textContent='USUARIO: GUARDIA_03   │   '+clock;previewPaint();}
+function syncGameClock(value){const clock=/^\d{2}:\d{2}$/.test(String(value||''))?String(value):'08:00';DATA.gameClock=clock;const el=document.querySelector('.os-date');if(el)el.textContent=(COMPUTER_TEXT.userLabel||'USUARIO')+': '+sessionUserId+'   │   '+clock;previewPaint();}
 function previewPaint(){const c=pctx,W=512,H=320;c.fillStyle='#020708';c.fillRect(0,0,W,H);
  if(!state.power){c.fillStyle='#091317';c.fillRect(0,0,W,H);c.fillStyle='#102025';c.fillRect(0,0,W,14);paintText('RAVEN 486 / SIN ENERGÍA',158,153,'#51645c',12);if(texture)texture.needsUpdate=true;return}
  if(state.boot){c.fillStyle='#163530';c.fillRect(0,0,W,H);paintText('RAVEN BIOS 1.9',38,62,'#afe9ba',18);paintText('COMPROBACIÓN DE MEMORIA... OK',38,112,'#b9cfae',12);paintText('INICIANDO RAVEN/OS...',38,146,'#f2d09f',12);if(texture)texture.needsUpdate=true;return}
  c.fillStyle='#356f78';c.fillRect(0,0,W,H);c.fillStyle='#518c91';for(let i=0;i<13;i++){c.fillRect((i*83+23)%512,(i*39+14)%320,3,3)}
  c.fillStyle='#e1d4a3';c.fillRect(385,40,53,53);c.fillStyle='#214450';for(let i=0;i<9;i++)c.fillRect(265+i*26,220-(i%3)*20,34,130);
- c.fillStyle='#dbc99d';c.fillRect(0,0,W,29);c.fillStyle='#b99f76';c.fillRect(0,26,W,3);paintText('▣ RAVEN/OS',12,9,'#2b4d53',13);paintText('GUARDIA_03   '+DATA.gameClock,352,10,'#6c6a5c',10);
- const colors=['#edc49f','#94d0b4','#9ebdde','#c4a5cc','#e5bf78'],symbols=['✉','▧','◉','▣','H'];APPS.forEach((app,i)=>{c.fillStyle=colors[i];c.fillRect(19,44+i*50,39,31);paintText(symbols[i],30,49+i*50,'#243f44',15);paintText(LABELS[app].slice(0,9),13,76+i*50,'#f4e8c9',9)});
+ c.fillStyle='#dbc99d';c.fillRect(0,0,W,29);c.fillStyle='#b99f76';c.fillRect(0,26,W,3);paintText('▣ RAVEN/OS',12,9,'#2b4d53',13);paintText(sessionUserId.slice(0,12)+'   '+DATA.gameClock,352,10,'#6c6a5c',10);
+ const colors=['#edc49f','#94d0b4','#9ebdde','#c4a5cc','#e5bf78'],symbols=['✉','▧','◉','▣','H'];sessionApps.forEach((app,i)=>{const palette=APPS.indexOf(app);c.fillStyle=colors[palette];c.fillRect(19,44+i*50,39,31);paintText(symbols[palette],30,49+i*50,'#243f44',15);paintText(LABELS[app].slice(0,9),13,76+i*50,'#f4e8c9',9)});
  const app=state.front;if(app&&winEls.has(app)&&winEls.get(app).style.display!=='none'){
  let appIndex=APPS.indexOf(app),col=colors[appIndex];c.fillStyle='#15282f';c.fillRect(115,54,363,237);c.fillStyle='#eee5c9';c.fillRect(111,50,363,235);c.fillStyle=col;c.fillRect(115,54,355,27);paintText('■ '+LABELS[app],127,61,'#244049',12);c.fillStyle='#ecdcb7';c.fillRect(441,57,22,20);paintText('×',448,59,'#493d3c',14);c.fillStyle='#d1cbb6';c.fillRect(125,93,334,176);
  if(app==='mail'){paintText('BANDEJA / '+DATA.mails.length+' MENSAJES',137,106,'#92576a',12);let m=DATA.mails[state.mail];paintText('ASUNTO: '+(m?.subject||''),137,142,'#213d41',11);paintText('DE: '+(m?.from||''),137,164,'#627970',11);paintText((m?.body||'').replace(/\s+/g,' ').slice(0,47),137,201,'#294349',10)}
@@ -317,6 +322,19 @@ window.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&state.zoom){if(stat
 // API de integración. No crea reglas de juego ni datos de mapas.
 window.ForestTerminal3D={
  open(){toggleZoom(true)},close(){toggleZoom(false)},power(on){setPower(on)},
+ setSession(session={}){
+  if(state.power)setPower(false);
+  for(const el of winEls.values())el.remove();
+  winEls.clear();state.windows=[];state.front=null;state.topZ=5;clear($('windowsLayer'));closeStart();
+  sessionStationId=String(session.stationId||'').slice(0,100);
+  sessionUserId=String(session.userId||'GUARDIA_03').slice(0,24);
+  sessionApps=Array.isArray(session.apps)?APPS.filter(app=>session.apps.includes(app)):APPS.slice();
+  DATA.cameras=Array.isArray(session.cameras)?session.cameras.map((cam,i)=>({
+   id:String(cam.id??i),place:String(cam.place??cam.id??''),online:cam.online!==false
+  })):[];
+  state.camera=0;state.mail=0;state.log=0;
+  refreshStartMenu();makeIcons();syncGameClock(DATA.gameClock);previewPaint();
+ },
  show(section){const key=APPS.find(k=>LABELS[k].toLowerCase()===String(section).toLowerCase()||k===String(section).toLowerCase());if(key){if(!state.zoom)toggleZoom(true);openWindow(key)}},
  setMails(items){if(!Array.isArray(items))return;DATA.mails=items.slice(0,100).map((m,i)=>({id:String(m.id??i),from:String(m.from??''),subject:String(m.subject??''),date:String(m.date??''),body:Array.isArray(m.body)?m.body.join('\n'):String(m.body??'')}));state.mail=0;renderWindow('mail');previewPaint()},
  setFloors(floors){if(!Array.isArray(floors)||!floors.length)return;DATA.floors=floors.map(f=>({name:String(f.name??'PLANTA'),rooms:(f.rooms??[]).map(r=>Array.isArray(r)?String(r[0]):String(r)),locked:Array.isArray(f.locked)?f.locked.map(String):[],player:f.player??null}));state.floor=0;state.room=DATA.floors[0].rooms[0]||'';renderWindow('map');previewPaint()},
@@ -325,7 +343,7 @@ window.ForestTerminal3D={
  setHamazonProducts(items){if(!Array.isArray(items))return;DATA.hamazonProducts=items.map(p=>({...p,id:String(p.id??''),name:String(p.name??p.id??''),kind:String(p.kind??'furniture')}));renderWindow('hamazon');previewPaint()},
  setHamazonOrders(items){DATA.hamazonOrders=Array.isArray(items)?items.map(o=>({...o})):[];renderWindow('hamazon');previewPaint()},
  setGameClock(value){syncGameClock(value)},
- getState(){return{power:state.power,zoom:state.zoom,windows:[...state.windows],front:state.front,floor:state.floor,room:state.room,camera:state.camera,gameClock:DATA.gameClock}}
+ getState(){return{power:state.power,zoom:state.zoom,windows:[...state.windows],front:state.front,floor:state.floor,room:state.room,camera:state.camera,gameClock:DATA.gameClock,stationId:sessionStationId,userId:sessionUserId,apps:[...sessionApps]}}
 };
 // Three.js r128 es la única dependencia: sin red se presenta el monitor CSS interactivo.
 function loadThree(){if(window.THREE){initThree();return}const script=document.createElement('script');script.src='https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';script.onload=initThree;script.onerror=()=>{$('fallback').style.display='flex'};document.head.appendChild(script)}

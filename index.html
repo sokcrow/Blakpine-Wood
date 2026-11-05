@@ -2690,6 +2690,8 @@ function prepareGLBEngineDoc(source){
  const deliveryStrings='<script src="'+new URL('./juego/assets/fh-delivery-strings.js',document.baseURI).href+'"></'+'script>';
  const deliveryModule='<script src="'+new URL('./juego/assets/fh-delivery.js',document.baseURI).href+'"></'+'script>';
  const pcAssemblyModule='<script src="'+new URL('./juego/assets/fh-pc-assembly.js',document.baseURI).href+'"></'+'script>';
+ const computerModule='<script src="'+new URL('./juego/assets/fh-computer.js',document.baseURI).href+'"></'+'script>';
+ const computerStrings='<script src="'+new URL('./juego/assets/fh-computer-strings.js',document.baseURI).href+'"></'+'script>';
  const cameraBefore=" const desired=new THREE.Vector3(user.x+behind.x*camDistance,y+.88+camDistance*Math.tan(Math.PI/6),user.z+behind.z*camDistance);",cameraAfter=" const desired=new THREE.Vector3(user.x+behind.x*camDistance,y+.88+camDistance*Math.tan(Math.PI/6),user.z+behind.z*camDistance);\n const sleepFocus=window.FHSleep?.viewWeight()||0;\n if(sleepFocus>0){const weight=sleepFocus*sleepFocus*(3-2*sleepFocus);\n  target.lerp(new THREE.Vector3(user.x,y+.55,user.z),weight);\n  desired.lerp(new THREE.Vector3(user.x+.12,y+6.1,user.z+.42),weight);\n }";
  const cameraCount=source.split(cameraBefore).length-1;
  if(cameraCount!==1)throw Error('Hook de sueño camera: '+cameraCount);
@@ -2785,7 +2787,7 @@ function prepareGLBEngineDoc(source){
   const stateAnchor="stats:initial.stats&&typeof initial.stats==='object'?{...initial.stats}:null};";
   const stateAfter="stats:initial.stats&&typeof initial.stats==='object'?{...initial.stats}:null,clock:initial.clock&&typeof initial.clock==='object'?{...initial.clock}:null,delivery:initial.delivery&&typeof initial.delivery==='object'?JSON.parse(JSON.stringify(initial.delivery)):null};";
   const interactBefore="const interactableItems=DATA.floors.map(f=>(f.items||[]).filter(it=>it.interact||it.type==='light_switch'||it.type==='breaker_panel'||ForestShared.PROP_ACTIONS[it.type])\n .map(it=>it.interact?it:{...it,interact:ForestShared.PROP_ACTIONS[it.type]?\n  {...ForestShared.interactionPreset(it.type==='bed'?'bed_lie':it.type==='tv'?'tv_watch':it.type),id:'pose_'+it.id}:\n  {id:'power_'+it.id,verb:'use',label:it.type==='breaker_panel'?LIGHTING_TEXT.breakerAction:LIGHTING_TEXT.switchAction,effects:[]}}));";
-  const interactAfter="const interactableItems=DATA.floors.map(f=>(f.items||[]).filter(it=>it.interact||it.type==='light_switch'||it.type==='breaker_panel'||ForestShared.PROP_ACTIONS[it.type]||it.pcTerminal===true||it.modelId==='escritorio_pc'||window.FHPcAssembly?.isTerminalCandidate(it,f.items,Number(DATA.units.feetPerCell)||5))\n .map(it=>(it.pcTerminal===true||it.modelId==='escritorio_pc'||window.FHPcAssembly?.isTerminalCandidate(it,f.items,Number(DATA.units.feetPerCell)||5))?{...it,interact:{id:'pc_'+it.id,verb:'use',label:window.FH_DELIVERY_TEXT?.pcAction||'Usar PC',effects:[]}}:it.interact?it:{...it,interact:ForestShared.PROP_ACTIONS[it.type]?\n  {...ForestShared.interactionPreset(it.type==='bed'?'bed_lie':it.type==='tv'?'tv_watch':it.type),id:'pose_'+it.id}:\n  {id:'power_'+it.id,verb:'use',label:it.type==='breaker_panel'?LIGHTING_TEXT.breakerAction:LIGHTING_TEXT.switchAction,effects:[]}}));";
+  const interactAfter="const interactableItems=DATA.floors.map(f=>(f.items||[]).filter(it=>it.interact||it.type==='light_switch'||it.type==='breaker_panel'||ForestShared.PROP_ACTIONS[it.type]||it.pcTerminal===true||it.modelId==='escritorio_pc'||window.FHComputer?.isPc(it,f.items,Number(DATA.units.feetPerCell)||5))\n .map(it=>(it.pcTerminal===true||it.modelId==='escritorio_pc'||window.FHComputer?.isPc(it,f.items,Number(DATA.units.feetPerCell)||5))?{...it,interact:{id:'pc_'+it.id,verb:'use',label:window.FH_COMPUTER_TEXT?.pcAction||'Usar PC',effects:[]}}:it.interact?it:{...it,interact:ForestShared.PROP_ACTIONS[it.type]?\n  {...ForestShared.interactionPreset(it.type==='bed'?'bed_lie':it.type==='tv'?'tv_watch':it.type),id:'pose_'+it.id}:\n  {id:'power_'+it.id,verb:'use',label:it.type==='breaker_panel'?LIGHTING_TEXT.breakerAction:LIGHTING_TEXT.switchAction,effects:[]}}));";
   const buildAnchor="DATA.floors.forEach((_,i)=>buildFloor(i));";
   const runtimeBlock=`DATA.floors.forEach((_,i)=>buildFloor(i));
 let fhDeliveryUiActive=false,fhDeliveryNpc=null,fhDeliveryNpcMotion=null,fhDecorationActive=null,fhDecorationUi=null;
@@ -2937,7 +2939,19 @@ function fhDeliveryDoor(pc,f){
  })[0];
 }
 function fhDeliveryDoorById(id,f){return (doorList[f]||[]).find(d=>d.id===id)||null}
+window.FHComputerRuntime=window.FHComputer?.createRuntime({
+ state:GameState,feetPerCell:Number(DATA.units.feetPerCell)||5,
+ floorItems:f=>DATA.floors[f]?.items||[],currentFloor:()=>currentFloor,
+ cameras:()=>DATA.floors.flatMap(f=>(f.items||[]).filter(it=>it.modelId==='camara_seguridad'||it.type==='camera')
+  .map(it=>({id:it.id,place:it.label||it.id,online:it.cameraOnline!==false}))),
+ baseUrl:new URL('./juego/assets/fh-computer.js',document.baseURI).href,
+ freeze:on=>{fhDeliveryUiActive=!!on;user.vx=user.vz=0;clearStick();},
+ onOpen:(item,floor)=>window.FHDeliveryRuntime?.onComputerOpen(item,floor),
+ onClose:()=>window.FHDeliveryRuntime?.onComputerClose(),
+ onTerminalReady:()=>window.FHDeliveryRuntime?.syncTerminal()
+});
 window.FHDeliveryRuntime=window.FHDelivery?.createRuntime({
+ computer:window.FHComputerRuntime,
  state:GameState,save:saveProgress,notice,CELL:CELL,cell:CELL,feetPerCell:Number(DATA.units.feetPerCell)||5,
  floorItems:f=>DATA.floors[f]?.items||[],currentFloor:()=>currentFloor,
  clockMinutesPerSecond:1,deliveryLeadMinutes:60,
@@ -2950,7 +2964,7 @@ window.FHDeliveryRuntime=window.FHDelivery?.createRuntime({
  showNpc:fhShowDeliveryNpc,hideNpc:fhHideDeliveryNpc,spriteUrl:fhDeliverySpriteUrl
 });`;
   const furnitureBefore="function useFurniture(item,selectedSeat=null){\n if(['sit','lie'].includes(item.interact?.verb)){";
-  const furnitureAfter="let fhSeatFrontCache=null,fhSeatFrontCacheAt=0,fhSeatFrontCacheSeat=null,fhSeatFrontCacheFloor=-1;\nfunction fhSeatFrontTarget(){\n if(playerPose.state.phase!=='sitting'||!playerPoseItem)return null;\n const now=performance.now();\n if(fhSeatFrontCacheSeat===playerPoseItem&&fhSeatFrontCacheFloor===currentFloor&&now-fhSeatFrontCacheAt<250)return fhSeatFrontCache;\n const target=window.FHPcAssembly?.frontTarget(playerPoseItem,interactableItems[currentFloor],{\n  cell:CELL,isPc:item=>window.FHDeliveryRuntime?.isPc(item),\n  isClear:(from,to,seat,item)=>ForestShared.poseRouteClear(from,to,(x,z)=>ForestShared.solidAt(x,z,{\n   width:MAX_X,height:MAX_Z,radius:.025,\n   walls:blockers[currentFloor].filter(w=>w.ownerItemId!==seat.id&&w.ownerItemId!==item.id),wallThickness:WALL_THICK,\n   doors:doorList[currentFloor],doorPad:.02,\n   objects:furnitureColliders[currentFloor].filter(o=>o.id!==seat.id&&o.id!==item.id),objectMode:'box'\n  }),.12)\n })||null;\n fhSeatFrontCache=target;fhSeatFrontCacheAt=now;fhSeatFrontCacheSeat=playerPoseItem;fhSeatFrontCacheFloor=currentFloor;\n return target;\n}\nfunction fhUseFrontFromSeat(){\n const target=fhSeatFrontTarget();\n return target?useFurniture(target.item):useTVFromSeat();\n}\nfunction useFurniture(item,selectedSeat=null){\n if(fhDecorationActive)return {ok:false,reason:'decorating'};\n if(window.FHDeliveryRuntime?.isPc(item))return {ok:!!window.FHDeliveryRuntime.openPc(item,currentFloor)};\n if(window.FHDeliveryRuntime?.isPackage(item))return {ok:!!window.FHDeliveryRuntime.openPackage(item)};\n if(['sit','lie'].includes(item.interact?.verb)){";
+  const furnitureAfter="let fhSeatFrontCache=null,fhSeatFrontCacheAt=0,fhSeatFrontCacheSeat=null,fhSeatFrontCacheFloor=-1;\nfunction fhSeatFrontTarget(){\n if(playerPose.state.phase!=='sitting'||!playerPoseItem)return null;\n const now=performance.now();\n if(fhSeatFrontCacheSeat===playerPoseItem&&fhSeatFrontCacheFloor===currentFloor&&now-fhSeatFrontCacheAt<250)return fhSeatFrontCache;\n const target=window.FHPcAssembly?.frontTarget(playerPoseItem,interactableItems[currentFloor],{\n  cell:CELL,isPc:item=>window.FHComputerRuntime?.isPc(item),\n  isClear:(from,to,seat,item)=>ForestShared.poseRouteClear(from,to,(x,z)=>ForestShared.solidAt(x,z,{\n   width:MAX_X,height:MAX_Z,radius:.025,\n   walls:blockers[currentFloor].filter(w=>w.ownerItemId!==seat.id&&w.ownerItemId!==item.id),wallThickness:WALL_THICK,\n   doors:doorList[currentFloor],doorPad:.02,\n   objects:furnitureColliders[currentFloor].filter(o=>o.id!==seat.id&&o.id!==item.id),objectMode:'box'\n  }),.12)\n })||null;\n fhSeatFrontCache=target;fhSeatFrontCacheAt=now;fhSeatFrontCacheSeat=playerPoseItem;fhSeatFrontCacheFloor=currentFloor;\n return target;\n}\nfunction fhUseFrontFromSeat(){\n const target=fhSeatFrontTarget();\n return target?useFurniture(target.item):useTVFromSeat();\n}\nfunction useFurniture(item,selectedSeat=null){\n if(fhDecorationActive)return {ok:false,reason:'decorating'};\n if(window.FHComputerRuntime?.isPc(item))return {ok:!!window.FHComputerRuntime.open(item,currentFloor)};\n if(window.FHDeliveryRuntime?.isPackage(item))return {ok:!!window.FHDeliveryRuntime.openPackage(item)};\n if(['sit','lie'].includes(item.interact?.verb)){";
   const doorBefore=" notice(d.open?'Abres la puerta.':'Cierras la puerta.',1800);\n}";
   const doorAfter=" notice(d.open?'Abres la puerta.':'Cierras la puerta.',1800);\n if(d.open&&isInsideDoor(d))window.FHDeliveryRuntime?.onDoorOpened(d);\n}";
   const peekBefore=" $('peekText').textContent='◉ MIRILLA · Ves el pasillo, sin abrir la puerta · toca para salir';visibilityDirty=true;";
@@ -2958,9 +2972,9 @@ window.FHDeliveryRuntime=window.FHDelivery?.createRuntime({
   const frameBefore=" moveUpdate(dt);";
   const frameAfter=" window.FHDeliveryRuntime?.update(dt);fhDecorationTick();if(!fhDeliveryUiActive&&!fhDecorationActive)moveUpdate(dt);else{user.vx=user.vz=0;}fhDeliveryNpcTick(dt);";
   const apiBefore="get watchingTV(){return watchingTvId},watchTV:useTVFromSeat,breakers:";
-  const apiAfter="get watchingTV(){return watchingTvId},watchTV:useTVFromSeat,delivery:window.FHDeliveryRuntime,breakers:";
+  const apiAfter="get watchingTV(){return watchingTvId},watchTV:useTVFromSeat,delivery:window.FHDeliveryRuntime,computer:window.FHComputerRuntime,breakers:";
   const watchHudBefore=" const combo=currentTVCombo();\n $('watchTv').hidden=!combo;\n if(combo)$('watchTv').textContent=watchingTvId===combo.tvId?POSTURE_TEXT.stopWatching:POSTURE_TEXT.watch;";
-  const watchHudAfter=" const combo=currentTVCombo(),front=fhSeatFrontTarget();\n $('watchTv').hidden=!combo&&!front;\n if(front)$('watchTv').textContent=window.FHDeliveryRuntime?.isPc(front.item)?(window.FH_DELIVERY_TEXT?.pcActionFromSeat||'Usar computadora'):(front.item.interact?.label||'Usar');\n else if(combo)$('watchTv').textContent=watchingTvId===combo.tvId?POSTURE_TEXT.stopWatching:POSTURE_TEXT.watch;";
+  const watchHudAfter=" const combo=currentTVCombo(),front=fhSeatFrontTarget();\n $('watchTv').hidden=!combo&&!front;\n if(front)$('watchTv').textContent=window.FHComputerRuntime?.isPc(front.item)?(window.FH_COMPUTER_TEXT?.pcActionFromSeat||'Usar computadora'):(front.item.interact?.label||'Usar');\n else if(combo)$('watchTv').textContent=watchingTvId===combo.tvId?POSTURE_TEXT.stopWatching:POSTURE_TEXT.watch;";
   const watchListenerBefore="$('watchTv').addEventListener('click',useTVFromSeat);";
   const watchListenerAfter="$('watchTv').addEventListener('click',fhUseFrontFromSeat);";
   const watchKeyBefore="if(k==='t'&&!e.repeat&&playerPose.state.phase==='sitting')useTVFromSeat();";
@@ -2985,7 +2999,7 @@ window.FHDeliveryRuntime=window.FHDelivery?.createRuntime({
   .replace(surfaceRotationBefore,surfaceRotationAfter)
   .replace(attachBefore,' window.FHAssets?.attach(g,a);\n'+attachBefore)
   .replace(cloneBefore,'const clone=source.clone(true);\n   window.FHAssets?.mirror(source,clone);\n   clone.position.y+=floorElev[f];')
-  .replace('</head>',coverageScript+lightsModule+surfaceScript+decorationScript+ruleScript+bridge+sleepStrings+sleepModule+pcAssemblyModule+deliveryStrings+deliveryModule+styleCore+styleRender+parkingScript+'</head>');
+  .replace('</head>',coverageScript+lightsModule+surfaceScript+decorationScript+ruleScript+bridge+sleepStrings+sleepModule+pcAssemblyModule+computerStrings+computerModule+deliveryStrings+deliveryModule+styleCore+styleRender+parkingScript+'</head>');
 }
 function start3DPreview(){
  if(preview3DActive)return;
