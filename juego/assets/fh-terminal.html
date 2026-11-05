@@ -159,6 +159,7 @@ button:focus:not(:focus-visible){outline:none}button:focus-visible,[tabindex]:fo
   <div id="message" role="status" aria-live="polite"></div>
  </div></div>
 </div>
+<script src="fh-delivery-strings.js"></script>
 <script>
 'use strict';
 // Prototipo independiente. No modifica ni carga mapas forest-horror-map-v1.
@@ -195,6 +196,10 @@ const winEls=new Map();
 let bootTimer=null,toastTimer=null,renderer=null,scene=null,camera3d=null,monitorGroup=null,screenPlane=null,powerKnob=null,raycaster=null,ndc=null,texture=null,modelEnabled=false,camFrameLast=0;
 const preview=$('screenTexture'),pctx=preview.getContext('2d',{alpha:false});pctx.imageSmoothingEnabled=false;
 const emit=(name,detail)=>{window.dispatchEvent(new CustomEvent('forest-terminal:'+name,{detail}));if(window.parent!==window)window.parent.postMessage({type:'FOREST_TERMINAL_EVENT',name,detail},'*')};
+window.addEventListener('message',event=>{
+ if(event.source!==window.parent||event.data?.type!=='FOREST_TERMINAL_RESPONSE'||event.data.name!=='hamazon-order-result')return;
+ say(event.data.detail?.ok?(window.FH_DELIVERY_TEXT?.orderAccepted||'Pedido registrado en Hamazon.'):(window.FH_DELIVERY_TEXT?.orderRejected||'No se pudo registrar el pedido.'));
+});
 function say(msg){let el=$('message');el.textContent=msg;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),2100)}
 function node(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=text;return e}
 function clear(el){el.replaceChildren()}
@@ -248,7 +253,7 @@ function renderHamazon(body){
   meta.style.whiteSpace='pre-line';
   const method=document.createElement('select');method.setAttribute('aria-label','Forma de pago');
   [['prepaid','PAGADO / SIN COBRO'],['cash','EFECTIVO AL RECIBIR'],['card','TARJETA AL RECIBIR']].forEach(([v,t])=>{const o=document.createElement('option');o.value=v;o.textContent=t;method.append(o)});
-  const buy=labelButton('PEDIR','',()=>{emit('hamazon-order',{productId:p.id,kind:p.kind||'furniture',paymentMethod:method.value});say('Pedido enviado a Hamazon.');});
+  const buy=labelButton('PEDIR','',()=>{emit('hamazon-order',{productId:p.id,kind:p.kind||'furniture',paymentMethod:method.value});say(window.FH_DELIVERY_TEXT?.orderSending||'Enviando pedido…');});
   card.append(thumb,title,meta,method,buy);products.append(card);
  }
  side.append(node('strong','','PEDIDOS'));

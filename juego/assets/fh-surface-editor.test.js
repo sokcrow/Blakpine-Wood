@@ -87,4 +87,23 @@ test('floor_or_surface respeta el snap de cuarto de casilla en el piso',()=>{
  assert.equal(object.y,9.5);
  assert.equal(object.support,undefined);
 });
+test('El gabinete nace en el piso y se puede subir al escritorio manualmente',()=>{
+ const {items,editor}=setup('floor');
+ const cabinet={id:'tower',modelId:'gabinete_pc',type:'misc',x:10,y:10,w:.15,h:.35,rotation:0,placement:'floor'};
+ items.push(cabinet);
+ assert.equal(cabinet.support,undefined);
+ assert.equal(editor.window.FHSurfaceEditor.toggleCabinetPlacement(cabinet),true);
+ assert.equal(cabinet.support.parentItemId,'desk');
+ assert.equal(editor.window.FHSurfaceEditor.toggleCabinetPlacement(cabinet),true);
+ assert.equal(cabinet.placement,'floor');
+ assert.equal(cabinet.support,undefined);
+});
+test('Sin superficie válida el gabinete sigue en el piso',()=>{
+ const {items,editor}=setup('floor');
+ const cabinet={id:'tower',modelId:'gabinete_pc',type:'misc',x:30,y:30,w:.15,h:.35,rotation:0,placement:'floor'};
+ items.push(cabinet);
+ assert.equal(editor.window.FHSurfaceEditor.toggleCabinetPlacement(cabinet),false);
+ assert.equal(cabinet.placement,'floor');
+ assert.equal(cabinet.support,undefined);
+});
 console.log(checks+' pruebas correctas');

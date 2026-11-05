@@ -7,5 +7,8 @@ window.FH_CATALOG_TEXT=Object.freeze({
  empty:'No hay modelos que coincidan con la búsqueda.',
  chosen:'Modelo seleccionado:',hint:'Usa «Mueble libre» para colocarlo. Después presiona ▶ Probar 3D.',
  surfaceRequired:'Este objeto necesita una mesa, escritorio u otra superficie compatible.',
- surfaceRotationInvalid:'No cabe sobre esa superficie con esa orientación.'
+ surfaceRotationInvalid:'No cabe sobre esa superficie con esa orientación.',
+ cabinetToSurface:'Subir gabinete a este mueble',
+ cabinetToFloor:'Colocar gabinete en el piso',
+ cabinetSurfaceMissing:'Acerca el gabinete a una superficie compatible para subirlo.'
 });

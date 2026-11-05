@@ -83,8 +83,41 @@
   }
   S.syncChildren(items(),item.id,feetPerCell(),surfaces);
  };
+ function toggleCabinetPlacement(item){
+  if(item?.modelId!=='gabinete_pc')return false;
+  if(item.support){
+   S.detach(item);item.placement='floor';
+   return true;
+  }
+  const previous={x:item.x,y:item.y,placement:item.placement,support:item.support};
+  item.placement='floor_or_surface';
+  const result=place(item,false);
+  if(result?.supported)return true;
+  item.x=previous.x;item.y=previous.y;item.placement=previous.placement;
+  if(previous.support)item.support=previous.support;else S.detach(item);
+  return false;
+ }
+ const oldOpenInspector=typeof openInspector==='function'?openInspector:null;
+ if(oldOpenInspector)openInspector=function(...args){
+  oldOpenInspector(...args);
+  const item=items().find(v=>v.id===selection);
+  if(item?.modelId!=='gabinete_pc')return;
+  const container=document.getElementById('fields');
+  if(!container)return;
+  const button=document.createElement('button');
+  button.type='button';
+  button.textContent=item.support?(T.cabinetToFloor||'Colocar gabinete en el piso'):(T.cabinetToSurface||'Subir gabinete a este mueble');
+  button.onclick=()=>{
+   if(!toggleCabinetPlacement(item)){
+    toast(T.cabinetSurfaceMissing||'Acerca el gabinete a una superficie compatible para subirlo.');
+    return;
+   }
+   record();openInspector();
+  };
+  container.append(button);
+ };
  const oldChangeFloor=changeFloor;
  changeFloor=function(index){oldChangeFloor(index);syncCurrent();};
  syncCurrent();
- global.FHSurfaceEditor=Object.freeze({place,syncCurrent,afterRotate,prepareDuplicate,beforeRemove});
+ global.FHSurfaceEditor=Object.freeze({place,syncCurrent,afterRotate,prepareDuplicate,beforeRemove,toggleCabinetPlacement});
 })(window);

@@ -104,6 +104,8 @@
     if (!item || !catalogEntry || typeof catalogEntry.id !== 'string') return item;
     const cellFt = Number(feetPerCell) > 0 ? Number(feetPerCell) : 5;
     item.modelId = catalogEntry.id;
+    // Es opcional para conservar las PC de mapas existentes; solo nuevas estaciones lo activan.
+    if(catalogEntry.id==='escritorio_pc'&&item.pcAssemblyRequired===undefined)item.pcAssemblyRequired=true;
     item.type = typeFor(catalogEntry.id);
     item.label = catalogEntry.name;
     item.w = Number(catalogEntry.widthFt) / cellFt;
