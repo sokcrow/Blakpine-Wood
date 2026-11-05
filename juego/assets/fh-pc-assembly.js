@@ -41,7 +41,10 @@
   return surfaces.sort((a,b)=>distanceFt(a,part,cell)-distanceFt(b,part,cell))[0]||null;
  }
  function belongsTo(part,host,items,cell){
-  if(!part||!host||!sameApartment(part,host)||!nearAnchor(part,host,cell))return false;
+  if(!part||!host||!sameApartment(part,host))return false;
+  // Un vínculo físico a esta mesa es válido incluso para mapas previos sin x/y en el prop.
+  if(isWorkSurface(host)&&host.id&&part.support?.parentItemId===host.id)return true;
+  if(!nearAnchor(part,host,cell))return false;
   if(isWorkSurface(host))return nearestSurfaceFor(part,items,cell)?.id===host.id;
   // Sin mesa: el monitor se convierte en el punto de interacción de la PC.
   if(host.modelId!=='monitor_crt')return false;
