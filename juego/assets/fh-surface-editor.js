@@ -56,6 +56,12 @@
   if(!item)return null;
   const result=place(item,false);
   if(!result.ok){toast(T.surfaceRequired||'Este objeto necesita una superficie compatible.');return null;}
+  if(item.placement==='floor_or_surface'&&!result.supported){
+   // Se intentó usar la posición exacta para detectar una mesa, pero si
+   // termina en el suelo recupera el snap original del editor.
+   item.x=normalizeGrid(item.x);
+   item.y=normalizeGrid(item.y);
+  }
   return item;
  };
  const oldMove=moveItem;
