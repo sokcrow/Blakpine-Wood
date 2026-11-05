@@ -2697,6 +2697,16 @@ function prepareGLBEngineDoc(source){
  if(!source.includes(heroScaleBefore))throw Error('No se encontró el multiplicador visual original del personaje');
  if(!source.includes('ForestShared.loadProject(DATA);'))throw Error('No se encontró la validación del mapa del motor');
 
+ // Los muebles sin luz conservan su silueta; las interacciones siguen usando luz real.
+ const furnitureVisibilityHook="  setSightRootVisibility(root,visible);\n  if(item.id)furnitureVisibleById[currentFloor].set(item.id,visible);";
+ const furnitureRenderHook=[
+  "  const renderVisible=visible||((item.type!=='battery_pickup'||!GameState.used[item.interact?.id])&&",
+  "   ForestShared.furnitureInSight(item,at,opaque,CELL,LOOK_RADIUS,(x,z)=>",
+  "    ForestShared.pointInSight(x,z,at,opaque,LOOK_RADIUS)));",
+  "  setSightRootVisibility(root,renderVisible);",
+  "  if(item.id)furnitureVisibleById[currentFloor].set(item.id,visible);"
+ ].join('\n');
+ if(source.split(furnitureVisibilityHook).length!==2)throw Error('Hook de renderizado de muebles incompatible');
  // Acabados y propiedad: hooks acotados al motor HTML en memoria.
  const styleCore='<script src="'+new URL('./juego/assets/fh-style-property.js',document.baseURI).href+'"></'+'script>';
  const styleRender='<script src="'+new URL('./juego/assets/fh-style-renderer.js',document.baseURI).href+'"></'+'script>';
@@ -2749,7 +2759,7 @@ function prepareGLBEngineDoc(source){
   return text.slice(0,start)+lightingLampBody+text.slice(end);
  }
  const cameraLightAfter=" const lightDistance=camDistance+(window.FHLights?.cameraBonus(roomLampEntries,lighting,currentFloor,user.x,user.z)||0);\n const ahead=lighting.state.enabled?0.80:0;target.x+=flashDir.x*ahead;target.z+=flashDir.z*ahead;\n const desired=new THREE.Vector3(user.x+behind.x*lightDistance,y+.88+lightDistance*Math.tan(Math.PI/6),user.z+behind.z*lightDistance);";
- return addParkingToEngine(addStylesToEngine(addLightToEngine(source))).replace(cameraBefore,cameraAfter).replace(cameraBefore,cameraLightAfter).replace(loopBefore,loopAfter)
+ return addParkingToEngine(addStylesToEngine(addLightToEngine(source))).replace(furnitureVisibilityHook,furnitureRenderHook).replace(cameraBefore,cameraAfter).replace(cameraBefore,cameraLightAfter).replace(loopBefore,loopAfter)
   .replace(maskBefore,maskAfter).replace(wakeHUDBefore,wakeHUDAfter)
   .split(wakeBefore).join(wakeAfter)
   .replace(chairSelection," const poseReachable=(item,anchor)=>canWalk(user.x,user.z)&&safePoseRoute(item,{x:user.x,z:user.z},anchor);\n const stockSeat=selectSeatInteractable(visible,user,yaw,CELL,poseReachable);\n const glbChair=window.FHFurnitureRules?.findReachableChair(visible,user,yaw,CELL,poseReachable,ForestShared);\n const sitting=glbChair&&(!stockSeat||glbChair.score<stockSeat.score)?glbChair:stockSeat;")
