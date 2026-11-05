@@ -69,7 +69,7 @@
   if(!KINDS.includes(item.decalKind))throw Error('Tipo de decal desconocido');
   for(const key of ['x','y','w','h','rotation'])if(!Number.isFinite(item[key]))throw Error('Decal: '+key+' debe ser numérico');
   if(item.w<=0||item.h<=0||item.w>200||item.h>200)throw Error('Decal de tamaño inválido');
-  if(item.blocksMovement!==false)throw Error('Los decals nunca tienen colisión');
+  if(item.blocksMovement!==undefined&&item.blocksMovement!==false)throw Error('Los decals nunca tienen colisión');
   if(item.color!==undefined&&!colorValid(item.color))throw Error('Color hexadecimal inválido');
   if(item.number!==undefined&&String(item.number).length>24)throw Error('Número de cajón demasiado largo');
   return true;
@@ -106,9 +106,14 @@
     path([[.04,.07],[.04,.97],[.96,.97],[.96,.07]]);
     if(item.accessible){
      c.fillStyle='#286595';rect(w*.15,h*.36,w*.70,h*.39);
-     c.fillStyle='#DDEEFF';c.font='bold '+Math.round(Math.min(w*.48,h*.24))+'px monospace';
-     c.textAlign='center';c.textBaseline='middle';c.fillText('♿',w*.5,h*.55,w*.67);
-     c.fillStyle=col;
+     c.strokeStyle='#DDEEFF';c.lineWidth=Math.max(2,Math.round(w*.055));
+     const cx=w*.47,cy=h*.59,r=Math.min(w*.16,h*.13);
+     c.beginPath();c.arc(cx,cy,r,0,Math.PI*2);c.stroke();
+     c.beginPath();c.moveTo(cx-r*.25,cy-r*.95);c.lineTo(cx+r*.42,cy-r*.95);
+     c.lineTo(cx+r*.9,cy-r*.08);c.lineTo(cx+r*1.45,cy-r*.08);
+     c.moveTo(cx-r*.20,cy-r*.9);c.lineTo(cx-r*.20,cy-r*1.35);
+     c.lineTo(cx+r*.62,cy+r*1.35);c.stroke();
+     c.strokeStyle=col;c.fillStyle=col;
     }
     if(item.number){
      const label=String(item.number).slice(0,24);
