@@ -67,7 +67,8 @@
  function checkDecal(item,ftPerCell=DEFAULT_FEET_PER_CELL){
   if(item?.type!=='parking_decal')return false;
   if(!KINDS.includes(item.decalKind))throw Error('Tipo de decal desconocido');
-  for(const key of ['x','y','w','h','rotation'])if(!Number.isFinite(item[key]))throw Error('Decal: '+key+' debe ser numérico');
+  for(const key of ['x','y','w','h'])if(!Number.isFinite(item[key]))throw Error('Decal: '+key+' debe ser numérico');
+  if(item.rotation!==undefined&&!Number.isFinite(item.rotation))throw Error('Decal: la rotación debe ser numérica');
   if(item.w<=0||item.h<=0||item.w>200||item.h>200)throw Error('Decal de tamaño inválido');
   if(item.blocksMovement!==undefined&&item.blocksMovement!==false)throw Error('Los decals nunca tienen colisión');
   if(item.color!==undefined&&!colorValid(item.color))throw Error('Color hexadecimal inválido');
