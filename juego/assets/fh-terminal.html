@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b1114">
+<title>Forest Horror — RAVEN/OS · Terminal 03</title>
+<style>
+:root{color-scheme:dark;--paper:#d6cfb5;--black:#121b20;--bezel:#7a786d;--mint:#81c5ac;--gold:#e1b873;--red:#d96f70;--blue:#7eafcc;--violet:#a793cb}
+*,*::before,*::after{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#0b1114;color:var(--paper);font-family:"Courier New",Consolas,monospace;overscroll-behavior:none}
+button{font:inherit;cursor:pointer;color:inherit;border:0;background:none;touch-action:manipulation;-webkit-appearance:none;appearance:none}
+button:focus:not(:focus-visible){outline:none}button:focus-visible,[tabindex]:focus-visible{outline:2px solid #ffe0a0;outline-offset:3px}
+#stage{position:fixed;inset:0;overflow:hidden;background:radial-gradient(ellipse at 50% 38%,#303b36 0%,#171f20 47%,#090f12 86%)}
+#stage::after{content:"";pointer-events:none;position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent 0 4px,#0002 5px 6px);opacity:.22}
+#threeCanvas{display:block;width:100%;height:100%;image-rendering:pixelated;touch-action:none;position:absolute;inset:0}
+#fallback{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;pointer-events:none}
+.faux-monitor{position:relative;pointer-events:auto;width:min(76vw,700px);aspect-ratio:1.44;background:linear-gradient(127deg,#a6a08b 0%,#7c806d 12%,#50594f 68%,#aaa389 100%);border:14px solid #363c38;box-shadow:inset 0 0 0 4px #d0c6a5,0 0 0 6px #141e1c,22px 30px 0 #0006,0 40px 85px #000b;clip-path:polygon(3% 0,97% 0,100% 4%,100% 96%,97% 100%,3% 100%,0 96%,0 4%);padding:5.5% 6.5% 10%}
+.faux-mark{display:flex;align-items:center;justify-content:space-between;color:#262f29;font-size:clamp(8px,1vw,11px);font-weight:bold;letter-spacing:.15em;margin-bottom:3%}
+.faux-display{aspect-ratio:512/320;background:#020607;padding:0;border:9px solid #242e2c;outline:4px solid #b2a78b;box-shadow:0 0 0 9px #41483e,inset 0 0 22px black;position:relative;cursor:zoom-in}
+#screenTexture{width:100%;height:100%;display:block;image-rendering:pixelated}
+.faux-display::after{content:"";pointer-events:none;position:absolute;inset:0;box-shadow:inset 0 0 25px #000a;background:repeating-linear-gradient(180deg,#0000 0 3px,#0002 4px 5px)}
+.faux-controls{display:flex;align-items:center;justify-content:space-between;margin-top:5%;color:#323a32;font-size:clamp(8px,1.2vw,11px);font-weight:bold;letter-spacing:.07em}
+.mini-led{display:inline-block;width:9px;height:9px;background:#343931;margin-right:8px;box-shadow:0 0 0 2px #282b28}
+.mini-led.on{background:#a7d483;box-shadow:0 0 7px #79c778,0 0 0 2px #40453a}
+.faux-stand{width:min(17vw,155px);height:24px;background:linear-gradient(90deg,#343a36,#868577,#313a37);box-shadow:0 9px #111b1c}
+.faux-foot{width:min(34vw,290px);height:19px;background:#666f62;clip-path:polygon(12% 0,88% 0,100% 100%,0 100%)}
+.faux-keyboard{position:relative;margin-top:17px;width:min(60vw,520px);height:72px;background:linear-gradient(#8a8876,#454d48);transform:perspective(240px) rotateX(20deg);border:8px solid #29332f;box-shadow:0 13px #080d0c;display:grid;grid-template-columns:repeat(16,1fr);gap:3px;padding:8px}
+.faux-keyboard i{background:#beb69b;box-shadow:inset 0 -3px #5b6258;border:1px solid #3c453e}
+.scene-stamp{position:absolute;top:18px;left:clamp(14px,4vw,52px);z-index:4;font-size:10px;letter-spacing:.2em;color:#aaa98d;line-height:1.75;pointer-events:none;text-shadow:0 2px 3px #000}
+.scene-stamp strong{display:block;font-size:13px;letter-spacing:.24em;color:#d9cfa7}
+.scene-hint{position:absolute;right:clamp(14px,4vw,52px);top:25px;z-index:4;text-align:right;color:#8c9685;line-height:1.6;font-size:10px;letter-spacing:.07em;pointer-events:none}
+.controls{z-index:5;position:absolute;left:50%;transform:translateX(-50%);bottom:max(16px,env(safe-area-inset-bottom));display:flex;gap:8px;justify-content:center;width:max-content;max-width:calc(100% - 16px)}
+.hardware{border:2px solid #6e7267;box-shadow:inset 2px 2px #bac0a6,inset -3px -3px #2b3432,3px 4px #0008;background:#4b574f;color:#f4e9c7;padding:11px 15px;font-size:clamp(10px,1.5vw,12px);font-weight:bold;letter-spacing:.035em;white-space:nowrap}
+.hardware:hover{background:#5a685a}.hardware:active{transform:translateY(1px);box-shadow:inset 2px 2px #323934}
+.hardware.highlight{background:#9e8054;color:#171c1b;border-color:#ad9a75;box-shadow:inset 2px 2px #e7d39e,inset -3px -3px #58422d,3px 4px #0008}
+#focus{position:fixed;inset:0;z-index:10;display:none;flex-direction:column;background:radial-gradient(ellipse at center,#29312e,#0c1214 85%);padding:clamp(8px,1.5vw,18px) clamp(8px,2.5vw,36px) max(8px,env(safe-area-inset-bottom));gap:10px}
+#focus.open{display:flex}
+.focus-top{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:32px;color:#b5b6a5;font-weight:bold;letter-spacing:.07em;font-size:clamp(9px,1.2vw,12px)}
+.focus-right{display:flex;align-items:center;gap:8px}
+.focus-top .hardware{padding:8px 11px}
+#offStatus{color:#a8b59c;font-size:10px}
+.focus-frame{position:relative;flex:1;min-height:0;margin:auto;width:min(100%,1450px);border:clamp(7px,1.2vw,18px) solid #535d52;outline:3px solid #a49e81;background:#020607;box-shadow:0 0 0 5px #222a29,0 16px 44px #000c,inset 0 0 26px #000;overflow:hidden}
+.focus-frame::after{content:"";position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 52px #0009;background:repeating-linear-gradient(0deg,#0000 0 3px,#0000000c 4px 5px);z-index:40}
+#focusScreen{position:absolute;inset:0;overflow:hidden;image-rendering:pixelated;background:#050b0e;touch-action:pan-y}
+#screenOff{position:absolute;inset:0;background:radial-gradient(ellipse at 55% 44%,#0b1517 0,#040607 75%);display:flex;align-items:center;justify-content:center;text-align:center;flex-direction:column;gap:13px;color:#58645f;z-index:5;font-weight:bold;font-size:clamp(11px,2vw,17px);letter-spacing:.12em}
+#screenOff em{font-style:normal;font-weight:normal;font-size:10px;color:#687671}
+#boot{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:#162a28;z-index:6;color:#a9edb5;font-size:clamp(12px,2vw,19px);font-weight:bold}
+#boot p{font-size:11px;color:#d6cf9c}
+#desktop{position:absolute;inset:0;overflow:hidden;display:none;background:#315f67;color:#162a31;isolation:isolate}
+#desktop::before{content:"";position:absolute;inset:0;z-index:-2;background:radial-gradient(ellipse at 75% 18%,#66999d 0,#467d82 25%,#2c5c67 75%)}
+.wall-moon{position:absolute;right:17%;top:17%;width:clamp(45px,10vw,140px);aspect-ratio:1;background:#ddce96;box-shadow:8px 0 #d1b987,-11px 8px #c1c6a2;clip-path:polygon(20% 0,80% 0,80% 10%,90% 10%,90% 20%,100% 20%,100% 80%,90% 80%,90% 90%,80% 90%,80% 100%,20% 100%,20% 90%,10% 90%,10% 80%,0 80%,0 20%,10% 20%,10% 10%,20% 10%);opacity:.82;pointer-events:none}
+.wall-building{position:absolute;bottom:26px;right:8%;width:48%;height:38%;background:#183743;clip-path:polygon(0 100%,0 36%,15% 36%,15% 21%,29% 21%,29% 45%,37% 45%,37% 6%,54% 6%,54% 27%,72% 27%,72% 46%,85% 46%,85% 18%,100% 18%,100% 100%);opacity:.52;pointer-events:none}
+.wall-building::before{content:"";position:absolute;inset:15%;background:repeating-linear-gradient(90deg,#c2ae6a 0 8px,transparent 8px 30px),repeating-linear-gradient(180deg,transparent 0 19px,#1f4247 20px 26px);opacity:.35}
+.os-topbar{height:31px;background:#dfc99e;box-shadow:inset 0 -3px #867a61;display:flex;align-items:center;justify-content:space-between;padding:0 10px;color:#243f45;font-weight:bold;font-size:clamp(10px,1.1vw,13px);position:relative;z-index:4;gap:8px}
+.os-topbar .os-brand{display:flex;align-items:center;gap:7px;white-space:nowrap}.os-brand i{display:inline-block;width:15px;height:15px;background:#b45b65;box-shadow:inset -4px -4px #713748,2px 2px #23434d}
+.os-topbar .os-date{color:#665a56;font-size:10px;white-space:nowrap}
+#desktopIcons{position:absolute;top:47px;left:15px;display:grid;grid-template-columns:repeat(1,82px);gap:13px;z-index:2}
+.desktop-icon{height:75px;width:82px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;color:#f1ead0;text-shadow:1px 2px #14282f;font-weight:bold;font-size:11px;letter-spacing:.025em;border:2px solid transparent}
+.desktop-icon:hover,.desktop-icon:focus-visible{background:#d4d3c425;border-color:#d9d9b288}
+.pixel-symbol{display:grid;place-items:center;height:42px;width:46px;border:3px solid #1b333a;box-shadow:inset 3px 3px #ffffff69,inset -5px -5px #071c2a69,3px 3px #102c35;color:#18242c;font-family:Arial,sans-serif;font-size:25px;font-weight:900;line-height:1;text-shadow:none}
+.symbol-mail{background:#f0d4a1}.symbol-map{background:#9dd1b5}.symbol-cams{background:#9eb7d6}.symbol-files{background:#d4a6c7}.symbol-hamazon{background:#e6c480}
+.os-taskbar{height:31px;position:absolute;inset:auto 0 0;background:#d8c79b;border-top:3px solid #f5e5b8;box-shadow:inset 0 -3px #827765;display:flex;align-items:center;gap:5px;padding:2px 8px;z-index:21;color:#263d40}
+.task-brand{font-weight:bold;font-size:12px;border:2px solid #83795f;background:#b9ac8c;padding:2px 8px;white-space:nowrap;color:#213b3f}.task-brand:hover{background:#ede0ba}.start-menu{position:absolute;bottom:31px;left:7px;background:#e1d8b8;color:#213e44;display:none;flex-direction:column;min-width:195px;border:3px solid #233b3e;box-shadow:5px 6px #071c24a0;padding:6px;gap:4px;z-index:34}.start-menu.open{display:flex}.start-menu strong{background:#708b8a;color:#f2e7c7;padding:8px;font-size:12px;margin-bottom:4px}.start-menu button{text-align:left;padding:10px 9px;border:2px solid #aaa28d;background:#f0e5c7;color:#264248;font-size:12px;font-weight:bold}.start-menu button:hover{background:#c8e3d6}
+#taskItems{display:flex;gap:4px;flex:1;min-width:0;overflow:auto hidden;scrollbar-width:none}
+.task-app{background:#c2b894;border:2px solid #8d8267;padding:3px 8px;white-space:nowrap;font-size:11px;max-width:122px;overflow:hidden;text-overflow:ellipsis;color:#233e43}
+.task-app.selected{background:#fff0c2;border-color:#6b826f}
+.task-led{font-size:10px;white-space:nowrap}.task-led b{color:#247456}
+.window{position:absolute;display:flex;flex-direction:column;min-width:255px;min-height:160px;background:#e5dfc4;color:#23343a;border:3px solid #202f37;box-shadow:inset 2px 2px #fff5d4,inset -3px -3px #807d75,7px 9px #081d2680;z-index:5}
+.window.active{box-shadow:inset 2px 2px #fff5d4,inset -3px -3px #807d75,9px 11px #041821a0}
+.window.maximized{left:6px!important;top:36px!important;width:calc(100% - 12px)!important;height:calc(100% - 75px)!important}
+.window-title{height:34px;flex:none;display:flex;align-items:center;gap:7px;padding:3px 5px 3px 9px;color:#132e35;cursor:move;touch-action:none;user-select:none;font-size:12px;font-weight:bold;letter-spacing:.04em;border-bottom:3px solid #5d6362}
+.window-title .window-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.window-title .window-type{font-size:9px;color:#1e393a8c;margin-right:8px}
+.window-title .wm{width:27px;height:24px;flex:none;display:grid;place-items:center;font-size:16px;font-weight:bold;color:#243138;border:2px solid #6e6860;background:#e8dbb6;box-shadow:inset 2px 2px #fff6d8,inset -2px -2px #776e59;touch-action:manipulation}
+.window-title .wm:hover{background:#fff3cb}.window-title .wm:active{box-shadow:inset 2px 2px #776e59}
+.window-content{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;scrollbar-color:#859c91 #d9d3b6;scrollbar-width:thin;background:#e7e2cb}
+.window-status{height:25px;flex:none;border-top:2px solid #8e8a7b;padding:5px 9px;font-size:10px;background:#d7d0b1;display:flex;align-items:center;justify-content:space-between;color:#53605b}
+.win-mail .window-title{background:#e5a5a0}.win-map .window-title{background:#9bd0b5}.win-cams .window-title{background:#a8c1e1}.win-files .window-title{background:#c7accf}.win-hamazon .window-title{background:#e4bd73}
+.mail-layout{display:grid;grid-template-columns:minmax(144px,38%) minmax(190px,1fr);height:100%;min-height:235px}
+.mail-list{border-right:3px solid #9e9985;background:#d8d3bb;overflow:auto;min-height:0}
+.mail-choice{display:block;text-align:left;width:100%;padding:11px 9px;border-bottom:2px solid #b6ab8d;color:#334042;font-size:11px;line-height:1.4}
+.mail-choice.selected{background:#f0ddb6;box-shadow:inset 5px 0 #bc6674}
+.mail-choice span{display:block;color:#6b5e52;font-size:10px;margin-bottom:3px}
+.mail-reading{overflow:auto;padding:15px 18px;font-size:clamp(12px,1.35vw,14px);line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere}
+.mail-reading h3{font-size:15px;margin:0 0 10px;color:#77524d}.mail-reading .from{font-size:11px;color:#64726c;margin-bottom:14px;border-bottom:2px dashed #afa68c;padding-bottom:10px}
+.mail-reading p{margin:0 0 12px}
+.floor-tabs{display:flex;gap:6px;padding:11px;border-bottom:2px solid #b8b29b;flex-wrap:wrap}
+.floor-tab{padding:7px 9px;border:2px solid #7e887c;background:#cbc9ad;font-weight:bold;font-size:11px;color:#324645}
+.floor-tab.selected{background:#8ac4ac;border-color:#4c8674;color:#1a3934}
+.map-body{padding:12px;min-height:280px}
+.map-key{display:flex;justify-content:space-between;gap:8px;font-size:11px;color:#667167;margin-bottom:10px;flex-wrap:wrap}
+.map-layout{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;padding:12px;background:#aeae98;border:4px solid #455a52;box-shadow:inset 0 0 0 4px #c7c7b3;max-width:640px;min-height:190px}
+.room{min-height:68px;background:#d8d4b7;border:3px solid #7e9686;color:#2b4b48;display:flex;align-items:center;justify-content:center;position:relative;padding:8px 3px;font: bold clamp(9px,1.1vw,12px) "Courier New",monospace;overflow-wrap:anywhere;text-align:center}
+.room.selected{background:#f3d28c;border-color:#9b694c}.room.locked{background:#c4adab;border-color:#9d6d79}.room .room-dot{position:absolute;width:8px;height:8px;bottom:4px;right:4px;background:#63a37b}
+.map-detail{margin-top:11px;padding:10px 12px;background:#d9d2b8;color:#3c5755;border-left:5px solid #699d85;font-size:12px}
+.cams-layout{display:grid;grid-template-columns:minmax(124px,27%) minmax(0,1fr);height:100%;min-height:270px}
+.cams-list{border-right:3px solid #9e9985;background:#d1d3c9;overflow:auto}
+.cam-choice{width:100%;text-align:left;padding:13px 8px;border-bottom:2px solid #a6abb0;color:#29414b;font-weight:bold;font-size:12px}
+.cam-choice.selected{background:#a6bfd1;box-shadow:inset 5px 0 #446a90}
+.cam-choice small{display:block;color:#4e6967;font-size:10px;margin-top:4px;font-weight:normal}
+.cam-view{padding:12px;display:flex;flex-direction:column;align-items:stretch;gap:10px}
+#camCanvas{background:#182e39;image-rendering:pixelated;width:100%;aspect-ratio:320/184;max-height:310px;object-fit:contain;border:7px solid #304757;box-shadow:inset 0 0 0 4px #779da1}
+.cam-caption{font-size:11px;display:flex;justify-content:space-between;gap:10px;color:#55716e;font-weight:bold}
+.files-layout{display:grid;grid-template-columns:minmax(145px,37%) minmax(180px,1fr);height:100%;min-height:240px}
+.files-list{background:#d8d1c4;border-right:3px solid #9e9985;overflow:auto}
+.file-choice{width:100%;text-align:left;color:#47445f;border-bottom:2px solid #afa6ad;padding:12px 10px;font-size:11px}
+.file-choice.selected{background:#ead3e0;box-shadow:inset 5px 0 #90709d}
+.file-choice strong{display:block;margin-bottom:3px}.file-reading{padding:17px;overflow:auto;line-height:1.65;font-size:13px;overflow-wrap:anywhere}
+.file-reading h3{color:#6e4d75;margin:0 0 15px;font-size:15px}.file-reading .tag{display:inline-block;background:#8f709c;color:#fff1df;padding:4px 7px;font-size:10px}
+.file-reading p{white-space:pre-line}
+.hamazon{display:grid;grid-template-rows:auto 1fr;height:100%;min-height:260px;background:#ded8bc}
+.hamazon-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-bottom:3px solid #958c72;background:#cbbf96;color:#283d3e;flex-wrap:wrap}
+.hamazon-brand{font-weight:900;font-size:18px;letter-spacing:.04em}.hamazon-brand b{color:#9d4f48}
+.hamazon-orders{font-size:10px;color:#625b4b}
+.hamazon-body{display:grid;grid-template-columns:minmax(0,1fr) 190px;min-height:0}
+.hamazon-products{overflow:auto;padding:10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));align-content:start;gap:9px}
+.hamazon-card{border:3px solid #716b5a;background:#eee4c6;color:#263b3d;padding:8px;box-shadow:inset 2px 2px #fff3d4,inset -2px -2px #aaa184;display:grid;gap:6px;min-height:195px}
+.hamazon-thumb{height:82px;background:#b8b39d;border:2px solid #595f59;display:flex;align-items:center;justify-content:center;overflow:hidden;color:#56645f;font-weight:bold}
+.hamazon-thumb img{width:100%;height:100%;object-fit:contain;image-rendering:pixelated}
+.hamazon-card h4{margin:0;font-size:12px}.hamazon-meta{font-size:9px;line-height:1.45;color:#5d665e}
+.hamazon-card select,.hamazon-card button{width:100%;border:2px solid #726b59;background:#d8cda9;color:#273b3d;padding:6px;font:700 10px monospace}
+.hamazon-card button{background:#a05c4d;color:#fff2d1;border-color:#5c3c34}.hamazon-card button:active{transform:translateY(1px)}
+.hamazon-side{border-left:3px solid #958c72;background:#d1c9ad;padding:10px;overflow:auto;color:#344746;font-size:10px}
+.hamazon-order{border-bottom:2px dashed #9d9175;padding:7px 0;line-height:1.45}.hamazon-empty{padding:14px;color:#746c58;font-size:11px}
+@media(max-width:730px){.hamazon-body{grid-template-columns:1fr}.hamazon-side{border-left:0;border-top:3px solid #958c72;max-height:105px}.hamazon-products{grid-template-columns:repeat(2,minmax(0,1fr));padding:7px}.hamazon-card{min-height:176px}.hamazon-thumb{height:64px}}
+.footer-note{position:absolute;right:15px;top:42px;opacity:.4;color:#ede6cf;font-size:10px;letter-spacing:.08em;pointer-events:none}
+#message{position:absolute;left:50%;bottom:67px;transform:translateX(-50%);padding:8px 14px;background:#273e42;color:#fff1c5;z-index:30;border:2px solid #bca977;box-shadow:3px 4px #05161d;display:none;font-size:11px;text-align:center;max-width:90%}
+#message.show{display:block}
+@media(max-width:730px){.scene-hint{display:none}.scene-stamp{top:12px}.faux-monitor{width:min(91vw,550px);border-width:9px}.faux-keyboard{height:54px;width:69vw;padding:5px;gap:2px}.controls{gap:5px}.hardware{padding:9px 9px;font-size:10px}.focus-top{font-size:9px}.focus-top .hardware{padding:8px 9px}.focus-frame{width:100%;border-width:6px}.os-topbar{height:29px}.os-topbar .os-date{font-size:9px}.desktop-icon{width:73px;height:65px;font-size:10px}.pixel-symbol{width:39px;height:35px;font-size:21px}#desktopIcons{grid-template-columns:repeat(2,73px);top:45px;left:10px;gap:9px}.window:not(.maximized){left:7px!important;top:34px!important;width:calc(100% - 14px)!important;height:calc(100% - 70px)!important}.window.maximized{left:7px!important;top:34px!important;width:calc(100% - 14px)!important;height:calc(100% - 70px)!important}.window-title{height:32px}.window-title .window-type{display:none}.window-status{font-size:9px}.mail-layout,.files-layout{display:flex;flex-direction:column;height:100%}.mail-list,.files-list{flex:none;max-height:110px;min-height:0;display:flex;overflow-x:auto;overflow-y:hidden;border-right:0;border-bottom:3px solid #9e9985}.mail-choice,.file-choice{flex:0 0 150px;border-right:2px solid #b6ab8d;border-bottom:0}.mail-reading,.file-reading{flex:1;min-height:0;overflow:auto;padding:12px 13px}.cams-layout{grid-template-columns:1fr;display:flex;flex-direction:column;height:100%}.cams-list{flex:none;display:flex;overflow-x:auto;border-right:0;border-bottom:3px solid #9e9985}.cam-choice{flex:0 0 122px;border-bottom:0;border-right:2px solid #9e9985}.cam-view{flex:1;min-height:0;overflow:auto;padding:9px}.room{min-height:62px;font-size:9px}.map-body{padding:8px;min-height:0}.map-layout{min-height:160px;padding:7px;gap:4px}.floor-tabs{padding:7px;gap:4px}.floor-tab{padding:7px 6px;font-size:10px}}
+@media(max-height:540px){.window:not(.maximized),.window.maximized{left:7px!important;top:34px!important;width:calc(100% - 14px)!important;height:calc(100% - 69px)!important}.scene-stamp{top:10px}.focus-top{min-height:28px}.focus-top .hardware{padding:7px 10px}.focus-frame{border-width:6px}.window-content{overscroll-behavior:contain}}
+@media(max-width:395px){.focus-top .label-hardware{display:none}.task-brand{font-size:10px;padding:2px 5px}.os-date{display:none}.room{font-size:8px;min-height:58px}.faux-mark{margin-bottom:1%}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<main id="stage" aria-label="Terminal retro de vigilancia">
+ <canvas id="threeCanvas" aria-label="Computadora 3D. Toca el monitor para acercarte."></canvas>
+ <div id="fallback">
+  <div class="faux-monitor"><div class="faux-mark"><span>RAVEN // TERMINAL 03</span><span>SEGURIDAD</span></div><div id="fauxDisplay" class="faux-display" role="button" tabindex="0" aria-label="Acercar la pantalla"><canvas id="screenTexture" width="512" height="320"></canvas></div><div class="faux-controls"><span><i id="miniLed" class="mini-led"></i>RAVEN 486</span><span>░░ VENTILACIÓN ░░</span><span>F.H. / 03</span></div></div>
+  <div class="faux-stand"></div><div class="faux-foot"></div><div class="faux-keyboard" id="fauxKeyboard" aria-hidden="true"></div>
+ </div>
+</main>
+<div class="scene-stamp"><strong>FOREST HORROR</strong>TERMINAL 03 / PUESTO DE VIGILANCIA</div>
+<div class="scene-hint">MONITOR: ACERCAR VISTA<br>BOTÓN FÍSICO: ENCENDER / APAGAR</div>
+<div class="controls" id="mainControls"><button id="zoomBtn" class="hardware highlight">[ ACERCAR PANTALLA ]</button><button id="powerBtn" class="hardware">[ ENCENDER ]</button><button id="resetBtn" class="hardware">[ CENTRAR ]</button></div>
+<div id="focus" role="dialog" aria-label="Control de la computadora" aria-modal="true">
+ <div class="focus-top"><span class="label-hardware">RAVEN 486 // CRT 03</span><span id="offStatus">● SIN ENERGÍA</span><span class="focus-right"><button id="focusPower" class="hardware">[ ENCENDER ]</button><button id="leaveBtn" class="hardware highlight">[ VOLVER ]</button></span></div>
+ <div class="focus-frame"><div id="focusScreen">
+  <div id="screenOff"><div>RAVEN / TERMINAL 03</div><em>EL MONITOR ESTÁ APAGADO</em></div>
+  <div id="boot"><div>RAVEN BIOS · V 1.9<br><p>MEMORIA: OK<br>INICIANDO ESCRITORIO...</p></div></div>
+  <div id="desktop">
+   <div class="wall-moon"></div><div class="wall-building"></div>
+   <div class="os-topbar"><span class="os-brand"><i></i>RAVEN/OS <span style="color:#846e5b">v.96</span></span><span class="os-date">USUARIO: GUARDIA_03 &nbsp;│&nbsp; 23:47</span></div>
+   <div class="footer-note">ESTACIÓN DE SEGURIDAD / RED LOCAL</div>
+   <div id="desktopIcons"></div><div id="windowsLayer"></div>
+   <div id="startMenu" class="start-menu" role="menu"><strong>RAVEN/OS · APLICACIONES</strong></div><div class="os-taskbar"><button id="startButton" class="task-brand" type="button" aria-label="Abrir menú de aplicaciones" aria-expanded="false">▦ RAVEN</button><div id="taskItems"></div><span class="task-led"><b>●</b> RED LOCAL</span></div>
+  </div>
+  <div id="message" role="status" aria-live="polite"></div>
+ </div></div>
+</div>
+<script>
+'use strict';
+// Prototipo independiente. No modifica ni carga mapas forest-horror-map-v1.
+const $ = id => document.getElementById(id);
+const LABELS = {mail:'CORREOS',map:'MAPA',cams:'CÁMARAS',files:'ARCHIVOS',hamazon:'HAMAZON'};
+const APPS = ['mail','map','cams','files','hamazon'];
+const DATA = {
+ mails:[
+  {id:'M-015',from:'ADMINISTRACIÓN',subject:'Acceso al ala norte',date:'23:18',body:'Personal del turno nocturno:\n\nEl acceso al ala norte permanece restringido desde las 22:00. No utilicen la puerta de servicio.\n\nEl código de ingreso fue retirado del sistema. El supervisor recogerá las llaves mañana.\n\nNo intenten comprobar el bloqueo durante la noche.\n\nDirección / 03'},
+  {id:'M-014',from:'SEGURIDAD',subject:'Cámara 04 sin señal',date:'22:47',body:'Se perdió la señal de CAM-04. El último registro corresponde al pasillo de mantenimiento.\n\nLa restauración remota falló en dos intentos.\n\nSe escuchó un golpe junto a la sala de servidores. No enviar personal de noche.\n\nAdjunto: informe de acceso pendiente.'},
+  {id:'M-013',from:'ENFERMERÍA',subject:'Luces del sótano',date:'21:06',body:'Otra vez las luces del sótano.\n\nLos fusibles están intactos. Escuchamos golpes al otro lado de la pared de archivo.\n\nPor favor, revisen la caja B-04 cuando haya personal de mantenimiento.\n\nHay un olor a humedad que viene del pasillo cerrado.'},
+  {id:'M-012',from:'ARCHIVO',subject:'Plano actualizado',date:'19:31',body:'Adjuntamos la distribución del edificio, plantas 0, 1 y -1.\n\nAlgunas salas figuran cerradas por orden de mantenimiento.\n\nNo duplicar esta información. La copia digital se encuentra en MAPA.'}
+ ],
+ floors:[
+  {name:'PLANTA 0',rooms:['VESTÍBULO','OFICINAS','ARCHIVO','ENFERMERÍA','PASILLO','SEGURIDAD'],locked:['ARCHIVO'],player:'VESTÍBULO'},
+  {name:'PLANTA 1',rooms:['DIRECCIÓN','DORMITORIO','SALA 02','ESCALERAS','CORREDOR','AULA 01'],locked:['SALA 02'],player:null},
+  {name:'SÓTANO -1',rooms:['CALDERAS','MÁQUINAS','DEPÓSITO','TÚNEL','PASILLO N','CUARTO 04'],locked:['CUARTO 04','TÚNEL'],player:null}
+ ],
+ cameras:[{id:'CAM-01',place:'VESTÍBULO',online:true},{id:'CAM-02',place:'PASILLO NORTE',online:true},{id:'CAM-03',place:'ENFERMERÍA',online:true},{id:'CAM-04',place:'MANTENIMIENTO',online:false}],
+ hamazonProducts:[],
+ hamazonOrders:[],
+ logs:[
+  {t:'23:18',type:'ACCESO',txt:'Cerradura norte activada.\nOrden firmada: ADMIN-03.\nLa apertura manual queda deshabilitada.'},
+  {t:'22:47',type:'VÍDEO',txt:'CAM-04 dejó de transmitir.\nCausa no determinada.\nÚltimo fotograma no disponible.'},
+  {t:'22:15',type:'SISTEMA',txt:'Reinicio de consola remoto.\nOperador no identificado.\nNo figura turno de mantenimiento.'},
+  {t:'21:06',type:'ENERGÍA',txt:'Caída de tensión en el sótano.\nCircuito B-04 pendiente.'},
+  {t:'20:12',type:'ACCESO',txt:'Se cerró la entrada de carga.\nSin credencial registrada.'}
+ ]
+};
+const state={power:false,boot:false,zoom:false,windows:[],front:null,topZ:5,mail:0,floor:0,room:'VESTÍBULO',camera:0,log:0};
+const reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const winEls=new Map();
+let bootTimer=null,toastTimer=null,renderer=null,scene=null,camera3d=null,monitorGroup=null,screenPlane=null,powerKnob=null,raycaster=null,ndc=null,texture=null,modelEnabled=false,camFrameLast=0;
+const preview=$('screenTexture'),pctx=preview.getContext('2d',{alpha:false});pctx.imageSmoothingEnabled=false;
+const emit=(name,detail)=>{window.dispatchEvent(new CustomEvent('forest-terminal:'+name,{detail}));if(window.parent!==window)window.parent.postMessage({type:'FOREST_TERMINAL_EVENT',name,detail},'*')};
+function say(msg){let el=$('message');el.textContent=msg;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),2100)}
+function node(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=text;return e}
+function clear(el){el.replaceChildren()}
+function labelButton(text,cls,onClick){const b=node('button',cls,text);b.type='button';b.addEventListener('click',onClick);return b}
+function syncPower(){const txt=state.power?'[ APAGAR ]':'[ ENCENDER ]';$('powerBtn').textContent=txt;$('focusPower').textContent=txt;$('miniLed').classList.toggle('on',state.power);$('offStatus').textContent=state.power?'● SISTEMA ACTIVO':'● SIN ENERGÍA';$('offStatus').style.color=state.power?'#94caa8':'#a8b59c';$('screenOff').style.display=state.power?'none':'flex';$('boot').style.display=state.power&&state.boot?'flex':'none';$('desktop').style.display=state.power&&!state.boot?'block':'none';previewPaint()}
+function setPower(on){on=!!on;if(state.power===on)return;closeStart();clearTimeout(bootTimer);state.power=on;state.boot=on&&!reduceMotion;
+ if(on&&state.boot){bootTimer=setTimeout(()=>{if(!state.power)return;state.boot=false;syncPower();emit('listo',{});},900)}else if(on)emit('listo',{});
+ syncPower();emit('energia',{on});}
+function toggleZoom(on){on=typeof on==='boolean'?on:!state.zoom;if(on===state.zoom)return;state.zoom=on;closeStart();$('focus').classList.toggle('open',on);if(on){$('leaveBtn').focus({preventScroll:true})}else{$('zoomBtn').focus({preventScroll:true})}emit('zoom',{on});previewPaint()}
+function bringFront(app){let win=winEls.get(app);if(!win)return;win.style.display='flex';win.dataset.minimized='';state.front=app;state.topZ++;win.style.zIndex=String(state.topZ);for(const [key,el] of winEls)el.classList.toggle('active',key===app);drawTasks();previewPaint()}
+function closeWindow(app){let win=winEls.get(app);if(!win)return;win.remove();winEls.delete(app);state.windows=state.windows.filter(v=>v!==app);state.front=state.windows.at(-1)||null;drawTasks();previewPaint();emit('ventana',{app,open:false})}
+function drawTasks(){const task=$('taskItems');clear(task);state.windows.forEach(app=>{let b=labelButton(LABELS[app],'task-app'+(state.front===app?' selected':''),()=>bringFront(app));task.append(b)})}
+function closeStart(){ $('startMenu').classList.remove('open'); $('startButton').setAttribute('aria-expanded','false'); }
+function initStart(){const menu=$('startMenu'),symbols={mail:'✉',map:'▧',cams:'◉',files:'▣',hamazon:'H'};APPS.forEach(app=>menu.append(labelButton(symbols[app]+'  '+LABELS[app],'',()=>{closeStart();openWindow(app)})));menu.append(labelButton('⏻  APAGAR TERMINAL','',()=>{closeStart();setPower(false)}));$('startButton').addEventListener('click',()=>{const open=menu.classList.toggle('open');$('startButton').setAttribute('aria-expanded',String(open))});document.addEventListener('pointerdown',ev=>{if(!menu.contains(ev.target)&&ev.target!==$('startButton'))closeStart()})}
+function makeIcons(){let layer=$('desktopIcons');clear(layer);let icons={mail:['✉','symbol-mail'],map:['▧','symbol-map'],cams:['◉','symbol-cams'],files:['▣','symbol-files'],hamazon:['H','symbol-hamazon']};for(const app of APPS){const b=labelButton('', 'desktop-icon',()=>openWindow(app));b.setAttribute('aria-label','Abrir '+LABELS[app]);const icon=node('span','pixel-symbol '+icons[app][1],icons[app][0]);b.append(icon,node('span','',LABELS[app]));layer.append(b)}}
+function createWindow(app){const win=node('section','window win-'+app);win.dataset.app=app;win.setAttribute('aria-label',LABELS[app]);win.style.width=(app==='hamazon'?'760px':app==='map'?'620px':app==='cams'?'610px':'590px');win.style.height=(app==='hamazon'?'470px':app==='mail'?'420px':'400px');let idx=APPS.indexOf(app);win.style.left=(Math.max(110,(innerWidth-720)/2)+idx*21)+'px';win.style.top=(Math.max(44,(innerHeight-460)/2)+idx*16)+'px';
+ const title=node('div','window-title');title.style.touchAction='none';title.append(node('span','window-name','▣ '+LABELS[app]),node('span','window-type','RAVEN / LOCAL'));
+ const mini=labelButton('–','wm',()=>{win.style.display='none';win.dataset.minimized='yes';state.front=null;drawTasks();previewPaint()});mini.setAttribute('aria-label','Minimizar '+LABELS[app]);const maxi=labelButton('□','wm',()=>{win.classList.toggle('maximized');bringFront(app)});maxi.setAttribute('aria-label','Maximizar '+LABELS[app]);const close=labelButton('×','wm',()=>closeWindow(app));close.setAttribute('aria-label','Cerrar '+LABELS[app]);title.append(mini,maxi,close);
+ const content=node('div','window-content');content.id='body-'+app;const status=node('div','window-status');status.innerHTML='<span>UNIDAD C: / SOLO LECTURA</span><span>RAVEN/OS 1.9</span>';win.append(title,content,status);
+ title.addEventListener('pointerdown',ev=>{if(ev.target.closest('button')||innerWidth<730||win.classList.contains('maximized'))return;if(ev.button!==0)return;bringFront(app);let x=ev.clientX,y=ev.clientY,left=parseFloat(win.style.left),top=parseFloat(win.style.top);const move=e=>{const container=$('desktop').getBoundingClientRect();const bounds=win.getBoundingClientRect();win.style.left=Math.max(0,Math.min(container.width-bounds.width,left+e.clientX-x))+'px';win.style.top=Math.max(30,Math.min(container.height-65,top+e.clientY-y))+'px'};const stop=()=>{window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',stop);previewPaint()};window.addEventListener('pointermove',move);window.addEventListener('pointerup',stop,{once:true})});win.addEventListener('pointerdown',()=>bringFront(app));
+ return win;
+}
+function openWindow(app){if(!APPS.includes(app))return;if(!state.power){say('Enciende la computadora primero.');return}if(state.boot)return;let win=winEls.get(app);if(!win){win=createWindow(app);winEls.set(app,win);state.windows.push(app);$('windowsLayer').append(win);renderWindow(app);emit('ventana',{app,open:true})}win.style.display='flex';win.dataset.minimized='';bringFront(app)}
+function renderWindow(app){const body=$('body-'+app);if(!body)return;let preservedScroll=body.scrollTop;clear(body);if(app==='mail')renderMail(body);if(app==='map')renderMap(body);if(app==='cams')renderCams(body);if(app==='files')renderFiles(body);if(app==='hamazon')renderHamazon(body);body.scrollTop=preservedScroll;}
+function renderMail(body){let layout=node('div','mail-layout');let list=node('div','mail-list');let reading=node('article','mail-reading');layout.append(list,reading);body.append(layout);
+ DATA.mails.forEach((m,i)=>{let b=labelButton('', 'mail-choice'+(state.mail===i?' selected':''),()=>{state.mail=i;renderWindow('mail');emit('correo',{id:m.id})});b.append(node('span','',m.date+' • '+m.from),node('strong','',m.subject));list.append(b)});
+ const m=DATA.mails[state.mail];if(!m){reading.textContent='No hay mensajes.';return}reading.append(node('h3','',m.subject),node('div','from','DE: '+m.from+'  ·  '+m.date+'  ·  '+m.id));m.body.split('\n\n').forEach(part=>reading.append(node('p','',part)));}
+function renderMap(body){let tabs=node('div','floor-tabs');let map=node('div','map-body');body.append(tabs,map);DATA.floors.forEach((f,i)=>tabs.append(labelButton(f.name,'floor-tab'+(state.floor===i?' selected':''),()=>{state.floor=i;state.room=DATA.floors[i].rooms[0];renderWindow('map');emit('planta',{floor:i})})));
+ let floor=DATA.floors[state.floor]||DATA.floors[0];map.append(node('div','map-key','Plano esquemático • Rojo: bloqueado • Verde: posición conocida'));let layout=node('div','map-layout');map.append(layout);
+ floor.rooms.forEach(r=>{const locked=floor.locked?.includes(r),sel=state.room===r;let b=labelButton(r,'room'+(locked?' locked':'')+(sel?' selected':''),()=>{state.room=r;renderWindow('map');emit('sala',{floor:state.floor,room:r,locked})});if(floor.player===r)b.append(node('span','room-dot'));layout.append(b)});
+ map.append(node('div','map-detail','SELECCIÓN: '+state.room+'  /  '+(floor.locked?.includes(state.room)?'ACCESO RESTRINGIDO':'REGISTRO DISPONIBLE')));
+}
+function renderCams(body){let layout=node('div','cams-layout'),list=node('div','cams-list'),view=node('div','cam-view');layout.append(list,view);body.append(layout);
+ DATA.cameras.forEach((m,i)=>{let b=labelButton('', 'cam-choice'+(state.camera===i?' selected':''),()=>{state.camera=i;renderWindow('cams');emit('camara',{id:m.id})});b.append(node('span','',m.id),node('small','',m.online?'● EN LÍNEA':'× SIN SEÑAL'));list.append(b)});
+ let canvas=node('canvas','');canvas.id='camCanvas';canvas.width=320;canvas.height=184;canvas.setAttribute('aria-label','Vista simulada de cámara de seguridad');view.append(canvas);const cap=node('div','cam-caption');cap.append(node('span','',DATA.cameras[state.camera]?.place||'SIN DATOS'),node('span','','IMAGEN SIMULADA'));view.append(cap);drawCamera(performance.now())}
+function renderFiles(body){let layout=node('div','files-layout'),list=node('div','files-list'),read=node('article','file-reading');layout.append(list,read);body.append(layout);
+ DATA.logs.forEach((l,i)=>{let b=labelButton('','file-choice'+(state.log===i?' selected':''),()=>{state.log=i;renderWindow('files');emit('archivo',{index:i})});b.append(node('strong','',l.t+' / '+l.type),node('span','',l.txt.split('\n')[0]));list.append(b)});
+ let l=DATA.logs[state.log];if(!l){read.textContent='Sin registros.';return}read.append(node('h3','','INFORME '+String(state.log+1).padStart(3,'0')),node('span','tag',l.type),node('p','',l.txt));read.append(node('p','','HORA: '+l.t+'\nESTADO: ARCHIVADO'))}
+function renderHamazon(body){
+ const shell=node('div','hamazon'),head=node('div','hamazon-head'),main=node('div','hamazon-body'),products=node('div','hamazon-products'),side=node('aside','hamazon-side');
+ const brand=node('div','hamazon-brand');brand.innerHTML='<b>H</b>amazon // CATÁLOGO LOCAL';
+ head.append(brand,node('div','hamazon-orders',DATA.hamazonOrders.length+' pedido(s) registrado(s)'));
+ main.append(products,side);shell.append(head,main);body.append(shell);
+ if(!DATA.hamazonProducts.length)products.append(node('div','hamazon-empty','CATÁLOGO NO DISPONIBLE · CONECTA LA PC AL JUEGO.'));
+ for(const p of DATA.hamazonProducts){
+  const card=node('article','hamazon-card'),thumb=node('div','hamazon-thumb');
+  if(p.thumbnail){const img=new Image();img.src=p.thumbnail;img.alt='';thumb.append(img)}else thumb.textContent=p.kind==='item'?'ITEM':'MUEBLE';
+  const title=node('h4','',p.name||p.id),meta=node('div','hamazon-meta',
+   (p.category||'CATÁLOGO')+' · '+(p.kind||'furniture').toUpperCase()+'\nPAQUETE: '+(p.parcelSize||'por calcular').toUpperCase()+
+   (p.price==null?'\nPRECIO: PENDIENTE DE ECONOMÍA':'\nPRECIO: $'+Number(p.price).toFixed(2)));
+  meta.style.whiteSpace='pre-line';
+  const method=document.createElement('select');method.setAttribute('aria-label','Forma de pago');
+  [['prepaid','PAGADO / SIN COBRO'],['cash','EFECTIVO AL RECIBIR'],['card','TARJETA AL RECIBIR']].forEach(([v,t])=>{const o=document.createElement('option');o.value=v;o.textContent=t;method.append(o)});
+  const buy=labelButton('PEDIR','',()=>{emit('hamazon-order',{productId:p.id,kind:p.kind||'furniture',paymentMethod:method.value});say('Pedido enviado a Hamazon.');});
+  card.append(thumb,title,meta,method,buy);products.append(card);
+ }
+ side.append(node('strong','','PEDIDOS'));
+ if(!DATA.hamazonOrders.length)side.append(node('div','hamazon-empty','No hay pedidos.'));
+ for(const o of DATA.hamazonOrders.slice().reverse()){
+  const row=node('div','hamazon-order');row.append(node('strong','',o.name||o.productId),node('div','',(o.status||'pending').toUpperCase()+' · '+(o.paymentMethod||'prepaid').toUpperCase()));side.append(row);
+ }
+}
+function drawCamera(t){let cnv=$('camCanvas');if(!cnv||!state.power)return;const c=cnv.getContext('2d');c.imageSmoothingEnabled=false;const w=cnv.width,h=cnv.height;let cam=DATA.cameras[state.camera];c.fillStyle='#0b1b24';c.fillRect(0,0,w,h);
+ if(!cam||!cam.online){c.fillStyle='#1c2c39';c.fillRect(0,0,w,h);c.fillStyle='#d77b81';c.font='bold 17px monospace';c.fillText('SIN SEÑAL',104,92);c.fillStyle='#6b7580';c.font='12px monospace';c.fillText('CANAL 04 / DESCONECTADO',55,116);return}
+ c.fillStyle='#3c5861';c.fillRect(0,0,w,95);c.fillStyle='#263c44';c.fillRect(0,95,w,89);c.fillStyle='#4a6870';c.fillRect(16,24,70,104);c.fillRect(233,20,64,106);c.fillStyle='#1c353a';c.fillRect(24,30,54,89);c.fillRect(241,29,48,90);c.fillStyle='#728784';c.fillRect(50,36,8,12);c.fillRect(263,35,8,12);
+ if(state.camera===0){c.fillStyle='#79958c';c.fillRect(130,35,57,68);c.fillStyle='#192f36';c.fillRect(137,43,43,58);c.fillStyle='#c3b88e';c.fillRect(150,66,5,7)}
+ if(state.camera===1){c.fillStyle='#13262d';c.fillRect(138,24,40,76);c.fillStyle='#617c7b';c.fillRect(151,32,12,57);c.fillStyle='#d98580';c.fillRect(160,58,4,4)}
+ if(state.camera===2){c.fillStyle='#8da6a0';c.fillRect(94,106,139,20);c.fillStyle='#283a41';c.fillRect(109,126,9,29);c.fillRect(204,126,9,29);c.fillStyle='#c6d3c2';c.fillRect(103,101,41,6)}
+ c.strokeStyle='#5a7780';for(let i=0;i<8;i++){c.beginPath();c.moveTo(i*45,97);c.lineTo(160+(i*45-160)*1.9,h);c.stroke()}for(let y=0;y<h;y+=4){c.fillStyle='#00000012';c.fillRect(0,y,w,1)}
+ const sec=Math.floor(t/1000),clock='23:'+String(47+Math.floor(sec/60)%12).padStart(2,'0')+':'+String(sec%60).padStart(2,'0');c.fillStyle='#d2ece1';c.font='bold 12px monospace';c.fillText(cam.id+' / '+clock,9,16);c.fillStyle='#e19393';c.fillText('REC',270,16);
+}
+function paintText(text,x,y,color='#e3e6c8',size=12){pctx.fillStyle=color;pctx.font='bold '+size+'px monospace';pctx.textBaseline='top';pctx.fillText(String(text),x,y)}
+function previewPaint(){const c=pctx,W=512,H=320;c.fillStyle='#020708';c.fillRect(0,0,W,H);
+ if(!state.power){c.fillStyle='#091317';c.fillRect(0,0,W,H);c.fillStyle='#102025';c.fillRect(0,0,W,14);paintText('RAVEN 486 / SIN ENERGÍA',158,153,'#51645c',12);if(texture)texture.needsUpdate=true;return}
+ if(state.boot){c.fillStyle='#163530';c.fillRect(0,0,W,H);paintText('RAVEN BIOS 1.9',38,62,'#afe9ba',18);paintText('COMPROBACIÓN DE MEMORIA... OK',38,112,'#b9cfae',12);paintText('INICIANDO RAVEN/OS...',38,146,'#f2d09f',12);if(texture)texture.needsUpdate=true;return}
+ c.fillStyle='#356f78';c.fillRect(0,0,W,H);c.fillStyle='#518c91';for(let i=0;i<13;i++){c.fillRect((i*83+23)%512,(i*39+14)%320,3,3)}
+ c.fillStyle='#e1d4a3';c.fillRect(385,40,53,53);c.fillStyle='#214450';for(let i=0;i<9;i++)c.fillRect(265+i*26,220-(i%3)*20,34,130);
+ c.fillStyle='#dbc99d';c.fillRect(0,0,W,29);c.fillStyle='#b99f76';c.fillRect(0,26,W,3);paintText('▣ RAVEN/OS',12,9,'#2b4d53',13);paintText('GUARDIA_03   23:47',352,10,'#6c6a5c',10);
+ const colors=['#edc49f','#94d0b4','#9ebdde','#c4a5cc','#e5bf78'],symbols=['✉','▧','◉','▣','H'];APPS.forEach((app,i)=>{c.fillStyle=colors[i];c.fillRect(19,44+i*50,39,31);paintText(symbols[i],30,49+i*50,'#243f44',15);paintText(LABELS[app].slice(0,9),13,76+i*50,'#f4e8c9',9)});
+ const app=state.front;if(app&&winEls.has(app)&&winEls.get(app).style.display!=='none'){
+ let appIndex=APPS.indexOf(app),col=colors[appIndex];c.fillStyle='#15282f';c.fillRect(115,54,363,237);c.fillStyle='#eee5c9';c.fillRect(111,50,363,235);c.fillStyle=col;c.fillRect(115,54,355,27);paintText('■ '+LABELS[app],127,61,'#244049',12);c.fillStyle='#ecdcb7';c.fillRect(441,57,22,20);paintText('×',448,59,'#493d3c',14);c.fillStyle='#d1cbb6';c.fillRect(125,93,334,176);
+ if(app==='mail'){paintText('BANDEJA / '+DATA.mails.length+' MENSAJES',137,106,'#92576a',12);let m=DATA.mails[state.mail];paintText('ASUNTO: '+(m?.subject||''),137,142,'#213d41',11);paintText('DE: '+(m?.from||''),137,164,'#627970',11);paintText((m?.body||'').replace(/\s+/g,' ').slice(0,47),137,201,'#294349',10)}
+ if(app==='map'){paintText('PLANO / '+(DATA.floors[state.floor]?.name||''),137,106,'#2d786d',12);for(let i=0;i<6;i++){let x=137+(i%3)*99,y=132+Math.floor(i/3)*52;c.fillStyle=i%2?'#c1d8be':'#eed8ad';c.fillRect(x,y,91,46);paintText((DATA.floors[state.floor]?.rooms[i]||'').slice(0,11),x+4,y+17,'#324c4b',10)}}
+ if(app==='cams'){paintText('CCTV / '+(DATA.cameras[state.camera]?.id||''),137,106,'#3d617d',12);c.fillStyle='#294750';c.fillRect(137,132,295,111);paintText(DATA.cameras[state.camera]?.online?'● SEÑAL ACTIVA':'× SIN SEÑAL',179,174,'#b0c4b1',15)}
+ if(app==='files'){paintText('ARCHIVOS / BITÁCORA LOCAL',137,106,'#755c89',12);let log=DATA.logs[state.log];paintText((log?.type||'')+' '+(log?.t||''),137,143,'#373e47',13);paintText((log?.txt||'').replace(/\s+/g,' ').slice(0,48),137,178,'#474b53',11)}
+ if(app==='hamazon'){paintText('HAMAZON / PEDIDOS',137,106,'#8b4f40',12);paintText((DATA.hamazonProducts.length)+' PRODUCTOS DISPONIBLES',137,143,'#373e47',11);paintText((DATA.hamazonOrders.length)+' PEDIDOS REGISTRADOS',137,178,'#5a5a48',11)}
+ }
+ c.fillStyle='#dfcea4';c.fillRect(0,289,W,31);paintText('▦ RAVEN',11,299,'#2f4851',12);paintText(state.windows.map(a=>LABELS[a]).join('   ').slice(0,49),129,300,'#426065',10);
+ if(texture)texture.needsUpdate=true;
+}
+function animation(t){if(state.power&&!state.boot&&state.zoom&&winEls.has('cams')&&winEls.get('cams').style.display!=='none'&&t-camFrameLast>135){drawCamera(t);camFrameLast=t}if(renderer&&scene&&camera3d)renderer.render(scene,camera3d);requestAnimationFrame(animation)}
+function initThree(){if(!window.THREE)return;try{let T=window.THREE;renderer=new T.WebGLRenderer({canvas:$('threeCanvas'),antialias:false,powerPreference:'low-power'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.25));renderer.setSize(innerWidth,innerHeight,false);renderer.setClearColor(0x101719);scene=new T.Scene();scene.fog=new T.Fog(0x101719,11,27);camera3d=new T.PerspectiveCamera(39,innerWidth/innerHeight,.1,60);camera3d.position.set(0,2.8,10.3);camera3d.lookAt(0,2.25,0);
+ scene.add(new T.AmbientLight(0x869597,.75));let light=new T.DirectionalLight(0xf7d7a9,1.14);light.position.set(-4,7,7);scene.add(light);let rim=new T.PointLight(0x558e8c,.6,18);rim.position.set(5,5,-1);scene.add(rim);
+ const mat=(hex,metal=0)=>new T.MeshStandardMaterial({color:hex,roughness:.85,metalness:metal});const shell=mat(0x9c9882,.22),bevel=mat(0x424d45,.23),dark=mat(0x131c1b,.04),trim=mat(0xc4b69a,.25),screenBorder=mat(0x222f2f,.05),keyboard=mat(0x797b6d,.18),keys=mat(0xcac4a4,.05),wall=mat(0x1f2b2c,.08),metal=mat(0x969381,.6);
+ const box=(w,h,d,m,x,y,z,parent=scene)=>{let a=new T.Mesh(new T.BoxGeometry(w,h,d),m);a.position.set(x,y,z);parent.add(a);return a};
+ const cyl=(r,depth,m,x,y,z,parent=scene)=>{let a=new T.Mesh(new T.CylinderGeometry(r,r,depth,12),m);a.rotation.x=Math.PI/2;a.position.set(x,y,z);parent.add(a);return a};
+ box(30,.18,12,wall,0,-.17,1.0);box(22,8,.2,mat(0x182122),0,3,-5.8);monitorGroup=new T.Group();scene.add(monitorGroup);
+ box(6.4,4.64,2.1,shell,0,2.87,-.25,monitorGroup);box(6.56,4.74,.16,bevel,0,2.86,.83,monitorGroup);box(6.23,4.46,.16,shell,0,2.89,.94,monitorGroup);box(5.85,3.85,.16,screenBorder,0,3.10,1.07,monitorGroup);box(5.58,3.56,.15,trim,0,3.10,1.17,monitorGroup);box(5.45,3.43,.15,dark,0,3.10,1.26,monitorGroup);
+ texture=new T.CanvasTexture(preview);texture.magFilter=T.NearestFilter;texture.minFilter=T.NearestFilter;texture.generateMipmaps=false;let screenMat=new T.MeshBasicMaterial({map:texture,side:T.DoubleSide});screenPlane=new T.Mesh(new T.PlaneGeometry(5.34,3.33),screenMat);screenPlane.position.set(0,3.1,1.35);monitorGroup.add(screenPlane);
+ box(5.75,.35,.16,shell,0,.91,1.06,monitorGroup);box(2.9,.15,.04,bevel,-1.1,.79,1.16,monitorGroup);for(let i=0;i<14;i++)box(.095,.045,.03,dark,-2.38+i*.2,.79,1.2,monitorGroup);
+ cyl(.13,.10,mat(0x304439),2.33,.8,1.25,monitorGroup);powerKnob=cyl(.19,.15,metal,2.78,.8,1.28,monitorGroup);for(let x of [-2.88,2.88])for(let y of [1,4.65])cyl(.05,.02,metal,x,y,1.17,monitorGroup);
+ box(1.65,.55,.8,bevel,0,.33,-.1);box(3.65,.2,1.5,shell,0,.11,.3);
+ const kbGroup=new T.Group();scene.add(kbGroup);kbGroup.position.set(0,.21,2.65);kbGroup.rotation.x=-.12;box(5.45,.24,1.85,keyboard,0,0,0,kbGroup);let geom=new T.BoxGeometry(.255,.075,.25);for(let row=0;row<4;row++)for(let col=0;col<16;col++){let k=new T.Mesh(geom,(row===3&&col>10)?trim:keys);k.position.set(-2.29+col*.305+row*.03,.16,-.62+row*.34);kbGroup.add(k)}box(1.52,.08,.23,keys,0,.17,.78,kbGroup);
+ raycaster=new T.Raycaster();ndc=new T.Vector2();modelEnabled=true;$('fallback').style.display='none';
+ let c=$('threeCanvas'),dragged=false,origin=null;c.addEventListener('pointerdown',ev=>{origin=[ev.clientX,ev.clientY];dragged=false;c.setPointerCapture?.(ev.pointerId)});c.addEventListener('pointermove',ev=>{if(!origin||!ev.buttons)return;let dx=ev.clientX-origin[0],dy=ev.clientY-origin[1];if(Math.abs(dx)+Math.abs(dy)>3)dragged=true;monitorGroup.rotation.y=Math.max(-.12,Math.min(.12,monitorGroup.rotation.y+dx*.0014));monitorGroup.rotation.x=Math.max(-.06,Math.min(.06,monitorGroup.rotation.x+dy*.00065));origin=[ev.clientX,ev.clientY]});c.addEventListener('pointerup',ev=>{origin=null;if(dragged)return;let r=c.getBoundingClientRect();ndc.set((ev.clientX-r.left)/r.width*2-1,-(ev.clientY-r.top)/r.height*2+1);raycaster.setFromCamera(ndc,camera3d);let hits=raycaster.intersectObjects([screenPlane,powerKnob],false);if(!hits.length)return;if(hits[0].object===powerKnob)setPower(!state.power);else toggleZoom(true)});
+ function resize(){if(!renderer)return;let w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);camera3d.aspect=w/h;camera3d.fov=w<h?50:39;camera3d.position.set(0,2.8,w<h?16.5:10.3);camera3d.lookAt(0,2.25,0);camera3d.updateProjectionMatrix()}window.addEventListener('resize',resize);resize();previewPaint();
+ }catch(err){console.error('Fallo WebGL:',err);modelEnabled=false;$('fallback').style.display='flex';renderer=null}}
+makeIcons();initStart();for(let i=0;i<64;i++)$('fauxKeyboard').append(node('i'));
+$('zoomBtn').addEventListener('click',()=>toggleZoom(true));$('leaveBtn').addEventListener('click',()=>toggleZoom(false));$('powerBtn').addEventListener('click',()=>setPower(!state.power));$('focusPower').addEventListener('click',()=>setPower(!state.power));
+$('resetBtn').addEventListener('click',()=>{if(monitorGroup)monitorGroup.rotation.set(0,0,0);say('Vista centrada.')});$('fauxDisplay').addEventListener('click',()=>toggleZoom(true));$('fauxDisplay').addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();toggleZoom(true)}});
+window.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&state.zoom){if(state.front){closeWindow(state.front)}else toggleZoom(false);return}if(!state.zoom)return;if(state.power&&!state.boot&&ev.altKey&&/^Digit[1-5]$/.test(ev.code)){ev.preventDefault();openWindow(APPS[+ev.code.at(-1)-1])}});
+// API de integración. No crea reglas de juego ni datos de mapas.
+window.ForestTerminal3D={
+ open(){toggleZoom(true)},close(){toggleZoom(false)},power(on){setPower(on)},
+ show(section){const key=APPS.find(k=>LABELS[k].toLowerCase()===String(section).toLowerCase()||k===String(section).toLowerCase());if(key){if(!state.zoom)toggleZoom(true);openWindow(key)}},
+ setMails(items){if(!Array.isArray(items))return;DATA.mails=items.slice(0,100).map((m,i)=>({id:String(m.id??i),from:String(m.from??''),subject:String(m.subject??''),date:String(m.date??''),body:Array.isArray(m.body)?m.body.join('\n'):String(m.body??'')}));state.mail=0;renderWindow('mail');previewPaint()},
+ setFloors(floors){if(!Array.isArray(floors)||!floors.length)return;DATA.floors=floors.map(f=>({name:String(f.name??'PLANTA'),rooms:(f.rooms??[]).map(r=>Array.isArray(r)?String(r[0]):String(r)),locked:Array.isArray(f.locked)?f.locked.map(String):[],player:f.player??null}));state.floor=0;state.room=DATA.floors[0].rooms[0]||'';renderWindow('map');previewPaint()},
+ setCameras(cams){if(!Array.isArray(cams))return;DATA.cameras=cams.map((c,i)=>({id:String(c.id??i),place:String(c.place??''),online:!!c.online}));state.camera=0;renderWindow('cams');previewPaint()},
+ setLogs(logs){if(!Array.isArray(logs))return;DATA.logs=logs.map(l=>({t:String(l.t??''),type:String(l.type??''),txt:Array.isArray(l.txt)?l.txt.join('\n'):String(l.txt??'')}));state.log=0;renderWindow('files');previewPaint()},
+ setHamazonProducts(items){if(!Array.isArray(items))return;DATA.hamazonProducts=items.map(p=>({...p,id:String(p.id??''),name:String(p.name??p.id??''),kind:String(p.kind??'furniture')}));renderWindow('hamazon');previewPaint()},
+ setHamazonOrders(items){DATA.hamazonOrders=Array.isArray(items)?items.map(o=>({...o})):[];renderWindow('hamazon');previewPaint()},
+ getState(){return{power:state.power,zoom:state.zoom,windows:[...state.windows],front:state.front,floor:state.floor,room:state.room,camera:state.camera}}
+};
+// Three.js r128 es la única dependencia: sin red se presenta el monitor CSS interactivo.
+function loadThree(){if(window.THREE){initThree();return}const script=document.createElement('script');script.src='https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';script.onload=initThree;script.onerror=()=>{$('fallback').style.display='flex'};document.head.appendChild(script)}
+syncPower();loadThree();requestAnimationFrame(animation);
+</script>
+</body>
+</html>
