@@ -45,7 +45,7 @@
  }
  function createRuntime(options={}){
   const assembly=options.assembly||root.FHPcAssembly;
-  const TEXT=options.strings||root.FH_DELIVERY_TEXT||{};
+  const TEXT=options.strings||root.FH_COMPUTER_TEXT||root.FH_DELIVERY_TEXT||{};
   let frame=null,active=null,opened=false;
   const floorItems=f=>options.floorItems?.(f)||[];
   const say=(value,ms=2900)=>options.notice?.(value,ms);
@@ -89,7 +89,7 @@
     else if(session.missing.length){
      const names=session.missing.map(k=>TEXT.pcMissingNames?.[k]||k);
      say(TEXT.pcMissing?.(names)||'Faltan componentes de la computadora.');
-    }else say(TEXT.pcUnavailable||'No hay una computadora funcional aquí.');
+    }else say(TEXT.unavailable||'No hay una computadora funcional aquí.');
     return false;
    }
    const view=ensureFrame();if(!view){say(TEXT.terminalError||'No se pudo abrir RAVEN/OS.');return false;}
