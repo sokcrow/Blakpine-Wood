@@ -1412,6 +1412,7 @@ function validate(project){
     if(it.locked!==undefined&&typeof it.locked!=='boolean')err(`${q}.locked`,'debe ser verdadero o falso');
     if(it.keyId!==undefined&&typeof it.keyId!=='string')err(`${q}.keyId`,'debe ser texto');
     if(it.doorRole!==undefined&&!['auto','entrance','interior'].includes(it.doorRole))err(`${q}.doorRole`,'rol de puerta inválido');
+    if(it.propertyDoorRole!==undefined&&!['main','rear','extra'].includes(it.propertyDoorRole))err(`${q}.propertyDoorRole`,'acceso de propiedad inválido');
     if(it.apartmentId!==undefined&&typeof it.apartmentId!=='string')err(`${q}.apartmentId`,'debe ser texto');
    }
    if(['light_switch','breaker_panel','light_fixture','elevator','room'].includes(it.type)){
@@ -1574,7 +1575,20 @@ function syncStairLinks(){
   }
  }
 }
-function record(){syncStairLinks();normalizeArchitecture(floorIndex);const created=rebuildFloorSpaces(floorIndex);history=history.slice(0,historyIndex+1);history.push(JSON.stringify({floors:project.floors.map(f=>({id:f.id,name:f.name,items:f.items,elevationFt:f.elevationFt,ceilingHeightFt:f.ceilingHeightFt,lightingManual:!!f.lightingManual,apartments:f.apartments||[]})),properties:project.properties||[],patterns:project.patterns||[],buildingOwnerId:project.buildingOwnerId||"",buildingOwners:project.buildingOwners||{},styleSystem:project.styleSystem||0}));if(history.length>75)history.shift();historyIndex=history.length-1;saveSoon();if(activeLayer==='lighting')refreshCircuits();render();return created}
+function syncPropertyDoorRoles(){
+ for(const floor of project.floors){
+  const mains=new Set();
+  for(const door of floor.items.filter(it=>['door','peephole_door'].includes(it.type)&&it.propertyDoorRole)){
+   const property=window.FHPropertyZones?.doorAt(project,floor.id,door);
+   if(!property||!['main','rear','extra'].includes(door.propertyDoorRole)){delete door.propertyDoorRole;continue}
+   if(door.propertyDoorRole==='main'){
+    if(mains.has(property.id))door.propertyDoorRole='extra';
+    else mains.add(property.id);
+   }
+  }
+ }
+}
+function record(){syncStairLinks();normalizeArchitecture(floorIndex);const created=rebuildFloorSpaces(floorIndex);syncPropertyDoorRoles();history=history.slice(0,historyIndex+1);history.push(JSON.stringify({floors:project.floors.map(f=>({id:f.id,name:f.name,items:f.items,elevationFt:f.elevationFt,ceilingHeightFt:f.ceilingHeightFt,lightingManual:!!f.lightingManual,apartments:f.apartments||[]})),properties:project.properties||[],patterns:project.patterns||[],buildingOwnerId:project.buildingOwnerId||"",buildingOwners:project.buildingOwners||{},styleSystem:project.styleSystem||0}));if(history.length>75)history.shift();historyIndex=history.length-1;saveSoon();if(activeLayer==='lighting')refreshCircuits();render();return created}
 function undo(){if(historyIndex<=0)return;historyIndex--;restoreHistory()}
 function redo(){if(historyIndex>=history.length-1)return;historyIndex++;restoreHistory()}
 function restoreHistory(){
