@@ -27,22 +27,22 @@
     row(T().prefix,'fhParkPrefix',conf.prefix,'text','maxlength="16"'):'')+'</div>'+
    (stalls?row(T().accessible,'fhParkAccess',(conf.accessibleIndices||[]).join(','),'text','placeholder="1,3"'):'')+
    '<p><small>'+html(T().note)+'</small></p>'+
-   '<div class="actions"><button id="fhParkAccept" class="primary">Aplicar medidas</button><button id="fhParkCancel">Cerrar</button></div>',()=>{
+   '<div class="actions"><button id="fhParkAccept" class="primary">'+html(T().apply)+'</button><button id="fhParkCancel">'+html(T().close)+'</button></div>',()=>{
     el('fhParkCancel').onclick=env.closeModal;
     el('fhParkAccept').onclick=()=>{
      const field=(id,min,max)=>{const v=Number(el(id).value);return Number.isFinite(v)&&v>=min&&v<=max?v:null;};
      const w=field('fhParkWidth',.5,200),h=field('fhParkLength',.5,200),rotation=field('fhParkRotate',-3600,3600);
      const n=stalls?field('fhParkCount',1,100):1,gap=stalls?field('fhParkGap',0,20):0,start=stalls?field('fhParkStart',0,9999):1;
-     if([w,h,rotation,n,gap,start].some(v=>v===null)){env.toast('Comprueba las dimensiones, cantidad y rotación.');return;}
+     if([w,h,rotation,n,gap,start].some(v=>v===null)){env.toast(T().invalidConfig);return;}
      Object.assign(conf,{widthFt:w,lengthFt:h,rotation,count:Math.trunc(n),gapFt:gap,startNumber:Math.trunc(start),
       color:el('fhParkColor').value});
      if(stalls){
       conf.prefix=el('fhParkPrefix').value.slice(0,16);
       const raw=el('fhParkAccess').value.trim();
-      if(raw&&!/^\d+(?:\s*,\s*\d+)*$/.test(raw)){env.toast('Los cajones accesibles deben ser índices separados por coma, como 1,3.');return;}
+      if(raw&&!/^\d+(?:\s*,\s*\d+)*$/.test(raw)){env.toast(T().invalidAccessible);return;}
       conf.accessibleIndices=raw?raw.split(',').map(Number).filter(n=>n>=1&&n<=conf.count):[];
      }
-     env.closeModal();env.toast('Medidas preparadas. Toca el mapa para colocar.');
+     env.closeModal();env.toast(T().ready);
     };
    });
  }
@@ -60,7 +60,7 @@
    if(conf.activeKind==='stall')items=P().createStalls(p,settings,env.newId);
    else items=[P().makeDecal(conf.activeKind,p.x,p.y,settings,env.newId())];
    if(items.some(it=>!inGrid(it,env.project().units))){env.toast(T().limited);return true;}
-   if(items.some(it=>!env.canEditAt(it))){env.toast('Tu propiedad no permite pintar alguna de estas marcas.');return true;}
+   if(items.some(it=>!env.canEditAt(it))){env.toast(T().deniedPaint);return true;}
    env.current().items.push(...items);env.record();
    env.toast(T().placed(items.length));
   }catch(error){env.toast(error.message);}
@@ -74,38 +74,38 @@
    const input=document.createElement('input');input.type=type;input.value=value;
    if(type==='number'){input.step='0.5';input.min='0.5';}
    input.onchange=()=>{
-    if(!env.canEditItem(item)){env.toast('No puedes editar esta marca.');return;}
+    if(!env.canEditItem(item)){env.toast(T().deniedEdit);return;}
     const n=type==='number'?Number(input.value):input.value;
-    if(type==='number'&&(!Number.isFinite(n)||n<=0||n>200)){env.toast('Dimensión inválida');return;}
+    if(type==='number'&&(!Number.isFinite(n)||n<=0||n>200)){env.toast(T().invalidDimension);return;}
     onUpdate(n);env.record();
    };row.append(input);fields.append(row);
   };
   add(T().width,item.widthFt||P().toFeet(item.w,realFeet()),'number',n=>{item.widthFt=n;item.w=P().toCells(n,realFeet());});
   add(T().length,item.lengthFt||P().toFeet(item.h,realFeet()),'number',n=>{item.lengthFt=n;item.h=P().toCells(n,realFeet());});
   if(item.decalKind==='stall'){
-   add('Número del cajón',item.number||'','text',n=>item.number=String(n).slice(0,24));
+   add(T().stallNumber,item.number||'','text',n=>item.number=String(n).slice(0,24));
    const label=document.createElement('label');label.className='ck';label.style.gridColumn='1/-1';
    const input=document.createElement('input');input.type='checkbox';input.checked=!!item.accessible;
    input.onchange=()=>{if(!env.canEditItem(item)){input.checked=!input.checked;return;}item.accessible=input.checked;env.record();};
-   label.append(input,document.createTextNode(' Cajón accesible'));fields.append(label);
+   label.append(input,document.createTextNode(T().accessibleCheck));fields.append(label);
   }
-  const color=document.createElement('label');color.textContent='Color de marca';
+  const color=document.createElement('label');color.textContent=T().markColor;
   const picker=document.createElement('input');picker.type='color';picker.value=item.color||'#F3EFDC';
   picker.onchange=()=>{if(!env.canEditItem(item))return;item.color=picker.value;env.record();};
   color.append(picker);fields.append(color);
  }
  function demo(){
-  if(root.FHStyleEditor?.hasActor()){env.toast('La demo sólo puede cargarla el creador.');return;}
+  if(root.FHStyleEditor?.hasActor()){env.toast(T().demoCreator);return;}
   if(!confirm(T().replacement))return;
   const u=env.project().units,fpc=realFeet();
-  if(u.columns<16||u.rows<12){env.toast('La demo requiere al menos 16 columnas y 12 filas. Ajusta la cuadrícula antes.');return;}
+  if(u.columns<16||u.rows<12){env.toast(T().demoGrid);return;}
   const first={x:1.7,y:6.8},stalls=P().createStalls(first,{feetPerCell:fpc,count:8,widthFt:9,lengthFt:18,gapFt:0,startNumber:1},env.newId);
-  const asphalt={id:env.newId(),type:'asphalt',x:.4,y:4.25,w:15.15,h:5.25,label:'Asfalto del estacionamiento',blocksMovement:false};
+  const asphalt={id:env.newId(),type:'asphalt',x:.4,y:4.25,w:15.15,h:5.25,label:T().demoAsphalt,blocksMovement:false};
   const cars=stalls.slice(0,4).map((st,i)=>({
    id:env.newId(),type:'car',x:st.x,y:st.y,w:P().toCells(6,fpc),h:P().toCells(15,fpc),
-   rotation:st.rotation,blocksMovement:true,label:'Coche '+(i+1),heightFt:5
+   rotation:st.rotation,blocksMovement:true,label:T().carLabel+' '+(i+1),heightFt:5
   }));
-  const spawn={id:env.newId(),type:'spawn',x:2,y:11,w:.4,h:.4,blocksMovement:false,label:'Punto de aparición'};
+  const spawn={id:env.newId(),type:'spawn',x:2,y:11,w:.4,h:.4,blocksMovement:false,label:T().spawnLabel};
   if(![...stalls,...cars].every(it=>inGrid(it,u))){env.toast(T().limited);return;}
   env.current().items=[asphalt,...stalls,...cars,spawn];
   env.record();env.toast(T().demoSuccess);
