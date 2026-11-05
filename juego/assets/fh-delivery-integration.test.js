@@ -97,4 +97,21 @@ test('La economía sigue desacoplada',()=>{
  assert.match(delivery,/payment:\{required:method!=='prepaid'/);
 });
 
+test('Una estación nueva requiere piezas y el motor permite usarla sentado',()=>{
+ const pc=fs.readFileSync(path.join(__dirname,'fh-pc-assembly.js'),'utf8');
+ const catalog=fs.readFileSync(path.join(__dirname,'fh-editor-catalog.js'),'utf8');
+ assert.match(pc,/function inspect\(/);
+ assert.match(pc,/function frontTarget\(/);
+ assert.match(catalog,/pcAssemblyRequired=true/);
+ assert.match(delivery,/pcAssemblyRequired===true/);
+ assert.match(index,/fh-pc-assembly\.js/);
+ assert.match(index,/floorItems:f=>DATA\.floors/);
+ assert.match(index,/fhUseFrontFromSeat/);
+ assert.match(index,/watchHudAfter/);
+});
+test('Hamazon espera confirmación del motor antes de declarar éxito',()=>{
+ assert.match(delivery,/FOREST_TERMINAL_RESPONSE/);
+ assert.match(terminal,/hamazon-order-result/);
+ assert.doesNotMatch(terminal,/say\('Pedido enviado a Hamazon\.'/);
+});
 console.log(passed+' pruebas correctas');
