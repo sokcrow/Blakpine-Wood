@@ -17,6 +17,8 @@ window.FH_DELIVERY_TEXT=Object.freeze({
  closeTalk:'Terminar conversación',
  cashConfirm:'Entregar efectivo',
  cardConfirm:'Pagar con tarjeta',
+ receivePackage:'Recibir paquete',
+ handover:'Aquí tiene su entrega. Confirme la recepción.',
  paymentPending:'Confirma el pago para recibir el paquete.',
  paymentConfirmed:'Pago confirmado.',
  packageDelivered:'El repartidor deja el paquete junto a la entrada.',
