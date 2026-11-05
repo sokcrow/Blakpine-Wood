@@ -6,15 +6,17 @@
  const feetPerCell=()=>Number(project.units?.feetPerCell)>0?Number(project.units.feetPerCell):5;
  const surfaces=(item,cell)=>R.supportSurfacesFor(item,cell);
  const items=()=>current().items;
+ const normalize=item=>{R.normalizePlacement?.(item);return item;};
  function place(item,notify=true){
+  normalize(item);
   if(!item||!S.supportedPlacement(item))return {ok:true,supported:false};
   const result=S.place(item,items().filter(other=>other!==item),feetPerCell(),surfaces);
   if(!result.ok&&notify)toast(T.surfaceRequired||'Este objeto necesita una superficie compatible.');
   return result;
  }
- function syncCurrent(){return S.syncAll(items(),feetPerCell(),surfaces);}
+ function syncCurrent(){for(const item of items())normalize(item);return S.syncAll(items(),feetPerCell(),surfaces);}
  function afterRotate(item,previousRotation){
-  if(!item)return true;
+  normalize(item);if(!item)return true;
   if(S.supportedPlacement(item)){
    const result=place(item,false);
    if(!result.ok){
@@ -28,7 +30,7 @@
   return true;
  }
  function prepareDuplicate(item){
-  if(!item)return false;
+  normalize(item);if(!item)return false;
   if(S.supportedPlacement(item)){
    S.detach(item);
    const result=place(item,false);
@@ -59,7 +61,7 @@
  const oldMove=moveItem;
  moveItem=function(item,delta,original){
   oldMove(item,delta,original);
-  if(!item)return;
+  normalize(item);if(!item)return;
   if(S.supportedPlacement(item)){
    const result=place(item,false);
    if(!result.ok){Object.assign(item,clone(original));return;}
