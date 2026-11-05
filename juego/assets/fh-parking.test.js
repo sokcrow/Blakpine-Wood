@@ -56,7 +56,7 @@ const assert=typeof require==='function'?require('node:assert/strict'):null;
   // Un solo canvas por marca para la vista 2D y su CanvasTexture de Three.js.
   const previousDocument=globalThis.document;
   const ctx={fillRect(){},clearRect(){},beginPath(){},stroke(){},moveTo(){},lineTo(){},
-   arc(){},fillText(){},save(){},restore(){},translate(){},transform(){},
+   arc(){},fillText(){},save(){},restore(){},translate(){},scale(x,y){this.lastScale=[x,y]},transform(){},
    rotate(){},strokeRect(){},setLineDash(){},drawImage(image){this.lastImage=image;}};
   if(!globalThis.document)globalThis.document={createElement(name){
    if(name!=='canvas')throw Error('Se esperaba canvas');return {width:0,height:0,getContext:()=>ctx};
@@ -77,8 +77,9 @@ const assert=typeof require==='function'?require('node:assert/strict'):null;
    check('No escribir profundidad al dibujar marcas',meshes.every(m=>m.children[0].material.depthWrite===false));
    check('Mosaico 72×144 sin suavizado',meshes[0].children[0].material.map.image.width===72&&
     meshes[0].children[0].material.map.image.height===144&&meshes[0].children[0].material.map.minFilter===THREE.NearestFilter);
-   P.draw2D(ctx,stalls[0],p=>({x:p.x,y:p.y}),1,1,false,5);
+   P.draw2D(ctx,stalls[0],p=>({x:p.x,y:p.y}),48,64,false,5);
    check('Canvas idéntico en editor y Three.js',ctx.lastImage===meshes[0].children[0].material.map.image);
+   check('Dibujo 2D respeta cuadrícula no cuadrada',ctx.lastScale[0]===48&&ctx.lastScale[1]===64);
   }finally{if(previousDocument===undefined)delete globalThis.document;else globalThis.document=previousDocument;}
   return {passed,total,fixture:project};
  };
