@@ -22,7 +22,7 @@ test('RAVEN/OS incluye Hamazon y emite pedidos al host',()=>{
 
 test('La PC del catálogo se convierte en interacción jugable',()=>{
  assert.match(index,/it\.modelId==='escritorio_pc'/);
- assert.match(index,/FHDeliveryRuntime\.openPc/);
+ assert.match(index,/FHComputerRuntime\.open/);
 });
 
 test('Mirilla y puerta están conectadas al Delivery Man',()=>{
@@ -103,7 +103,8 @@ test('Una estación nueva requiere piezas y el motor permite usarla sentado',()=
  assert.match(pc,/function inspect\(/);
  assert.match(pc,/function frontTarget\(/);
  assert.match(furnitureRules,/pcAssemblyRequired=true/);
- assert.match(delivery,/pcAssemblyRequired!==true/);
+ const computer=fs.readFileSync(path.join(__dirname,'fh-computer.js'),'utf8');
+ assert.match(computer,/pcAssemblyRequired!==true/);
  assert.match(index,/fh-pc-assembly\.js/);
  assert.match(index,/floorItems:f=>DATA\.floors/);
  assert.match(index,/fhUseFrontFromSeat/);
@@ -119,9 +120,21 @@ test('Mesas de cualquier modelo con piezas cercanas se vuelven estaciones intera
  assert.match(pc,/function isTerminalCandidate\(/);
  assert.match(pc,/function isWorkSurface\(/);
  assert.match(pc,/function nearAnchor\(/);
- assert.match(index,/window\.FHPcAssembly\?\.isTerminalCandidate\(it,f\.items/);
+ assert.match(index,/window\.FHComputer\?\.isPc\(it,f\.items/);
  assert.match(index,/currentFloor:\(\)=>currentFloor/);
- assert.match(delivery,/FHPcAssembly\?\.isTerminalCandidate/);
- assert.match(delivery,/if\(!legacy\)/);
+ const computer=fs.readFileSync(path.join(__dirname,'fh-computer.js'),'utf8');
+ assert.match(computer,/FHPcAssembly/);
+ assert.match(computer,/isLegacyPc/);
+});
+test('Las estaciones PC controlan RAVEN/OS sin usar el runtime de Hamazon',()=>{
+ const computer=fs.readFileSync(path.join(__dirname,'fh-computer.js'),'utf8');
+ assert.match(index,/fh-computer\.js/);
+ assert.match(index,/FHComputerRuntime=window\.FHComputer\?\.createRuntime/);
+ assert.match(index,/computer:window\.FHComputerRuntime/);
+ assert.match(delivery,/options\.computer\?\.terminalApi/);
+ assert.doesNotMatch(delivery,/function ensureTerminal\(/);
+ assert.match(computer,/function createRuntime\(/);
+ assert.match(terminal,/setSession\(session=\{\}\)/);
+ assert.match(terminal,/sessionApps=Array\.isArray\(session\.apps\)/);
 });
 console.log(passed+' pruebas correctas');
