@@ -56,15 +56,30 @@
   if(!item)return null;
   const result=place(item,false);
   if(!result.ok){toast(T.surfaceRequired||'Este objeto necesita una superficie compatible.');return null;}
+  if(item.placement==='floor_or_surface'&&!result.supported){
+   // Se intentó usar la posición exacta para detectar una mesa, pero si
+   // termina en el suelo recupera el snap original del editor.
+   item.x=normalizeGrid(item.x);
+   item.y=normalizeGrid(item.y);
+  }
   return item;
  };
  const oldMove=moveItem;
  moveItem=function(item,delta,original){
+  const fine=!!item&&S.supportedPlacement(item)&&(item.placement==='surface'||!!item.support);
   oldMove(item,delta,original);
   normalize(item);if(!item)return;
+  if(fine){
+   // Sin snap por casilla para props pequeños sobre superficies.
+   item.x=Number((Number(original.x)+Number(delta.x)).toFixed(6));
+   item.y=Number((Number(original.y)+Number(delta.y)).toFixed(6));
+  }
   if(S.supportedPlacement(item)){
    const result=place(item,false);
    if(!result.ok){Object.assign(item,clone(original));return;}
+   if(fine&&item.placement==='floor_or_surface'&&!result.supported){
+    oldMove(item,delta,original);place(item,false);
+   }
   }
   S.syncChildren(items(),item.id,feetPerCell(),surfaces);
  };

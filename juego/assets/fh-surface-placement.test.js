@@ -54,4 +54,18 @@ test('La altura se acumula si un soporte está sobre otro soporte',()=>{
  const item=phone({support:{parentItemId:'upper',surfaceId:'top',offsetXFt:0,offsetZFt:0}});
  const pose=S.worldPose([base,upper,item],item,5,provider);assert.equal(pose.heightFt,3);
 });
+test('Un prop pequeño llega al borde del tablero sin salirse ni volver al centro',()=>{
+ const host=table({supportSurfaces:[{id:'top',widthFt:4,depthFt:2,heightFt:2.5}]});
+ const item=phone({w:.3,h:.1,x:10.39,y:10.18});
+ const result=S.place(item,[host],5,provider);
+ assert.equal(result.supported,true);
+ assert.ok(Math.abs(item.x-10.25)<1e-9);
+ assert.ok(Math.abs(item.y-10.15)<1e-9);
+ assert.ok(Math.abs(item.support.offsetXFt-1.25)<1e-9);
+});
+test('No se permite un prop físicamente mayor que el tablero',()=>{
+ const host=table({supportSurfaces:[{id:'top',widthFt:1,depthFt:1,heightFt:2.5}]});
+ const item=phone({w:.6,h:.6});
+ assert.equal(S.place(item,[host],5,provider).ok,false);
+});
 console.log(checks+' pruebas correctas');

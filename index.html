@@ -2224,7 +2224,7 @@ if(tool==='select'){if(a.hit&&doDrag){const it=current().items.find(v=>v.id===a.
 if(tool==='pan')return;
 if(tool==='room_fill'){const area=current().items.find(it=>it.type==='room'&&roomHasPosition(it,pos));if(area){selection=area.id;openInspector();render();toast('Habitación reconocida automáticamente')}else{const result=detectFloorRegions(floorIndex),i=Math.floor(pos.y*result.micro)*result.W+Math.floor(pos.x*result.micro);const pending=result.pending.some(r=>r.cells.includes(i));toast(pending?'Recinto sellado: pon una puerta para convertirlo en habitación':'Aún no hay un contorno cerrado aquí')}return}
 if(doDrag&&activeTool!=='spawn'&&activeTool!=='elevator')return;
-if(tool==='light_switch')pos=toGrid(toWorld(pt));
+if(tool==='light_switch'||tool==='misc'&&['surface','floor_or_surface'].includes(window.FHEditorCatalog?.selectedPlacement?.()))pos=toGrid(toWorld(pt));
 if(POINT_TYPES.has(tool)){current().items=current().items.filter(it=>it.type!=='spawn');}
 addItem(createObject(tool,pos));}
 function setItemField(id,key,val){const it=current().items.find(v=>v.id===id);if(!it)return;if(window.FHStyleEditor&&!window.FHStyleEditor.canEditItem(it)){toast('No tienes permiso para modificar este objeto');return;}

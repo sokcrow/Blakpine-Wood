@@ -25,7 +25,10 @@
     bed:'cama_individual',
     tv:'televisor_crt',
     table:'mesa_pequena',
-    dining:'mesa_cocina_rectangular'
+    dining:'mesa_cocina_rectangular',
+    kitchen:'estufa_horno',
+    bath:'banera_clasica',
+    toilet:'inodoro_clasico'
   });
   const SUPPORT_MODEL = Object.freeze({
     mesa_cocina_redonda:{id:'top',scaleX:.70,scaleZ:.70,heightFt:2.75},

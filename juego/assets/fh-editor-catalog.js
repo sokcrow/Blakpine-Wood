@@ -80,4 +80,5 @@
   return item;
  };
  installLauncher();
+ window.FHEditorCatalog=Object.freeze({selectedPlacement:()=>chosen?.placement||'floor'});
 })();

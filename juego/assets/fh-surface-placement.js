@@ -74,9 +74,16 @@
     const halfX=(c*fp.widthFt+s*fp.depthFt)/2;
     const halfZ=(s*fp.widthFt+c*fp.depthFt)/2;
     const overhang=Math.max(surface.overhangFt,Math.max(0,finite(item.surfaceOverhangFt)));
-    const withinX=Math.abs(local.x-surface.xFt)+halfX<=surface.widthFt/2+overhang+EPS;
-    const withinZ=Math.abs(local.z-surface.zFt)+halfZ<=surface.depthFt/2+overhang+EPS;
-    return withinX&&withinZ?{local,halfX,halfZ}:null;
+    const reachX=surface.widthFt/2+overhang,reachZ=surface.depthFt/2+overhang;
+    const limitX=reachX-halfX,limitZ=reachZ-halfZ;
+    if(limitX < -EPS || limitZ < -EPS ||
+       Math.abs(local.x-surface.xFt)>reachX+EPS ||
+       Math.abs(local.z-surface.zFt)>reachZ+EPS)return null;
+    // El cursor recorre todo el tablero, pero el objeto nunca sobresale del borde.
+    return {local:{
+      x:surface.xFt+Math.max(-Math.max(0,limitX),Math.min(Math.max(0,limitX),local.x-surface.xFt)),
+      z:surface.zFt+Math.max(-Math.max(0,limitZ),Math.min(Math.max(0,limitZ),local.z-surface.zFt))
+    },halfX,halfZ};
   }
   function findSupport(items,item,feetPerCell=5,surfaceProvider,position){
     if(!Array.isArray(items)||!item)return null;
@@ -85,15 +92,18 @@
     let best=null;
     for(const parent of items){
       if(!parent||parent===item||parent.id===item.id)continue;
+      const parentPose=worldPose(items,parent,cell,surfaceProvider);
+      const anchor={x:parentPose.x,y:parentPose.y,rotation:parentPose.rotation};
       for(const surface of providerSurfaces(parent,cell,surfaceProvider)){
-        const fit=candidateFits(parent,surface,item,xFt,zFt,cell);
+        const fit=candidateFits(anchor,surface,item,xFt,zFt,cell);
         if(!fit)continue;
-        const parentPose=worldPose(items,parent,cell,surfaceProvider);
         const topHeight=parentPose.heightFt+surface.heightFt;
         const dx=fit.local.x-surface.xFt,dz=fit.local.z-surface.zFt;
         const score=dx*dx+dz*dz;
+        const at=worldPoint(anchor,fit.local.x,fit.local.z,cell);
         if(!best||topHeight>best.topHeight+EPS||(Math.abs(topHeight-best.topHeight)<=EPS&&score<best.score)){
-          best={parent,surface,offsetXFt:fit.local.x,offsetZFt:fit.local.z,x,y,topHeight,score};
+          best={parent,surface,offsetXFt:fit.local.x,offsetZFt:fit.local.z,
+            x:at.xFt/cell,y:at.zFt/cell,topHeight,score};
         }
       }
     }
