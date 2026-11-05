@@ -60,7 +60,7 @@ test('Los pedidos esperan su ETA antes de llamar a la puerta',()=>{
 });
 
 test('La caja no bloquea la entrada hasta existir decoración runtime',()=>{
- assert.match(delivery,/blocksMovement:false,runtimePackage/);
+ assert.match(delivery,/blocksMovement:false,runtimeDecoratable:true,runtimePackage/);
 });
 
 test('La caja y el mueble entregado usan modo decoración sin cambiar el layout',()=>{
