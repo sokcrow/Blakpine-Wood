@@ -53,6 +53,7 @@
   if(tool==='property_erase')document.getElementById('stageHint').textContent='Toca una parcela creada con esta capa para quitarla (se pedirá confirmar).';
  };
  function add(a,b){
+  if(root.FHStyleEditor?.hasActor()){start=null;live=null;toast('Solo el DM puede crear parcelas.');render();return}
   const id='parcel_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8);
   const result=Z().create(project,current().id,a,b,project.units.columns,project.units.rows,id);
   start=null;live=null;
@@ -73,6 +74,7 @@
    (editable?'<button class="danger" id="fhParcelDelete">Eliminar parcela</button>':'')+
    '<button id="fhParcelClose">Cerrar</button></div>',()=>{
     document.getElementById('fhParcelSave').onclick=()=>{
+     if(root.FHStyleEditor?.hasActor()){toast('Solo el DM puede asignar propiedades.');return}
      if(editable){prop.name=(document.getElementById('fhParcelName').value.trim()||'Parcela').slice(0,80);
       prop.claimable=document.getElementById('fhParcelClaim').value==='yes';}
      prop.ownerId=document.getElementById('fhParcelOwner').value.trim().slice(0,80);
@@ -80,8 +82,10 @@
     };
     document.getElementById('fhParcelClose').onclick=closeModal;
     if(editable)document.getElementById('fhParcelDelete').onclick=()=>{
+     if(root.FHStyleEditor?.hasActor()){toast('Solo el DM puede eliminar parcelas.');return}
      modal('<h2>Eliminar delimitación</h2><p>Se borrará solo la parcela, no los muros, muebles, pisos ni puertas.</p><div class="actions"><button id="fhParcelDeleteConfirm" class="danger">Eliminar definitivamente</button><button id="fhParcelDeleteCancel">Cancelar</button></div>',()=>{
       document.getElementById('fhParcelDeleteConfirm').onclick=()=>{
+       if(root.FHStyleEditor?.hasActor()){toast('Solo el DM puede eliminar parcelas.');return}
        project.properties=project.properties.filter(p=>p.id!==id);record();closeModal();toast('Delimitación eliminada');render();
       };
       document.getElementById('fhParcelDeleteCancel').onclick=()=>openProperty(id);
