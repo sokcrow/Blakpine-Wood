@@ -148,7 +148,7 @@ function createRuntime(options){
  function onDoorOpened(door){
   const order=activeOrderForDoor(state,door?.id);if(!order)return false;
   if(order.payment?.required&&order.payment.status!=='paid'){
-   order.status='payment';delivery.npc.state='payment';delivery.npc.pose=order.paymentMethod==='card'?'card':'cash';save();syncOrdersToTerminal();
+   order.status='payment';delivery.npc.state='payment';delivery.npc.pose=order.paymentMethod==='card'?'card':'cash';options.showNpc?.(order,door,delivery.npc.pose);save();syncOrdersToTerminal();
    setDialog(order,delivery.npc.pose,TEXT.paymentPending||paymentText(order),[
     {label:order.paymentMethod==='card'?(TEXT.cardConfirm||'Pagar con tarjeta'):(TEXT.cashConfirm||'Entregar efectivo'),run:()=>confirmPayment(order,door)},
     {label:TEXT.closeTalk||'Ahora no',run:closeDialog}
