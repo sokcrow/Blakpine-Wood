@@ -55,7 +55,7 @@
   const count=Math.round(validNumber(opts.count,1,100,1));
   const fpc=feetPerCell(opts.feetPerCell),widthFt=validNumber(opts.widthFt,.5,40,9),lengthFt=validNumber(opts.lengthFt,1,50,18),
    gapFt=validNumber(opts.gapFt,0,20,0),rotation=validNumber(opts.rotation,-3600,3600,0),rad=rotation*Math.PI/180,
-   increment=toCells(widthFt+gapFt,fpc),first=Math.max(0,Math.trunc(Number(opts.startNumber)||1)),accessible=new Set(
+   increment=toCells(widthFt+gapFt,fpc),first=Math.max(0,Math.trunc(Number.isFinite(Number(opts.startNumber))?Number(opts.startNumber):1)),accessible=new Set(
     Array.isArray(opts.accessibleIndices)?opts.accessibleIndices.map(Number):[]);
   if(!Number.isFinite(origin?.x)||!Number.isFinite(origin?.y))throw Error('Origen de los cajones inválido');
   return Array.from({length:count},(_,i)=>{
