@@ -59,7 +59,7 @@ Después prueba **▶ Probar 3D** y **Proyecto → Exportar JSON**; al volver a 
 
 ## Verificación realizada
 
-- `node juego/assets/fh-parking.test.js`: **33/33** verificaciones de medidas, fila de ocho cajones, números, accesibilidad, separación, rotación, cuatro coches y JSON de ida y vuelta. Incluye una prueba del mismo canvas de dibujo utilizado por 2D y 3D y del offset del plano sin escritura de profundidad.
+- `node juego/assets/fh-parking.test.js`: **35/35** verificaciones de medidas, fila de ocho cajones, números, accesibilidad, separación, rotación, cuatro coches y JSON de ida y vuelta. Incluye una prueba del mismo canvas de dibujo utilizado por 2D y 3D y del offset del plano sin escritura de profundidad.
 - `node juego/assets/fh-style-property.test.js`: **23/23** verificaciones existentes de acabados y propiedad.
 - Comprobación sintáctica del código del editor y los módulos JavaScript. También se comprobó que el puente del motor 3D acepta los hooks esperados sin modificar los fragmentos Base64.
 
