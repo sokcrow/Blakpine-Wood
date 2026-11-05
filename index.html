@@ -2686,6 +2686,8 @@ function prepareGLBEngineDoc(source){
  const sleepModule='<script src="'+new URL('./juego/assets/fh-sleep.js',document.baseURI).href+'"></'+'script>';
  const coverageScript='<script src="'+new URL('./juego/assets/fh-light-coverage.js?v=20261105-light-ui2',document.baseURI).href+'"></'+'script>';
  const lightsModule='<script src="'+new URL('./juego/assets/fh-lights.js?v=20261105-light-ui2',document.baseURI).href+'"></'+'script>';
+ const deliveryStrings='<script src="'+new URL('./juego/assets/fh-delivery-strings.js',document.baseURI).href+'"></'+'script>';
+ const deliveryModule='<script src="'+new URL('./juego/assets/fh-delivery.js',document.baseURI).href+'"></'+'script>';
  const cameraBefore=" const desired=new THREE.Vector3(user.x+behind.x*camDistance,y+.88+camDistance*Math.tan(Math.PI/6),user.z+behind.z*camDistance);",cameraAfter=" const desired=new THREE.Vector3(user.x+behind.x*camDistance,y+.88+camDistance*Math.tan(Math.PI/6),user.z+behind.z*camDistance);\n const sleepFocus=window.FHSleep?.viewWeight()||0;\n if(sleepFocus>0){const weight=sleepFocus*sleepFocus*(3-2*sleepFocus);\n  target.lerp(new THREE.Vector3(user.x,y+.55,user.z),weight);\n  desired.lerp(new THREE.Vector3(user.x+.12,y+6.1,user.z+.42),weight);\n }";
  const cameraCount=source.split(cameraBefore).length-1;
  if(cameraCount!==1)throw Error('Hook de sueño camera: '+cameraCount);
@@ -2776,8 +2778,96 @@ function prepareGLBEngineDoc(source){
   if(start<0||end<=start)throw Error('No se encontró el renderizado original de lámparas');
   return text.slice(0,start)+lightingLampBody+text.slice(end);
  }
+
+ function addDeliveryToEngine(doc){
+  const stateAnchor="stats:initial.stats&&typeof initial.stats==='object'?{...initial.stats}:null};";
+  const stateAfter="stats:initial.stats&&typeof initial.stats==='object'?{...initial.stats}:null,clock:initial.clock&&typeof initial.clock==='object'?{...initial.clock}:null,delivery:initial.delivery&&typeof initial.delivery==='object'?structuredClone(initial.delivery):null};";
+  const interactBefore="const interactableItems=DATA.floors.map(f=>(f.items||[]).filter(it=>it.interact||it.type==='light_switch'||it.type==='breaker_panel'||ForestShared.PROP_ACTIONS[it.type])\n .map(it=>it.interact?it:{...it,interact:ForestShared.PROP_ACTIONS[it.type]?\n  {...ForestShared.interactionPreset(it.type==='bed'?'bed_lie':it.type==='tv'?'tv_watch':it.type),id:'pose_'+it.id}:\n  {id:'power_'+it.id,verb:'use',label:it.type==='breaker_panel'?LIGHTING_TEXT.breakerAction:LIGHTING_TEXT.switchAction,effects:[]}}));";
+  const interactAfter="const interactableItems=DATA.floors.map(f=>(f.items||[]).filter(it=>it.interact||it.type==='light_switch'||it.type==='breaker_panel'||ForestShared.PROP_ACTIONS[it.type]||it.pcTerminal===true||it.modelId==='escritorio_pc')\n .map(it=>it.interact?it:(it.pcTerminal===true||it.modelId==='escritorio_pc')?{...it,interact:{id:'pc_'+it.id,verb:'use',label:window.FH_DELIVERY_TEXT?.pcAction||'Usar PC',effects:[]}}:{...it,interact:ForestShared.PROP_ACTIONS[it.type]?\n  {...ForestShared.interactionPreset(it.type==='bed'?'bed_lie':it.type==='tv'?'tv_watch':it.type),id:'pose_'+it.id}:\n  {id:'power_'+it.id,verb:'use',label:it.type==='breaker_panel'?LIGHTING_TEXT.breakerAction:LIGHTING_TEXT.switchAction,effects:[]}}));";
+  const buildAnchor="DATA.floors.forEach((_,i)=>buildFloor(i));";
+  const runtimeBlock=`DATA.floors.forEach((_,i)=>buildFloor(i));
+let fhDeliveryUiActive=false,fhDeliveryNpc=null,fhDeliveryNpcMotion=null;
+function fhDeliveryNpcTexture(pose){
+ const c=document.createElement('canvas');c.width=256;c.height=384;const x=c.getContext('2d');
+ x.clearRect(0,0,c.width,c.height);x.fillStyle='#18213c';x.strokeStyle='#e5dfcf';x.lineWidth=5;
+ x.beginPath();x.arc(128,76,42,0,Math.PI*2);x.fill();x.stroke();
+ x.fillRect(76,116,104,174);x.strokeRect(76,116,104,174);
+ x.fillStyle='#e5dfcf';x.font='bold 18px monospace';x.textAlign='center';x.fillText('HAMAZON',128,184);
+ x.font='12px monospace';x.fillText(String(pose||'idle').toUpperCase(),128,210);
+ x.fillStyle='#18213c';x.fillRect(83,282,34,90);x.fillRect(139,282,34,90);
+ const t=new THREE.CanvasTexture(c);t.magFilter=THREE.NearestFilter;t.minFilter=THREE.LinearFilter;return t;
+}
+function fhShowDeliveryNpc(order,door,pose='idle'){
+ if(fhDeliveryNpc?.parent)fhDeliveryNpc.parent.remove(fhDeliveryNpc);
+ const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:fhDeliveryNpcTexture(pose),transparent:true,depthWrite:false}));
+ const outside=.72,start=2.4,baseY=floorElev[door.f]+1.05;
+ sprite.scale.set(1.12,1.68,1);sprite.position.set(door.cx+door.norm.x*start,baseY,door.cz+door.norm.z*start);
+ stories[door.f].add(sprite);fhDeliveryNpc=sprite;fhDeliveryNpcMotion={door,t:0,duration:1.35,start,target:outside};visibilityDirty=true;
+}
+function fhDeliveryNpcTick(dt){
+ const m=fhDeliveryNpcMotion;if(!m||!fhDeliveryNpc)return;m.t=Math.min(1,m.t+dt/m.duration);
+ const q=m.t*m.t*(3-2*m.t),dist=m.start+(m.target-m.start)*q;
+ fhDeliveryNpc.position.x=m.door.cx+m.door.norm.x*dist;fhDeliveryNpc.position.z=m.door.cz+m.door.norm.z*dist;
+ if(m.t>=1)fhDeliveryNpcMotion=null;
+}
+function fhHideDeliveryNpc(){if(fhDeliveryNpc?.parent)fhDeliveryNpc.parent.remove(fhDeliveryNpc);fhDeliveryNpc=null;fhDeliveryNpcMotion=null;visibilityDirty=true}
+function fhRuntimeItemById(id,f){return (DATA.floors[f]?.items||[]).find(it=>it.id===id)||null}
+function fhSpawnRuntimeItem(item,f){
+ if(!item||!DATA.floors[f]||fhRuntimeItemById(item.id,f))return false;
+ DATA.floors[f].items.push(item);const first=stories[f].children.length;furniture(f,item);renderedByItem[f].set(item.id,stories[f].children.slice(first));
+ if(item.interact){interactableItems[f].push(item);const a=interactionAnchor(item),marker=new THREE.Mesh(new THREE.RingGeometry(.32,.365,20),new THREE.MeshBasicMaterial({color:0xffd48b,side:THREE.DoubleSide,transparent:true,opacity:.82,depthWrite:false}));marker.rotation.x=-Math.PI/2;marker.position.set(a.x*CELL,.075,a.y*CELL);marker.visible=false;stories[f].add(marker);interactionMarkers[f].set(item.id,marker);}
+ visibilityDirty=true;return true;
+}
+function fhRemoveRuntimeItem(item,f){
+ const items=DATA.floors[f]?.items||[],ix=items.findIndex(v=>v.id===item.id);if(ix>=0)items.splice(ix,1);
+ const interact=interactableItems[f],ii=interact.findIndex(v=>v.id===item.id);if(ii>=0)interact.splice(ii,1);
+ for(let i=furnitureColliders[f].length-1;i>=0;i--)if(furnitureColliders[f][i].id===item.id)furnitureColliders[f].splice(i,1);
+ for(let i=furnitureSightRoots[f].length-1;i>=0;i--)if(furnitureSightRoots[f][i].item?.id===item.id)furnitureSightRoots[f].splice(i,1);
+ for(const root of renderedByItem[f].get(item.id)||[])root.parent?.remove(root);renderedByItem[f].delete(item.id);furnitureVisibleById[f].delete(item.id);
+ const marker=interactionMarkers[f].get(item.id);marker?.parent?.remove(marker);interactionMarkers[f].delete(item.id);
+}
+function fhReplacePackage(item,product,order){
+ let f=DATA.floors.findIndex(fl=>(fl.items||[]).some(v=>v.id===item.id));if(f<0)return false;
+ const next={id:'delivered_'+order.id,type:'misc',modelId:product.modelId,label:product.name,x:item.x,y:item.y,w:item.w,h:item.h,heightFt:product.heightFt,rotation:item.rotation||0,blocksMovement:product.blocksMovement!==false};
+ window.FHFurnitureRules?.applyCatalogModel(next,product,ForestShared,Number(DATA.units.feetPerCell)||5);
+ fhRemoveRuntimeItem(item,f);fhSpawnRuntimeItem(next,f);return true;
+}
+function fhDeliveryDoor(pc,f){
+ const list=(doorList[f]||[]).filter(d=>d.kind==='peephole_door');if(!list.length)return null;
+ const px=Number(pc?.x||0)*CELL,pz=Number(pc?.y||0)*CELL,apt=pc?.apartmentId||'';
+ return list.slice().sort((a,b)=>{
+  const sa=(a.role==='entrance'?-20:0)+(apt&&a.apartmentId===apt?-40:0)+Math.hypot(a.cx-px,a.cz-pz);
+  const sb=(b.role==='entrance'?-20:0)+(apt&&b.apartmentId===apt?-40:0)+Math.hypot(b.cx-px,b.cz-pz);return sa-sb;
+ })[0];
+}
+function fhDeliveryDoorById(id,f){return (doorList[f]||[]).find(d=>d.id===id)||null}
+window.FHDeliveryRuntime=window.FHDelivery?.createRuntime({
+ state:GameState,save:saveProgress,notice,CELL:CELL,cell:CELL,feetPerCell:Number(DATA.units.feetPerCell)||5,
+ baseUrl:new URL('./juego/assets/fh-delivery.js',document.baseURI).href,
+ freeze:on=>{fhDeliveryUiActive=!!on;user.vx=user.vz=0;clearStick();},
+ findDoor:fhDeliveryDoor,doorById:fhDeliveryDoorById,
+ openDoor:door=>{if(peeking)stopPeek();if(!door.open)toggleDoor();},
+ packagePlacement:(door)=>({floor:door.f,x:door.cx-door.norm.x*.72,z:door.cz-door.norm.z*.72}),
+ spawnRuntimeItem:fhSpawnRuntimeItem,hasRuntimeItem:(id,f)=>!!fhRuntimeItemById(id,f),replacePackage:fhReplacePackage,
+ showNpc:fhShowDeliveryNpc,hideNpc:fhHideDeliveryNpc
+});`;
+  const furnitureBefore="function useFurniture(item,selectedSeat=null){\n if(['sit','lie'].includes(item.interact?.verb)){";
+  const furnitureAfter="function useFurniture(item,selectedSeat=null){\n if(window.FHDeliveryRuntime?.isPc(item))return {ok:!!window.FHDeliveryRuntime.openPc(item,currentFloor)};\n if(window.FHDeliveryRuntime?.isPackage(item))return {ok:!!window.FHDeliveryRuntime.openPackage(item)};\n if(['sit','lie'].includes(item.interact?.verb)){";
+  const doorBefore=" notice(d.open?'Abres la puerta.':'Cierras la puerta.',1800);\n}";
+  const doorAfter=" notice(d.open?'Abres la puerta.':'Cierras la puerta.',1800);\n if(d.open&&isInsideDoor(d))window.FHDeliveryRuntime?.onDoorOpened(d);\n}";
+  const peekBefore=" $('peekText').textContent='◉ MIRILLA · Ves el pasillo, sin abrir la puerta · toca para salir';visibilityDirty=true;";
+  const peekAfter=" $('peekText').textContent='◉ MIRILLA · Ves el pasillo, sin abrir la puerta · toca para salir';visibilityDirty=true;\n window.FHDeliveryRuntime?.onPeephole(d);";
+  const frameBefore=" moveUpdate(dt);";
+  const frameAfter=" if(!fhDeliveryUiActive)moveUpdate(dt);else{user.vx=user.vz=0;}fhDeliveryNpcTick(dt);";
+  const apiBefore="get watchingTV(){return watchingTvId},watchTV:useTVFromSeat,breakers:";
+  const apiAfter="get watchingTV(){return watchingTvId},watchTV:useTVFromSeat,delivery:window.FHDeliveryRuntime,breakers:";
+  const changes=[[stateAnchor,stateAfter],[interactBefore,interactAfter],[buildAnchor,runtimeBlock],[furnitureBefore,furnitureAfter],[doorBefore,doorAfter],[peekBefore,peekAfter],[frameBefore,frameAfter],[apiBefore,apiAfter]];
+  for(const [a,b] of changes){const n=doc.split(a).length-1;if(n!==1)throw Error('Hook delivery incompatible: '+a.slice(0,90)+' ('+n+')');doc=doc.replace(a,b);}
+  return doc;
+ }
+
  const cameraLightAfter=" const lightDistance=camDistance+(window.FHLights?.cameraBonus(roomLampEntries,lighting,currentFloor,user.x,user.z)||0);\n const ahead=lighting.state.enabled?0.80:0;target.x+=flashDir.x*ahead;target.z+=flashDir.z*ahead;\n const desired=new THREE.Vector3(user.x+behind.x*lightDistance,y+.88+lightDistance*Math.tan(Math.PI/6),user.z+behind.z*lightDistance);";
- return addParkingToEngine(addStylesToEngine(addLightToEngine(source))).replace(furnitureVisibilityHook,furnitureRenderHook).replace(cameraBefore,cameraAfter).replace(cameraBefore,cameraLightAfter).replace(loopBefore,loopAfter)
+ return addDeliveryToEngine(addParkingToEngine(addStylesToEngine(addLightToEngine(source)))).replace(furnitureVisibilityHook,furnitureRenderHook).replace(cameraBefore,cameraAfter).replace(cameraBefore,cameraLightAfter).replace(loopBefore,loopAfter)
   .replace(maskBefore,maskAfter).replace(wakeHUDBefore,wakeHUDAfter)
   .split(wakeBefore).join(wakeAfter)
   .replace(chairSelection," const poseReachable=(item,anchor)=>canWalk(user.x,user.z)&&safePoseRoute(item,{x:user.x,z:user.z},anchor);\n const stockSeat=selectSeatInteractable(visible,user,yaw,CELL,poseReachable);\n const glbChair=window.FHFurnitureRules?.findReachableChair(visible,user,yaw,CELL,poseReachable,ForestShared);\n const sitting=glbChair&&(!stockSeat||glbChair.score<stockSeat.score)?glbChair:stockSeat;")
@@ -2791,7 +2881,7 @@ function prepareGLBEngineDoc(source){
   .replace(surfaceRotationBefore,surfaceRotationAfter)
   .replace(attachBefore,' window.FHAssets?.attach(g,a);\n'+attachBefore)
   .replace(cloneBefore,'const clone=source.clone(true);\n   window.FHAssets?.mirror(source,clone);\n   clone.position.y+=floorElev[f];')
-  .replace('</head>',coverageScript+lightsModule+surfaceScript+ruleScript+bridge+sleepStrings+sleepModule+styleCore+styleRender+parkingScript+'</head>');
+  .replace('</head>',coverageScript+lightsModule+surfaceScript+ruleScript+bridge+sleepStrings+sleepModule+deliveryStrings+deliveryModule+styleCore+styleRender+parkingScript+'</head>');
 }
 function start3DPreview(){
  if(preview3DActive)return;
