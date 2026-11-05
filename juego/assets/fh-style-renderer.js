@@ -118,7 +118,7 @@
   }
  }
  function roomMaterial(THREE,room,map){
-  if(!room.surfaceStyle&&!map.styleSystem)return null;
+  if(!room.surfaceStyle&&!map.styleSystem&&!(root.FHParking?.SURFACES?.[room.type]&&!['parking','pavement','grass','dirt'].includes(room.type)))return null;
   const shared=P();if(!shared)return null;
   return material(THREE,map,shared.floorStyle(room));
  }
