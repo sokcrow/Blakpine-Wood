@@ -79,6 +79,13 @@ test('Se admite una luminaria de 120 pies brillantes + 120 tenues',()=>{
  assert.equal(Number(source.brightRadius.toFixed(4)),Number((120*.3048).toFixed(4)));
  assert.equal(Number(source.dimRadius.toFixed(4)),Number((240*.3048).toFixed(4)));
 });
+test('Un mapa legado sin campo nuevo conserva el tope anterior de 80 pies',()=>{
+ const f=floor(false);
+ f.items.push({id:'legacyLong',type:'light_fixture',roomId:'r',lightKind:'bulb',x:3,y:4,lightRadiusFt:120});
+ const source=runtime(f)[0];
+ assert.equal(Number(source.brightRadius.toFixed(4)),Number((80*.3048).toFixed(4)));
+ assert.equal(Number(source.dimRadius.toFixed(4)),Number((112*.3048).toFixed(4)));
+});
 
 test('El radio tenue mantiene una fuente candidata aunque el radio brillante ya no alcance',()=>{
  const entry={floor:0,x:0,z:0,radius:2,brightRadius:2,dimRadius:4,angleDeg:360};
