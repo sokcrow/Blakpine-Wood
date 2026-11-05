@@ -28,6 +28,7 @@
     dining:'mesa_cocina_rectangular'
   });
   const SUPPORT_MODEL = Object.freeze({
+    mesa_cocina_redonda:{id:'top',scaleX:.70,scaleZ:.70,heightFt:2.75},
     buro:{id:'top',scaleX:.90,scaleZ:.90,heightFt:2},
     estante_bajo:{id:'top',scaleX:.92,scaleZ:.88,heightFt:3.5},
     escritorio_clasico:{id:'desktop',scaleX:.94,scaleZ:.90,heightFt:2.75},
