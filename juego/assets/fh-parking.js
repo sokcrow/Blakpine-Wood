@@ -147,10 +147,10 @@
   }
  }
  function draw2D(c,item,toPixel,gridX,gridY,selected=false,fpc=DEFAULT_FEET_PER_CELL){
-  const image=artwork(item,fpc),p=toPixel(item),w=item.w*gridX,h=item.h*gridY;
-  c.save();c.translate(p.x,p.y);c.rotate((Number(item.rotation)||0)*Math.PI/180);
+  const image=artwork(item,fpc),p=toPixel(item),w=item.w,h=item.h;
+  c.save();c.translate(p.x,p.y);c.scale(gridX,gridY);c.rotate((Number(item.rotation)||0)*Math.PI/180);
   c.imageSmoothingEnabled=false;c.drawImage(image,-w/2,-h/2,w,h);
-  if(selected){c.strokeStyle='#FFFFFF';c.lineWidth=2;c.setLineDash([6,4]);c.strokeRect(-w/2,-h/2,w,h);}
+  if(selected){c.strokeStyle='#FFFFFF';c.lineWidth=2/Math.max(gridX,gridY);c.setLineDash([6/Math.max(gridX,gridY),4/Math.max(gridX,gridY)]);c.strokeRect(-w/2,-h/2,w,h);}
   c.restore();
  }
  function attachFloor(THREE,map,story,index,CELL){
