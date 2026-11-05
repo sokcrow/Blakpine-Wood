@@ -17,8 +17,8 @@
   const row=(label,id,value,type='number',extra='')=>'<label>'+html(label)+'<input type="'+type+'" id="'+id+'" value="'+html(value)+'" '+extra+'></label>';
   env.modal('<h2>'+html(T().settings)+'</h2><p>'+html(T().instructions)+'</p>'+
    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
-   row(T().width,'fhParkWidth',conf.widthFt,'number','min="0.5" max="200" step="0.5"')+
-   row(T().length,'fhParkLength',conf.lengthFt,'number','min="0.5" max="200" step="0.5"')+
+   row(T().width,'fhParkWidth',conf.widthFt,'number',stalls?'min="0.5" max="40" step="0.5"':'min="0.5" max="200" step="0.5"')+
+   row(T().length,'fhParkLength',conf.lengthFt,'number',stalls?'min="1" max="50" step="0.5"':'min="0.5" max="200" step="0.5"')+
    row(T().rotation,'fhParkRotate',conf.rotation,'number','step="5"')+
    row(T().color,'fhParkColor',conf.color,'color')+
    (stalls?row(T().count,'fhParkCount',conf.count,'number','min="1" max="100" step="1"')+
@@ -31,7 +31,7 @@
     el('fhParkCancel').onclick=env.closeModal;
     el('fhParkAccept').onclick=()=>{
      const field=(id,min,max)=>{const v=Number(el(id).value);return Number.isFinite(v)&&v>=min&&v<=max?v:null;};
-     const w=field('fhParkWidth',.5,200),h=field('fhParkLength',.5,200),rotation=field('fhParkRotate',-3600,3600);
+     const w=field('fhParkWidth',.5,stalls?40:200),h=field('fhParkLength',stalls?1:.5,stalls?50:200),rotation=field('fhParkRotate',-3600,3600);
      const n=stalls?field('fhParkCount',1,100):1,gap=stalls?field('fhParkGap',0,20):0,start=stalls?field('fhParkStart',0,9999):1;
      if([w,h,rotation,n,gap,start].some(v=>v===null)){env.toast(T().invalidConfig);return;}
      Object.assign(conf,{widthFt:w,lengthFt:h,rotation,count:Math.trunc(n),gapFt:gap,startNumber:Math.trunc(start),
