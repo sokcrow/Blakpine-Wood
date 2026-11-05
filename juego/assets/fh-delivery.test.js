@@ -3,7 +3,7 @@ const code=fs.readFileSync(path.join(__dirname,'fh-delivery.js'),'utf8');
 const context={window:{addEventListener(){},FH_DELIVERY_TEXT:{}},document:{baseURI:'https://example.test/juego/assets/'},URL,Date,console,structuredClone};
 context.window.window=context.window;vm.runInNewContext(code,context);
 const D=context.window.FHDelivery;let state={};
-D.ensureState(state);assert.equal(state.clock.minutes,480);assert.deepEqual(Array.from(state.delivery.orders),[]);
+D.ensureState(state);assert.equal(state.clock.minutes,480);assert.deepEqual(Array.from(state.delivery.orders),[]);assert.deepEqual(Array.from(state.delivery.packages),[]);assert.deepEqual(Array.from(state.delivery.furnishings),[]);
 assert.equal(D.parcelSize({widthFt:2,depthFt:2,heightFt:2}),'pequena');
 assert.equal(D.parcelSize({widthFt:4,depthFt:4,heightFt:4}),'mediana');
 assert.equal(D.parcelSize({widthFt:7,depthFt:3,heightFt:3}),'grande');
