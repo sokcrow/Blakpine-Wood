@@ -141,6 +141,7 @@ function createRuntime(options){
   if(peekTalkButton)return peekTalkButton;
   const overlay=document.getElementById('peekOverlay');
   if(!overlay)return null;
+  ensureDialog();
   const button=document.createElement('button');
   button.id='fhPeekTalk';button.type='button';button.hidden=true;
   button.textContent=TEXT.talkThroughDoor;
