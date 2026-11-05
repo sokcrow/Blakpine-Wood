@@ -59,7 +59,7 @@
   function buildings(map,floorId){
     const floor=(map.floors||[]).find(f=>f.id===floorId);
     const loops=floor?closedLoops(floor.items,'red_wall','roofBoundary'):[];
-    return loops.map((polygon,i)=>({id:floorId+'_building_'+(i+1),floorId,polygon,ownerId:map.buildingOwnerId||''}));
+    return loops.map((polygon,i)=>{const id=floorId+'_building_'+(i+1);return {id,floorId,polygon,ownerId:map.buildingOwners?.[id]||map.buildingOwnerId||''};});
   }
   function properties(map,floorId){
     return (map.properties||[]).filter(p=>p.floorId===floorId&&Array.isArray(p.polygon)&&p.polygon.length>=3);
@@ -108,7 +108,7 @@
   function canPaintWall(map,floorId,wall,side,actor,isAdmin=false){
     if(isAdmin)return true;
     if(!actor||!FACES.includes(side))return false;
-    const a=[.02,.5,.98].map(t=>authority(map,floorId,sample(wall,side,t)));
+    const a=[.02,.5,.98].map(t=>{const main=authority(map,floorId,sample(wall,side,t));if(wall.type==='red_wall'&&main.id.startsWith('outside:')){const opposite=authority(map,floorId,sample(wall,side==='A'?'B':'A',t));if(opposite.id.startsWith('building:'))return opposite;}return main;});
     return a.every(k=>k.ownerId===actor&&k.id===a[0].id);
   }
   function roomContains(room,p){
@@ -125,7 +125,10 @@
     const owners=properties(map,floorId).filter(prop=>roomInProperty(room,prop));
     if(owners.length===1)return owners[0].ownerId===actor;
     if(owners.length>1)return false;
-    return !!map.buildingOwnerId&&map.buildingOwnerId===actor;
+    const partial=properties(map,floorId).some(prop=>{const spans=room.spans?.length?room.spans:[room];return spans.some(s=>[[s.x+.002,s.y+.002],[s.x+s.w-.002,s.y+.002],[s.x+.002,s.y+s.h-.002],[s.x+s.w-.002,s.y+s.h-.002]].some(([x,y])=>inside({x,y},prop.polygon)))||prop.polygon.some(p=>roomContains(room,p));});
+    if(partial)return false;
+    const enclosed=buildings(map,floorId).filter(b=>roomInProperty(room,b));
+    return enclosed.length===1&&!!enclosed[0].ownerId&&enclosed[0].ownerId===actor;
   }
   function paintWall(map,floorId,wall,side,next,actor,isAdmin=false){
     if(!canPaintWall(map,floorId,wall,side,actor,isAdmin))throw Error('No puedes pintar esa cara de muro');
