@@ -47,9 +47,13 @@ test('Las siete poses del Delivery Man están conectadas',()=>{
  }
 });
 
-test('Pedidos adicionales esperan en cola',()=>{
- assert.match(delivery,/status=busy\?'queued':'waiting'/);
- assert.match(delivery,/function activateNext\(/);
+test('Los pedidos esperan su ETA antes de llamar a la puerta',()=>{
+ assert.match(delivery,/order\.status='scheduled'/);
+ assert.match(delivery,/function nextDueOrder\(/);
+ assert.match(delivery,/deliveryAtMinutes/);
+ assert.match(index,/clockMinutesPerSecond:1,deliveryLeadMinutes:60/);
+ assert.match(index,/FHDeliveryRuntime\?\.update\(dt\)/);
+ assert.match(terminal,/LLEGA /);
 });
 
 test('La caja no bloquea la entrada hasta existir decoración runtime',()=>{
