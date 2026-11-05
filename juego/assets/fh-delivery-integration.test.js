@@ -103,7 +103,7 @@ test('Una estación nueva requiere piezas y el motor permite usarla sentado',()=
  assert.match(pc,/function inspect\(/);
  assert.match(pc,/function frontTarget\(/);
  assert.match(furnitureRules,/pcAssemblyRequired=true/);
- assert.match(delivery,/pcAssemblyRequired===true/);
+ assert.match(delivery,/pcAssemblyRequired!==true/);
  assert.match(index,/fh-pc-assembly\.js/);
  assert.match(index,/floorItems:f=>DATA\.floors/);
  assert.match(index,/fhUseFrontFromSeat/);
