@@ -2897,8 +2897,9 @@ function fhDecorationNearest(){
   const d=Math.hypot(item.x*CELL-user.x,item.y*CELL-user.z);if(d<dist){dist=d;best={item,floor:currentFloor}}}return best;
 }
 function fhStartDecoration(item,f=currentFloor){
- if(!item?.runtimeDecoratable||fhDecorationActive)return false;const ui=fhEnsureDecorationUi();
- fhDecorationActive={item,floor:f,original:window.FHDecoration.snapshot(item)};ui.button.hidden=true;ui.panel.hidden=false;
+ if(!item?.runtimeDecoratable||fhDecorationActive)return false;const ui=fhEnsureDecorationUi(),original=window.FHDecoration.snapshot(item);
+ const initial=fhDecorationCandidate(item,f,item.x,item.y,item.rotation);
+ fhDecorationActive={item,floor:f,original,required:!initial.ok};ui.button.hidden=true;ui.panel.hidden=false;
  ui.panel.querySelector('#fhDecorTitle').textContent='DECORACIÓN · '+(item.label||'OBJETO');user.vx=user.vz=0;clearStick();return true;
 }
 function fhMoveDecoration(side,forward){
@@ -2912,7 +2913,14 @@ function fhRotateDecoration(){
 }
 function fhFinishDecoration(commit){
  const a=fhDecorationActive;if(!a)return false;
- if(!commit)fhRebuildDecoratedItem(a.item,a.floor,a.original);else{window.FHDeliveryRuntime?.updateRuntimeItem(a.item,a.floor);notice(window.FH_DELIVERY_TEXT?.decoratePlaced||'Objeto colocado.',1300);}
+ if(commit){
+  const valid=fhDecorationCandidate(a.item,a.floor,a.item.x,a.item.y,a.item.rotation);
+  if(!valid.ok){notice(fhDecorationMessage(valid.reason),1300);return false}
+  fhRebuildDecoratedItem(a.item,a.floor,valid.item);window.FHDeliveryRuntime?.updateRuntimeItem(a.item,a.floor);notice(window.FH_DELIVERY_TEXT?.decoratePlaced||'Objeto colocado.',1300);
+ }else{
+  if(a.required){notice(window.FH_DELIVERY_TEXT?.decorateRequired||'Debes colocar este objeto en una posición válida antes de salir.',1800);return false}
+  fhRebuildDecoratedItem(a.item,a.floor,a.original);
+ }
  fhDecorationActive=null;const ui=fhEnsureDecorationUi();ui.panel.hidden=true;return true;
 }
 function fhDecorationTick(){
