@@ -96,7 +96,7 @@ body.layer-lighting #stage{background:#0b1018}
 body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
 #doorPreviewCanvas{width:100%;max-width:290px;height:76px;image-rendering:pixelated;display:block;border:2px solid #6f7c87;background:#08121b}
 @media(orientation:landscape) and (max-height:480px){
- #palette{gap:3px!important}#layerSwitch{gap:3px;padding:0;max-width:220px}#layerSwitch button{height:44px;min-height:44px;font-size:10px;padding:3px 5px}
+ #palette{gap:3px!important}#layerSwitch{gap:3px;padding:0;max-width:min(310px,43vw)}#layerSwitch button{height:44px;min-height:44px;font-size:10px;padding:3px 5px}
  #circuitTools:not([hidden]){padding:0;gap:2px}#circuitTools label{display:none}#circuitTools select{min-height:44px;max-width:82px;font-size:10px}#circuitColor{height:44px;width:36px}
 }
 
@@ -152,6 +152,7 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
 <script src="./juego/assets/engine-11.js"></script>
 <script src="./juego/assets/engine-12.js"></script>
 <script src="./juego/assets/fh-style-property.js"></script>
+<script src="./juego/assets/fh-property-zones.js"></script>
 <script src="./juego/assets/fh-style-renderer.js"></script>
 <script src="./juego/assets/fh-style-strings.js"></script>
 <script src="./juego/assets/fh-style-editor.js"></script>
@@ -1506,12 +1507,12 @@ return {DOOR_VARIANTS,DOOR_LENGTH_TOLERANCE,doorSpan,doorWidthClass,doorSpec,doo
 const SCHEMA=ForestShared.MAP_SCHEMA;
 const COLORS={red_wall:'#ef5656',property_wall:'#E6BD43',wall:'#64bdf9',half_wall:'#82c4ff',fence:'#97d8c3',door:'#ffbc66',peephole_door:'#ce92ff',window:'#70ecd6',opening:'#b7d184',room:'#ffad79',room_fill:'#ffad79',hall:'#8ab1ff',outside:'#7de39c',building:'#a7b2c4',pavement:'#8b96a9',parking:'#b8c0cf',asphalt:'#55575a',alley:'#65655b',sidewalk:'#a1a09c',concrete:'#a8a29a',gravel:'#ada69a',cobblestone:'#aaa396',tile_floor:'#d1bab3',carpet:'#b7a0a9',wood_floor:'#b3967b',parking_stall:'#f6ecb4',parking_arrow:'#f6ecb4',parking_crosswalk:'#f6ecb4',parking_double_yellow:'#e4be47',parking_dashed_yellow:'#e4be47',parking_speed_bump:'#e4be47',parking_curb:'#beb3a3',parking_decal:'#f4d985',grass:'#6ecb7d',dirt:'#b58c63',stairs:'#edb676',spawn:'#f5df71',elevator:'#8b99ff',light_switch:'#d3c06d',breaker_panel:'#bc8b68',battery_pickup:'#dfc56b',light_fixture:'#fff0aa',zone_assign:'#d6a55c',bed:'#da9ac0',sofa:'#81a9c8',tv:'#8ea1e1',dining:'#d8b47f',table:'#bfa478',chair:'#71b1cd',kitchen:'#b2b8c2',bath:'#75cde6',toilet:'#a8cce5',plant:'#83d28f',misc:'#c0c5d2',car:'#a88dd5'};
 const TOOL_GROUPS={
- structure:[['select','Seleccionar','☞'],['pan','Mover mapa','✋'],['wall','Pared','▰'],['red_wall','Pared roja · losa','▰'],['property_wall','Pared amarilla · propiedad','▰'],['paint_wall','Pintar cara','▨'],['half_wall','Pared media','▱'],['fence','Reja','⛶'],['door','Puerta','🚪'],['elevator','Ascensor ⇅','⇅'],['peephole_door','Con mirilla','◉'],['window','Ventana','▤'],['opening','Hueco libre','⟷'],['erase','Borrar','⌫']],
+ structure:[['select','Seleccionar','☞'],['pan','Mover mapa','✋'],['wall','Pared','▰'],['red_wall','Pared roja · losa','▰'],['paint_wall','Pintar cara','▨'],['half_wall','Pared media','▱'],['fence','Reja','⛶'],['door','Puerta','🚪'],['elevator','Ascensor ⇅','⇅'],['peephole_door','Con mirilla','◉'],['window','Ventana','▤'],['opening','Hueco libre','⟷'],['erase','Borrar','⌫']],
  furniture:[['select','Seleccionar','☞'],['bed','Cama compacta','🛏'],['sofa','Sofá compacto','▰'],['tv','Tele compacta','▭'],['dining','Comedor','◫'],['table','Mesa','▦'],['chair','Silla','▣'],['kitchen','Cocina','▤'],['bath','Ducha / tina','▥'],['toilet','Baño / WC','◉'],['plant','Planta','♧'],['car','Coche','▰'],['misc','Mueble libre','□'],['battery_pickup','Batería de linterna','▰']],
  lighting:[['select','Seleccionar circuito','☞'],['pan','Mover mapa','✋'],['zone_assign','Conectar zona','◈'],['light_fixture','Foco de techo','✦'],['light_strip','Tubo largo','▰'],['light_panel','Panel de techo','▤'],['light_wall','Aplique de pared','◖'],['light_flood','Reflector de pared','◁'],['light_switch','Interruptor','◉'],['breaker_panel','Breaker','▤']],
  areas:[['room_fill','Revisar recinto','⌂'],['room','Zona manual','▣'],['hall','Pasillo','═'],['outside','Exterior','♧'],['building','Edificio','▥'],['pavement','Banqueta / piso','▦'],['parking','Estacionamiento','▤'],['asphalt','Asfalto','▦'],['alley','Callejón manchado','▦'],['sidewalk','Banqueta','▤'],['concrete','Concreto','▦'],['gravel','Grava','░'],['cobblestone','Adoquín','▣'],['tile_floor','Baldosa','▦'],['carpet','Alfombra','▧'],['wood_floor','Madera','▤'],['grass','Pasto','❋'],['dirt','Tierra','░'],['elevator','Ascensor ⇅','⇅'],['stairs','Escaleras ½ cuadro','≋'],['spawn','Jugador','✦'],['select','Seleccionar','☞'],['pan','Mover mapa','✋']],
  parking_marks:[['select','Seleccionar','☞'],['parking_stall','Cajones N','▱'],['parking_arrow','Flecha','➜'],['parking_crosswalk','Cebra','▥'],['parking_double_yellow','Doble amarilla','═'],['parking_dashed_yellow','Discontinua','┄'],['parking_speed_bump','Reductor','▰'],['parking_curb','Guarnición','▤'],['pan','Mover mapa','✋'],['erase','Borrar','⌫']],
- navigate:[['select','Seleccionar','☞'],['pan','Mover mapa','✋'],['erase','Borrar','⌫'],['wall','Pared','▰'],['red_wall','Pared roja','▰'],['property_wall','Pared amarilla','▰'],['paint_wall','Pintar cara','▨'],['half_wall','Pared media','▱'],['fence','Reja','⛶'],['door','Puerta','🚪'],['peephole_door','Mirilla','◉'],['window','Ventana','▤']]
+ navigate:[['select','Seleccionar','☞'],['pan','Mover mapa','✋'],['erase','Borrar','⌫'],['wall','Pared','▰'],['red_wall','Pared roja','▰'],['paint_wall','Pintar cara','▨'],['half_wall','Pared media','▱'],['fence','Reja','⛶'],['door','Puerta','🚪'],['peephole_door','Mirilla','◉'],['window','Ventana','▤']]
 };
 const LIGHTING_TYPES=new Set(['light_switch','breaker_panel','light_fixture']);
 const CIRCUIT_COLORS=ForestShared.CIRCUIT_PALETTE;
@@ -2843,5 +2844,6 @@ init();
 <script src="./juego/assets/fh-lights.js"></script>
 <script src="./juego/assets/fh-furniture-rules.js"></script>
 <script src="./juego/assets/fh-editor-catalog.js"></script>
+<script src="./juego/assets/fh-property-editor.js"></script>
 </body>
 </html>
