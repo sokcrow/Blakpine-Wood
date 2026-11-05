@@ -75,11 +75,11 @@ function propertyManager(){
  const list=P().properties(doc(),floor().id),buildingList=P().buildings(doc(),floor().id);
  const cards=list.map((p,i)=>{
   const count=rooms().filter(r=>P().roomInProperty(r,p)).length;
-  return '<section style="margin:9px 0;padding:10px;border:1px solid #a99753"><b>Propiedad '+(i+1)+'</b><small> · '+count+' habitaciones · '+h(p.id)+'</small>'+
+  return '<section style="margin:9px 0;padding:10px;border:1px solid #a99753"><b>'+h(p.name||('Propiedad '+(i+1)))+'</b><small> · '+count+' habitaciones · '+h(p.id)+'</small>'+
   '<label>Jugador propietario<input data-fh-owner="'+h(p.id)+'" value="'+h(p.ownerId||'')+'" placeholder="ID de jugador"></label></section>';
  }).join('')||'<p>'+h(T().closed)+'</p>';
  const buildingCards=buildingList.map((b,i)=>'<section style="margin:9px 0;padding:10px;border:1px solid #c56b6b"><b>Edificio rojo '+(i+1)+'</b><small> · '+h(b.id)+'</small><label>Dueño del edificio<input data-fh-building="'+h(b.id)+'" value="'+h(doc().buildingOwners?.[b.id]||doc().buildingOwnerId||'')+'" placeholder="ID de dueño"></label></section>').join('');
- env.modal('<h2>'+h(T().propertyManager)+'</h2><p>Las paredes amarillas cerradas delimitan parcelas. Cada parcela incluye las habitaciones completas del interior. Las paredes rojas siguen definiendo edificios y losas.</p>'+
+ env.modal('<h2>'+h(T().propertyManager)+'</h2><p>La capa Propiedad delimita parcelas sin levantar paredes. Las paredes amarillas antiguas se conservan en mapas previos. El DM puede asignar aquí los IDs de propietarios.</p>'+
  '<label>'+h(T().buildingOwner)+'<input id="fhBuildingOwner" value="'+h(doc().buildingOwnerId||'')+'" placeholder="ID de dueño principal"></label>'+
  '<label>'+h(T().actor)+'<input id="fhActingPlayer" value="'+h(actor)+'" placeholder="Sin restricción"></label>'+buildingCards+cards+
  '<div class="actions">'+button('fhOwnerSave','Guardar dueños',true)+button('fhOwnerClose','Cerrar')+'</div>',()=>{
