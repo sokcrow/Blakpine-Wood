@@ -71,7 +71,7 @@ function createRuntime(options){
   return Math.max(0,finite(configured,DEFAULT_DELIVERY_LEAD_MINUTES));
  }
  function terminalOrders(){return delivery.orders.map(o=>({id:o.id,productId:o.productId,name:o.name,status:o.status,paymentMethod:o.paymentMethod,
-  deliveryAtMinutes:o.deliveryAtMinutes,eta:formatMinutes(o.deliveryAtMinutes)}))}
+  deliveryAtMinutes:o.deliveryAtMinutes,eta:Number.isFinite(Number(o.deliveryAtMinutes))?formatMinutes(o.deliveryAtMinutes):''}))}
  function syncOrdersToTerminal(){try{terminal?.contentWindow?.ForestTerminal3D?.setHamazonOrders(terminalOrders())}catch{}}
  function syncProductsToTerminal(){try{terminal?.contentWindow?.ForestTerminal3D?.setHamazonProducts(products)}catch{}}
  async function loadCatalogs(){
