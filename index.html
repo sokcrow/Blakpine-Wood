@@ -3049,7 +3049,7 @@ function close3DPreview(){
  stop3DWatchdog();preview3DActive=false;preview3DSent=false;preview3DRunning=false;
  play3DLayer.classList.remove('show');play3DLayer.setAttribute('aria-hidden','true');
  play3DFrame.removeAttribute('srcdoc');play3DFrame.src='about:blank';
- show3DStatus('Preparando tu mapa actual en 3D…');render();
+ show3DStatus(PREVIEW_TEXT.preparing);render();
 }
 window.addEventListener('message',e=>{
  if(!preview3DActive||e.source!==play3DFrame.contentWindow||!e.data)return;
