@@ -60,7 +60,7 @@ function nextDueOrder(state){
 }
 function createRuntime(options){
  const state=options.state,delivery=ensureState(state),base=options.baseUrl||document.baseURI;
- let products=[],boxes=[],pcItem=null,pcFloor=0,dialog=null,npcOrder=null,ready=false,lastTerminalClock='';
+ let products=[],boxes=[],pcItem=null,pcFloor=0,dialog=null,npcOrder=null,ready=false,lastTerminalClock='',activePeepholeDoor=null,peekTalkButton=null;
  const clockRate=Math.max(0,finite(options.clockMinutesPerSecond,1));
  const defaultLeadMinutes=Math.max(0,finite(options.deliveryLeadMinutes,DEFAULT_DELIVERY_LEAD_MINUTES));
  const productById=id=>products.find(p=>p.id===id)||null;
@@ -122,30 +122,75 @@ function createRuntime(options){
    '#fhDeliveryDialog.open{display:flex}#fhDeliveryCard{width:min(520px,94vw);background:#11151aeF;border:1px solid #a98d67;color:#eee1ca;padding:13px;box-shadow:0 14px 50px #000d;font:13px/1.45 Georgia,serif}'+
    '#fhDeliveryPortrait{height:min(48vh,420px);background:linear-gradient(#1110,#1118);display:flex;align-items:flex-end;justify-content:center;overflow:hidden;margin:-8px -8px 10px}'+
    '#fhDeliveryPortrait img{height:100%;max-width:100%;object-fit:contain}#fhDeliveryPortrait .fallback{font:700 14px monospace;color:#9fa9b7;padding:30px}'+
-   '#fhDeliveryText{min-height:40px}#fhDeliveryActions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}#fhDeliveryActions button{border:1px solid #806c59;background:#292a2b;color:#f2e4cf;padding:9px 11px;font:700 12px system-ui}';
+   '#fhDeliveryText{min-height:40px}#fhDeliveryActions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}#fhDeliveryActions button{border:1px solid #806c59;background:#292a2b;color:#f2e4cf;padding:9px 11px;font:700 12px system-ui}'+
+   '#fhDeliveryDialog.peephole{background:transparent;pointer-events:none;padding:10px;align-items:flex-end;justify-content:flex-end}'+
+   '#fhDeliveryDialog.peephole #fhDeliveryCard{pointer-events:auto;width:min(430px,calc(100vw - 20px));max-height:min(36dvh,245px);overflow:auto;display:grid;grid-template-columns:78px minmax(0,1fr);grid-template-rows:auto 1fr;gap:7px 10px;padding:9px;background:#10151bf2}'+
+   '#fhDeliveryDialog.peephole #fhDeliveryPortrait{grid-row:1 / 3;height:110px;margin:0;align-items:flex-end;background:#1b2028}'+
+   '#fhDeliveryDialog.peephole #fhDeliveryPortrait img{image-rendering:pixelated}'+
+   '#fhDeliveryDialog.peephole #fhDeliveryText{min-height:0;align-self:end;font:13px/1.35 Georgia,serif}'+
+   '#fhDeliveryDialog.peephole #fhDeliveryActions{grid-column:2;margin-top:0;gap:5px}'+
+   '#fhDeliveryDialog.peephole #fhDeliveryActions button{min-height:40px;padding:7px 9px}'+
+   '#fhPeekTalk{position:absolute;bottom:calc(max(25px,env(safe-area-inset-bottom)) + 55px);right:max(12px,env(safe-area-inset-right));z-index:2;min-height:44px;border:2px solid #b99e70;background:#141a22f2;color:#f5e4c8;padding:9px 13px;font:700 13px system-ui;box-shadow:3px 3px #0009;touch-action:manipulation}#fhPeekTalk[hidden]{display:none!important}'+
+   '@media (orientation:landscape) and (max-height:480px){#fhDeliveryDialog.peephole #fhDeliveryCard{width:min(450px,57vw);max-height:70dvh}}';
   document.head.append(style);
   const root=document.createElement('div');root.id='fhDeliveryDialog';root.innerHTML='<div id="fhDeliveryCard"><div id="fhDeliveryPortrait"></div><div id="fhDeliveryText"></div><div id="fhDeliveryActions"></div></div>';
   document.body.append(root);dialog=root;return root;
  }
  function spriteUrl(pose){return options.spriteUrl?.(pose)||''}
- function setDialog(order,pose,text,actions){
+ function ensurePeekTalkButton(){
+  if(peekTalkButton)return peekTalkButton;
+  const overlay=document.getElementById('peekOverlay');
+  if(!overlay)return null;
+  const button=document.createElement('button');
+  button.id='fhPeekTalk';button.type='button';button.hidden=true;
+  button.textContent=TEXT.talkThroughDoor;
+  button.setAttribute('aria-label',TEXT.talkThroughDoor);
+  button.addEventListener('click',event=>{event.stopPropagation();talkThroughPeephole()});
+  overlay.append(button);peekTalkButton=button;
+  return button;
+ }
+ function syncPeekTalkButton(){
+  const button=ensurePeekTalkButton();
+  if(button)button.hidden=!activePeepholeDoor||!!dialog?.classList.contains('open');
+ }
+ function setDialog(order,pose,text,actions,throughPeephole=false){
   const root=ensureDialog(),portrait=root.querySelector('#fhDeliveryPortrait'),body=root.querySelector('#fhDeliveryText'),buttons=root.querySelector('#fhDeliveryActions');
   portrait.replaceChildren();const url=spriteUrl(pose);
   if(url){const img=new Image();img.src=url;img.alt='Repartidor de Hamazon';portrait.append(img)}else{const f=document.createElement('div');f.className='fallback';f.textContent='DELIVERY MAN · '+pose.toUpperCase();portrait.append(f)}
   body.textContent=text;buttons.replaceChildren();
   for(const a of actions){const b=document.createElement('button');b.type='button';b.textContent=a.label;b.onclick=a.run;buttons.append(b)}
-  root.classList.add('open');options.freeze?.(true);
+  root.classList.toggle('peephole',throughPeephole);
+  root.classList.add('open');syncPeekTalkButton();options.freeze?.(true);
  }
- function closeDialog(){if(!dialog)return;dialog.classList.remove('open');if(!options.computer?.isOpen)options.freeze?.(false)}
+ function closeDialog(){
+  if(!dialog)return;
+  dialog.classList.remove('open','peephole');
+  if(!options.computer?.isOpen)options.freeze?.(false);
+  syncPeekTalkButton();
+ }
  function onPeephole(door){
-  const order=activeOrderForDoor(state,door?.id);if(!order)return false;npcOrder=order;
+  const order=activeOrderForDoor(state,door?.id);
+  activePeepholeDoor=order?door:null;
+  if(order)npcOrder=order;
+  syncPeekTalkButton();
+  return !!order;
+ }
+ function onPeepholeExit(){
+  activePeepholeDoor=null;
+  if(dialog?.classList.contains('peephole'))closeDialog();
+  syncPeekTalkButton();
+ }
+ function talkThroughPeephole(){
+  const door=activePeepholeDoor,order=activeOrderForDoor(state,door?.id);
+  if(!door||!order){onPeepholeExit();return false}
   const product=productById(order.productId),greeting=(TEXT.peepholeGreeting||(()=>''))(order.apartmentId);
   setDialog(order,'peephole_front',greeting,[
-   {label:TEXT.askPackage||'¿Qué trae?',run:()=>setDialog(order,'peephole_front',(TEXT.peepholePackage||((n)=>n))(product?.name||order.name),peepholeActions(order,door))},
-   {label:TEXT.askPayment||'¿Cómo se paga?',run:()=>setDialog(order,order.paymentMethod==='cash'?'cash':order.paymentMethod==='card'?'card':'peephole_front',paymentText(order),peepholeActions(order,door))},
+   {label:TEXT.askPackage||'¿Qué trae?',run:()=>setDialog(order,'peephole_front',(TEXT.peepholePackage||((n)=>n))(product?.name||order.name),peepholeActions(order,door),true)},
+   {label:TEXT.askPayment||'¿Cómo se paga?',run:()=>setDialog(order,order.paymentMethod==='cash'?'cash':order.paymentMethod==='card'?'card':'peephole_front',paymentText(order),peepholeActions(order,door),true)},
    {label:TEXT.openDoor||'Abrir la puerta',run:()=>{closeDialog();options.openDoor?.(door)}},
    {label:TEXT.closeTalk||'Terminar conversación',run:closeDialog}
-  ]);return true;
+  ],true);
+  return true;
  }
  function peepholeActions(order,door){return [
   {label:TEXT.openDoor||'Abrir la puerta',run:()=>{closeDialog();options.openDoor?.(door)}},
@@ -253,7 +298,7 @@ function createRuntime(options){
  }
  global.addEventListener('message',onMessage);
  loadCatalogs();
- return {isPc,isPackage,isDeliveredFurniture,updateRuntimeItem,actionLabel,openPc,closePc,onComputerOpen,onComputerClose,syncTerminal,onPeephole,onDoorOpened,openPackage,placeOrder,advanceTime,formatClock,update,resume,activateNext,
+ return {isPc,isPackage,isDeliveredFurniture,updateRuntimeItem,actionLabel,openPc,closePc,onComputerOpen,onComputerClose,syncTerminal,onPeephole,onPeepholeExit,talkThroughPeephole,onDoorOpened,openPackage,placeOrder,advanceTime,formatClock,update,resume,activateNext,
   get products(){return products.map(clone)},get orders(){return delivery.orders.map(clone)},get ready(){return ready}};
 }
 global.FHDelivery=Object.freeze({ensureState,parcelSize,normalizeProduct,createOrder,activeOrderForDoor,advanceTime,tickClock,formatMinutes,formatClock,nextDueOrder,createRuntime});
