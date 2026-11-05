@@ -115,7 +115,7 @@
   e.preventDefault();e.stopImmediatePropagation();
   const p=point(e);
   document.getElementById('coords').textContent='Casilla '+p.x.toFixed(2)+', '+p.y.toFixed(2);
-  if(gesture?.id===e.pointerId&&gesture.tool==='property_zone'){live=p;if(!start)start=gesture.a;render();}
+  if(gesture?.id===e.pointerId&&gesture.tool==='property_zone'){const distance=Math.hypot(local(e).x-gesture.screen.x,local(e).y-gesture.screen.y);if(start||distance>7){live=p;if(!start)start=gesture.a;render();}}
  },true);
  target.addEventListener('pointerup',e=>{
   if(!isPropertyTool())return;
