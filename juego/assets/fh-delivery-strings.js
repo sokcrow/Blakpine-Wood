@@ -1,6 +1,13 @@
 /* Forest Horror — textos del sistema de PC, Hamazon y entregas. */
 window.FH_DELIVERY_TEXT=Object.freeze({
  pcAction:'Usar PC',
+ pcActionFromSeat:'Usar computadora',
+ pcMissingNames:{monitor:'monitor',keyboard:'teclado',mouse:'mouse',cabinet:'gabinete de PC'},
+ pcMissing:names=>'No se puede encender la computadora. Falta: '+names.join(', ')+'.',
+ pcSystemMissing:'El sistema de componentes de la computadora no está disponible.',
+ orderSending:'Enviando pedido…',
+ orderRejected:'No se pudo registrar el pedido.',
+ orderAccepted:'Pedido registrado en Hamazon.',
  pcClose:'Salir de la PC',
  orderPlaced:name=>'Pedido registrado: '+name+'.',
  orderScheduled:(name,time)=>'Pedido registrado: '+name+'. Entrega estimada: '+time+'.',
