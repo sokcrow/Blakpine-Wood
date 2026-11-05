@@ -3,6 +3,7 @@ window.FH_DELIVERY_TEXT=Object.freeze({
  pcAction:'Usar PC',
  pcClose:'Salir de la PC',
  orderPlaced:name=>'Pedido registrado: '+name+'.',
+ orderScheduled:(name,time)=>'Pedido registrado: '+name+'. Entrega estimada: '+time+'.',
  orderQueued:'Pedido en cola. El repartidor terminará la entrega anterior primero.',
  orderWaiting:'Llaman a la puerta.',
  noDeliveryDoor:'No se encontró una puerta de entrada con mirilla para esta entrega.',
