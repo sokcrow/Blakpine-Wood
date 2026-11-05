@@ -49,6 +49,20 @@ test('El cono de un aplique no ilumina detrás de sí',()=>{
  const data=get([light]);
  assert.equal(data.sample(3,5),true);assert.equal(data.sample(3,1),false);
 });
+
+test('La cobertura conserva intensidad dentro de la franja tenue configurable',()=>{
+ const source=C.sources([lamp('a',3,3,{lightRadiusFt:5,lightDimFalloffFt:5})],5)[0];
+ assert.equal(source.brightRadius,1);
+ assert.equal(source.dimRadius,2);
+ assert.equal(C.strength(source,3.5,3,[]),1);
+ assert.equal(Number(C.strength(source,4.5,3,[]).toFixed(2)),.5);
+ assert.equal(C.strength(source,5.1,3,[]),0);
+});
+test('La cobertura interpreta lightDimRadiusFt legado como radio exterior',()=>{
+ const source=C.sources([lamp('a',3,3,{lightRadiusFt:5,lightDimRadiusFt:10})],5)[0];
+ assert.equal(source.brightRadius,1);
+ assert.equal(source.dimRadius,2);
+});
 test('Porcentaje del cuarto detecta sectores oscuros',()=>{
  const data=get([lamp('a',3,5),wall('wall',6,0,6,12)]);
  const all=data.roomCoverage({x:0,y:0,w:12,h:12});
