@@ -37,4 +37,65 @@ test('La interacción sentada respeta frente y línea de visión',()=>{
  assert.equal(PC.frontTarget({...seat,rotation:180},[pc],{cell:1.524,isPc:()=>true}),null);
  assert.equal(PC.frontTarget(seat,[pc],{cell:1.524,isPc:()=>true,isClear:()=>false}),null);
 });
+test('Cualquier mesa de comedor sirve como estación con piezas en la misma casilla',()=>{
+ const table={id:'mesa',type:'dining',modelId:'mesa_cocina_rectangular',x:10,y:10,w:1.1,h:.6};
+ const loose=[
+  {id:'m',modelId:'monitor_crt',x:10.05,y:10.04},
+  {id:'k',modelId:'teclado_pc',x:10.06,y:10.12},
+  {id:'r',modelId:'mouse_pc',x:10.22,y:10.10},
+  {id:'c',modelId:'gabinete_pc',x:10.70,y:10.40}
+ ];
+ assert.equal(PC.isTerminalCandidate(table,[table,...loose],5),true);
+ assert.equal(PC.inspect(table,[table,...loose],5).ready,true);
+});
+test('Un escritorio clásico y un escritorio en L sirven sin marcar pcTerminal',()=>{
+ for(const modelId of ['escritorio_clasico','escritorio_l']){
+  const table={id:'mesa',modelId,x:5,y:7,w:1.2,h:1};
+  const parts=['monitor_crt','teclado_pc','mouse_pc','gabinete_pc'].map((id,i)=>({id:String(i),modelId:id,x:5.1,y:7.1}));
+  assert.equal(PC.inspect(table,[table,...parts],5).ready,true);
+  assert.equal(PC.isTerminalCandidate(table,[table,...parts],5),true);
+ }
+});
+test('Se admiten componentes mezclados: soporte explícito y proximidad',()=>{
+ const table={id:'mesa',type:'table',x:8,y:8,w:1,h:1};
+ const parts=[
+  {id:'monitor',modelId:'monitor_crt',x:8,y:8,support:{parentItemId:'mesa',surfaceId:'top'}},
+  {id:'keyboard',modelId:'teclado_pc',x:8.2,y:8.1},
+  {id:'mouse',modelId:'mouse_pc',x:8.4,y:8.1},
+  {id:'cabinet',modelId:'gabinete_pc',x:8.2,y:8.9}
+ ];
+ assert.equal(PC.inspect(table,[table,...parts],5).ready,true);
+});
+test('El equipo no roba piezas vinculadas a otra mesa cercana',()=>{
+ const left={id:'left',modelId:'escritorio_clasico',x:10,y:10,w:1,h:1};
+ const right={id:'right',modelId:'mesa_pequena',x:10.8,y:10,w:.55,h:.55};
+ const parts=[
+  {id:'m',modelId:'monitor_crt',x:10.8,y:10,support:{parentItemId:'right',surfaceId:'top'}},
+  {id:'k',modelId:'teclado_pc',x:10.8,y:10,support:{parentItemId:'right',surfaceId:'top'}},
+  {id:'r',modelId:'mouse_pc',x:10.8,y:10,support:{parentItemId:'right',surfaceId:'top'}},
+  {id:'c',modelId:'gabinete_pc',x:10.8,y:10.2}
+ ];
+ assert.deepEqual(PC.inspect(left,[left,right,...parts],5).missing.slice(0,3),['monitor','keyboard','mouse']);
+ assert.equal(PC.inspect(right,[left,right,...parts],5).ready,true);
+});
+test('El monitor también funciona como terminal si no existe mesa y las piezas están cerca',()=>{
+ const monitor={id:'m',modelId:'monitor_crt',x:2,y:2};
+ const parts=[
+  {id:'k',modelId:'teclado_pc',x:2.1,y:2.1},
+  {id:'r',modelId:'mouse_pc',x:2.2,y:2.1},
+  {id:'c',modelId:'gabinete_pc',x:2.2,y:2.3}
+ ];
+ assert.equal(PC.isTerminalCandidate(monitor,[monitor,...parts],5),true);
+ assert.equal(PC.inspect(monitor,[monitor,...parts],5).ready,true);
+});
+test('Una pieza lejana no cuenta aunque esté en el mismo piso',()=>{
+ const table={id:'mesa',type:'table',x:8,y:8,w:1,h:1};
+ const parts=[
+  {modelId:'monitor_crt',x:8,y:8},
+  {modelId:'teclado_pc',x:8,y:8},
+  {modelId:'mouse_pc',x:8,y:8},
+  {modelId:'gabinete_pc',x:20,y:20}
+ ];
+ assert.deepEqual(PC.inspect(table,[table,...parts],5).missing,['cabinet']);
+});
 console.log(checks+' pruebas correctas');
