@@ -24,62 +24,10 @@ function presetFields(kind){
    lightRadiusFt:p.radiusFt,beamAngleDeg:p.beamAngleDeg,w:p.w,h:p.h,heightFt:p.mount==='wall'?6.5:8.4,
    blocksMovement:false,label:p.label};
 }
-function footprint(room){
- const spans=Array.isArray(room.spans)&&room.spans.length?room.spans:
-  [{x:finite(room.x,0),y:finite(room.y,0),w:Math.max(.25,finite(room.w,1)),h:Math.max(.25,finite(room.h,1))}];
- return spans.filter(s=>s&&Number.isFinite(s.x)&&Number.isFinite(s.y)&&s.w>0&&s.h>0);
-}
-function recommended(room){
- const spans=footprint(room),areas=spans.map(s=>s.w*s.h),total=areas.reduce((a,b)=>a+b,0);
- if(!total)return [];
- const long=spans.some(s=>Math.max(s.w,s.h)>=5&&Math.min(s.w,s.h)<=3);
- const kind=long?'strip':'bulb';
- const candidates=[];
- for(const span of spans){
-  const major=Math.max(span.w,span.h),vertical=span.h>=span.w;
-  const count=major>=5&&Math.min(span.w,span.h)<=3?Math.min(12,Math.ceil(major/4)):1;
-  for(let i=0;i<count;i++){
-   const u=(i+.5)/count;
-   candidates.push({x:vertical?span.x+span.w*.5:span.x+span.w*u,
-    y:vertical?span.y+span.h*u:span.y+span.h*.5,kind,weight:span.w*span.h});
-  }
- }
- candidates.sort((a,b)=>b.weight-a.weight);
- const selected=[];
- for(const p of candidates){
-  if(selected.some(q=>Math.hypot(q.x-p.x,q.y-p.y)<1.6))continue;
-  selected.push(p);
-  if(selected.length>=12)break;
- }
- if(!selected.length){
-  const largest=spans[areas.indexOf(Math.max(...areas))];
-  selected.push({x:largest.x+largest.w/2,y:largest.y+largest.h/2,kind});
- }
- return selected;
-}
-function isInsideRoom(room,x,y){
- return footprint(room).some(s=>x>=s.x&&x<=s.x+s.w&&y>=s.y&&y<=s.y+s.h);
-}
-// Explicit conversion is invoked only when the author visits the lighting
-// layer. No invisible lights come back after the last one is deleted.
-function materialize(floor,makeId){
- if(!floor||floor.lightingManual)return 0;
- const rooms=(floor.items||[]).filter(i=>i.type==='room');
- if(!rooms.length)return 0;
- const placed=(floor.items||[]).filter(i=>i.type==='light_fixture');
- let added=0;
- for(const room of rooms){
-  const roomId=room.roomId||room.id;
-  if(placed.some(i=>i.roomId===roomId||(!i.roomId&&isInsideRoom(room,i.x,i.y))))continue;
-  for(const pos of recommended(room)){
-   const lamp={id:makeId(),type:'light_fixture',x:pos.x,y:pos.y,rotation:0,
-    ...presetFields(pos.kind),roomId,apartmentId:room.apartmentId||'',zoneId:room.zoneId||'main'};
-   floor.items.push(lamp);placed.push(lamp);added++;
-  }
- }
- floor.lightingManual=true;
- return added;
-}
+// Compatibilidad con llamadas antiguas: generación automática desactivada.
+// Ni crea elementos ni modifica lightingManual en mapas existentes.
+function recommended(){return []}
+function materialize(){return 0}
 function resolve(floorIndex,floor,rooms,roomAtGrid,cell){
  const result=[],items=floor.items||[],authored=items.filter(i=>i.type==='light_fixture');
  const byId=new Map(rooms.map(r=>[r.roomId||r.id,r]));
@@ -99,13 +47,6 @@ function resolve(floorIndex,floor,rooms,roomAtGrid,cell){
  for(const lamp of authored){
   const room=byId.get(lamp.roomId)||roomAtGrid(floorIndex,lamp.x,lamp.y);
   emit(lamp,room||null);
- }
- if(!floor.lightingManual)for(const room of rooms){
-  const roomId=room.roomId||room.id;
-  if(authored.some(i=>i.roomId===roomId||(!i.roomId&&isInsideRoom(room,i.x,i.y))))continue;
-  for(const pos of recommended(room)){
-   emit({x:pos.x,y:pos.y,lightKind:pos.kind,rotation:0},room);
-  }
  }
  return result;
 }
