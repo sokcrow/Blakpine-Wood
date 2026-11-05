@@ -11,6 +11,7 @@
   const SURFACE_PLACEMENTS=new Set(['surface','floor_or_surface']);
 
   function finite(value,fallback=0){const n=Number(value);return Number.isFinite(n)?n:fallback;}
+  function normalizeDegrees(value){let n=finite(value)%360;if(n<0)n+=360;return n;}
   function rotate(x,z,degrees){
     const r=finite(degrees)*Math.PI/180,c=Math.cos(r),s=Math.sin(r);
     return {x:c*x-s*z,z:s*x+c*z};
@@ -44,7 +45,7 @@
   }
   function worldPose(items,item,feetPerCell=5,surfaceProvider,seen){
     const cell=Math.max(.01,finite(feetPerCell,5));
-    const fallback={x:finite(item?.x),y:finite(item?.y),heightFt:0,supported:false,parent:null,surface:null};
+    const fallback={x:finite(item?.x),y:finite(item?.y),heightFt:0,rotation:normalizeDegrees(item?.rotation),supported:false,parent:null,surface:null};
     if(!item?.support||!Array.isArray(items))return fallback;
     const guard=seen||new Set();
     if(guard.has(item.id))return fallback;
@@ -55,11 +56,14 @@
     if(!surface)return fallback;
     const parentPose=worldPose(items,parent,cell,surfaceProvider,guard);
     const anchor=worldPoint({
-      x:parentPose.x,y:parentPose.y,rotation:parent.rotation
+      x:parentPose.x,y:parentPose.y,rotation:parentPose.rotation
     },finite(item.support.offsetXFt),finite(item.support.offsetZFt),cell);
     return {
       x:anchor.xFt/cell,y:anchor.zFt/cell,
       heightFt:parentPose.heightFt+surface.heightFt,
+      rotation:Number.isFinite(Number(item.support.rotationOffsetDeg))
+        ? normalizeDegrees(parentPose.rotation+Number(item.support.rotationOffsetDeg))
+        : normalizeDegrees(item.rotation),
       supported:true,parent,surface
     };
   }
@@ -101,7 +105,8 @@
       parentItemId:candidate.parent.id,
       surfaceId:candidate.surface.id,
       offsetXFt:candidate.offsetXFt,
-      offsetZFt:candidate.offsetZFt
+      offsetZFt:candidate.offsetZFt,
+      rotationOffsetDeg:normalizeDegrees(finite(item.rotation)-finite(candidate.parent.rotation))
     };
     item.x=candidate.x;item.y=candidate.y;
     return true;
@@ -118,7 +123,7 @@
   function syncItem(items,item,feetPerCell=5,surfaceProvider){
     const pose=worldPose(items,item,feetPerCell,surfaceProvider);
     if(!pose.supported)return false;
-    item.x=pose.x;item.y=pose.y;return true;
+    item.x=pose.x;item.y=pose.y;item.rotation=pose.rotation;return true;
   }
   function syncChildren(items,parentId,feetPerCell=5,surfaceProvider,visited){
     if(!Array.isArray(items)||!parentId)return 0;
@@ -136,5 +141,5 @@
     let count=0;for(const item of items)if(item?.support&&syncItem(items,item,feetPerCell,surfaceProvider))count++;
     return count;
   }
-  return {rotate,providerSurfaces,findSupport,place,attach,detach,worldPose,syncItem,syncChildren,syncAll,supportedPlacement};
+  return {normalizeDegrees,rotate,providerSurfaces,findSupport,place,attach,detach,worldPose,syncItem,syncChildren,syncAll,supportedPlacement};
 });
