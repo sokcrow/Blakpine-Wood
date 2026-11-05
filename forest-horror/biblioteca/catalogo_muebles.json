@@ -51,7 +51,17 @@
       ],
       "glb": "modelos_glb/mesa_pequena.glb",
       "thumbnail": "miniaturas/mesa_pequena.png",
-      "pack": "domestico_01"
+      "pack": "domestico_01",
+      "supportSurfaces": [
+        {
+          "id": "top",
+          "xFt": 0,
+          "zFt": 0,
+          "widthFt": 2.75,
+          "depthFt": 2.75,
+          "heightFt": 2.5
+        }
+      ]
     },
     {
       "id": "buro",
@@ -60,7 +70,7 @@
       "shortCode": "BU",
       "widthFt": 1.75,
       "depthFt": 1.5,
-      "heightFt": 2.0,
+      "heightFt": 2,
       "blocksMovement": true,
       "description": "Buró compacto con dos cajones, tiradores y madera oscurecida.",
       "tags": [
@@ -68,7 +78,17 @@
       ],
       "glb": "modelos_glb/buro.glb",
       "thumbnail": "miniaturas/buro.png",
-      "pack": "domestico_01"
+      "pack": "domestico_01",
+      "supportSurfaces": [
+        {
+          "id": "top",
+          "xFt": 0,
+          "zFt": 0,
+          "widthFt": 1.6,
+          "depthFt": 1.35,
+          "heightFt": 2
+        }
+      ]
     },
     {
       "id": "estante_bajo",
@@ -86,7 +106,17 @@
       ],
       "glb": "modelos_glb/estante_bajo.glb",
       "thumbnail": "miniaturas/estante_bajo.png",
-      "pack": "domestico_01"
+      "pack": "domestico_01",
+      "supportSurfaces": [
+        {
+          "id": "top",
+          "xFt": 0,
+          "zFt": 0,
+          "widthFt": 2.6,
+          "depthFt": 1.1,
+          "heightFt": 3.5
+        }
+      ]
     },
     {
       "id": "cajonera",
@@ -148,7 +178,7 @@
       "shortCode": "SO",
       "widthFt": 6,
       "depthFt": 2.75,
-      "heightFt": 3.0,
+      "heightFt": 3,
       "blocksMovement": true,
       "description": "Sofá viejo con cojines individuales, apoyabrazos y tela gastada.",
       "tags": [
@@ -174,7 +204,17 @@
         "comedor"
       ],
       "glb": "modelos_glb/mesa_cocina_cuadrada.glb",
-      "thumbnail": "miniaturas/mesa_cocina_cuadrada.png"
+      "thumbnail": "miniaturas/mesa_cocina_cuadrada.png",
+      "supportSurfaces": [
+        {
+          "id": "top",
+          "xFt": 0,
+          "zFt": 0,
+          "widthFt": 3,
+          "depthFt": 3,
+          "heightFt": 2.75
+        }
+      ]
     },
     {
       "id": "mesa_cocina_redonda",
@@ -192,7 +232,17 @@
         "comedor"
       ],
       "glb": "modelos_glb/mesa_cocina_redonda.glb",
-      "thumbnail": "miniaturas/mesa_cocina_redonda.png"
+      "thumbnail": "miniaturas/mesa_cocina_redonda.png",
+      "supportSurfaces": [
+        {
+          "id": "top",
+          "xFt": 0,
+          "zFt": 0,
+          "widthFt": 3,
+          "depthFt": 3,
+          "heightFt": 2.75
+        }
+      ]
     },
     {
       "id": "mesa_cocina_rectangular",
@@ -210,7 +260,17 @@
         "comedor"
       ],
       "glb": "modelos_glb/mesa_cocina_rectangular.glb",
-      "thumbnail": "miniaturas/mesa_cocina_rectangular.png"
+      "thumbnail": "miniaturas/mesa_cocina_rectangular.png",
+      "supportSurfaces": [
+        {
+          "id": "top",
+          "xFt": 0,
+          "zFt": 0,
+          "widthFt": 5.5,
+          "depthFt": 3,
+          "heightFt": 2.75
+        }
+      ]
     },
     {
       "id": "silla_comedor",
@@ -384,7 +444,7 @@
       "pack": "cocina_02",
       "shortCode": "RF",
       "widthFt": 3,
-      "depthFt": 3.0,
+      "depthFt": 3,
       "heightFt": 6.5,
       "blocksMovement": true,
       "description": "Refrigerador de dos puertas con agarraderas de metal.",
@@ -481,7 +541,7 @@
       "shortCode": "TO",
       "widthFt": 1.5,
       "depthFt": 0.75,
-      "heightFt": 1.0,
+      "heightFt": 1,
       "blocksMovement": false,
       "description": "Tostadora metálica compacta con dos ranuras y palanca.",
       "tags": [
@@ -498,9 +558,9 @@
       "category": "Utensilios",
       "pack": "cocina_02",
       "shortCode": "OL",
-      "widthFt": 1.0,
+      "widthFt": 1,
       "depthFt": 0.75,
-      "heightFt": 1.0,
+      "heightFt": 1,
       "blocksMovement": false,
       "description": "Olla metálica de dos asas y tapa.",
       "tags": [
@@ -731,7 +791,17 @@
       ],
       "glb": "modelos_glb/escritorio_clasico.glb",
       "thumbnail": "miniaturas/escritorio_clasico.png",
-      "placement": "floor"
+      "placement": "floor",
+      "supportSurfaces": [
+        {
+          "id": "desktop",
+          "xFt": 0,
+          "zFt": 0,
+          "widthFt": 4.25,
+          "depthFt": 2.25,
+          "heightFt": 2.75
+        }
+      ]
     },
     {
       "id": "escritorio_pc",
@@ -752,7 +822,17 @@
       ],
       "glb": "modelos_glb/escritorio_pc.glb",
       "thumbnail": "miniaturas/escritorio_pc.png",
-      "placement": "floor"
+      "placement": "floor",
+      "supportSurfaces": [
+        {
+          "id": "desktop",
+          "xFt": 0,
+          "zFt": 0.1,
+          "widthFt": 4,
+          "depthFt": 2.15,
+          "heightFt": 2.75
+        }
+      ]
     },
     {
       "id": "escritorio_l",
@@ -1068,7 +1148,8 @@
       ],
       "glb": "modelos_glb/televisor_crt.glb",
       "thumbnail": "miniaturas/televisor_crt.png",
-      "placement": "floor"
+      "placement": "floor_or_surface",
+      "surfaceOverhangFt": 0.25
     },
     {
       "id": "videocasetera_vhs",
@@ -1161,7 +1242,7 @@
       "shortCode": "IC",
       "widthFt": 2.25,
       "depthFt": 2.5,
-      "heightFt": 3.0,
+      "heightFt": 3,
       "blocksMovement": true,
       "description": "Inodoro de porcelana beige con cisterna baja y asiento oscuro.",
       "tags": [
@@ -1219,7 +1300,7 @@
       "name": "Lavabo con gabinete",
       "category": "Sanitarios",
       "shortCode": "LG",
-      "widthFt": 3.0,
+      "widthFt": 3,
       "depthFt": 2.25,
       "heightFt": 3.25,
       "blocksMovement": true,
@@ -1253,7 +1334,7 @@
       "thumbnail": "miniaturas/mingitorio_pared.png",
       "pack": "banos_05",
       "placement": "wall",
-      "mountHeightFt": 1.0
+      "mountHeightFt": 1
     },
     {
       "id": "banera_clasica",
@@ -1300,8 +1381,8 @@
       "name": "Plato de ducha",
       "category": "Baños y duchas",
       "shortCode": "PD",
-      "widthFt": 3.0,
-      "depthFt": 3.0,
+      "widthFt": 3,
+      "depthFt": 3,
       "heightFt": 0.5,
       "blocksMovement": true,
       "description": "Base cuadrada de ducha con canaleta y desagüe.",
@@ -1341,8 +1422,8 @@
       "category": "Baños y duchas",
       "shortCode": "RP",
       "widthFt": 1.5,
-      "depthFt": 1.0,
-      "heightFt": 2.0,
+      "depthFt": 1,
+      "heightFt": 2,
       "blocksMovement": false,
       "description": "Cabezal, brazo de metal y controles de regadera de pared.",
       "tags": [
@@ -1354,7 +1435,7 @@
       "thumbnail": "miniaturas/regadera_pared.png",
       "pack": "banos_05",
       "placement": "wall",
-      "mountHeightFt": 5.0
+      "mountHeightFt": 5
     },
     {
       "id": "espejo_rectangular",
@@ -1363,7 +1444,7 @@
       "shortCode": "ER",
       "widthFt": 2.5,
       "depthFt": 0.25,
-      "heightFt": 3.0,
+      "heightFt": 3,
       "blocksMovement": false,
       "description": "Espejo de pared con marco metálico oxidado.",
       "tags": [
@@ -1396,7 +1477,7 @@
       "thumbnail": "miniaturas/espejo_redondo.png",
       "pack": "banos_05",
       "placement": "wall",
-      "mountHeightFt": 4.0
+      "mountHeightFt": 4
     },
     {
       "id": "botiquin_pared",
@@ -1404,7 +1485,7 @@
       "category": "Mobiliario de baño",
       "shortCode": "BT",
       "widthFt": 2.5,
-      "depthFt": 1.0,
+      "depthFt": 1,
       "heightFt": 2.25,
       "blocksMovement": false,
       "description": "Armario colgado con espejo frontal, bisagras y manija.",
@@ -1465,7 +1546,7 @@
       "name": "Portarrollos",
       "category": "Mobiliario de baño",
       "shortCode": "PR",
-      "widthFt": 1.0,
+      "widthFt": 1,
       "depthFt": 0.75,
       "heightFt": 0.75,
       "blocksMovement": false,
@@ -1479,7 +1560,7 @@
       "thumbnail": "miniaturas/portarrollos.png",
       "pack": "banos_05",
       "placement": "wall",
-      "mountHeightFt": 2.0
+      "mountHeightFt": 2
     },
     {
       "id": "cesto_basura",
@@ -1488,7 +1569,7 @@
       "shortCode": "CB",
       "widthFt": 1.5,
       "depthFt": 1.5,
-      "heightFt": 2.0,
+      "heightFt": 2,
       "blocksMovement": true,
       "description": "Papelera metálica octagonal con aro oscuro.",
       "tags": [
@@ -1546,8 +1627,8 @@
       "name": "Toallas dobladas",
       "category": "Accesorios de baño",
       "shortCode": "TD",
-      "widthFt": 1.0,
-      "depthFt": 1.0,
+      "widthFt": 1,
+      "depthFt": 1,
       "heightFt": 0.5,
       "blocksMovement": false,
       "description": "Conjunto de dos toallas plegadas de distinto tono.",
@@ -1568,11 +1649,11 @@
       "shortCode": "CS",
       "pack": "seguridad_06",
       "widthFt": 1.75,
-      "depthFt": 2.0,
+      "depthFt": 2,
       "heightFt": 1.25,
       "blocksMovement": false,
       "placement": "wall",
-      "mountHeightFt": 7.0,
+      "mountHeightFt": 7,
       "description": "Cámara analógica de vigilancia con soporte fijo y cabezal que puede barrer horizontalmente.",
       "tags": [
         "seguridad",
