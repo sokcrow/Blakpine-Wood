@@ -148,7 +148,7 @@ function attachInspector(item,fields){
   const b=document.createElement('button');b.textContent='▨ Pintar cara B';b.onclick=()=>paintWall(item,'B');
   fields.append(a,b);
  }
- if(['room','hall','outside','building','pavement','parking','grass','dirt'].includes(item.type)){
+ if(['room','hall','outside','building','pavement','parking','grass','dirt','asphalt','alley','sidewalk','concrete','gravel','cobblestone','tile_floor','carpet','wood_floor'].includes(item.type)){
   const btn=document.createElement('button');btn.textContent='▨ Pintar piso';btn.style.gridColumn='1/-1';btn.onclick=()=>paintFloor(item);fields.append(btn);
  }
 }

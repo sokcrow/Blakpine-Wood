@@ -9,7 +9,7 @@
   'use strict';
   const TEXEL_PER_FOOT=8, MAX_PATTERNS=24, MAX_PNG_BYTES=12*1024, MAX_COLORS=16;
   const WALL_PRESETS=['ladrillo','concreto','estuco','metal-corrugado','pintura-lisa','tapiz','lambrin','azulejo'];
-  const FLOOR_PRESETS=['madera','baldosa','concreto','alfombra','azulejo'];
+  const FLOOR_PRESETS=['madera','baldosa','concreto','alfombra','azulejo','asfalto','callejon','banqueta','grava','adoquin','pasto','tierra'];
   const FACES=['A','B'], COLOR=/^#[0-9a-fA-F]{6}$/;
   const xy=p=>({x:Number(p.x),y:Number(p.y??p.z)});
   const signed=(wall,p)=>{const a=xy(wall.a),b=xy(wall.b),v=xy(p);return (b.x-a.x)*(v.y-a.y)-(b.y-a.y)*(v.x-a.x);};
@@ -100,7 +100,14 @@
     if(wall.finish?.[side])return style(wall.finish[side],fallback);
     return wall.material!=null?{preset:'legacy',legacyMaterial:wall.material}:fallback;
   }
-  function floorStyle(room){return style(room.surfaceStyle,{preset:'madera',color:'#846B52',pattern:null},'floor');}
+  function floorStyle(room){
+    const old={outside:{preset:'concreto',color:'#6C7278'},hall:{preset:'concreto',color:'#6C7278'},
+     building:{preset:'concreto',color:'#8D8580'},pavement:{preset:'banqueta',color:'#898C88'},
+     parking:{preset:'asfalto',color:'#41444A'},grass:{preset:'pasto',color:'#456C46'},dirt:{preset:'tierra',color:'#75604B'}};
+    const fromCatalog=typeof globalThis!=='undefined'?globalThis.FHParking?.SURFACES?.[room.type]:null;
+    const fallback=fromCatalog||old[room.type]||{preset:'madera',color:'#846B52'};
+    return style(room.surfaceStyle,{...fallback,pattern:null},'floor');
+  }
   function authority(map,floorId,p){
     if(properties(map,floorId).filter(q=>inside(p,q.polygon)).length>1)return {id:'overlap:'+floorId,ownerId:''};
     const prop=propertyAt(map,floorId,p);

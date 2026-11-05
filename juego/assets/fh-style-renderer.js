@@ -28,6 +28,34 @@
       const seed=(a*71+y*131+a*y*17)%19;
       if(seed<(spec.preset==='estuco'?8:4))rect(seed%2?light:dark,a,y,2,2);
     }break;
+   case 'asfalto':case 'callejon':
+    for(let y=0;y<32;y+=2)for(let a=0;a<32;a+=2){
+     const v=(a*19+y*37+a*y*3)%23;
+     if(v<6)rect(v%2?dark:light,a,y,2,2);
+    }
+    if(spec.preset==='callejon'){
+     // Manchas y fisuras sin textura aleatoria ni archivos externos.
+     for(const [a,y,w,h] of [[2,5,9,6],[20,17,10,8],[13,25,5,5]]){rect(muted,a,y,w,h);rect(dark,a+2,y+2,w/2,h/2);}
+     rect(dark,11,0,1,11);rect(dark,12,11,5,1);rect(dark,17,12,1,5);
+    }break;
+   case 'banqueta':
+    rect(dark,0,0,32,1);rect(dark,0,16,32,1);rect(dark,0,0,1,32);rect(dark,16,0,1,32);
+    rect(light,2,2,12,1);rect(muted,18,18,11,1);break;
+   case 'grava':
+    for(let y=0;y<32;y+=2)for(let a=0;a<32;a+=2){
+     const v=(a*17+y*29+a*y)%11;
+     if(v<8)rect(v%3===0?light:v%3===1?dark:muted,a,y,v%2+1,2);
+    }break;
+   case 'adoquin':
+    rect(dark,0,0,32,32);
+    for(let row=0;row<4;row++)for(let col=-1;col<5;col++){
+     const a=col*10+(row%2?5:0)+1,y=row*8+1;
+     rect((row+col)%3===0?light:base,a,y,9,6);rect(muted,a,y+5,9,1);
+    }break;
+   case 'pasto':
+    for(let y=0;y<32;y+=4)for(let a=0;a<32;a+=4)if((a*3+y*7)%5<4){rect((a+y)%3?dark:light,a+1,y+1,2,2);}break;
+   case 'tierra':
+    for(let y=0;y<32;y+=4)for(let a=0;a<32;a+=4)if((a*11+y*7)%6<3){rect((a+y)%3?light:dark,a,y+1,3,2);}break;
    case 'metal-corrugado':
     for(let a=0;a<32;a+=8){rect(dark,a,0,2,32);rect(light,a+3,0,2,32);rect(muted,a+6,0,1,32);}break;
    case 'pintura-lisa':break;
@@ -90,7 +118,7 @@
   }
  }
  function roomMaterial(THREE,room,map){
-  if(!room.surfaceStyle&&!map.styleSystem)return null;
+  if(!room.surfaceStyle&&!map.styleSystem&&!(root.FHParking?.SURFACES?.[room.type]&&!['parking','pavement','grass','dirt'].includes(room.type)))return null;
   const shared=P();if(!shared)return null;
   return material(THREE,map,shared.floorStyle(room));
  }
