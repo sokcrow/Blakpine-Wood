@@ -106,7 +106,22 @@ function createRuntime(options){
   frame.addEventListener('load',()=>{const api=frame.contentWindow?.ForestTerminal3D;if(!api)return;api.setHamazonProducts(products);api.setHamazonOrders(terminalOrders());api.setGameClock?.(formatClock(state));lastTerminalClock=formatClock(state);api.power(true);api.open();});
   return frame;
  }
- function openPc(item,floor=0){pcItem=item;pcFloor=floor;const frame=ensureTerminal(),wrap=frame.parentElement;wrap.classList.add('open');wrap.setAttribute('aria-hidden','false');options.freeze?.(true);setTimeout(()=>{const api=frame.contentWindow?.ForestTerminal3D;api?.setHamazonProducts(products);api?.setHamazonOrders(terminalOrders());api?.setGameClock?.(formatClock(state));lastTerminalClock=formatClock(state);api?.power(true);api?.open();},0);return true}
+ function openPc(item,floor=0){
+  if(item?.pcAssemblyRequired===true){
+   if(!global.FHPcAssembly?.inspect){say(TEXT.pcSystemMissing,2400);return false;}
+   const assembly=global.FHPcAssembly.inspect(item,options.floorItems?.(floor),options.feetPerCell||5);
+   if(!assembly.ready){
+    const names=assembly.missing.map(name=>TEXT.pcMissingNames?.[name]||name);
+    say(TEXT.pcMissing?.(names)||'Faltan componentes de la computadora.',3200);
+    return false;
+   }
+  }
+  pcItem=item;pcFloor=floor;
+  const frame=ensureTerminal(),wrap=frame.parentElement;wrap.classList.add('open');wrap.setAttribute('aria-hidden','false');
+  options.freeze?.(true);
+  setTimeout(()=>{const api=frame.contentWindow?.ForestTerminal3D;api?.setHamazonProducts(products);api?.setHamazonOrders(terminalOrders());api?.setGameClock?.(formatClock(state));lastTerminalClock=formatClock(state);api?.power(true);api?.open();},0);
+  return true;
+ }
  function closePc(){if(!terminal)return;terminal.parentElement.classList.remove('open');terminal.parentElement.setAttribute('aria-hidden','true');options.freeze?.(false);pcItem=null}
  function chooseDoor(){
   const door=options.findDoor?.(pcItem,pcFloor);return door||null;
@@ -254,7 +269,10 @@ function createRuntime(options){
  function actionLabel(item){return isPc(item)?(TEXT.pcAction||'Usar PC'):isPackage(item)?(TEXT.packageAction||'Abrir paquete'):isDeliveredFurniture(item)?(TEXT.decorateAction||'Mover / decorar'):null}
  function onMessage(event){
   if(!terminal||event.source!==terminal.contentWindow||event.data?.type!=='FOREST_TERMINAL_EVENT')return;
-  const {name,detail}=event.data;if(name==='hamazon-order')placeOrder(detail?.productId,detail?.paymentMethod);
+  const {name,detail}=event.data;if(name==='hamazon-order'){
+   const order=placeOrder(detail?.productId,detail?.paymentMethod);
+   terminal.contentWindow?.postMessage({type:'FOREST_TERMINAL_RESPONSE',name:'hamazon-order-result',detail:{ok:!!order}},'*');
+  }
   if(name==='zoom'&&detail?.on===false)closePc();
  }
  global.addEventListener('message',onMessage);
