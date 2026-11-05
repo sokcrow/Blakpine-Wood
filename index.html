@@ -2850,6 +2850,7 @@ function fhDeliveryDoor(pc,f){
 function fhDeliveryDoorById(id,f){return (doorList[f]||[]).find(d=>d.id===id)||null}
 window.FHDeliveryRuntime=window.FHDelivery?.createRuntime({
  state:GameState,save:saveProgress,notice,CELL:CELL,cell:CELL,feetPerCell:Number(DATA.units.feetPerCell)||5,
+ clockMinutesPerSecond:1,deliveryLeadMinutes:60,
  baseUrl:new URL('./juego/assets/fh-delivery.js',document.baseURI).href,
  freeze:on=>{fhDeliveryUiActive=!!on;user.vx=user.vz=0;clearStick();},
  findDoor:fhDeliveryDoor,doorById:fhDeliveryDoorById,
@@ -2865,7 +2866,7 @@ window.FHDeliveryRuntime=window.FHDelivery?.createRuntime({
   const peekBefore=" $('peekText').textContent='◉ MIRILLA · Ves el pasillo, sin abrir la puerta · toca para salir';visibilityDirty=true;";
   const peekAfter=" $('peekText').textContent='◉ MIRILLA · Ves el pasillo, sin abrir la puerta · toca para salir';visibilityDirty=true;\n window.FHDeliveryRuntime?.onPeephole(d);";
   const frameBefore=" moveUpdate(dt);";
-  const frameAfter=" if(!fhDeliveryUiActive)moveUpdate(dt);else{user.vx=user.vz=0;}fhDeliveryNpcTick(dt);";
+  const frameAfter=" window.FHDeliveryRuntime?.update(dt);if(!fhDeliveryUiActive)moveUpdate(dt);else{user.vx=user.vz=0;}fhDeliveryNpcTick(dt);";
   const apiBefore="get watchingTV(){return watchingTvId},watchTV:useTVFromSeat,breakers:";
   const apiAfter="get watchingTV(){return watchingTvId},watchTV:useTVFromSeat,delivery:window.FHDeliveryRuntime,breakers:";
   const changes=[[stateAnchor,stateAfter],[interactBefore,interactAfter],[buildAnchor,runtimeBlock],[furnitureBefore,furnitureAfter],[doorBefore,doorAfter],[peekBefore,peekAfter],[frameBefore,frameAfter],[apiBefore,apiAfter]];
