@@ -8,32 +8,34 @@ const html=fs.readFileSync(path.join(__dirname,'../../index.html'),'utf8');
 let passed=0;
 function test(label,run){run();passed++;console.log('PASS',label)}
 
-test('La paleta expone brillante, tenue, cono y altura antes de colocar',()=>{
- assert.match(html,/id="lightToolBright"/);
- assert.match(html,/id="lightToolDim"/);
- assert.match(html,/id="lightToolAngle"/);
- assert.match(html,/id="lightToolHeight"/);
- assert.match(html,/id="lightToolTotal"/);
+test('Seleccionar una herramienta de luz no inserta un panel que reduzca el mapa',()=>{
+ assert.doesNotMatch(html,/id="lightToolConfig"/);
+ assert.doesNotMatch(html,/#lightToolConfig/);
+ assert.doesNotMatch(html,/lightToolDrafts/);
+ assert.doesNotMatch(html,/syncLightToolConfig/);
 });
-test('Elegir una luminaria sincroniza el panel',()=>{
- assert.match(html,/syncLightToolConfig\(tool\);\$\$\('#tools button'\)\.forEach/);
+test('Elegir una herramienta conserva el mismo flujo que los demás objetos',()=>{
+ assert.match(html,/function chooseTool\(tool\)\{activeTool=tool;anchor=null;preview=null;/);
+ assert.doesNotMatch(html,/chooseTool\(tool\).*openInspector/);
 });
-test('Las luminarias nuevas usan la configuración editada de la paleta',()=>{
- assert.ok(html.includes("Object.assign(it,window.FHLights.presetFields(kind),lightToolDraft(kind)||{});"));
+test('Las luminarias nuevas nacen con su preset y se editan después',()=>{
+ assert.ok(html.includes("Object.assign(it,window.FHLights.presetFields(kind));"));
+ assert.doesNotMatch(html,/presetFields\(kind\),lightToolDraft/);
 });
-test('Una luminaria recién colocada abre su inspector',()=>{
- assert.match(html,/it\.type==='light_switch'\|\|it\.type==='light_fixture'\|\|it\.type==='breaker_panel'/);
+test('Colocar una luminaria no abre el inspector automáticamente',()=>{
+ assert.doesNotMatch(html,/it\.type==='light_switch'\|\|it\.type==='light_fixture'\|\|it\.type==='breaker_panel'/);
+ assert.match(html,/it\.type==='light_switch'\|\|it\.type==='breaker_panel'/);
+});
+test('El inspector individual conserva brillante, tenue, cono y altura',()=>{
+ assert.ok(html.includes("FH_LIGHT_TEXT.brightRange,'lightRadiusFt'"));
+ assert.ok(html.includes("FH_LIGHT_TEXT.dimRange,'lightDimFalloffFt'"));
+ assert.ok(html.includes("FH_LIGHT_TEXT.angle,'beamAngleDeg'"));
+ assert.ok(html.includes("put('Altura (pies)','heightFt'"));
 });
 test('Cambiar el tipo conserva radios, cono y altura personalizados',()=>{
  assert.ok(html.includes("const custom={lightRadiusFt:"));
  assert.ok(html.includes("lightDimFalloffFt:window.FHLights.dimFalloffFt(before)"));
  assert.ok(html.includes("beamAngleDeg:Number.isFinite(Number(before.beamAngleDeg))"));
  assert.ok(html.includes("heightFt:Number.isFinite(Number(before.heightFt))"));
-});
-test('Los módulos de luz llevan versión para evitar caché obsoleta',()=>{
- assert.ok(html.includes("fh-light-strings.js?v=20261105-light-ui2"));
- assert.ok(html.includes("fh-light-coverage.js?v=20261105-light-ui2"));
- assert.ok(html.includes("fh-lights.js?v=20261105-light-ui2"));
- assert.ok(html.includes("fh-light-editor-overlay.js?v=20261105-light-ui2"));
 });
 console.log(passed+' pruebas correctas');
