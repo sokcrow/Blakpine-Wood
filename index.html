@@ -2665,7 +2665,9 @@ function prepareGLBEngineDoc(source){
  const cloneBefore='const clone=source.clone(true);\n   clone.position.y+=floorElev[f];';
  const surfacePositionBefore='g.position.set(a.x*CELL,.03,a.y*CELL);';
  const surfacePositionAfter="const fhSurfacePose=window.FHSurfacePlacement?.worldPose(DATA.floors[f]?.items||[],a,CELL/.3048,(item,feet)=>window.FHFurnitureRules?.supportSurfacesFor(item,feet));\n g.position.set((fhSurfacePose?.x??a.x)*CELL,.03+(fhSurfacePose?.heightFt||0)*.3048,(fhSurfacePose?.y??a.y)*CELL);";
- if(!source.includes(attachBefore)||!source.includes(cloneBefore)||!source.includes(surfacePositionBefore)||!source.includes('</head>'))
+ const surfaceRotationBefore='const rot=(Number(a.rotation)||0)*Math.PI/180;g.rotation.y=-rot;';
+ const surfaceRotationAfter='const rot=(Number(fhSurfacePose?.rotation??a.rotation)||0)*Math.PI/180;g.rotation.y=-rot;';
+ if(!source.includes(attachBefore)||!source.includes(cloneBefore)||!source.includes(surfacePositionBefore)||!source.includes(surfaceRotationBefore)||!source.includes('</head>'))
   throw new Error('No coincide la estructura del motor 3D con los puntos de integración GLB');
  const surfaceScript='<script src="'+new URL('./juego/assets/fh-surface-placement.js',document.baseURI).href+'"></'+'script>';
  const ruleScript='<script src="'+new URL('./juego/assets/fh-furniture-rules.js',document.baseURI).href+'"></'+'script>';
@@ -2772,6 +2774,7 @@ function prepareGLBEngineDoc(source){
   .replace('ForestShared.loadProject(DATA);',
     'window.FHFurnitureRules?.upgradeMap(DATA,ForestShared);\nForestShared.loadProject(DATA);')
   .replace(surfacePositionBefore,surfacePositionAfter)
+  .replace(surfaceRotationBefore,surfaceRotationAfter)
   .replace(attachBefore,' window.FHAssets?.attach(g,a);\n'+attachBefore)
   .replace(cloneBefore,'const clone=source.clone(true);\n   window.FHAssets?.mirror(source,clone);\n   clone.position.y+=floorElev[f];')
   .replace('</head>',coverageScript+lightsModule+surfaceScript+ruleScript+bridge+sleepStrings+sleepModule+styleCore+styleRender+parkingScript+'</head>');
