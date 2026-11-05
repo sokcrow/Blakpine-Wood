@@ -46,6 +46,8 @@
   const manage=document.createElement('button');manage.type='button';manage.className='accent';manage.textContent='▱ Administrar';manage.onclick=openManager;panel.prepend(manage);
   document.getElementById('stageHint').textContent='Crea una parcela arrastrando o tocando dos esquinas. No agrega paredes ni colisiones. El DM asigna dueño en Administrar.';
  }};
+ const priorFloorChange=changeFloor;
+ changeFloor=function(i){start=null;live=null;gesture=null;return priorFloorChange(i)};
  const oldChooseTool=chooseTool;
  chooseTool=function(tool){if(types.has(tool)){start=null;live=null;}oldChooseTool(tool);
   if(tool==='property_zone')document.getElementById('stageHint').textContent='Dibuja el límite de propiedad: arrastra o toca dos esquinas. No coloca muros.';
