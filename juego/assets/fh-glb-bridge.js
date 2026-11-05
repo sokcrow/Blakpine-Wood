@@ -6,6 +6,7 @@
   const scriptUrl = new URL(document.currentScript.src, document.baseURI);
   const libraryBase = new URL('../../forest-horror/biblioteca/', scriptUrl);
   const catalogUrl = new URL('catalogo_muebles.json', libraryBase);
+  const deliveryCatalogUrl = new URL('catalogo_delivery.json', libraryBase);
   const models = new Map();
   const mirrors = new WeakMap();
   let catalogPromise = null;
@@ -19,21 +20,23 @@
 
   function catalog() {
     if (!catalogPromise) {
-      catalogPromise = fetch(catalogUrl.href).then(response => {
+      catalogPromise = Promise.all([catalogUrl, deliveryCatalogUrl].map(url => fetch(url.href).then(response => {
         if (!response.ok) throw new Error('Catálogo GLB HTTP ' + response.status);
         return response.json();
-      }).then(data => {
-        if (data.schema !== 'forest-horror-furniture-catalog-v1' || !Array.isArray(data.furniture)) {
-          throw new Error('Formato de catálogo de muebles no reconocido');
-        }
+      }))).then(documents => {
         const entries = new Map();
-        for (const entry of data.furniture) {
-          if (!entry || typeof entry.id !== 'string' || !/^[a-z0-9_]+$/.test(entry.id) ||
-              typeof entry.glb !== 'string' || !/^modelos_glb\/[a-z0-9_]+\.glb$/.test(entry.glb) ||
-              entries.has(entry.id)) {
-            throw new Error('Entrada inválida o duplicada en el catálogo GLB');
+        for (const data of documents) {
+          if (data.schema !== 'forest-horror-furniture-catalog-v1' || !Array.isArray(data.furniture)) {
+            throw new Error('Formato de catálogo GLB no reconocido');
           }
-          entries.set(entry.id, entry);
+          for (const entry of data.furniture) {
+            if (!entry || typeof entry.id !== 'string' || !/^[a-z0-9_]+$/.test(entry.id) ||
+                typeof entry.glb !== 'string' || !/^modelos_glb\/[a-z0-9_]+\.glb$/.test(entry.glb) ||
+                entries.has(entry.id)) {
+              throw new Error('Entrada inválida o duplicada en el catálogo GLB');
+            }
+            entries.set(entry.id, entry);
+          }
         }
         return entries;
       });
