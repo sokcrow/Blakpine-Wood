@@ -77,6 +77,10 @@ function lightReachesPoint(entry,x,z,opaque,pointInSight){
  if(!entry||!coneAllows(entry,x,z)||Math.hypot(x-entry.x,z-entry.z)>entry.radius+.03)return false;
  return pointInSight(x,z,{x:entry.x,z:entry.z},opaque,entry.radius);
 }
+// Una única consulta de cobertura: la superposición no crea un segundo radio.
+function sourcesIlluminate(entries,x,z,opaque,pointInSight){
+ return Array.isArray(entries)&&entries.some(source=>lightReachesPoint(source,x,z,opaque,pointInSight));
+}
 function cameraBonus(entries,lighting,floor,x,z){
  const sources=sourcesNear(entries,lighting,floor,x,z,1,6);
  let bonus=0;
@@ -84,5 +88,5 @@ function cameraBonus(entries,lighting,floor,x,z){
   bonus=Math.max(bonus,clamp((s.radius-4.8)*.24,0,1.4));
  return bonus;
 }
-global.FHLights=Object.freeze({PRESETS,presetFor,kindForTool,isWall,presetFields,recommended,materialize,resolve,sourcesNear,coneAllows,lightReachesPoint,cameraBonus,setDynamicSource,removeDynamicSource});
+global.FHLights=Object.freeze({PRESETS,presetFor,kindForTool,isWall,presetFields,recommended,materialize,resolve,sourcesNear,coneAllows,lightReachesPoint,cameraBonus,sourcesIlluminate,setDynamicSource,removeDynamicSource});
 })(window);
