@@ -2550,10 +2550,10 @@ function wire(){canvas.addEventListener('pointerdown',pointerDown);canvas.addEve
  if(target&&window.FHStyleEditor&&!window.FHStyleEditor.canEditItem(target)){toast('No tienes permiso para borrar este objeto');return}
  if(target&&current().items.some(s=>s.type==='light_switch'&&s.wallId===target.id)){toast('Esa pared tiene un interruptor. Muévelo o bórralo primero.');return}
  if(target?.type==='breaker_panel'&&availableCircuits().filter(c=>c.panelId===target.id).some(c=>{const n=ForestShared.circuitCounts(current().items,c.zoneId);return n.rooms+n.lamps+n.switches>0;})){toast('Desconecta sus habitaciones y luces antes de borrar el breaker.');return}
- current().items=current().items.filter(it=>it.id!==selection);selection=null;closeInspector();record()};$('#rotateBtn').onclick=()=>{let it=current().items.find(v=>v.id===selection);if(it){it.rotation=((it.rotation||0)+(it.type==='light_switch'?180:90))%360;if(it.type==='light_switch'){
+ current().items=current().items.filter(it=>it.id!==selection);selection=null;closeInspector();record()};$('#rotateBtn').onclick=()=>{let it=current().items.find(v=>v.id===selection);if(it){const previousRotation=it.rotation||0;it.rotation=((it.rotation||0)+(it.type==='light_switch'?180:90))%360;if(it.type==='light_switch'){
  const mount=ForestShared.switchWallMount(current().items,{x:it.x,y:it.y},{maxDistance:.55,rotation:it.rotation});
  if(mount)Object.assign(it,{x:mount.point.x,y:mount.point.y,rotation:mount.rotation,wallId:mount.wallId,roomId:mount.room?.roomId||mount.room?.id||'',apartmentId:mount.room?.apartmentId||''});
- }record();openInspector()}};$('#duplicateBtn').onclick=()=>{let it=current().items.find(v=>v.id===selection);if(!it)return;if(window.FHStyleEditor&&!window.FHStyleEditor.canEditItem(it)){toast('No puedes duplicar ese objeto');return}let dup=clone(it);dup.id=numId();if(dup.type==='breaker_panel'){const c=ForestShared.nextCircuit(current(),dup);c.name=`Zona ${availableCircuits().length+1}`;dup.circuits=[c];dup.zoneId=c.zoneId;dup.circuitColor=c.circuitColor;dup.powerFlag='';}if(dup.interact)dup.interact.id='interact_'+dup.id;if(SEGMENT_TYPES.has(dup.type)){dup.a.x+=.5;dup.a.y+=.5;dup.b.x+=.5;dup.b.y+=.5}else if(dup.type==='light_switch'){const mount=ForestShared.switchWallMount(current().items,{x:dup.x+.5,y:dup.y+.5},{maxDistance:.55,rotation:dup.rotation});if(!mount){toast('No hay pared cerca para duplicar el interruptor.');return}Object.assign(dup,{x:mount.point.x,y:mount.point.y,rotation:mount.rotation,wallId:mount.wallId,roomId:mount.room?.roomId||mount.room?.id||''});}else{dup.x+=.5;dup.y+=.5;if(AREA_TYPES.has(dup.type)&&dup.spans?.length)dup.spans=dup.spans.map(sp=>({...sp,x:rounded(sp.x+.5,6),y:rounded(sp.y+.5,6)}))}addItem(dup);openInspector()};$('#overlay').onclick=e=>{if(e.target===$('#overlay'))closeModal()};$('#imageInput').onchange=e=>{imageFile(e.target.files?.[0]);e.target.value='';closeModal()};$('#jsonInput').onchange=e=>{const f=e.target.files?.[0];if(!f)return;f.text().then(s=>importProject(JSON.parse(s))).catch(err=>{modal(`<h2>Error al importar</h2><p>${escapeAttr(err.message)}</p><button id="errorClose">Cerrar</button>`,()=>$('#errorClose').onclick=closeModal)});e.target.value=''};window.addEventListener('resize',resize);window.addEventListener('keydown',e=>{if(e.target instanceof HTMLInputElement||e.target instanceof HTMLSelectElement||e.target instanceof HTMLTextAreaElement||e.target?.isContentEditable)return;
+ }window.FHSurfaceEditor?.afterRotate(it,previousRotation);record();openInspector()}};$('#duplicateBtn').onclick=()=>{let it=current().items.find(v=>v.id===selection);if(!it)return;if(window.FHStyleEditor&&!window.FHStyleEditor.canEditItem(it)){toast('No puedes duplicar ese objeto');return}let dup=clone(it);dup.id=numId();if(dup.type==='breaker_panel'){const c=ForestShared.nextCircuit(current(),dup);c.name=`Zona ${availableCircuits().length+1}`;dup.circuits=[c];dup.zoneId=c.zoneId;dup.circuitColor=c.circuitColor;dup.powerFlag='';}if(dup.interact)dup.interact.id='interact_'+dup.id;if(SEGMENT_TYPES.has(dup.type)){dup.a.x+=.5;dup.a.y+=.5;dup.b.x+=.5;dup.b.y+=.5}else if(dup.type==='light_switch'){const mount=ForestShared.switchWallMount(current().items,{x:dup.x+.5,y:dup.y+.5},{maxDistance:.55,rotation:dup.rotation});if(!mount){toast('No hay pared cerca para duplicar el interruptor.');return}Object.assign(dup,{x:mount.point.x,y:mount.point.y,rotation:mount.rotation,wallId:mount.wallId,roomId:mount.room?.roomId||mount.room?.id||''});}else{dup.x+=.5;dup.y+=.5;if(AREA_TYPES.has(dup.type)&&dup.spans?.length)dup.spans=dup.spans.map(sp=>({...sp,x:rounded(sp.x+.5,6),y:rounded(sp.y+.5,6)}))}if(window.FHSurfaceEditor?.prepareDuplicate&&!window.FHSurfaceEditor.prepareDuplicate(dup))return;addItem(dup);openInspector()};$('#overlay').onclick=e=>{if(e.target===$('#overlay'))closeModal()};$('#imageInput').onchange=e=>{imageFile(e.target.files?.[0]);e.target.value='';closeModal()};$('#jsonInput').onchange=e=>{const f=e.target.files?.[0];if(!f)return;f.text().then(s=>importProject(JSON.parse(s))).catch(err=>{modal(`<h2>Error al importar</h2><p>${escapeAttr(err.message)}</p><button id="errorClose">Cerrar</button>`,()=>$('#errorClose').onclick=closeModal)});e.target.value=''};window.addEventListener('resize',resize);window.addEventListener('keydown',e=>{if(e.target instanceof HTMLInputElement||e.target instanceof HTMLSelectElement||e.target instanceof HTMLTextAreaElement||e.target?.isContentEditable)return;
  // Atajos exclusivos del editor: reutilizan los botones y sus validaciones.
  if(!e.repeat&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&selection&&!playState.running&&!preview3DActive&&!$('#overlay').classList.contains('show')&&!document.querySelector('#fhCatModal:not([hidden])')){
   const item=current().items.find(it=>it.id===selection),key=e.key.toLowerCase();
@@ -2663,8 +2663,11 @@ function show3DStatus(message){play3DState.textContent=message;play3DState.class
 function prepareGLBEngineDoc(source){
  const attachBefore=' return g;\n}\nfunction windowModel(f,it){';
  const cloneBefore='const clone=source.clone(true);\n   clone.position.y+=floorElev[f];';
- if(!source.includes(attachBefore)||!source.includes(cloneBefore)||!source.includes('</head>'))
+ const surfacePositionBefore='g.position.set(a.x*CELL,.03,a.y*CELL);';
+ const surfacePositionAfter="const fhSurfacePose=window.FHSurfacePlacement?.worldPose(DATA.floors[f]?.items||[],a,CELL/.3048,(item,feet)=>window.FHFurnitureRules?.supportSurfacesFor(item,feet));\n g.position.set((fhSurfacePose?.x??a.x)*CELL,.03+(fhSurfacePose?.heightFt||0)*.3048,(fhSurfacePose?.y??a.y)*CELL);";
+ if(!source.includes(attachBefore)||!source.includes(cloneBefore)||!source.includes(surfacePositionBefore)||!source.includes('</head>'))
   throw new Error('No coincide la estructura del motor 3D con los puntos de integración GLB');
+ const surfaceScript='<script src="'+new URL('./juego/assets/fh-surface-placement.js',document.baseURI).href+'"></'+'script>';
  const ruleScript='<script src="'+new URL('./juego/assets/fh-furniture-rules.js',document.baseURI).href+'"></'+'script>';
  const bridge='<script src="'+new URL('./juego/assets/fh-glb-bridge.js',document.baseURI).href+'"></'+'script>';
  const sleepStrings='<script src="'+new URL('./juego/assets/fh-sleep-strings.js',document.baseURI).href+'"></'+'script>';
@@ -2768,9 +2771,10 @@ function prepareGLBEngineDoc(source){
   .replace(heroScaleBefore,'const HERO_H=1.68,HERO_VISUAL_SCALE=1,')
   .replace('ForestShared.loadProject(DATA);',
     'window.FHFurnitureRules?.upgradeMap(DATA,ForestShared);\nForestShared.loadProject(DATA);')
+  .replace(surfacePositionBefore,surfacePositionAfter)
   .replace(attachBefore,' window.FHAssets?.attach(g,a);\n'+attachBefore)
   .replace(cloneBefore,'const clone=source.clone(true);\n   window.FHAssets?.mirror(source,clone);\n   clone.position.y+=floorElev[f];')
-  .replace('</head>',coverageScript+lightsModule+ruleScript+bridge+sleepStrings+sleepModule+styleCore+styleRender+parkingScript+'</head>');
+  .replace('</head>',coverageScript+lightsModule+surfaceScript+ruleScript+bridge+sleepStrings+sleepModule+styleCore+styleRender+parkingScript+'</head>');
 }
 function start3DPreview(){
  if(preview3DActive)return;
@@ -2839,8 +2843,10 @@ init();
 <script src="./juego/assets/fh-light-coverage.js"></script>
 <script src="./juego/assets/fh-lights.js"></script>
 <script src="./juego/assets/fh-light-editor-overlay.js"></script>
+<script src="./juego/assets/fh-surface-placement.js"></script>
 <script src="./juego/assets/fh-furniture-rules.js"></script>
 <script src="./juego/assets/fh-editor-catalog.js"></script>
+<script src="./juego/assets/fh-surface-editor.js"></script>
 <script src="./juego/assets/fh-property-editor.js"></script>
 </body>
 </html>
