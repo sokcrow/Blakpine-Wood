@@ -2680,6 +2680,7 @@ function prepareGLBEngineDoc(source){
  if(!source.includes(attachBefore)||!source.includes(cloneBefore)||!source.includes(surfacePositionBefore)||!source.includes(surfaceRotationBefore)||!source.includes('</head>'))
   throw new Error('No coincide la estructura del motor 3D con los puntos de integración GLB');
  const surfaceScript='<script src="'+new URL('./juego/assets/fh-surface-placement.js',document.baseURI).href+'"></'+'script>';
+ const decorationScript='<script src="'+new URL('./juego/assets/fh-decoration.js',document.baseURI).href+'"></'+'script>';
  const ruleScript='<script src="'+new URL('./juego/assets/fh-furniture-rules.js',document.baseURI).href+'"></'+'script>';
  const bridge='<script src="'+new URL('./juego/assets/fh-glb-bridge.js',document.baseURI).href+'"></'+'script>';
  const sleepStrings='<script src="'+new URL('./juego/assets/fh-sleep-strings.js',document.baseURI).href+'"></'+'script>';
@@ -2786,7 +2787,7 @@ function prepareGLBEngineDoc(source){
   const interactAfter="const interactableItems=DATA.floors.map(f=>(f.items||[]).filter(it=>it.interact||it.type==='light_switch'||it.type==='breaker_panel'||ForestShared.PROP_ACTIONS[it.type]||it.pcTerminal===true||it.modelId==='escritorio_pc')\n .map(it=>it.interact?it:(it.pcTerminal===true||it.modelId==='escritorio_pc')?{...it,interact:{id:'pc_'+it.id,verb:'use',label:window.FH_DELIVERY_TEXT?.pcAction||'Usar PC',effects:[]}}:{...it,interact:ForestShared.PROP_ACTIONS[it.type]?\n  {...ForestShared.interactionPreset(it.type==='bed'?'bed_lie':it.type==='tv'?'tv_watch':it.type),id:'pose_'+it.id}:\n  {id:'power_'+it.id,verb:'use',label:it.type==='breaker_panel'?LIGHTING_TEXT.breakerAction:LIGHTING_TEXT.switchAction,effects:[]}}));";
   const buildAnchor="DATA.floors.forEach((_,i)=>buildFloor(i));";
   const runtimeBlock=`DATA.floors.forEach((_,i)=>buildFloor(i));
-let fhDeliveryUiActive=false,fhDeliveryNpc=null,fhDeliveryNpcMotion=null;
+let fhDeliveryUiActive=false,fhDeliveryNpc=null,fhDeliveryNpcMotion=null,fhDecorationActive=null,fhDecorationUi=null;
 const FH_DELIVERY_POSES={idle:'delivery_idle.webp',walk:'delivery_walk.webp',thinking:'delivery_thinking.webp',clipboard:'delivery_clipboard.webp',peephole_front:'delivery_peephole.webp',cash:'delivery_cash.webp',card:'delivery_card.webp'};
 function fhDeliverySpriteUrl(pose){return new URL('./juego/assets/npc/'+(FH_DELIVERY_POSES[pose]||FH_DELIVERY_POSES.idle),document.baseURI).href}
 function fhDeliveryNpcTexture(pose){
@@ -2835,9 +2836,96 @@ function fhRemoveRuntimeItem(item,f){
 }
 function fhReplacePackage(item,product,order){
  let f=DATA.floors.findIndex(fl=>(fl.items||[]).some(v=>v.id===item.id));if(f<0)return false;
- const next={id:'delivered_'+order.id,type:'misc',modelId:product.modelId,label:product.name,x:item.x,y:item.y,w:item.w,h:item.h,heightFt:product.heightFt,rotation:item.rotation||0,blocksMovement:product.blocksMovement!==false};
+ const next={id:'delivered_'+order.id,type:'misc',modelId:product.modelId,label:product.name,x:item.x,y:item.y,w:item.w,h:item.h,heightFt:product.heightFt,rotation:item.rotation||0,blocksMovement:product.blocksMovement!==false,
+  runtimeDecoratable:true,runtimeDeliveryFurniture:{orderId:order.id,productId:product.id}};
  window.FHFurnitureRules?.applyCatalogModel(next,product,ForestShared,Number(DATA.units.feetPerCell)||5);
- fhRemoveRuntimeItem(item,f);fhSpawnRuntimeItem(next,f);return true;
+ fhRemoveRuntimeItem(item,f);fhSpawnRuntimeItem(next,f);setTimeout(()=>fhStartDecoration(next,f),0);return {item:next,floor:f};
+}
+function fhRestoreDeliveredFurniture(record,product,order){
+ const f=Number.isInteger(record.floor)?record.floor:0;if(!DATA.floors[f])return false;
+ const next={id:record.id||('delivered_'+order.id),type:'misc',modelId:product.modelId,label:product.name,x:Number(record.x)||0,y:Number(record.y)||0,rotation:Number(record.rotation)||0,
+  blocksMovement:product.blocksMovement!==false,runtimeDecoratable:true,runtimeDeliveryFurniture:{orderId:order.id,productId:product.id}};
+ window.FHFurnitureRules?.applyCatalogModel(next,product,ForestShared,Number(DATA.units.feetPerCell)||5);
+ if(record.support)next.support=JSON.parse(JSON.stringify(record.support));if(record.wallId)next.wallId=record.wallId;
+ return fhSpawnRuntimeItem(next,f)?next:false;
+}
+function fhDecorationFloorFits(item,f,ignoreId=''){
+ const points=window.FHDecoration?.footprintPoints(item,CELL,.24)||[{x:item.x*CELL,z:item.y*CELL}];
+ const objects=furnitureColliders[f].filter(o=>o.id!==item.id&&o.id!==ignoreId);
+ for(const p of points)if(ForestShared.solidAt(p.x,p.z,{width:MAX_X,height:MAX_Z,radius:.018,walls:blockers[f],wallThickness:WALL_THICK,
+  doors:doorList[f],doorPad:.025,objects,objectMode:'box',surfaceAllowed:f>0&&SLABS[f].enabled?(x,z)=>onStructuralSlab(x,z):null}))return false;
+ return true;
+}
+function fhDecorationCandidate(item,f,x,y,rotation){
+ const items=(DATA.floors[f]?.items||[]).filter(v=>v.id!==item.id),feet=Number(DATA.units.feetPerCell)||5;
+ let parentId='';
+ const result=window.FHDecoration?.candidate(item,items,{x,y,rotation,feetPerCell:feet,surfaceApi:window.FHSurfacePlacement,
+  surfaceProvider:(parent,cellFt)=>window.FHFurnitureRules?.supportSurfacesFor(parent,cellFt),
+  wallMount:next=>ForestShared.switchWallMount(items,{x:next.x,y:next.y},{maxDistance:.85,rotation:next.rotation}),
+  floorFits:next=>fhDecorationFloorFits(next,f,parentId)});
+ if(result?.supported)parentId=result.parentId||'';
+ return result||{ok:false,reason:'blocked'};
+}
+function fhRebuildDecoratedItem(item,f,next){
+ fhRemoveRuntimeItem(item,f);window.FHDecoration?.applyPose(item,window.FHDecoration.snapshot(next));fhSpawnRuntimeItem(item,f);return item;
+}
+function fhDecorationMessage(reason){
+ const t=window.FH_DELIVERY_TEXT||{};return reason==='surface-required'?(t.decorateNeedsSurface||'Necesita una superficie.'):
+  reason==='wall-required'?(t.decorateNeedsWall||'Necesita una pared cercana.'):(t.decorateBlocked||'No cabe ahí.');
+}
+function fhEnsureDecorationUi(){
+ if(fhDecorationUi)return fhDecorationUi;
+ const style=document.createElement('style');style.textContent=
+  '#fhDecorateBtn{position:fixed;z-index:28;right:max(10px,env(safe-area-inset-right));top:max(72px,env(safe-area-inset-top));border:2px solid #b69462;background:#171d1cf2;color:#f3e2bd;padding:9px 12px;font:800 11px monospace;box-shadow:3px 4px #0008}'+
+  '#fhDecorateBtn[hidden],#fhDecorControls[hidden]{display:none!important}#fhDecorControls{position:fixed;z-index:29;right:max(10px,env(safe-area-inset-right));top:max(72px,env(safe-area-inset-top));width:min(260px,72vw);background:#111820f4;border:2px solid #b69462;padding:9px;box-shadow:4px 6px #0009;font:800 11px monospace;color:#f3e2bd}'+
+  '#fhDecorTitle{margin-bottom:7px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#fhDecorPad{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}#fhDecorPad button,#fhDecorActions button{min-height:38px;border:1px solid #75644f;background:#29323a;color:#f7e6c5;font:800 13px monospace}'+
+  '#fhDecorPad .empty{visibility:hidden}#fhDecorActions{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:7px}#fhDecorPlace{background:#786039!important}';
+ document.head.append(style);
+ const button=document.createElement('button');button.id='fhDecorateBtn';button.type='button';button.textContent='[ DECORAR ]';button.hidden=true;
+ const panel=document.createElement('div');panel.id='fhDecorControls';panel.hidden=true;panel.innerHTML='<div id="fhDecorTitle">DECORACIÓN</div><div id="fhDecorPad"><span class="empty"></span><button data-fh-move="0,1">▲</button><span class="empty"></span><button data-fh-move="-1,0">◀</button><button id="fhDecorRotate">⟳ 90°</button><button data-fh-move="1,0">▶</button><span class="empty"></span><button data-fh-move="0,-1">▼</button><span class="empty"></span></div><div id="fhDecorActions"><button id="fhDecorPlace">COLOCAR</button><button id="fhDecorCancel">CANCELAR</button></div>';
+ document.body.append(button,panel);fhDecorationUi={button,panel};
+ button.onclick=()=>{const target=fhDecorationNearest();if(target)fhStartDecoration(target.item,target.floor)};
+ panel.querySelectorAll('[data-fh-move]').forEach(b=>b.onclick=()=>{const [x,y]=b.dataset.fhMove.split(',').map(Number);fhMoveDecoration(x,y)});
+ panel.querySelector('#fhDecorRotate').onclick=()=>fhRotateDecoration();
+ panel.querySelector('#fhDecorPlace').onclick=()=>fhFinishDecoration(true);
+ panel.querySelector('#fhDecorCancel').onclick=()=>fhFinishDecoration(false);
+ window.addEventListener('keydown',event=>{if(fhDecorationActive&&event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();fhFinishDecoration(false)}},true);
+ return fhDecorationUi;
+}
+function fhDecorationNearest(){
+ let best=null,dist=1.75;for(const item of DATA.floors[currentFloor]?.items||[]){if(!item.runtimeDecoratable)continue;
+  const d=Math.hypot(item.x*CELL-user.x,item.y*CELL-user.z);if(d<dist){dist=d;best={item,floor:currentFloor}}}return best;
+}
+function fhStartDecoration(item,f=currentFloor){
+ if(!item?.runtimeDecoratable||fhDecorationActive)return false;const ui=fhEnsureDecorationUi(),original=window.FHDecoration.snapshot(item);
+ const initial=fhDecorationCandidate(item,f,item.x,item.y,item.rotation);
+ fhDecorationActive={item,floor:f,original,required:!initial.ok};ui.button.hidden=true;ui.panel.hidden=false;
+ ui.panel.querySelector('#fhDecorTitle').textContent='DECORACIÓN · '+(item.label||'OBJETO');user.vx=user.vz=0;clearStick();return true;
+}
+function fhMoveDecoration(side,forward){
+ const a=fhDecorationActive;if(!a)return;const step=.10,fx=-Math.sin(yaw),fz=-Math.cos(yaw),rx=Math.cos(yaw),rz=-Math.sin(yaw);
+ const x=a.item.x+(rx*side+fx*forward)*step,y=a.item.y+(rz*side+fz*forward)*step,res=fhDecorationCandidate(a.item,a.floor,x,y,a.item.rotation);
+ if(!res.ok){notice(fhDecorationMessage(res.reason),1100);return}fhRebuildDecoratedItem(a.item,a.floor,res.item);
+}
+function fhRotateDecoration(){
+ const a=fhDecorationActive;if(!a)return;const res=fhDecorationCandidate(a.item,a.floor,a.item.x,a.item.y,(Number(a.item.rotation)||0)+90);
+ if(!res.ok){notice(fhDecorationMessage(res.reason),1100);return}fhRebuildDecoratedItem(a.item,a.floor,res.item);
+}
+function fhFinishDecoration(commit){
+ const a=fhDecorationActive;if(!a)return false;
+ if(commit){
+  const valid=fhDecorationCandidate(a.item,a.floor,a.item.x,a.item.y,a.item.rotation);
+  if(!valid.ok){notice(fhDecorationMessage(valid.reason),1300);return false}
+  fhRebuildDecoratedItem(a.item,a.floor,valid.item);window.FHDeliveryRuntime?.updateRuntimeItem(a.item,a.floor);notice(window.FH_DELIVERY_TEXT?.decoratePlaced||'Objeto colocado.',1300);
+ }else{
+  if(a.required){notice(window.FH_DELIVERY_TEXT?.decorateRequired||'Debes colocar este objeto en una posición válida antes de salir.',1800);return false}
+  fhRebuildDecoratedItem(a.item,a.floor,a.original);
+ }
+ fhDecorationActive=null;const ui=fhEnsureDecorationUi();ui.panel.hidden=true;return true;
+}
+function fhDecorationTick(){
+ const ui=fhEnsureDecorationUi();if(fhDecorationActive){ui.button.hidden=true;return}
+ const target=!fhDeliveryUiActive&&!peeking&&!playerPose.occupied?fhDecorationNearest():null;ui.button.hidden=!target;
 }
 function fhDeliveryDoor(pc,f){
  const list=(doorList[f]||[]).filter(d=>d.kind==='peephole_door');if(!list.length)return null;
@@ -2856,17 +2944,17 @@ window.FHDeliveryRuntime=window.FHDelivery?.createRuntime({
  findDoor:fhDeliveryDoor,doorById:fhDeliveryDoorById,
  openDoor:door=>{if(peeking)stopPeek();if(!door.open)toggleDoor();},
  packagePlacement:(door)=>({floor:door.f,x:door.cx-door.norm.x*1.15,z:door.cz-door.norm.z*1.15}),
- spawnRuntimeItem:fhSpawnRuntimeItem,hasRuntimeItem:(id,f)=>!!fhRuntimeItemById(id,f),replacePackage:fhReplacePackage,
+ spawnRuntimeItem:fhSpawnRuntimeItem,hasRuntimeItem:(id,f)=>!!fhRuntimeItemById(id,f),replacePackage:fhReplacePackage,restoreFurniture:fhRestoreDeliveredFurniture,
  showNpc:fhShowDeliveryNpc,hideNpc:fhHideDeliveryNpc,spriteUrl:fhDeliverySpriteUrl
 });`;
   const furnitureBefore="function useFurniture(item,selectedSeat=null){\n if(['sit','lie'].includes(item.interact?.verb)){";
-  const furnitureAfter="function useFurniture(item,selectedSeat=null){\n if(window.FHDeliveryRuntime?.isPc(item))return {ok:!!window.FHDeliveryRuntime.openPc(item,currentFloor)};\n if(window.FHDeliveryRuntime?.isPackage(item))return {ok:!!window.FHDeliveryRuntime.openPackage(item)};\n if(['sit','lie'].includes(item.interact?.verb)){";
+  const furnitureAfter="function useFurniture(item,selectedSeat=null){\n if(fhDecorationActive)return {ok:false,reason:'decorating'};\n if(window.FHDeliveryRuntime?.isPc(item))return {ok:!!window.FHDeliveryRuntime.openPc(item,currentFloor)};\n if(window.FHDeliveryRuntime?.isPackage(item))return {ok:!!window.FHDeliveryRuntime.openPackage(item)};\n if(['sit','lie'].includes(item.interact?.verb)){";
   const doorBefore=" notice(d.open?'Abres la puerta.':'Cierras la puerta.',1800);\n}";
   const doorAfter=" notice(d.open?'Abres la puerta.':'Cierras la puerta.',1800);\n if(d.open&&isInsideDoor(d))window.FHDeliveryRuntime?.onDoorOpened(d);\n}";
   const peekBefore=" $('peekText').textContent='◉ MIRILLA · Ves el pasillo, sin abrir la puerta · toca para salir';visibilityDirty=true;";
   const peekAfter=" $('peekText').textContent='◉ MIRILLA · Ves el pasillo, sin abrir la puerta · toca para salir';visibilityDirty=true;\n window.FHDeliveryRuntime?.onPeephole(d);";
   const frameBefore=" moveUpdate(dt);";
-  const frameAfter=" window.FHDeliveryRuntime?.update(dt);if(!fhDeliveryUiActive)moveUpdate(dt);else{user.vx=user.vz=0;}fhDeliveryNpcTick(dt);";
+  const frameAfter=" window.FHDeliveryRuntime?.update(dt);fhDecorationTick();if(!fhDeliveryUiActive&&!fhDecorationActive)moveUpdate(dt);else{user.vx=user.vz=0;}fhDeliveryNpcTick(dt);";
   const apiBefore="get watchingTV(){return watchingTvId},watchTV:useTVFromSeat,breakers:";
   const apiAfter="get watchingTV(){return watchingTvId},watchTV:useTVFromSeat,delivery:window.FHDeliveryRuntime,breakers:";
   const changes=[[stateAnchor,stateAfter],[interactBefore,interactAfter],[buildAnchor,runtimeBlock],[furnitureBefore,furnitureAfter],[doorBefore,doorAfter],[peekBefore,peekAfter],[frameBefore,frameAfter],[apiBefore,apiAfter]];
@@ -2889,7 +2977,7 @@ window.FHDeliveryRuntime=window.FHDelivery?.createRuntime({
   .replace(surfaceRotationBefore,surfaceRotationAfter)
   .replace(attachBefore,' window.FHAssets?.attach(g,a);\n'+attachBefore)
   .replace(cloneBefore,'const clone=source.clone(true);\n   window.FHAssets?.mirror(source,clone);\n   clone.position.y+=floorElev[f];')
-  .replace('</head>',coverageScript+lightsModule+surfaceScript+ruleScript+bridge+sleepStrings+sleepModule+deliveryStrings+deliveryModule+styleCore+styleRender+parkingScript+'</head>');
+  .replace('</head>',coverageScript+lightsModule+surfaceScript+decorationScript+ruleScript+bridge+sleepStrings+sleepModule+deliveryStrings+deliveryModule+styleCore+styleRender+parkingScript+'</head>');
 }
 function start3DPreview(){
  if(preview3DActive)return;
