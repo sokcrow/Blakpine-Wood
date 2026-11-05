@@ -14,6 +14,7 @@ function ensureState(state){
  const d=state.delivery;
  if(!Array.isArray(d.orders))d.orders=[];
  if(!Array.isArray(d.packages))d.packages=[];
+ if(!Array.isArray(d.furnishings))d.furnishings=[];
  if(!d.npc||typeof d.npc!=='object')d.npc={activeOrderId:null,doorId:null,state:'idle',pose:'idle'};
  if(!state.clock||typeof state.clock!=='object')state.clock={minutes:8*60};
  if(!Number.isFinite(Number(state.clock.minutes)))state.clock.minutes=8*60;
@@ -177,12 +178,12 @@ function createRuntime(options){
  function confirmPayment(order,door){order.payment.status='paid';say(TEXT.paymentConfirmed||'Pago confirmado.',1400);save();deliver(order,door)}
  function makePackageItem(order,box,place,packageId='package_'+order.id){return {id:packageId,type:'misc',modelId:box.id,label:box.name||'Paquete Hamazon',x:place.x/options.cell,y:place.z/options.cell,
    w:finite(box.widthFt,2.5)/options.feetPerCell,h:finite(box.depthFt,2.5)/options.feetPerCell,heightFt:finite(box.heightFt,2.5),
-   rotation:0,blocksMovement:false,runtimePackage:{orderId:order.id,productId:order.productId},interact:{id:'open_'+packageId,verb:'open',label:TEXT.packageAction||'Abrir paquete',effects:[]}}}
+   rotation:finite(place.rotation,0),blocksMovement:false,runtimeDecoratable:true,runtimePackage:{orderId:order.id,productId:order.productId},interact:{id:'open_'+packageId,verb:'open',label:TEXT.packageAction||'Abrir paquete',effects:[]}}}
  function finalizeDelivery(order,door,product,box){
   const place=options.packagePlacement?.(door,box)||{floor:door.f,x:door.cx,z:door.cz};
   const packageId='package_'+order.id,item=makePackageItem(order,box,place,packageId);
   options.spawnRuntimeItem?.(item,place.floor);
-  order.packageId=packageId;order.status='delivered';delivery.packages.push({id:packageId,orderId:order.id,floor:place.floor,x:item.x,y:item.y,modelId:box.id});
+  order.packageId=packageId;order.status='delivered';delivery.packages.push({id:packageId,orderId:order.id,floor:place.floor,x:item.x,y:item.y,rotation:item.rotation||0,modelId:box.id});
   delivery.npc={activeOrderId:null,doorId:null,state:'leaving',pose:'walk'};options.hideNpc?.(order,door);closeDialog();
   say(TEXT.packageDelivered||'Paquete entregado.',3000);save();syncOrdersToTerminal();setTimeout(()=>update(0),650);return true;
  }
@@ -195,11 +196,33 @@ function createRuntime(options){
   ]);return true;
  }
  function isPackage(item){return !!item?.runtimePackage?.orderId}
+ function isDeliveredFurniture(item){return !!item?.runtimeDeliveryFurniture?.orderId}
+ function runtimePoseRecord(item,floor,orderId,productId){
+  const record={id:item.id,orderId,productId,floor:Number.isInteger(floor)?floor:0,x:finite(item.x),y:finite(item.y),rotation:finite(item.rotation),modelId:item.modelId||productId};
+  if(item.support)record.support=clone(item.support);if(item.wallId)record.wallId=item.wallId;return record;
+ }
+ function updateRuntimeItem(item,floor){
+  if(!item)return false;
+  let record=null;
+  if(isPackage(item))record=delivery.packages.find(x=>x.id===item.id);
+  else if(isDeliveredFurniture(item))record=delivery.furnishings.find(x=>x.id===item.id);
+  if(!record)return false;
+  Object.assign(record,{floor:Number.isInteger(floor)?floor:record.floor,x:finite(item.x),y:finite(item.y),rotation:finite(item.rotation)});
+  if(item.support)record.support=clone(item.support);else delete record.support;
+  if(item.wallId)record.wallId=item.wallId;else delete record.wallId;
+  save();return true;
+ }
  function openPackage(item){
   const order=orderById(state,item?.runtimePackage?.orderId);if(!order||order.status!=='delivered')return false;
   const p=productById(order.productId);if(!p)return false;
   const result=options.replacePackage?.(item,p,order);if(result===false)return false;
-  order.status='unboxed';delivery.packages=delivery.packages.filter(x=>x.id!==item.id);advanceTime(state,order.unboxMinutes);
+  order.status='unboxed';delivery.packages=delivery.packages.filter(x=>x.id!==item.id);
+  const replacement=result&&typeof result==='object'&&result.item?result:null;
+  if(replacement?.item){
+   const next=replacement.item,record=runtimePoseRecord(next,replacement.floor,order.id,p.id);
+   delivery.furnishings=delivery.furnishings.filter(x=>x.orderId!==order.id&&x.id!==record.id);delivery.furnishings.push(record);
+  }
+  advanceTime(state,order.unboxMinutes);
   say((TEXT.packageOpened||((n)=>n))(p.name,order.unboxMinutes),3800);save();syncOrdersToTerminal();update(0);return true;
  }
  function update(dt=0){
@@ -213,8 +236,14 @@ function createRuntime(options){
   for(const pack of delivery.packages){
    const order=orderById(state,pack.orderId);if(!order||order.status!=='delivered'||options.hasRuntimeItem?.(pack.id,pack.floor))continue;
    const box=boxBySize(order.parcelSize);if(!box)continue;
-   const place={floor:pack.floor,x:finite(pack.x,0)*options.cell,z:finite(pack.y,0)*options.cell};
-   options.spawnRuntimeItem?.(makePackageItem(order,box,place,pack.id),pack.floor);
+   const place={floor:pack.floor,x:finite(pack.x,0)*options.cell,z:finite(pack.y,0)*options.cell,rotation:finite(pack.rotation,0)};
+   const item=makePackageItem(order,box,place,pack.id);if(pack.support)item.support=clone(pack.support);if(pack.wallId)item.wallId=pack.wallId;
+   options.spawnRuntimeItem?.(item,pack.floor);
+  }
+  for(const record of delivery.furnishings){
+   const order=orderById(state,record.orderId),product=productById(record.productId||order?.productId);
+   if(!order||order.status!=='unboxed'||!product||options.hasRuntimeItem?.(record.id,record.floor))continue;
+   options.restoreFurniture?.(record,product,order);
   }
   const waiting=delivery.orders.find(o=>['waiting','payment','delivering'].includes(o.status));
   if(waiting){const door=options.doorById?.(waiting.doorId,waiting.floor);if(door)options.showNpc?.(waiting,door,waiting.status==='payment'?(waiting.paymentMethod==='card'?'card':'cash'):waiting.status==='delivering'?'clipboard':'idle')}
@@ -222,7 +251,7 @@ function createRuntime(options){
   return true;
  }
  function isPc(item){return !!item&&(item.pcTerminal===true||item.modelId==='escritorio_pc')}
- function actionLabel(item){return isPc(item)?(TEXT.pcAction||'Usar PC'):isPackage(item)?(TEXT.packageAction||'Abrir paquete'):null}
+ function actionLabel(item){return isPc(item)?(TEXT.pcAction||'Usar PC'):isPackage(item)?(TEXT.packageAction||'Abrir paquete'):isDeliveredFurniture(item)?(TEXT.decorateAction||'Mover / decorar'):null}
  function onMessage(event){
   if(!terminal||event.source!==terminal.contentWindow||event.data?.type!=='FOREST_TERMINAL_EVENT')return;
   const {name,detail}=event.data;if(name==='hamazon-order')placeOrder(detail?.productId,detail?.paymentMethod);
@@ -230,7 +259,7 @@ function createRuntime(options){
  }
  global.addEventListener('message',onMessage);
  loadCatalogs();
- return {isPc,isPackage,actionLabel,openPc,closePc,onPeephole,onDoorOpened,openPackage,placeOrder,advanceTime,formatClock,update,resume,activateNext,
+ return {isPc,isPackage,isDeliveredFurniture,updateRuntimeItem,actionLabel,openPc,closePc,onPeephole,onDoorOpened,openPackage,placeOrder,advanceTime,formatClock,update,resume,activateNext,
   get products(){return products.map(clone)},get orders(){return delivery.orders.map(clone)},get ready(){return ready}};
 }
 global.FHDelivery=Object.freeze({ensureState,parcelSize,normalizeProduct,createOrder,activeOrderForDoor,advanceTime,tickClock,formatMinutes,formatClock,nextDueOrder,createRuntime});
