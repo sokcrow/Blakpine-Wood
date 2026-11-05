@@ -36,6 +36,18 @@
   }
   return true;
  }
+ function beforeRemove(parentId){
+  if(!parentId)return 0;
+  let count=0;
+  for(const child of items()){
+   if(child?.support?.parentItemId!==parentId)continue;
+   S.syncItem(items(),child,feetPerCell(),surfaces);
+   S.detach(child);
+   S.syncChildren(items(),child.id,feetPerCell(),surfaces);
+   count++;
+  }
+  return count;
+ }
  const oldCreate=createObject;
  createObject=function(type,pos){
   const item=oldCreate(type,pos);
@@ -57,5 +69,5 @@
  const oldChangeFloor=changeFloor;
  changeFloor=function(index){oldChangeFloor(index);syncCurrent();};
  syncCurrent();
- global.FHSurfaceEditor=Object.freeze({place,syncCurrent,afterRotate,prepareDuplicate});
+ global.FHSurfaceEditor=Object.freeze({place,syncCurrent,afterRotate,prepareDuplicate,beforeRemove});
 })(window);
