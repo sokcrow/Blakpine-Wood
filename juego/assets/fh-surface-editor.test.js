@@ -5,7 +5,7 @@ const path=require('node:path');
 const vm=require('node:vm');
 const S=require('./fh-surface-placement.js');
 const source=fs.readFileSync(path.join(__dirname,'fh-surface-editor.js'),'utf8');
-function setup(){
+function setup(creationPlacement='surface',snapStep=1){
  const desk={id:'desk',type:'misc',modelId:'escritorio_pc',x:10,y:10,rotation:0,
   supportSurfaces:[{id:'desktop',widthFt:4,depthFt:2,heightFt:2.75}]};
  const items=[desk];
@@ -14,7 +14,8 @@ function setup(){
    supportSurfacesFor:item=>item.supportSurfaces||[],normalizePlacement:()=>false
   },FH_CATALOG_TEXT:{}},
   project:{units:{feetPerCell:5}},current:()=>({items}),
-  createObject:(type,pos)=>({id:'new',type,...pos,w:.1,h:.1,rotation:0,placement:'surface'}),
+  normalizeGrid:value=>Math.round(value/snapStep)*snapStep,
+  createObject:(type,pos)=>({id:'new',type,...pos,w:.1,h:.1,rotation:0,placement:creationPlacement}),
   moveItem:(item,delta,original)=>{item.x=Math.round(original.x+delta.x);item.y=Math.round(original.y+delta.y)},
   changeFloor:()=>{},toast:()=>{},clone:value=>JSON.parse(JSON.stringify(value))
  };
@@ -64,5 +65,26 @@ test('Crear objeto de superficie registra el soporte y la altura 3D',()=>{
  assert.equal(object.support.parentItemId,'desk');
  const pose=S.worldPose([...items,object],object,5,i=>i.supportSurfaces||[]);
  assert.equal(pose.heightFt,2.75);
+});
+test('floor_or_surface conserva snap cuando no encuentra un tablero',()=>{
+ const {editor}=setup('floor_or_surface');
+ const object=editor.createObject('tv',{x:14.37,y:9.62});
+ assert.equal(object.x,14);
+ assert.equal(object.y,10);
+ assert.equal(object.support,undefined);
+});
+test('floor_or_surface conserva precisión fina cuando sí encuentra escritorio',()=>{
+ const {editor}=setup('floor_or_surface');
+ const object=editor.createObject('tv',{x:10.12,y:10.04});
+ assert.ok(Math.abs(object.x-10.12)<1e-8);
+ assert.ok(Math.abs(object.y-10.04)<1e-8);
+ assert.equal(object.support.parentItemId,'desk');
+});
+test('floor_or_surface respeta el snap de cuarto de casilla en el piso',()=>{
+ const {editor}=setup('floor_or_surface',.25);
+ const object=editor.createObject('tv',{x:14.38,y:9.62});
+ assert.equal(object.x,14.5);
+ assert.equal(object.y,9.5);
+ assert.equal(object.support,undefined);
 });
 console.log(checks+' pruebas correctas');
