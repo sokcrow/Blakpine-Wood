@@ -38,6 +38,25 @@ test('Lámpara colocada manualmente continúa en el motor',()=>{
  const resolved=runtime(f);
  assert.equal(resolved.length,1);
  assert.equal(resolved[0].lamp,lamp);
+ assert.equal(Number(resolved[0].brightRadius.toFixed(4)),Number((16*.3048).toFixed(4)));
+ assert.equal(Number(resolved[0].dimRadius.toFixed(4)),Number((16*1.4*.3048).toFixed(4)));
+});
+
+test('La luz cae de brillante a tenue sin un corte duro',()=>{
+ const source={x:0,z:0,radius:2,brightRadius:2,dimRadius:4,angleDeg:360};
+ const clear=()=>true;
+ assert.equal(L.sourceStrength(source,1,0,[],clear),1);
+ assert.equal(L.sourceStrength(source,2,0,[],clear),1);
+ assert.equal(Number(L.sourceStrength(source,3,0,[],clear).toFixed(2)),.5);
+ assert.equal(L.sourceStrength(source,4,0,[],clear),0);
+ assert.equal(L.sourceStrength(source,4.1,0,[],clear),0);
+});
+
+test('El radio tenue mantiene una fuente candidata aunque el radio brillante ya no alcance',()=>{
+ const entry={floor:0,x:0,z:0,radius:2,brightRadius:2,dimRadius:4,angleDeg:360};
+ const lighting={fixtureLit:()=>true};
+ assert.equal(L.sourcesNear([entry],lighting,0,5.5,0,2).length,1);
+ assert.equal(L.sourcesNear([entry],lighting,0,6.1,0,2).length,0);
 });
 test('El circuito sigue decidiendo si la lámpara está encendida',()=>{
  const f=floor(false);
