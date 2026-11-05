@@ -39,7 +39,8 @@
   const fx=-Math.sin(r),fz=Math.cos(r);
   let best=null;
   for(const item of items){
-   if(!item||item.id===seat.id||['chair','sofa','bed','tv'].includes(item.type))continue;
+   // Las piezas son parte de la estación: no deben tapar el botón «Usar computadora».
+   if(!item||item.id===seat.id||Object.values(PARTS).includes(item.modelId)||['chair','sofa','bed','tv'].includes(item.type))continue;
    const pc=!!options.isPc?.(item);
    if(!pc&&!item.interact)continue;
    if(!pc&&!['use','read','open','search','take','examine'].includes(item.interact?.verb))continue;
