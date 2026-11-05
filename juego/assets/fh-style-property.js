@@ -74,15 +74,15 @@
     const floor=(map.floors||[]).find(f=>f.id===floorId);
     if(!floor)return [];
     const loops=closedLoops(floor.items,'property_wall','propertyBoundary');
-    const old=properties(map,floorId),others=(map.properties||[]).filter(p=>p.floorId!==floorId),used=new Set();
+    const all=properties(map,floorId),manual=all.filter(p=>p.source==='zone'),old=all.filter(p=>p.source!=='zone'),others=(map.properties||[]).filter(p=>p.floorId!==floorId),used=new Set();
     const fresh=loops.map((polygon,i)=>{
       const c=polygonCenter(polygon);
       const match=old.find(p=>!used.has(p.id)&&inside(c,p.polygon))||old.find(p=>!used.has(p.id)&&inside(polygonCenter(p.polygon),polygon));
       if(match)used.add(match.id);
       return {id:match?.id||floorId+'_prop_'+(i+1),floorId,ownerId:match?.ownerId||'',polygon};
     });
-    map.properties=others.concat(fresh);
-    return fresh;
+    map.properties=others.concat(manual,fresh);
+    return manual.concat(fresh);
   }
   function style(st,fallback,kind='wall'){
     const ok=kind==='floor'?FLOOR_PRESETS:WALL_PRESETS;
@@ -119,6 +119,10 @@
   function canPaintWall(map,floorId,wall,side,actor,isAdmin=false){
     if(isAdmin)return true;
     if(!actor||!FACES.includes(side))return false;
+    const midpoint={x:(wall.a.x+wall.b.x)/2,y:(wall.a.y+wall.b.y)/2};
+    const zoneMatches=properties(map,floorId).filter(p=>p.source==='zone'&&[wall.a,wall.b,midpoint].every(pt=>inside(pt,p.polygon)));
+    if(zoneMatches.length===1&&properties(map,floorId).filter(p=>p!==zoneMatches[0]&&inside(midpoint,p.polygon)).length===0)return zoneMatches[0].ownerId===actor;
+    if(zoneMatches.length>1)return false;
     const a=[.02,.5,.98].map(t=>{const main=authority(map,floorId,sample(wall,side,t));if(wall.type==='red_wall'&&main.id.startsWith('outside:')){const opposite=authority(map,floorId,sample(wall,side==='A'?'B':'A',t));if(opposite.id.startsWith('building:'))return opposite;}return main;});
     return a.every(k=>k.ownerId===actor&&k.id===a[0].id);
   }
@@ -175,7 +179,7 @@
     return t>1e-5&&t<1-1e-5&&u>=-1e-5&&u<=1+1e-5?t:null;
   }
   function splitAtPropertyLimits(map,floorId,makeId){
-    const floor=(map.floors||[]).find(f=>f.id===floorId),polys=properties(map,floorId);
+    const floor=(map.floors||[]).find(f=>f.id===floorId),polys=properties(map,floorId).filter(p=>p.source!=='zone');
     if(!floor||!polys.length)return 0;let splits=0,updated=[];
     for(const item of floor.items){
       if(!['wall','red_wall','half_wall','property_wall'].includes(item.type)||!item.a||!item.b){updated.push(item);continue;}
