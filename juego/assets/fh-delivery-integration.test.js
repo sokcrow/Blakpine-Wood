@@ -137,4 +137,14 @@ test('Las estaciones PC controlan RAVEN/OS sin usar el runtime de Hamazon',()=>{
  assert.match(terminal,/setSession\(session=\{\}\)/);
  assert.match(terminal,/sessionApps=Array\.isArray\(session\.apps\)/);
 });
+test('RAVEN/OS conserva identidad del jugador y restringe cámaras por estación',()=>{
+ const computer=fs.readFileSync(path.join(__dirname,'fh-computer.js'),'utf8');
+ assert.match(index,/fh-computer-strings\.js/);
+ assert.match(terminal,/fh-computer-strings\.js/);
+ assert.match(computer,/state\.computer\?\.mails/);
+ assert.match(computer,/item\?\.pcConnections\?\.cameras/);
+ assert.match(terminal,/sessionUserId=String\(session\.userId/);
+ assert.match(terminal,/if\(!DATA\.cameras\.length\)/);
+ assert.match(terminal,/if\(!sessionApps\.includes\(app\)\)/);
+});
 console.log(passed+' pruebas correctas');
