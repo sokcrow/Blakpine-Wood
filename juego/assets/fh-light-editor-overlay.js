@@ -12,17 +12,11 @@
   const context=image.getContext('2d'),imageData=context.createImageData(coverage.width,coverage.height);
   const {width,height,mask}=coverage;
   for(let y=0;y<height;y++)for(let x=0;x<width;x++){
-   const i=y*width+x,p=i*4;
-   if(mask[i]){
-    const boundary=x===0||y===0||x===width-1||y===height-1||
-     !mask[i-1]||!mask[i+1]||!mask[i-width]||!mask[i+width];
-    imageData.data[p]=boundary?255:240;
-    imageData.data[p+1]=boundary?223:199;
-    imageData.data[p+2]=boundary?139:90;
-    imageData.data[p+3]=boundary?150:55;
-   }else{
-    imageData.data[p]=14;imageData.data[p+1]=24;imageData.data[p+2]=38;imageData.data[p+3]=101;
-   }
+   const i=y*width,pixel=i+x,p=pixel*4,strength=mask[pixel]/255;
+   imageData.data[p]=Math.round(14+(240-14)*strength);
+   imageData.data[p+1]=Math.round(24+(199-24)*strength);
+   imageData.data[p+2]=Math.round(38+(90-38)*strength);
+   imageData.data[p+3]=101;
   }
   context.putImageData(imageData,0,0);
   cache={key,mask:coverage,canvas:image};

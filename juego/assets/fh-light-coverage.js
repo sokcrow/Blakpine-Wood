@@ -8,6 +8,7 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
  'use strict';
  const MIN=.00001;
+ const MAX_LIGHT_RADIUS_FT=120,MAX_DIM_FALLOFF_FT=120,LEGACY_MAX_DIM_RADIUS_FT=112,DIM_RADIUS_RATIO=1.4;
  const BUILTIN={bulb:{radiusFt:16,beamAngleDeg:360},strip:{radiusFt:27,beamAngleDeg:360},
   panel:{radiusFt:22,beamAngleDeg:360},wall_sconce:{radiusFt:15,beamAngleDeg:160},
   wall_flood:{radiusFt:29,beamAngleDeg:110}};
@@ -42,26 +43,37 @@
    const preset=typeof presetFor==='function'?presetFor(kind)||defaultPreset:defaultPreset;
    const rotation=Number(lamp.rotation)||0,angle=rotation*Math.PI/180;
    const wall=kind==='wall_sconce'||kind==='wall_flood';
+   const explicitDim=Number(lamp.lightDimFalloffFt),legacyOuter=Number(lamp.lightDimRadiusFt);
+   const brightFt=clamp(Number(lamp.lightRadiusFt)||preset.radiusFt||16,5,Number.isFinite(explicitDim)?MAX_LIGHT_RADIUS_FT:80);
+   const dimFalloffFt=Number.isFinite(explicitDim)?clamp(explicitDim,0,MAX_DIM_FALLOFF_FT):
+    Number.isFinite(legacyOuter)?clamp(legacyOuter,brightFt,LEGACY_MAX_DIM_RADIUS_FT)-brightFt:
+    clamp(brightFt*(DIM_RADIUS_RATIO-1),0,MAX_DIM_FALLOFF_FT);
+   const brightRadius=brightFt/feet,dimRadius=(brightFt+dimFalloffFt)/feet;
    output.push({
     x:Number(lamp.x)-(wall?Math.sin(angle)*.15/meters:0),
     y:Number(lamp.y)+(wall?Math.cos(angle)*.15/meters:0),
-    radius:clamp(Number(lamp.lightRadiusFt)||preset.radiusFt||16,5,80)/feet,
+    radius:brightRadius,brightRadius,dimRadius,
     cone:clamp(Number(lamp.beamAngleDeg)||preset.beamAngleDeg||360,20,360),
     rotation, id:lamp.id||''
    });
   }
   return output;
  }
- function reaches(source,x,y,walls){
+ function strength(source,x,y,walls){
   const dx=x-source.x,dy=y-source.y,dist2=dx*dx+dy*dy;
-  if(dist2>source.radius*source.radius+MIN)return false;
+  const bright=source.brightRadius||source.radius,dim=Math.max(bright,source.dimRadius||bright);
+  if(dist2>dim*dim+MIN)return 0;
   if(source.cone<359.5&&dist2>MIN){
    const a=source.rotation*Math.PI/180;
    const facing=(-Math.sin(a)*dx+Math.cos(a)*dy)/Math.sqrt(dist2);
-   if(facing<Math.cos(source.cone*Math.PI/360))return false;
+   if(facing<Math.cos(source.cone*Math.PI/360))return 0;
   }
-  return !blocked(source.x,source.y,x,y,walls);
+  if(blocked(source.x,source.y,x,y,walls))return 0;
+  const distance=Math.sqrt(dist2);
+  if(distance<=bright||dim<=bright+MIN)return 1;
+  return clamp(1-(distance-bright)/(dim-bright),0,1);
  }
+ function reaches(source,x,y,walls){return strength(source,x,y,walls)>0}
  function resolution(columns,rows){
   const tiles=columns*rows;
   return tiles<=3000?5:tiles<=15000?3:tiles<=70000?2:1;
@@ -75,25 +87,25 @@
   const lamps=sources(items,units?.feetPerCell,options.presetFor);
   const mask=new Uint8Array(width*height);
   for(const light of lamps){
-   const x0=Math.max(0,Math.floor((light.x-light.radius)*scale));
-   const x1=Math.min(width-1,Math.ceil((light.x+light.radius)*scale));
-   const y0=Math.max(0,Math.floor((light.y-light.radius)*scale));
-   const y1=Math.min(height-1,Math.ceil((light.y+light.radius)*scale));
+   const x0=Math.max(0,Math.floor((light.x-light.dimRadius)*scale));
+   const x1=Math.min(width-1,Math.ceil((light.x+light.dimRadius)*scale));
+   const y0=Math.max(0,Math.floor((light.y-light.dimRadius)*scale));
+   const y1=Math.min(height-1,Math.ceil((light.y+light.dimRadius)*scale));
    const relevant=walls.filter(w=>{
     const left=Math.min(w.x1,w.x2),right=Math.max(w.x1,w.x2);
     const top=Math.min(w.y1,w.y2),bottom=Math.max(w.y1,w.y2);
-    return right>=light.x-light.radius&&left<=light.x+light.radius&&bottom>=light.y-light.radius&&top<=light.y+light.radius;
+    return right>=light.x-light.dimRadius&&left<=light.x+light.dimRadius&&bottom>=light.y-light.dimRadius&&top<=light.y+light.dimRadius;
    });
    for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){
-    const i=y*width+x;
-    if(mask[i])continue; // unión: ninguna sobreexposición por lámparas repetidas
-    if(reaches(light,(x+.5)/scale,(y+.5)/scale,relevant))mask[i]=1;
+    const i=y*width+x,value=Math.round(strength(light,(x+.5)/scale,(y+.5)/scale,relevant)*255);
+    if(value>mask[i])mask[i]=value; // unión: conservar la contribución más fuerte
    }
   }
-  const sample=(x,y)=>{
+  const sampleStrength=(x,y)=>{
    const ix=Math.floor(x*scale),iy=Math.floor(y*scale);
-   return ix>=0&&iy>=0&&ix<width&&iy<height?mask[iy*width+ix]===1:false;
+   return ix>=0&&iy>=0&&ix<width&&iy<height?mask[iy*width+ix]/255:0;
   };
+  const sample=(x,y)=>sampleStrength(x,y)>0;
   function roomCoverage(room){
    const spans=room.spans?.length?room.spans:[room],areaTypes=spans.filter(s=>s&&[s.x,s.y,s.w,s.h].every(Number.isFinite)&&s.w>0&&s.h>0);
    let area=0,lit=0;
@@ -108,7 +120,7 @@
    }
    return {lit,total:area,percent:area?Math.round(lit/area*100):0};
   }
-  return {width,height,scale,mask,lights:lamps.length,walls:walls.length,sample,roomCoverage};
+  return {width,height,scale,mask,lights:lamps.length,walls:walls.length,sample,sampleStrength,roomCoverage};
  }
- return Object.freeze({segments,blocked,sources,reaches,compute,resolution});
+ return Object.freeze({segments,blocked,sources,strength,reaches,compute,resolution});
 });
