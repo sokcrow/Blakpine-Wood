@@ -52,6 +52,34 @@ test('La luz cae de brillante a tenue sin un corte duro',()=>{
  assert.equal(L.sourceStrength(source,4.1,0,[],clear),0);
 });
 
+test('5 pies brillantes + 5 tenues terminan en oscuridad a los 10 pies',()=>{
+ const f=floor(false);
+ f.items.push({id:'manual55',type:'light_fixture',roomId:'r',lightKind:'bulb',x:3,y:4,lightRadiusFt:5,lightDimFalloffFt:5});
+ const source=runtime(f)[0];
+ assert.equal(Number(source.brightRadius.toFixed(4)),Number((5*.3048).toFixed(4)));
+ assert.equal(Number(source.dimRadius.toFixed(4)),Number((10*.3048).toFixed(4)));
+});
+test('Campo legado lightDimRadiusFt conserva su significado de radio exterior',()=>{
+ const f=floor(false);
+ f.items.push({id:'legacy',type:'light_fixture',roomId:'r',lightKind:'bulb',x:3,y:4,lightRadiusFt:10,lightDimRadiusFt:14});
+ const source=runtime(f)[0];
+ assert.equal(Number(source.brightRadius.toFixed(4)),Number((10*.3048).toFixed(4)));
+ assert.equal(Number(source.dimRadius.toFixed(4)),Number((14*.3048).toFixed(4)));
+});
+test('Los focos nuevos guardan una franja tenue explícita',()=>{
+ const fields=L.presetFields('bulb');
+ assert.equal(fields.lightRadiusFt,16);
+ assert.equal(fields.lightDimFalloffFt,6.4);
+ assert.equal(Object.hasOwn(fields,'lightDimRadiusFt'),false);
+});
+test('Se admite una luminaria de 120 pies brillantes + 120 tenues',()=>{
+ const f=floor(false);
+ f.items.push({id:'long',type:'light_fixture',roomId:'r',lightKind:'bulb',x:3,y:4,lightRadiusFt:120,lightDimFalloffFt:120});
+ const source=runtime(f)[0];
+ assert.equal(Number(source.brightRadius.toFixed(4)),Number((120*.3048).toFixed(4)));
+ assert.equal(Number(source.dimRadius.toFixed(4)),Number((240*.3048).toFixed(4)));
+});
+
 test('El radio tenue mantiene una fuente candidata aunque el radio brillante ya no alcance',()=>{
  const entry={floor:0,x:0,z:0,radius:2,brightRadius:2,dimRadius:4,angleDeg:360};
  const lighting={fixtureLit:()=>true};
