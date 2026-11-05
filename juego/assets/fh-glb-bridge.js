@@ -20,10 +20,15 @@
 
   function catalog() {
     if (!catalogPromise) {
-      catalogPromise = Promise.all([catalogUrl, deliveryCatalogUrl].map(url => fetch(url.href).then(response => {
+      const loadDocument = (url, optional = false) => fetch(url.href).then(response => {
         if (!response.ok) throw new Error('Catálogo GLB HTTP ' + response.status);
         return response.json();
-      }))).then(documents => {
+      }).catch(error => {
+        if (!optional) throw error;
+        console.warn('[Forest GLB] Catálogo de paquetería no disponible:', error);
+        return {schema:'forest-horror-furniture-catalog-v1', furniture:[]};
+      });
+      catalogPromise = Promise.all([loadDocument(catalogUrl), loadDocument(deliveryCatalogUrl, true)]).then(documents => {
         const entries = new Map();
         for (const data of documents) {
           if (data.schema !== 'forest-horror-furniture-catalog-v1' || !Array.isArray(data.furniture)) {
