@@ -35,6 +35,9 @@
     buro:{id:'top',scaleX:.90,scaleZ:.90,heightFt:2},
     estante_bajo:{id:'top',scaleX:.92,scaleZ:.88,heightFt:3.5},
     escritorio_clasico:{id:'desktop',scaleX:.94,scaleZ:.90,heightFt:2.75},
+    escritorio_l:{id:'desktop',scaleX:.90,scaleZ:.85,heightFt:2.75},
+    barra_cocina:{id:'top',scaleX:.94,scaleZ:.90,heightFt:3.75},
+    encimera_simple:{id:'top',scaleX:.94,scaleZ:.90,heightFt:3},
     escritorio_pc:{id:'desktop',scaleX:.92,scaleZ:.82,heightFt:2.75}
   });
 
