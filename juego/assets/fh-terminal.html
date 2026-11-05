@@ -252,8 +252,10 @@ function renderHamazon(body){
  }
  side.append(node('strong','','PEDIDOS'));
  if(!DATA.hamazonOrders.length)side.append(node('div','hamazon-empty','No hay pedidos.'));
+ const orderStatus={scheduled:'PROGRAMADO',queued:'EN COLA',waiting:'EN LA PUERTA',payment:'ESPERANDO PAGO',delivering:'ENTREGANDO',delivered:'ENTREGADO',unboxed:'ABIERTO',placed:'PROGRAMADO'};
  for(const o of DATA.hamazonOrders.slice().reverse()){
-  const row=node('div','hamazon-order');row.append(node('strong','',o.name||o.productId),node('div','',(o.status||'pending').toUpperCase()+' · '+(o.paymentMethod||'prepaid').toUpperCase()));side.append(row);
+  const label=orderStatus[o.status]||(o.status||'pending').toUpperCase(),eta=o.eta?' · LLEGA '+o.eta:'';
+  const row=node('div','hamazon-order');row.append(node('strong','',o.name||o.productId),node('div','',label+eta+' · '+(o.paymentMethod||'prepaid').toUpperCase()));side.append(row);
  }
 }
 function drawCamera(t){let cnv=$('camCanvas');if(!cnv||!state.power)return;const c=cnv.getContext('2d');c.imageSmoothingEnabled=false;const w=cnv.width,h=cnv.height;let cam=DATA.cameras[state.camera];c.fillStyle='#0b1b24';c.fillRect(0,0,w,h);
