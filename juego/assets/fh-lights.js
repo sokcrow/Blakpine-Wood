@@ -15,14 +15,26 @@ const TOOL_PRESET=Object.freeze({light_fixture:'bulb',light_strip:'strip',light_
 // Punto de integración para linternas/luces de jugadores remotos (el transporte de red vendrá después).
 const DYNAMIC_SOURCES=new Map();
 const DIM_RADIUS_RATIO=1.4;
+const MAX_LIGHT_RADIUS_FT=120;
+const MAX_DIM_FALLOFF_FT=120;
+const LEGACY_MAX_DIM_RADIUS_FT=112;
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 const finite=(value,fallback)=>Number.isFinite(Number(value))?Number(value):fallback;
 const presetFor=kind=>PRESETS[Object.prototype.hasOwnProperty.call(PRESETS,kind)?kind:'bulb'];
 const kindForTool=tool=>Object.prototype.hasOwnProperty.call(TOOL_PRESET,tool)?TOOL_PRESET[tool]:null;
 const isWall=kind=>presetFor(kind).mount==='wall';
+function dimFalloffFt(lamp,brightRadiusFt){
+ const p=presetFor(lamp?.lightKind),bright=clamp(finite(brightRadiusFt,finite(lamp?.lightRadiusFt,p.radiusFt)),5,MAX_LIGHT_RADIUS_FT);
+ const explicit=Number(lamp?.lightDimFalloffFt);
+ if(Number.isFinite(explicit))return clamp(explicit,0,MAX_DIM_FALLOFF_FT);
+ const legacyOuter=Number(lamp?.lightDimRadiusFt);
+ if(Number.isFinite(legacyOuter))return clamp(legacyOuter,bright,LEGACY_MAX_DIM_RADIUS_FT)-bright;
+ return clamp(bright*(DIM_RADIUS_RATIO-1),0,MAX_DIM_FALLOFF_FT);
+}
 function presetFields(kind){
- const p=presetFor(kind);return {lightKind:Object.prototype.hasOwnProperty.call(PRESETS,kind)?kind:'bulb',
-   lightRadiusFt:p.radiusFt,lightDimRadiusFt:Math.round(p.radiusFt*DIM_RADIUS_RATIO*10)/10,beamAngleDeg:p.beamAngleDeg,w:p.w,h:p.h,heightFt:p.mount==='wall'?6.5:8.4,
+ const p=presetFor(kind),bright=clamp(p.radiusFt,5,MAX_LIGHT_RADIUS_FT);
+ return {lightKind:Object.prototype.hasOwnProperty.call(PRESETS,kind)?kind:'bulb',
+   lightRadiusFt:bright,lightDimFalloffFt:Math.round(dimFalloffFt({lightKind:kind},bright)*10)/10,beamAngleDeg:p.beamAngleDeg,w:p.w,h:p.h,heightFt:p.mount==='wall'?6.5:8.4,
    blocksMovement:false,label:p.label};
 }
 // Compatibilidad con llamadas antiguas: generación automática desactivada.
@@ -34,8 +46,8 @@ function resolve(floorIndex,floor,rooms,roomAtGrid,cell){
  const byId=new Map(rooms.map(r=>[r.roomId||r.id,r]));
  function emit(lamp,room){
   const preset=presetFor(lamp.lightKind),kind=preset.mount==='wall'?presetFor(lamp.lightKind)===PRESETS.wall_flood?'wall_flood':'wall_sconce':Object.prototype.hasOwnProperty.call(PRESETS,lamp.lightKind)?lamp.lightKind:'bulb';
-  const radiusFt=clamp(finite(lamp.lightRadiusFt,preset.radiusFt),5,80);
-  const dimRadiusFt=clamp(finite(lamp.lightDimRadiusFt,radiusFt*DIM_RADIUS_RATIO),radiusFt,112);
+  const radiusFt=clamp(finite(lamp.lightRadiusFt,preset.radiusFt),5,MAX_LIGHT_RADIUS_FT);
+  const dimRadiusFt=radiusFt+dimFalloffFt(lamp,radiusFt);
   const beamAngleDeg=clamp(finite(lamp.beamAngleDeg,preset.beamAngleDeg),20,360);
   let x=Number(lamp.x)*cell,z=Number(lamp.y)*cell;
   if(!Number.isFinite(x)||!Number.isFinite(z))return;
@@ -96,5 +108,5 @@ function cameraBonus(entries,lighting,floor,x,z){
   bonus=Math.max(bonus,clamp((s.radius-4.8)*.24,0,1.4));
  return bonus;
 }
-global.FHLights=Object.freeze({PRESETS,DIM_RADIUS_RATIO,presetFor,kindForTool,isWall,presetFields,recommended,materialize,resolve,sourcesNear,coneAllows,sourceStrength,lightReachesPoint,cameraBonus,sourcesIlluminate,setDynamicSource,removeDynamicSource});
+global.FHLights=Object.freeze({PRESETS,DIM_RADIUS_RATIO,MAX_LIGHT_RADIUS_FT,MAX_DIM_FALLOFF_FT,presetFor,kindForTool,isWall,dimFalloffFt,presetFields,recommended,materialize,resolve,sourcesNear,coneAllows,sourceStrength,lightReachesPoint,cameraBonus,sourcesIlluminate,setDynamicSource,removeDynamicSource});
 })(window);
