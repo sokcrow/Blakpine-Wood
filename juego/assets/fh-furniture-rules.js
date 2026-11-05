@@ -27,9 +27,39 @@
     table:'mesa_pequena',
     dining:'mesa_cocina_rectangular'
   });
+  const SUPPORT_MODEL = Object.freeze({
+    buro:{id:'top',scaleX:.90,scaleZ:.90,heightFt:2},
+    estante_bajo:{id:'top',scaleX:.92,scaleZ:.88,heightFt:3.5},
+    escritorio_clasico:{id:'desktop',scaleX:.94,scaleZ:.90,heightFt:2.75},
+    escritorio_pc:{id:'desktop',scaleX:.92,scaleZ:.82,heightFt:2.75}
+  });
 
   function typeFor(modelId) {
     return Object.prototype.hasOwnProperty.call(MODEL_TYPE,modelId) ? MODEL_TYPE[modelId] : 'misc';
+  }
+
+  function supportSurfacesFor(item, feetPerCell=5) {
+    if (!item) return [];
+    if (Array.isArray(item.supportSurfaces) && item.supportSurfaces.length) {
+      return item.supportSurfaces.filter(surface =>
+        surface && typeof surface.id === 'string' &&
+        Number(surface.widthFt) > 0 && Number(surface.depthFt) > 0
+      ).map(surface => ({...surface}));
+    }
+    const cellFt = Number(feetPerCell) > 0 ? Number(feetPerCell) : 5;
+    const preset = SUPPORT_MODEL[item.modelId] ||
+      (item.type === 'table' || item.type === 'dining'
+        ? {id:'top',scaleX:.94,scaleZ:.94,heightFt:Number(item.heightFt) || 2.5}
+        : null);
+    if (!preset) return [];
+    return [{
+      id:preset.id || 'top',
+      xFt:0,
+      zFt:0,
+      widthFt:Math.max(.25, (Number(item.w) || 1) * cellFt * (preset.scaleX || 1)),
+      depthFt:Math.max(.25, (Number(item.h) || 1) * cellFt * (preset.scaleZ || 1)),
+      heightFt:Number.isFinite(Number(preset.heightFt)) ? Number(preset.heightFt) : Number(item.heightFt) || 2
+    }];
   }
 
   function anchorsFor(item, shared) {
@@ -68,6 +98,12 @@
     item.heightFt = Number(catalogEntry.heightFt) || 2;
     item.blocksMovement = catalogEntry.blocksMovement !== false;
     item.placement = catalogEntry.placement || 'floor';
+    if (Array.isArray(catalogEntry.supportSurfaces) && catalogEntry.supportSurfaces.length) {
+      item.supportSurfaces = catalogEntry.supportSurfaces.map(surface => ({...surface}));
+    } else delete item.supportSurfaces;
+    if (Number.isFinite(Number(catalogEntry.surfaceOverhangFt))) {
+      item.surfaceOverhangFt = Math.max(0, Number(catalogEntry.surfaceOverhangFt));
+    } else delete item.surfaceOverhangFt;
     if (Number.isFinite(Number(catalogEntry.mountHeightFt))) {
       item.mountHeightFt = Number(catalogEntry.mountHeightFt);
     }
@@ -127,6 +163,7 @@
   global.FHFurnitureRules = Object.freeze({
     typeFor,
     defaultFor: type => Object.prototype.hasOwnProperty.call(DEFAULT_MODEL,type) ? DEFAULT_MODEL[type] : null,
+    supportSurfacesFor,
     applyCatalogModel,
     upgradeMap,
     findReachableChair
