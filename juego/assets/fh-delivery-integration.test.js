@@ -6,6 +6,7 @@ const index=fs.readFileSync(path.join(root,'index.html'),'utf8');
 const terminal=fs.readFileSync(path.join(__dirname,'fh-terminal.html'),'utf8');
 const bridge=fs.readFileSync(path.join(__dirname,'fh-glb-bridge.js'),'utf8');
 const delivery=fs.readFileSync(path.join(__dirname,'fh-delivery.js'),'utf8');
+const decoration=fs.readFileSync(path.join(__dirname,'fh-decoration.js'),'utf8');
 
 let passed=0;
 function test(name,fn){fn();passed++;console.log('PASS',name)}
@@ -60,6 +61,33 @@ test('Los pedidos esperan su ETA antes de llamar a la puerta',()=>{
 
 test('La caja no bloquea la entrada hasta existir decoración runtime',()=>{
  assert.match(delivery,/blocksMovement:false,runtimePackage/);
+});
+
+test('La caja y el mueble entregado usan modo decoración sin cambiar el layout',()=>{
+ assert.match(index,/function fhStartDecoration\(/);
+ assert.match(index,/function fhMoveDecoration\(/);
+ assert.match(index,/function fhRotateDecoration\(/);
+ assert.match(index,/#fhDecorateBtn\{position:fixed/);
+ assert.match(index,/#fhDecorControls\{position:fixed/);
+ assert.match(index,/fhDecorationTick\(\);if\(!fhDeliveryUiActive&&!fhDecorationActive\)moveUpdate\(dt\)/);
+ assert.match(delivery,/runtimeDecoratable:true,runtimePackage/);
+ assert.match(index,/runtimeDecoratable:true,runtimeDeliveryFurniture/);
+ assert.match(decoration,/function candidate\(/);
+ assert.match(decoration,/function footprintPoints\(/);
+});
+
+test('Mover paquetes y muebles se guarda en el estado de delivery',()=>{
+ assert.match(delivery,/if\(!Array\.isArray\(d\.furnishings\)\)d\.furnishings=\[\]/);
+ assert.match(delivery,/function updateRuntimeItem\(/);
+ assert.match(delivery,/delivery\.furnishings\.push\(record\)/);
+ assert.match(delivery,/options\.restoreFurniture\?\.\(record,product,order\)/);
+ assert.match(index,/restoreFurniture:fhRestoreDeliveredFurniture/);
+});
+
+test('Abrir la caja conserva la posición y entra a decoración del mueble',()=>{
+ assert.match(index,/x:item\.x,y:item\.y/);
+ assert.match(index,/setTimeout\(\(\)=>fhStartDecoration\(next,f\),0\)/);
+ assert.match(index,/return \{item:next,floor:f\}/);
 });
 
 test('La economía sigue desacoplada',()=>{
