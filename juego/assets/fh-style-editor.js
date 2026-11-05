@@ -32,7 +32,7 @@ function styleDialog(kind,source,onSave,extra={}){
  '<canvas id="fhStylePreview" width="192" height="96" style="width:100%;height:96px;image-rendering:pixelated;border:1px solid #6b768b"></canvas>'+
  '<div class="actions">'+button('fhStyleSave','Guardar acabado',true)+
  (extra.copy===false?'':button('fhStyleCopy',T().copy)+button('fhStylePaste',T().paste))+
- (extra.room?button('fhStyleRoom',T().applyRoom):'')+
+ (extra.room?button('fhStyleRoom',isFloor?T().applyProperty:T().applyRoom):'')+
  button('fhStyleEditor',T().wallpaperEditor)+button('fhStyleBack','Cerrar')+'</div>';
  env.modal(html,()=>{
   const p=document.getElementById('fhStylePreset'),c=document.getElementById('fhStyleColor'),patternEl=document.getElementById('fhStylePattern');
@@ -72,19 +72,21 @@ function paintFloor(room){
 }
 function propertyManager(){
  P().reconcileProperties(doc(),floor().id);
- const list=P().properties(doc(),floor().id);
+ const list=P().properties(doc(),floor().id),buildingList=P().buildings(doc(),floor().id);
  const cards=list.map((p,i)=>{
   const count=rooms().filter(r=>P().roomInProperty(r,p)).length;
   return '<section style="margin:9px 0;padding:10px;border:1px solid #a99753"><b>Propiedad '+(i+1)+'</b><small> · '+count+' habitaciones · '+h(p.id)+'</small>'+
   '<label>Jugador propietario<input data-fh-owner="'+h(p.id)+'" value="'+h(p.ownerId||'')+'" placeholder="ID de jugador"></label></section>';
  }).join('')||'<p>'+h(T().closed)+'</p>';
+ const buildingCards=buildingList.map((b,i)=>'<section style="margin:9px 0;padding:10px;border:1px solid #c56b6b"><b>Edificio rojo '+(i+1)+'</b><small> · '+h(b.id)+'</small><label>Dueño del edificio<input data-fh-building="'+h(b.id)+'" value="'+h(doc().buildingOwners?.[b.id]||doc().buildingOwnerId||'')+'" placeholder="ID de dueño"></label></section>').join('');
  env.modal('<h2>'+h(T().propertyManager)+'</h2><p>Las paredes amarillas cerradas delimitan parcelas. Cada parcela incluye las habitaciones completas del interior. Las paredes rojas siguen definiendo edificios y losas.</p>'+
  '<label>'+h(T().buildingOwner)+'<input id="fhBuildingOwner" value="'+h(doc().buildingOwnerId||'')+'" placeholder="ID de dueño principal"></label>'+
- '<label>'+h(T().actor)+'<input id="fhActingPlayer" value="'+h(actor)+'" placeholder="Sin restricción"></label>'+cards+
+ '<label>'+h(T().actor)+'<input id="fhActingPlayer" value="'+h(actor)+'" placeholder="Sin restricción"></label>'+buildingCards+cards+
  '<div class="actions">'+button('fhOwnerSave','Guardar dueños',true)+button('fhOwnerClose','Cerrar')+'</div>',()=>{
   document.getElementById('fhOwnerSave').onclick=()=>{
    doc().buildingOwnerId=document.getElementById('fhBuildingOwner').value.trim().slice(0,80);
    actor=document.getElementById('fhActingPlayer').value.trim().slice(0,80);
+   doc().buildingOwners??={};for(const input of document.querySelectorAll('[data-fh-building]'))doc().buildingOwners[input.dataset.fhBuilding]=input.value.trim().slice(0,80);
    for(const input of document.querySelectorAll('[data-fh-owner]')){
     const p=doc().properties.find(q=>q.id===input.dataset.fhOwner);
     if(p)p.ownerId=input.value.trim().slice(0,80);
@@ -146,7 +148,7 @@ function attachInspector(item,fields){
   const b=document.createElement('button');b.textContent='▨ Pintar cara B';b.onclick=()=>paintWall(item,'B');
   fields.append(a,b);
  }
- if(item.type==='room'){
+ if(['room','hall','outside','building','pavement','parking','grass','dirt'].includes(item.type)){
   const btn=document.createElement('button');btn.textContent='▨ Pintar piso';btn.style.gridColumn='1/-1';btn.onclick=()=>paintFloor(item);fields.append(btn);
  }
 }
