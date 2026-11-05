@@ -47,6 +47,7 @@ const assert=typeof require==='function'?require('node:assert/strict'):null;
   check('Siete herramientas de marcas',Object.keys(P.TOOLS).length===7);
   check('Todos los decals son sin colisión',Object.values(P.TOOLS).every((kind,i)=>P.makeDecal(kind,1,1,{feetPerCell:5},'d'+i).blocksMovement===false));
   check('Decal sin flag se interpreta inerte',P.checkDecal({...stalls[0],blocksMovement:undefined}));
+  check('Rotación omitida tiene defecto cero',P.checkDecal({...stalls[0],rotation:undefined}));
   let denied=false;try{P.checkDecal({...stalls[0],blocksMovement:true});}catch{denied=true}
   check('Se rechaza colisión activada',denied);
   denied=false;try{P.makeDecal('unsupported',1,1,{},'x')}catch{denied=true}
