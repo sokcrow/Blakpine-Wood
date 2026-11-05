@@ -241,7 +241,7 @@ function createRuntime(options){
  function isPc(item,floor=options.currentFloor?.()??pcFloor){return options.computer?.isPc(item,floor)??
   (!!item&&(item.pcTerminal===true||item.modelId==='escritorio_pc'||
    !!global.FHPcAssembly?.isTerminalCandidate(item,options.floorItems?.(floor),options.feetPerCell||5)))}
- function actionLabel(item){return isPc(item)?(TEXT.pcAction||'Usar PC'):isPackage(item)?(TEXT.packageAction||'Abrir paquete'):isDeliveredFurniture(item)?(TEXT.decorateAction||'Mover / decorar'):null}
+ function actionLabel(item){return isPc(item)?(global.FH_COMPUTER_TEXT?.pcAction||'Usar PC'):isPackage(item)?(TEXT.packageAction||'Abrir paquete'):isDeliveredFurniture(item)?(TEXT.decorateAction||'Mover / decorar'):null}
  function onMessage(event){
   const frame=options.computer?.frame;
   if(!frame||event.source!==frame.contentWindow||event.data?.type!=='FOREST_TERMINAL_EVENT')return;
