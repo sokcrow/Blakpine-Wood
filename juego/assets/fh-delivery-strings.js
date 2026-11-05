@@ -3,6 +3,7 @@ window.FH_DELIVERY_TEXT=Object.freeze({
  pcAction:'Usar PC',
  pcClose:'Salir de la PC',
  orderPlaced:name=>'Pedido registrado: '+name+'.',
+ orderQueued:'Pedido en cola. El repartidor terminará la entrega anterior primero.',
  orderWaiting:'Llaman a la puerta.',
  noDeliveryDoor:'No se encontró una puerta de entrada con mirilla para esta entrega.',
  peepholeGreeting:name=>'Buenas. Traigo una entrega de Hamazon'+(name?' para '+name:'')+'.',
