@@ -41,9 +41,16 @@
           }
           for (const entry of data.furniture) {
             if (!entry || typeof entry.id !== 'string' || !/^[a-z0-9_]+$/.test(entry.id) ||
-                typeof entry.glb !== 'string' || !/^modelos_glb\/[a-z0-9_]+\.glb$/.test(entry.glb) ||
-                entries.has(entry.id)) {
-              throw new Error('Entrada inválida o duplicada en el catálogo GLB');
+                typeof entry.glb !== 'string' || !/^modelos_glb\/[a-z0-9_]+\.glb$/.test(entry.glb)) {
+              throw new Error('Entrada inválida en el catálogo GLB');
+            }
+            if (entries.has(entry.id)) {
+              // Las tres cajas de delivery también figuran en el catálogo general.
+              // Se admiten registros idénticos, nunca modelos contradictorios.
+              if (JSON.stringify(entries.get(entry.id)) !== JSON.stringify(entry)) {
+                throw new Error('Definiciones GLB contradictorias: ' + entry.id);
+              }
+              continue;
             }
             entries.set(entry.id, entry);
           }
