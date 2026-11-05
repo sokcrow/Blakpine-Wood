@@ -12,10 +12,15 @@
   let catalogPromise = null;
   let loaderPromise = null;
   let sightMaskInstaller = null;
+  const sightWaiters = [];
 
   function setSightMaskInstaller(applyMask) {
     if (typeof applyMask !== 'function') throw new TypeError('Se requiere el FOW del motor existente');
     sightMaskInstaller = applyMask;
+    while (sightWaiters.length) sightWaiters.shift()();
+  }
+  function sightReady() {
+    return sightMaskInstaller ? Promise.resolve() : new Promise(resolve => sightWaiters.push(resolve));
   }
 
   function catalog() {
@@ -87,14 +92,16 @@
           resolve(gltf);
         }, undefined, reject);
       }));
-      models.set(modelId, pending);
+      models.set(modelId, pending.catch(error => {
+        models.delete(modelId); // Reintentar si el recurso o la red vuelven a estar disponibles.
+        throw error;
+      }));
     }
     return { entry: item, gltf: await models.get(modelId) };
   }
 
   function replaceVisual(root, scene) {
-    // Los GLB llegan después de installVisibility: deben compartir su shader FOW.
-    // Si aún no existe el enmascarador, conservamos el mueble provisional.
+    // El GLB se muestra únicamente con el shader de visibilidad del motor.
     if (!sightMaskInstaller) throw new Error('La máscara FOW aún no está lista');
     const instance = scene.clone(true);
     sightMaskInstaller(instance);
@@ -117,12 +124,17 @@
     const modelId = typeof item.modelId === 'string' && item.modelId
       ? item.modelId
       : global.FHFurnitureRules?.defaultFor(item.type);
-    if (!modelId) return;
+    if (!modelId) return; // No se inventa un asset para props sin modelo asignado.
     root.userData.fhModelId = modelId;
-    load(modelId).then(({ gltf, entry }) => {
+    root.userData.fhModelState = 'loading';
+    // El modelo procedural no es parte del GLB: se descarta antes de cargar.
+    while (root.children.length) root.remove(root.children[0]);
+    load(modelId).then(async ({ gltf, entry }) => {
+      await sightReady();
       if (root.userData.fhModelId !== modelId) return;
       const apply = target => {
         replaceVisual(target, gltf.scene);
+        target.userData.fhModelState = 'ready';
         // GLB geometry is already in meters. Only its authored mounting offset
         // is applied here; it is never stretched to fit an unrelated tile size.
         const mounted = Number.isFinite(Number(item.mountHeightFt))
@@ -135,7 +147,9 @@
       apply(root);
       for (const duplicate of mirrors.get(root) || []) apply(duplicate);
     }).catch(error => {
-      console.warn('[Forest Horror GLB] Se mantiene el modelo provisional:', modelId, error);
+      root.userData.fhModelState = 'error';
+      root.userData.fhModelError = String(error?.message || error);
+      console.error('[Forest Horror GLB] No se pudo mostrar el GLB:', modelId, error);
     });
   }
 
