@@ -130,6 +130,65 @@ button:focus:not(:focus-visible){outline:none}button:focus-visible,[tabindex]:fo
 @media(max-width:730px){.scene-hint{display:none}.scene-stamp{top:12px}.faux-monitor{width:min(91vw,550px);border-width:9px}.faux-keyboard{height:54px;width:69vw;padding:5px;gap:2px}.controls{gap:5px}.hardware{padding:9px 9px;font-size:10px}.focus-top{font-size:9px}.focus-top .hardware{padding:8px 9px}.focus-frame{width:100%;border-width:6px}.os-topbar{height:29px}.os-topbar .os-date{font-size:9px}.desktop-icon{width:73px;height:65px;font-size:10px}.pixel-symbol{width:39px;height:35px;font-size:21px}#desktopIcons{grid-template-columns:repeat(2,73px);top:45px;left:10px;gap:9px}.window:not(.maximized){left:7px!important;top:34px!important;width:calc(100% - 14px)!important;height:calc(100% - 70px)!important}.window.maximized{left:7px!important;top:34px!important;width:calc(100% - 14px)!important;height:calc(100% - 70px)!important}.window-title{height:32px}.window-title .window-type{display:none}.window-status{font-size:9px}.mail-layout,.files-layout{display:flex;flex-direction:column;height:100%}.mail-list,.files-list{flex:none;max-height:110px;min-height:0;display:flex;overflow-x:auto;overflow-y:hidden;border-right:0;border-bottom:3px solid #9e9985}.mail-choice,.file-choice{flex:0 0 150px;border-right:2px solid #b6ab8d;border-bottom:0}.mail-reading,.file-reading{flex:1;min-height:0;overflow:auto;padding:12px 13px}.cams-layout{grid-template-columns:1fr;display:flex;flex-direction:column;height:100%}.cams-list{flex:none;display:flex;overflow-x:auto;border-right:0;border-bottom:3px solid #9e9985}.cam-choice{flex:0 0 122px;border-bottom:0;border-right:2px solid #9e9985}.cam-view{flex:1;min-height:0;overflow:auto;padding:9px}.room{min-height:62px;font-size:9px}.map-body{padding:8px;min-height:0}.map-layout{min-height:160px;padding:7px;gap:4px}.floor-tabs{padding:7px;gap:4px}.floor-tab{padding:7px 6px;font-size:10px}}
 @media(max-height:540px){.window:not(.maximized),.window.maximized{left:7px!important;top:34px!important;width:calc(100% - 14px)!important;height:calc(100% - 69px)!important}.scene-stamp{top:10px}.focus-top{min-height:28px}.focus-top .hardware{padding:7px 10px}.focus-frame{border-width:6px}.window-content{overscroll-behavior:contain}}
 @media(max-width:395px){.focus-top .label-hardware{display:none}.task-brand{font-size:10px;padding:2px 5px}.os-date{display:none}.room{font-size:8px;min-height:58px}.faux-mark{margin-bottom:1%}}
+
+/* Pantallas de distintas proporciones: contenido desplazable sin superposición. */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+#focus{height:100%;height:100dvh;min-height:0}
+.focus-top,.focus-frame,#desktop,.window-content{min-width:0;min-height:0}
+.window{min-width:0;min-height:0;max-width:calc(100% - 12px);max-height:calc(100% - 70px)}
+.mail-layout,.files-layout,.cams-layout{min-height:0;min-width:0}
+.mail-reading,.file-reading,.cam-view,.map-body{min-width:0;min-height:0}
+.hamazon{display:flex;flex-direction:column;height:100%;min-height:0}
+.hamazon-head{flex:none;gap:5px;padding:7px 10px}
+.hamazon-brand{font-size:clamp(13px,1.7vw,18px);overflow-wrap:anywhere}
+.hamazon-orders{overflow-wrap:anywhere}
+.hamazon-body{display:grid;flex:1;grid-template-columns:minmax(0,1fr) clamp(140px,23%,190px);min-width:0;min-height:0;overflow:hidden}
+.hamazon-products{min-width:0;min-height:0;height:100%;overflow-y:auto;overflow-x:hidden;grid-template-columns:repeat(auto-fit,minmax(min(100%,168px),1fr));grid-auto-rows:max-content;align-items:start;align-content:start;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.hamazon-card{display:flex;flex-direction:column;min-width:0;min-height:0;height:auto;gap:6px;overflow-wrap:anywhere}
+.hamazon-thumb{height:clamp(64px,14vh,96px);flex:none}
+.hamazon-card h4{line-height:1.35;overflow-wrap:anywhere}
+.hamazon-meta{flex:1 0 auto;white-space:pre-line;overflow-wrap:anywhere}
+.hamazon-card select,.hamazon-card button{display:block;flex:none;min-width:0;max-width:100%;min-height:36px;font-size:clamp(10px,1.2vw,12px);white-space:normal;overflow-wrap:anywhere}
+.hamazon-side{min-width:0;min-height:0;max-height:none;overflow:auto;border-left:3px solid #958c72;border-top:0;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.hamazon-order{overflow-wrap:anywhere}
+@media (orientation:landscape) and (max-height:600px){
+ #focus{gap:4px;padding:max(4px,env(safe-area-inset-top)) max(5px,env(safe-area-inset-right)) max(4px,env(safe-area-inset-bottom)) max(5px,env(safe-area-inset-left))}
+ .focus-top{min-height:28px;font-size:10px}
+ .focus-top .hardware{padding:5px 8px;min-height:30px}
+ .focus-frame{border-width:5px;outline-width:2px}
+ .window:not(.maximized),.window.maximized{left:5px!important;top:33px!important;width:calc(100% - 10px)!important;height:calc(100% - 68px)!important;max-width:none;max-height:none}
+ .window-title{height:30px}
+ .window-status{height:21px;padding:3px 7px}
+ .hamazon-head{padding:5px 8px}
+ .hamazon-products{padding:6px;gap:7px}
+ .hamazon-card{padding:6px;gap:5px}
+ .hamazon-thumb{height:62px}
+ .hamazon-meta{font-size:10px;line-height:1.35}
+ .mail-layout,.files-layout,.cams-layout{display:flex;flex-direction:column;height:100%}
+ .mail-list,.files-list,.cams-list{display:flex;flex:none;max-height:68px;min-height:0;overflow-x:auto;overflow-y:hidden;border-right:0;border-bottom:2px solid #9e9985}
+ .mail-choice,.file-choice{flex:0 0 150px;padding:7px;border-right:2px solid #b6ab8d;border-bottom:0}
+ .cam-choice{flex:0 0 135px;padding:7px;border-right:2px solid #9e9985;border-bottom:0}
+ .mail-reading,.file-reading,.cam-view{flex:1;min-height:0;overflow:auto;padding:9px 11px}
+ .floor-tabs{flex-wrap:nowrap;overflow-x:auto;padding:5px;gap:5px}
+ .floor-tab{white-space:nowrap;flex:none;min-height:32px}
+ .map-body{min-height:0;padding:7px}
+ .map-layout{min-height:0;padding:6px}
+ .room{min-height:50px}
+ #message{bottom:35px}
+}
+@media (max-width:580px){
+ .hamazon-body{display:flex;flex-direction:column}
+ .hamazon-products{flex:1;height:auto;grid-template-columns:repeat(auto-fit,minmax(min(100%,145px),1fr));padding:7px}
+ .hamazon-side{flex:none;max-height:80px;min-height:47px;border-left:0;border-top:3px solid #958c72;padding:5px 9px}
+ .hamazon-brand{font-size:14px}
+ .hamazon-orders{font-size:10px}
+ .hamazon-card select,.hamazon-card button{min-height:38px}
+}
+@media (max-width:580px) and (orientation:landscape){
+ .hamazon-side{max-height:58px;min-height:38px}
+ .hamazon-thumb{height:54px}
+ .focus-top .label-hardware{display:none}
+}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 </style>
 </head>
@@ -219,14 +278,30 @@ function closeStart(){ $('startMenu').classList.remove('open'); $('startButton')
 function refreshStartMenu(){const menu=$('startMenu'),symbols={mail:'✉',map:'▧',cams:'◉',files:'▣',hamazon:'H'};clear(menu);sessionApps.forEach(app=>menu.append(labelButton(symbols[app]+'  '+LABELS[app],'',()=>{closeStart();openWindow(app)})));menu.append(labelButton('⏻  APAGAR TERMINAL','',()=>{closeStart();setPower(false)}))}
 function initStart(){const menu=$('startMenu');refreshStartMenu();$('startButton').addEventListener('click',()=>{const open=menu.classList.toggle('open');$('startButton').setAttribute('aria-expanded',String(open))});document.addEventListener('pointerdown',ev=>{if(!menu.contains(ev.target)&&ev.target!==$('startButton'))closeStart()})}
 function makeIcons(){let layer=$('desktopIcons');clear(layer);let icons={mail:['✉','symbol-mail'],map:['▧','symbol-map'],cams:['◉','symbol-cams'],files:['▣','symbol-files'],hamazon:['H','symbol-hamazon']};for(const app of sessionApps){const b=labelButton('', 'desktop-icon',()=>openWindow(app));b.setAttribute('aria-label','Abrir '+LABELS[app]);const icon=node('span','pixel-symbol '+icons[app][1],icons[app][0]);b.append(icon,node('span','',LABELS[app]));layer.append(b)}}
-function createWindow(app){const win=node('section','window win-'+app);win.dataset.app=app;win.setAttribute('aria-label',LABELS[app]);win.style.width=(app==='hamazon'?'760px':app==='map'?'620px':app==='cams'?'610px':'590px');win.style.height=(app==='hamazon'?'470px':app==='mail'?'420px':'400px');let idx=APPS.indexOf(app);win.style.left=(Math.max(110,(innerWidth-720)/2)+idx*21)+'px';win.style.top=(Math.max(44,(innerHeight-460)/2)+idx*16)+'px';
+// Las ventanas se miden respecto al escritorio del iframe, no respecto al navegador exterior.
+function fitWindowsToDesktop(){
+ const desk=$('desktop'),w=desk.clientWidth,h=desk.clientHeight;
+ if(!w||!h)return;
+ for(const [app,win] of winEls){
+  const wantedWidth=app==='hamazon'?760:app==='map'?620:app==='cams'?610:590;
+  const wantedHeight=app==='hamazon'?470:app==='mail'?420:400;
+  win.style.width=Math.max(0,Math.min(wantedWidth,w-12))+'px';
+  win.style.height=Math.max(0,Math.min(wantedHeight,h-68))+'px';
+  const width=win.offsetWidth||Number.parseFloat(win.style.width),height=win.offsetHeight||Number.parseFloat(win.style.height);
+  const left=Number.parseFloat(win.style.left),top=Number.parseFloat(win.style.top);
+  win.style.left=Math.max(6,Math.min(Number.isFinite(left)?left:6,Math.max(6,w-width-6)))+'px';
+  win.style.top=Math.max(32,Math.min(Number.isFinite(top)?top:32,Math.max(32,h-height-34)))+'px';
+ }
+}
+window.addEventListener('resize',fitWindowsToDesktop);
+function createWindow(app){const win=node('section','window win-'+app);win.dataset.app=app;win.setAttribute('aria-label',LABELS[app]);win.style.width=(app==='hamazon'?'760px':app==='map'?'620px':app==='cams'?'610px':'590px');win.style.height=(app==='hamazon'?'470px':app==='mail'?'420px':'400px');let idx=APPS.indexOf(app);win.style.left=(Math.max(110,(innerWidth-720)/2)+idx*21)+'px';win.style.top=(Math.max(34,(innerHeight-460)/2)+idx*16)+'px';
  const title=node('div','window-title');title.style.touchAction='none';title.append(node('span','window-name','▣ '+LABELS[app]),node('span','window-type','RAVEN / LOCAL'));
  const mini=labelButton('–','wm',()=>{win.style.display='none';win.dataset.minimized='yes';state.front=null;drawTasks();previewPaint()});mini.setAttribute('aria-label','Minimizar '+LABELS[app]);const maxi=labelButton('□','wm',()=>{win.classList.toggle('maximized');bringFront(app)});maxi.setAttribute('aria-label','Maximizar '+LABELS[app]);const close=labelButton('×','wm',()=>closeWindow(app));close.setAttribute('aria-label','Cerrar '+LABELS[app]);title.append(mini,maxi,close);
  const content=node('div','window-content');content.id='body-'+app;const status=node('div','window-status');status.innerHTML='<span>UNIDAD C: / SOLO LECTURA</span><span>RAVEN/OS 1.9</span>';win.append(title,content,status);
- title.addEventListener('pointerdown',ev=>{if(ev.target.closest('button')||innerWidth<730||win.classList.contains('maximized'))return;if(ev.button!==0)return;bringFront(app);let x=ev.clientX,y=ev.clientY,left=parseFloat(win.style.left),top=parseFloat(win.style.top);const move=e=>{const container=$('desktop').getBoundingClientRect();const bounds=win.getBoundingClientRect();win.style.left=Math.max(0,Math.min(container.width-bounds.width,left+e.clientX-x))+'px';win.style.top=Math.max(30,Math.min(container.height-65,top+e.clientY-y))+'px'};const stop=()=>{window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',stop);previewPaint()};window.addEventListener('pointermove',move);window.addEventListener('pointerup',stop,{once:true})});win.addEventListener('pointerdown',()=>bringFront(app));
+ title.addEventListener('pointerdown',ev=>{if(ev.target.closest('button')||innerWidth<730||innerHeight<=600||win.classList.contains('maximized'))return;if(ev.button!==0)return;bringFront(app);let x=ev.clientX,y=ev.clientY,left=parseFloat(win.style.left),top=parseFloat(win.style.top);const move=e=>{const container=$('desktop').getBoundingClientRect();const bounds=win.getBoundingClientRect();win.style.left=Math.max(0,Math.min(container.width-bounds.width,left+e.clientX-x))+'px';win.style.top=Math.max(30,Math.min(Math.max(30,container.height-bounds.height-34),top+e.clientY-y))+'px'};const stop=()=>{window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',stop);previewPaint()};window.addEventListener('pointermove',move);window.addEventListener('pointerup',stop,{once:true})});win.addEventListener('pointerdown',()=>bringFront(app));
  return win;
 }
-function openWindow(app){if(!APPS.includes(app))return;if(!sessionApps.includes(app)){say(COMPUTER_TEXT.appUnavailable||'Esta aplicación no está instalada.');return}if(!state.power){say('Enciende la computadora primero.');return}if(state.boot)return;let win=winEls.get(app);if(!win){win=createWindow(app);winEls.set(app,win);state.windows.push(app);$('windowsLayer').append(win);renderWindow(app);emit('ventana',{app,open:true})}win.style.display='flex';win.dataset.minimized='';bringFront(app)}
+function openWindow(app){if(!APPS.includes(app))return;if(!sessionApps.includes(app)){say(COMPUTER_TEXT.appUnavailable||'Esta aplicación no está instalada.');return}if(!state.power){say('Enciende la computadora primero.');return}if(state.boot)return;let win=winEls.get(app);if(!win){win=createWindow(app);winEls.set(app,win);state.windows.push(app);$('windowsLayer').append(win);fitWindowsToDesktop();renderWindow(app);emit('ventana',{app,open:true})}win.style.display='flex';win.dataset.minimized='';fitWindowsToDesktop();bringFront(app)}
 function renderWindow(app){const body=$('body-'+app);if(!body)return;let preservedScroll=body.scrollTop;clear(body);if(app==='mail')renderMail(body);if(app==='map')renderMap(body);if(app==='cams')renderCams(body);if(app==='files')renderFiles(body);if(app==='hamazon')renderHamazon(body);body.scrollTop=preservedScroll;}
 function renderMail(body){let layout=node('div','mail-layout');let list=node('div','mail-list');let reading=node('article','mail-reading');layout.append(list,reading);body.append(layout);
  DATA.mails.forEach((m,i)=>{let b=labelButton('', 'mail-choice'+(state.mail===i?' selected':''),()=>{state.mail=i;renderWindow('mail');emit('correo',{id:m.id})});b.append(node('span','',m.date+' • '+m.from),node('strong','',m.subject));list.append(b)});
