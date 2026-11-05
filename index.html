@@ -1698,20 +1698,8 @@ const circuitOutlineCache=new WeakMap();
 function drawLightingOverlay(c,z){
  const items=current().items,zone=selectedCircuit(),all=$('#circuitShowAll')?.checked||false;
  c.save();c.lineCap='round';c.lineJoin='round';
- // Huella real de cada luminaria: no es una estimación del radio del jugador.
- for(const it of items.filter(it=>it.type==='light_fixture')){
-  const x=toPixel(it),p=window.FHLights?.presetFor(it.lightKind);
-  const range=Math.min(80,Math.max(5,Number(it.lightRadiusFt)||p?.radiusFt||16))/(Number(project.units.feetPerCell)||5);
-  const rx=range*gridX(),ry=range*gridY();
-  const cone=Math.min(360,Math.max(20,Number(it.beamAngleDeg)||p?.beamAngleDeg||360));
-  const heading=(Number(it.rotation)||0)*Math.PI/180;
-  c.save();c.translate(x.x,x.y);c.fillStyle='#f7cd5432';c.strokeStyle='#e9c77399';c.lineWidth=1/z;
-  c.beginPath();
-  if(cone>=359.5)c.ellipse(0,0,rx,ry,0,0,2*Math.PI);
-  else{const start=heading+Math.PI/2-cone*Math.PI/360,end=heading+Math.PI/2+cone*Math.PI/360;
-   c.moveTo(0,0);for(let i=0;i<=24;i++){const a=start+(end-start)*i/24;c.lineTo(Math.cos(a)*rx,Math.sin(a)*ry)}c.closePath();}
-  c.fill();c.stroke();c.restore();
- }
+ // Unión de fuentes + sombras de muros. No dibujar radios separados.
+ window.FHLightEditorOverlay?.draw(c,z);
 
  for(const circ of availableCircuits()){
   if(!all&&circ.zoneId!==zone)continue;
@@ -2681,6 +2669,7 @@ function prepareGLBEngineDoc(source){
  const bridge='<script src="'+new URL('./juego/assets/fh-glb-bridge.js',document.baseURI).href+'"></'+'script>';
  const sleepStrings='<script src="'+new URL('./juego/assets/fh-sleep-strings.js',document.baseURI).href+'"></'+'script>';
  const sleepModule='<script src="'+new URL('./juego/assets/fh-sleep.js',document.baseURI).href+'"></'+'script>';
+ const coverageScript='<script src="'+new URL('./juego/assets/fh-light-coverage.js',document.baseURI).href+'"></'+'script>';
  const lightsModule='<script src="'+new URL('./juego/assets/fh-lights.js',document.baseURI).href+'"></'+'script>';
  const cameraBefore=" const desired=new THREE.Vector3(user.x+behind.x*camDistance,y+.88+camDistance*Math.tan(Math.PI/6),user.z+behind.z*camDistance);",cameraAfter=" const desired=new THREE.Vector3(user.x+behind.x*camDistance,y+.88+camDistance*Math.tan(Math.PI/6),user.z+behind.z*camDistance);\n const sleepFocus=window.FHSleep?.viewWeight()||0;\n if(sleepFocus>0){const weight=sleepFocus*sleepFocus*(3-2*sleepFocus);\n  target.lerp(new THREE.Vector3(user.x,y+.55,user.z),weight);\n  desired.lerp(new THREE.Vector3(user.x+.12,y+6.1,user.z+.42),weight);\n }";
  const cameraCount=source.split(cameraBefore).length-1;
@@ -2781,7 +2770,7 @@ function prepareGLBEngineDoc(source){
     'window.FHFurnitureRules?.upgradeMap(DATA,ForestShared);\nForestShared.loadProject(DATA);')
   .replace(attachBefore,' window.FHAssets?.attach(g,a);\n'+attachBefore)
   .replace(cloneBefore,'const clone=source.clone(true);\n   window.FHAssets?.mirror(source,clone);\n   clone.position.y+=floorElev[f];')
-  .replace('</head>',lightsModule+ruleScript+bridge+sleepStrings+sleepModule+styleCore+styleRender+parkingScript+'</head>');
+  .replace('</head>',coverageScript+lightsModule+ruleScript+bridge+sleepStrings+sleepModule+styleCore+styleRender+parkingScript+'</head>');
 }
 function start3DPreview(){
  if(preview3DActive)return;
@@ -2847,7 +2836,9 @@ init();
 </script>
 <script src="./juego/assets/fh-strings.js"></script>
 <script src="./juego/assets/fh-light-strings.js"></script>
+<script src="./juego/assets/fh-light-coverage.js"></script>
 <script src="./juego/assets/fh-lights.js"></script>
+<script src="./juego/assets/fh-light-editor-overlay.js"></script>
 <script src="./juego/assets/fh-furniture-rules.js"></script>
 <script src="./juego/assets/fh-editor-catalog.js"></script>
 <script src="./juego/assets/fh-property-editor.js"></script>
