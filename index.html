@@ -2798,21 +2798,24 @@ function fhDeliveryNpcTexture(pose){
 function fhDisposeDeliveryNpc(){
  if(!fhDeliveryNpc)return;const mat=fhDeliveryNpc.material;mat?.map?.dispose?.();mat?.dispose?.();fhDeliveryNpc.parent?.remove(fhDeliveryNpc);fhDeliveryNpc=null;
 }
+function fhSetDeliveryNpcPose(pose){
+ if(!fhDeliveryNpc)return;const material=fhDeliveryNpc.material,loader=new THREE.TextureLoader();
+ material.map?.dispose?.();const texture=loader.load(fhDeliverySpriteUrl(pose),()=>{visibilityDirty=true},undefined,()=>{material.map=fhDeliveryNpcTexture(pose);material.needsUpdate=true;visibilityDirty=true});
+ texture.magFilter=THREE.NearestFilter;texture.minFilter=THREE.LinearFilter;material.map=texture;material.needsUpdate=true;
+}
 function fhShowDeliveryNpc(order,door,pose='idle'){
  fhDisposeDeliveryNpc();
- const material=new THREE.SpriteMaterial({transparent:true,depthWrite:false});
- const sprite=new THREE.Sprite(material),loader=new THREE.TextureLoader();
- const texture=loader.load(fhDeliverySpriteUrl(pose),()=>{visibilityDirty=true},undefined,()=>{material.map=fhDeliveryNpcTexture(pose);material.needsUpdate=true;visibilityDirty=true});
- texture.magFilter=THREE.NearestFilter;texture.minFilter=THREE.LinearFilter;material.map=texture;
- const outside=.72,start=pose==='walk'?2.4:.72,baseY=floorElev[door.f]+1.05;
+ const material=new THREE.SpriteMaterial({transparent:true,depthWrite:false}),sprite=new THREE.Sprite(material);
+ fhDeliveryNpc=sprite;const arriving=pose==='idle',displayPose=arriving?'walk':pose;fhSetDeliveryNpcPose(displayPose);
+ const outside=.72,start=arriving?2.4:.72,baseY=floorElev[door.f]+1.05;
  sprite.scale.set(1.12,1.68,1);sprite.position.set(door.cx+door.norm.x*start,baseY,door.cz+door.norm.z*start);
- stories[door.f].add(sprite);fhDeliveryNpc=sprite;fhDeliveryNpcMotion=start>outside?{door,t:0,duration:1.35,start,target:outside}:null;visibilityDirty=true;
+ stories[door.f].add(sprite);fhDeliveryNpcMotion=arriving?{door,t:0,duration:1.35,start,target:outside,finalPose:'idle'}:null;visibilityDirty=true;
 }
 function fhDeliveryNpcTick(dt){
  const m=fhDeliveryNpcMotion;if(!m||!fhDeliveryNpc)return;m.t=Math.min(1,m.t+dt/m.duration);
  const q=m.t*m.t*(3-2*m.t),dist=m.start+(m.target-m.start)*q;
  fhDeliveryNpc.position.x=m.door.cx+m.door.norm.x*dist;fhDeliveryNpc.position.z=m.door.cz+m.door.norm.z*dist;
- if(m.t>=1)fhDeliveryNpcMotion=null;
+ if(m.t>=1){fhDeliveryNpcMotion=null;if(m.finalPose)fhSetDeliveryNpcPose(m.finalPose);}
 }
 function fhHideDeliveryNpc(){fhDisposeDeliveryNpc();fhDeliveryNpcMotion=null;visibilityDirty=true}
 function fhRuntimeItemById(id,f){return (DATA.floors[f]?.items||[]).find(it=>it.id===id)||null}
