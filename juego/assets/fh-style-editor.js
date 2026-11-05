@@ -152,5 +152,5 @@ function attachInspector(item,fields){
   const btn=document.createElement('button');btn.textContent='▨ Pintar piso';btn.style.gridColumn='1/-1';btn.onclick=()=>paintFloor(item);fields.append(btn);
  }
 }
-root.FHStyleEditor=Object.freeze({install(config){env=config},paintWall,paintFloor,propertyManager,wallpaperEditor,attachInspector});
+root.FHStyleEditor=Object.freeze({install(config){env=config},paintWall,paintFloor,propertyManager,wallpaperEditor,attachInspector,hasActor:()=>!!actor,canEditAt:p=>P().canEditAt(doc(),floor().id,p,actor,admin()),canEditItem:item=>P().canEditItem(doc(),floor().id,item,actor,admin())});
 })(typeof globalThis!=='undefined'?globalThis:this);
