@@ -76,8 +76,6 @@
   if(item&&type==='misc'&&chosen){
    window.FHFurnitureRules.applyCatalogModel(
     item,chosen,ForestShared,Number(project.units?.feetPerCell)||5);
-   // Las nuevas PC requieren piezas; las de mapas anteriores conservan su uso.
-   if(chosen.id==='escritorio_pc')item.pcAssemblyRequired=true;
   }
   return item;
  };
