@@ -92,7 +92,10 @@
   }
   function wallStyle(map,floorId,wall,side){
     if(!FACES.includes(side))throw Error('Cara de muro inválida');
-    const kind=wall.sideClass?.[side],interior=kind==='interior'||(kind!=='exterior'&&!!buildingAt(map,floorId,sample(wall,side)));
+    const kind=wall.sideClass?.[side],point=sample(wall,side),floor=(map.floors||[]).find(f=>f.id===floorId);
+    const isRoom=(floor?.items||[]).some(it=>it.type==='room'&&roomContains(it,point));
+    const isOutdoor=(floor?.items||[]).some(it=>['outside','pavement','parking','grass','dirt'].includes(it.type)&&roomContains(it,point));
+    const interior=kind==='interior'||(kind!=='exterior'&&(isRoom||!isOutdoor&&!!buildingAt(map,floorId,point)));
     const fallback=interior?{preset:'pintura-lisa',color:'#A49E91',pattern:null}:{preset:'ladrillo',color:'#96564C',pattern:null};
     if(wall.finish?.[side])return style(wall.finish[side],fallback);
     return wall.material!=null?{preset:'legacy',legacyMaterial:wall.material}:fallback;
