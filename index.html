@@ -2988,6 +2988,8 @@ window.FHDeliveryRuntime=window.FHDelivery?.createRuntime({
   const doorAfter=" notice(d.open?'Abres la puerta.':'Cierras la puerta.',1800);\n if(d.open&&isInsideDoor(d))window.FHDeliveryRuntime?.onDoorOpened(d);\n}";
   const peekBefore=" $('peekText').textContent='◉ MIRILLA · Ves el pasillo, sin abrir la puerta · toca para salir';visibilityDirty=true;";
   const peekAfter=" $('peekText').textContent='◉ MIRILLA · Ves el pasillo, sin abrir la puerta · toca para salir';visibilityDirty=true;\n window.FHDeliveryRuntime?.onPeephole(d);";
+  const peekExitBefore="function stopPeek(){peeking=false;peekDoor=null;$('peekOverlay').classList.remove('active');document.body.classList.remove('peeking');visibilityDirty=true}";
+  const peekExitAfter="function stopPeek(){window.FHDeliveryRuntime?.onPeepholeExit();peeking=false;peekDoor=null;$('peekOverlay').classList.remove('active');document.body.classList.remove('peeking');visibilityDirty=true}";
   const frameBefore=" moveUpdate(dt);";
   const frameAfter=" window.FHDeliveryRuntime?.update(dt);fhDecorationTick();if(!fhDeliveryUiActive&&!fhDecorationActive)moveUpdate(dt);else{user.vx=user.vz=0;}fhDeliveryNpcTick(dt);";
   const apiBefore="get watchingTV(){return watchingTvId},watchTV:useTVFromSeat,breakers:";
@@ -2998,7 +3000,7 @@ window.FHDeliveryRuntime=window.FHDelivery?.createRuntime({
   const watchListenerAfter="$('watchTv').addEventListener('click',fhUseFrontFromSeat);";
   const watchKeyBefore="if(k==='t'&&!e.repeat&&playerPose.state.phase==='sitting')useTVFromSeat();";
   const watchKeyAfter="if(k==='t'&&!e.repeat&&playerPose.state.phase==='sitting')fhUseFrontFromSeat();";
-  const changes=[[stateAnchor,stateAfter],[interactBefore,interactAfter],[buildAnchor,runtimeBlock],[furnitureBefore,furnitureAfter],[watchHudBefore,watchHudAfter],[watchListenerBefore,watchListenerAfter],[watchKeyBefore,watchKeyAfter],[doorBefore,doorAfter],[peekBefore,peekAfter],[frameBefore,frameAfter],[apiBefore,apiAfter]];
+  const changes=[[stateAnchor,stateAfter],[interactBefore,interactAfter],[buildAnchor,runtimeBlock],[furnitureBefore,furnitureAfter],[watchHudBefore,watchHudAfter],[watchListenerBefore,watchListenerAfter],[watchKeyBefore,watchKeyAfter],[doorBefore,doorAfter],[peekBefore,peekAfter],[peekExitBefore,peekExitAfter],[frameBefore,frameAfter],[apiBefore,apiAfter]];
   for(const [a,b] of changes){const n=doc.split(a).length-1;if(n!==1)throw Error('Hook delivery incompatible: '+a.slice(0,90)+' ('+n+')');doc=doc.replace(a,b);}
   return doc;
  }
