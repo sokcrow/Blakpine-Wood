@@ -39,6 +39,15 @@
     return Object.prototype.hasOwnProperty.call(MODEL_TYPE,modelId) ? MODEL_TYPE[modelId] : 'misc';
   }
 
+  function normalizePlacement(item) {
+    if (!item) return false;
+    const tv = item.modelId === 'televisor_crt' || item.type === 'tv';
+    if (!tv || (item.placement && item.placement !== 'floor')) return false;
+    item.placement = 'floor_or_surface';
+    if (!Number.isFinite(Number(item.surfaceOverhangFt))) item.surfaceOverhangFt = .25;
+    return true;
+  }
+
   function supportSurfacesFor(item, feetPerCell=5) {
     if (!item) return [];
     if (Array.isArray(item.supportSurfaces) && item.supportSurfaces.length) {
@@ -108,6 +117,7 @@
     if (Number.isFinite(Number(catalogEntry.mountHeightFt))) {
       item.mountHeightFt = Number(catalogEntry.mountHeightFt);
     }
+    normalizePlacement(item);
     // Only registered seat/bed/TV models receive an existing gameplay verb.
     addBehavior(item, shared, false);
     return item;
@@ -118,15 +128,16 @@
     let upgraded=0;
     for(const floor of map.floors)for(const item of floor.items||[]){
       if(!item)continue;
+      const placementChanged=normalizePlacement(item);
       const mapped=Object.prototype.hasOwnProperty.call(MODEL_TYPE,item.modelId)?MODEL_TYPE[item.modelId]:null;
       const eligible=(mapped&&(item.type==='misc'||item.type===mapped))||(!mapped&&item.type==='chair');
-      if(!eligible)continue;
+      if(!eligible){if(placementChanged)upgraded++;continue;}
       const beforeType=item.type,beforeVerb=item.interact?.verb;
       const oldAnchor=Array.isArray(item.anchors)&&item.anchors.some(a=>
         a?.type===shared.PROP_ACTIONS[mapped||item.type]&&Number.isFinite(a.x)&&Number.isFinite(a.y));
       if(item.type==='misc')item.type=mapped;
       addBehavior(item,shared,true);
-      if(beforeType!==item.type||beforeVerb!==item.interact?.verb||!oldAnchor)upgraded++;
+      if(placementChanged||beforeType!==item.type||beforeVerb!==item.interact?.verb||!oldAnchor)upgraded++;
     }
     return upgraded;
   }
@@ -164,6 +175,7 @@
   global.FHFurnitureRules = Object.freeze({
     typeFor,
     defaultFor: type => Object.prototype.hasOwnProperty.call(DEFAULT_MODEL,type) ? DEFAULT_MODEL[type] : null,
+    normalizePlacement,
     supportSurfacesFor,
     applyCatalogModel,
     upgradeMap,
