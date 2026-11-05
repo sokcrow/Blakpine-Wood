@@ -99,10 +99,10 @@ test('La economía sigue desacoplada',()=>{
 
 test('Una estación nueva requiere piezas y el motor permite usarla sentado',()=>{
  const pc=fs.readFileSync(path.join(__dirname,'fh-pc-assembly.js'),'utf8');
- const catalog=fs.readFileSync(path.join(__dirname,'fh-editor-catalog.js'),'utf8');
+ const furnitureRules=fs.readFileSync(path.join(__dirname,'fh-furniture-rules.js'),'utf8');
  assert.match(pc,/function inspect\(/);
  assert.match(pc,/function frontTarget\(/);
- assert.match(catalog,/pcAssemblyRequired=true/);
+ assert.match(furnitureRules,/pcAssemblyRequired=true/);
  assert.match(delivery,/pcAssemblyRequired===true/);
  assert.match(index,/fh-pc-assembly\.js/);
  assert.match(index,/floorItems:f=>DATA\.floors/);
