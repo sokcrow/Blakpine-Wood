@@ -160,15 +160,21 @@ function createRuntime(options){
  function makePackageItem(order,box,place,packageId='package_'+order.id){return {id:packageId,type:'misc',modelId:box.id,label:box.name||'Paquete Hamazon',x:place.x/options.cell,y:place.z/options.cell,
    w:finite(box.widthFt,2.5)/options.feetPerCell,h:finite(box.depthFt,2.5)/options.feetPerCell,heightFt:finite(box.heightFt,2.5),
    rotation:0,blocksMovement:false,runtimePackage:{orderId:order.id,productId:order.productId},interact:{id:'open_'+packageId,verb:'open',label:TEXT.packageAction||'Abrir paquete',effects:[]}}}
- function deliver(order,door){
-  const product=productById(order.productId),box=boxBySize(order.parcelSize);if(!product||!box){say(TEXT.packageMissing||'No se pudo preparar el paquete.');return false}
-  order.status='delivering';delivery.npc={activeOrderId:order.id,doorId:door.id,state:'handover',pose:'clipboard'};options.showNpc?.(order,door,'clipboard');
+ function finalizeDelivery(order,door,product,box){
   const place=options.packagePlacement?.(door,box)||{floor:door.f,x:door.cx,z:door.cz};
   const packageId='package_'+order.id,item=makePackageItem(order,box,place,packageId);
   options.spawnRuntimeItem?.(item,place.floor);
   order.packageId=packageId;order.status='delivered';delivery.packages.push({id:packageId,orderId:order.id,floor:place.floor,x:item.x,y:item.y,modelId:box.id});
   delivery.npc={activeOrderId:null,doorId:null,state:'leaving',pose:'walk'};options.hideNpc?.(order,door);closeDialog();
   say(TEXT.packageDelivered||'Paquete entregado.',3000);save();syncOrdersToTerminal();setTimeout(activateNext,650);return true;
+ }
+ function deliver(order,door){
+  const product=productById(order.productId),box=boxBySize(order.parcelSize);if(!product||!box){say(TEXT.packageMissing||'No se pudo preparar el paquete.');return false}
+  order.status='delivering';delivery.npc={activeOrderId:order.id,doorId:door.id,state:'handover',pose:'clipboard'};options.showNpc?.(order,door,'clipboard');save();syncOrdersToTerminal();
+  setDialog(order,'clipboard',TEXT.handover||'Aquí tiene su entrega. Confirme la recepción.',[
+   {label:TEXT.receivePackage||'Recibir paquete',run:()=>finalizeDelivery(order,door,product,box)},
+   {label:TEXT.closeTalk||'Ahora no',run:closeDialog}
+  ]);return true;
  }
  function isPackage(item){return !!item?.runtimePackage?.orderId}
  function openPackage(item){
