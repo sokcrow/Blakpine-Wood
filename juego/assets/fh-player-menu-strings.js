@@ -8,7 +8,7 @@
     chapter: 'BLAKPINE WOOD',
     objectives: 'Objetivos',
     inventory: 'Inventario',
-    notes: 'Notas / Registro',
+    notes: 'Notas',
     status: 'Estado',
     settings: 'Opciones',
     back: 'Volver al menú',
