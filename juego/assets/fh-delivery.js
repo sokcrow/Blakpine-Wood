@@ -60,7 +60,7 @@ function nextDueOrder(state){
 }
 function createRuntime(options){
  const state=options.state,delivery=ensureState(state),base=options.baseUrl||document.baseURI;
- let products=[],boxes=[],pcItem=null,pcFloor=0,dialog=null,npcOrder=null,ready=false,lastTerminalClock='',activePeepholeDoor=null,peekTalkButton=null;
+ let products=[],boxes=[],pcItem=null,pcFloor=0,dialog=null,npcOrder=null,ready=false,lastTerminalClock='',activePeepholeDoor=null,peekTalkButton=null,typedDialogue=null;
  const clockRate=Math.max(0,finite(options.clockMinutesPerSecond,1));
  const defaultLeadMinutes=Math.max(0,finite(options.deliveryLeadMinutes,DEFAULT_DELIVERY_LEAD_MINUTES));
  const productById=id=>products.find(p=>p.id===id)||null;
@@ -121,18 +121,18 @@ function createRuntime(options){
  function ensureDialog(){
   if(dialog)return dialog;
   const style=document.createElement('style');style.textContent=
-   '#fhDeliveryDialog{position:fixed;z-index:70;inset:0;display:none;align-items:flex-end;justify-content:center;padding:18px;background:#0005;pointer-events:auto}'+
-   '#fhDeliveryDialog.open{display:flex}#fhDeliveryCard{width:min(520px,94vw);background:#11151aeF;border:1px solid #a98d67;color:#eee1ca;padding:13px;box-shadow:0 14px 50px #000d;font:13px/1.45 Georgia,serif}'+
-   '#fhDeliveryText{min-height:40px}#fhDeliveryActions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}#fhDeliveryActions button{border:1px solid #806c59;background:#292a2b;color:#f2e4cf;padding:9px 11px;font:700 12px system-ui}'+
+   '#fhDeliveryDialog{position:fixed;z-index:70;inset:0;display:none;align-items:flex-end;justify-content:center;padding:18px;background:#0004;pointer-events:auto}'+
+   '#fhDeliveryDialog.open{display:flex}#fhDeliveryCard{width:min(740px,94vw);max-height:56dvh;overflow:auto;background:rgba(9,15,16,.86);border:1px solid rgba(223,218,199,.4);border-radius:20px;color:#f1efe9;padding:18px 22px 13px;box-shadow:0 12px 40px #000a;font:normal clamp(16px,2.2vw,21px)/1.48 Georgia,serif}'+
+   '#fhDeliveryName{color:#e5d4ae;font:600 14px/1.4 Georgia,serif;margin:0 0 7px}#fhDeliveryText{min-height:40px}#fhDeliveryActions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}#fhDeliveryActions.fh-waiting{visibility:hidden;pointer-events:none}#fhDeliveryActions button{border:1px solid #806c59;background:#292a2b;color:#f2e4cf;border-radius:8px;min-height:44px;padding:10px 13px;font:600 13px/1.4 system-ui,sans-serif;touch-action:manipulation}#fhDeliveryActions button:focus-visible{outline:2px solid #f1ddaa;outline-offset:2px}'+
    '#fhDeliveryDialog.peephole{background:transparent;pointer-events:none;padding:10px;align-items:flex-end;justify-content:flex-end}'+
-   '#fhDeliveryDialog.peephole #fhDeliveryCard{pointer-events:auto;width:min(430px,calc(100vw - 20px));max-height:min(36dvh,245px);overflow:auto;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto 1fr;gap:7px 10px;padding:9px;background:#10151bf2}'+
-   '#fhDeliveryDialog.peephole #fhDeliveryText{min-height:0;align-self:end;font:13px/1.35 Georgia,serif}'+
-   '#fhDeliveryDialog.peephole #fhDeliveryActions{grid-column:1;margin-top:0;gap:5px}'+
+   '#fhDeliveryDialog.peephole #fhDeliveryCard{pointer-events:auto;width:min(470px,calc(100vw - 20px));max-height:min(46dvh,310px);overflow:auto;display:block;padding:12px 15px;background:rgba(9,15,16,.92);border-radius:16px}'+
+   '#fhDeliveryDialog.peephole #fhDeliveryText{min-height:0;font:normal clamp(14px,1.8vw,18px)/1.4 Georgia,serif}'+
+   '#fhDeliveryDialog.peephole #fhDeliveryActions{margin-top:7px;gap:5px}'+
    '#fhDeliveryDialog.peephole #fhDeliveryActions button{min-height:40px;padding:7px 9px}'+
    '#fhPeekTalk{position:absolute;bottom:calc(max(25px,env(safe-area-inset-bottom)) + 55px);right:max(12px,env(safe-area-inset-right));z-index:2;min-height:44px;border:2px solid #b99e70;background:#141a22f2;color:#f5e4c8;padding:9px 13px;font:700 13px system-ui;box-shadow:3px 3px #0009;touch-action:manipulation}#fhPeekTalk[hidden]{display:none!important}'+
    '@media (orientation:landscape) and (max-height:480px){#fhDeliveryDialog.peephole #fhDeliveryCard{width:min(450px,57vw);max-height:70dvh}}';
   document.head.append(style);
-  const root=document.createElement('div');root.id='fhDeliveryDialog';root.innerHTML='<div id="fhDeliveryCard"><div id="fhDeliveryText"></div><div id="fhDeliveryActions"></div></div>';
+  const root=document.createElement('div');root.id='fhDeliveryDialog';root.innerHTML='<div id="fhDeliveryCard"><div id="fhDeliveryName"></div><div id="fhDeliveryText"></div><div id="fhDeliveryActions"></div></div>';
   document.body.append(root);dialog=root;return root;
  }
  function ensurePeekTalkButton(){
@@ -154,12 +154,25 @@ function createRuntime(options){
  }
  function setDialog(order,pose,text,actions,throughPeephole=false){
   const root=ensureDialog(),body=root.querySelector('#fhDeliveryText'),buttons=root.querySelector('#fhDeliveryActions');
-  body.textContent=text;buttons.replaceChildren();
-  for(const a of actions){const b=document.createElement('button');b.type='button';b.textContent=a.label;b.onclick=a.run;buttons.append(b)}
+  typedDialogue?.dispose();typedDialogue=null;
+  root.querySelector('#fhDeliveryName').textContent=TEXT.courierName||'Repartidor';
+  buttons.replaceChildren();buttons.classList.add('fh-waiting');
+  for(const action of actions){
+   const button=document.createElement('button');button.type='button';button.textContent=action.label;
+   button.onclick=()=>{typedDialogue?.dispose();typedDialogue=null;action.run()};
+   buttons.append(button);
+  }
   root.classList.toggle('peephole',throughPeephole);
   root.classList.add('open');syncPeekTalkButton();options.freeze?.(true);
+  const live=global.FHLiveText;
+  if(live?.typeInto)typedDialogue=live.typeInto(body,{text,mood:'normal'},{
+   onComplete:()=>buttons.classList.remove('fh-waiting'),
+   onReadyAdvance:()=>buttons.querySelector('button')?.focus({preventScroll:true})
+  });
+  if(!typedDialogue){body.textContent=text;buttons.classList.remove('fh-waiting');}
  }
  function closeDialog(){
+  typedDialogue?.dispose();typedDialogue=null;
   if(!dialog)return;
   dialog.classList.remove('open','peephole');
   if(!options.computer?.isOpen)options.freeze?.(false);
