@@ -2996,6 +2996,8 @@ window.FHDeliveryRuntime=window.FHDelivery?.createRuntime({
 });
 window.FHVisitorRuntime=window.FHVisitor?.createRuntime({
  resolveEvent:door=>window.FHDeliveryRuntime?.visitorEvent(door)||door.visitorEvent,
+ onChoice:(event,choice,door)=>GameEvents.emit('door:visitor-choice',{eventId:event.id,choiceId:choice.id,doorId:door.id}),
+ onOpened:(event,door)=>GameEvents.emit('door:visitor-opened',{eventId:event.id,doorId:door.id}),
  freeze:on=>{fhVisitorUiActive=!!on;user.vx=user.vz=0;clearStick();},
  openDoor:door=>{if(peeking)stopPeek();if(door.open)return true;fhVisitorSkipNext=true;try{toggleDoor()}finally{fhVisitorSkipNext=false;}return !!door.open;}
 });`;
