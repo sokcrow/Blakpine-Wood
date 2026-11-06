@@ -102,4 +102,98 @@ test('El runtime no abre una PC incompleta ni bloquea al jugador',()=>{
  assert.equal(freezeCount,0);
  assert.equal(noticeCount,1);
 });
+
+test('La estación apagada inicia entre 5 y 10 segundos sin saltarse la espera',()=>{
+ let now=1000;
+ const power=PC.createPowerStore({now:()=>now,random:()=>.5});
+ assert.equal(power.read('0:a').mode,'off');
+ assert.equal(power.draw('0:a'),0);
+ assert.equal(power.start('0:a').mode,'booting');
+ assert.equal(power.read('0:a').durationMs,7500);
+ now+=7499;assert.equal(power.read('0:a').mode,'booting');
+ now+=1;assert.equal(power.read('0:a').mode,'on');
+ assert.equal(power.draw('0:a'),1);
+});
+test('Reposo tarda menos de un segundo; apagar reinicia el ciclo completo',()=>{
+ let now=20000;
+ const power=PC.createPowerStore({now:()=>now,random:()=>0});
+ power.start('0:a');now+=5000;
+ assert.equal(power.read('0:a').mode,'on');
+ assert.equal(power.sleep('0:a').mode,'sleep');
+ assert.equal(power.draw('0:a'),.15);
+ assert.equal(power.start('0:a').mode,'waking');
+ now+=649;assert.equal(power.read('0:a').mode,'waking');
+ now+=1;assert.equal(power.read('0:a').mode,'on');
+ assert.equal(power.shutdown('0:a').mode,'off');
+ assert.equal(power.start('0:a').durationMs,5000);
+});
+test('Distintas estaciones mantienen su consumo y arranque sin compartir estado',()=>{
+ let now=0;
+ const power=PC.createPowerStore({now:()=>now,random:()=>1});
+ power.start('0:a');now+=10000;power.read('0:a');power.sleep('0:a');
+ assert.equal(power.read('0:a').mode,'sleep');
+ assert.equal(power.read('0:b').mode,'off');
+ assert.equal(power.start('0:b').durationMs,10000);
+ assert.equal(power.draw('0:a'),.15);
+ assert.equal(power.draw('0:b'),1);
+});
+test('Salir durante el BIOS no cancela el arranque y el menú controla energía',()=>{
+ let now=50000;
+ const listeners={},events=[];
+ const make=tag=>{
+  const el={tag,classList:{add(){},remove(){}},setAttribute(){},addEventListener(){},
+   append(...nodes){for(const n of nodes)n.parentElement=el},parentElement:null};
+  if(tag==='iframe')el.contentWindow={ForestTerminal3D:{
+   setSession:v=>events.push(['session',v.stationId]),
+   setPowerState:v=>events.push(['status',v.mode]),
+   open:()=>events.push('open')
+  }};
+  return el;
+ };
+ const document={head:{append(){}},body:{append(){}},baseURI:'https://example.test/juego/assets/',
+  createElement:make};
+ const runtime=PC.createRuntime({document,assembly:ASSEMBLY,
+  hostWindow:{addEventListener:(name,fn)=>listeners[name]=fn},
+  now:()=>now,random:()=>0,floorItems:()=>items,currentFloor:()=>0,
+  baseUrl:'https://example.test/juego/assets/fh-computer.js'});
+ assert.equal(runtime.open(left,0),true);
+ assert.equal(runtime.powerFor(left,0).mode,'booting');
+ assert.equal(runtime.consumptionFor(left,0),1);
+ assert.ok(!document.querySelector,'El DOM simulado solo expone lo necesario');
+ const send=(action,stationId='mesa_a',origin='https://example.test')=>listeners.message({
+  source:runtime.frame.contentWindow,origin,data:{type:'FOREST_TERMINAL_EVENT',name:'control',detail:{action,stationId}}
+ });
+ send('salir','otra_estacion');
+ assert.equal(runtime.isOpen,true);
+ send('salir');assert.equal(runtime.isOpen,false);
+ now+=5000;
+ assert.equal(runtime.open(left,0),true);
+ assert.equal(runtime.powerFor(left,0).mode,'on');
+ assert.deepEqual(events.at(-2),['status','on']);
+ send('reposo');assert.equal(runtime.isOpen,false);
+ assert.equal(runtime.powerFor(left,0).mode,'sleep');
+ assert.equal(runtime.open(left,0),true);
+ assert.equal(runtime.powerFor(left,0).mode,'waking');
+ now+=650;
+ assert.equal(runtime.powerFor(left,0).mode,'on');
+ send('apagar');
+ assert.equal(runtime.powerFor(left,0).mode,'off');
+ assert.equal(runtime.open(right,0),true);
+ assert.equal(runtime.powerFor(right,0).mode,'booting');
+ assert.equal(runtime.powerFor(left,0).mode,'off');
+});
+test('Terminal RAVEN/OS incluye un único menú inferior, BIOS y reglas móviles',()=>{
+ const fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
+ const html=fs.readFileSync(path.join(__dirname,'fh-terminal.html'),'utf8');
+ assert.match(html,/id="bootTrack"[^>]+role="progressbar"/);
+ assert.match(html,/id="startButton"/);
+ assert.match(html,/function requestControl\(action\)/);
+ assert.match(html,/setPowerState,/);
+ assert.match(html,/@media\(max-width:730px\)/);
+ assert.match(html,/env\(safe-area-inset-bottom\)/);
+ assert.doesNotMatch(html,/id="focusPower"|id="leaveBtn"|id="fhPcExit"/);
+ const script=html.slice(html.indexOf('<script>\n')+8,html.lastIndexOf('</script>'));
+ assert.doesNotThrow(()=>new vm.Script(script));
+});
+
 console.log(passed+' pruebas correctas');
