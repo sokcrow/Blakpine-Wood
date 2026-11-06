@@ -19,7 +19,7 @@ function normalizeEvent(raw){
   line,choices};
 }
 function createRuntime(options={}){
- let active=null,root=null,body=null,buttons=null;
+ let active=null,pendingOpen=null,root=null,body=null,buttons=null;
  function ensureDialog(){
   if(root)return root;
   const style=document.createElement('style');
@@ -64,7 +64,10 @@ function createRuntime(options={}){
   if(!active)return [];
   const door=active.door;
   return [
-   {label:TEXT.open||'Abrir la puerta',run:()=>{close();options.openDoor?.(door)}},
+   {label:TEXT.open||'Abrir la puerta',run:()=>{
+    pendingOpen={doorId:door.id,event:active.event};close();
+    if(options.openDoor?.(door)===false)pendingOpen=null;
+   }},
    {label:TEXT.leave||'No abrir',run:close}
   ];
  }
@@ -105,8 +108,9 @@ function createRuntime(options={}){
  function onPeephole(door){return start(door,true);}
  function onPeepholeExit(){if(active?.peephole)close();}
  function onDoorOpened(door){
-  if(!active||active.door.id!==door?.id)return false;
-  const event=active.event;close();options.onOpened?.(event,door);return true;
+  const event=active?.door.id===door?.id?active.event:pendingOpen?.doorId===door?.id?pendingOpen.event:null;
+  if(!event)return false;
+  pendingOpen=null;if(active)close();options.onOpened?.(event,door);return true;
  }
  return {onDoorAttempt,onPeephole,onPeepholeExit,onDoorOpened,close,talk,
   get active(){return !!active},get currentEvent(){return active?.event||null}};
