@@ -217,6 +217,10 @@
       const key=String(event.key||'').toLowerCase();
       const advances=['e',' ','enter','arrowdown'].includes(key);
       if(!advances && !['w','a','s','d','arrowup','arrowleft','arrowright','q','j','l','t','f','escape'].includes(key))return;
+      // Enter y espacio deben activar los botones reales, no abrir otra vez la puerta.
+      if(done && (key==='enter'||key===' ') && event.target?.closest?.('#fhDeliveryActions button')){
+        event.stopImmediatePropagation();return;
+      }
       event.preventDefault();event.stopImmediatePropagation();
       if(advances && !event.repeat){
         if(!done)finish();
