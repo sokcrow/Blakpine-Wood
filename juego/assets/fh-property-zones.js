@@ -217,34 +217,57 @@
  }
  // Bordes exteriores únicamente: oculta las costuras entre tramos unidos.
  function boundarySegments(zone){
-  const rects=pieces(zone).map(rectFor).filter(Boolean),edges=[];
-  const contains=(x,y)=>rects.some(r=>x>r.x+EPS&&x<r.x+r.w-EPS&&y>r.y+EPS&&y<r.y+r.h-EPS);
-  for(const r of rects){
-   for(const side of ['top','right','bottom','left']){
-    const vertical=side==='left'||side==='right';
-    const fixed=vertical?(side==='left'?r.x:r.x+r.w):(side==='top'?r.y:r.y+r.h);
-    const lo=vertical?r.y:r.x,hi=vertical?r.y+r.h:r.x+r.w;
-    const cut=[lo,hi];
-    for(const other of rects){
-     const oLo=vertical?other.y:other.x,oHi=vertical?other.y+other.h:other.x+other.w;
-     if(oLo>lo+EPS&&oLo<hi-EPS)cut.push(oLo);
-     if(oHi>lo+EPS&&oHi<hi-EPS)cut.push(oHi);
-    }
-    cut.sort((a,b)=>a-b);
-    for(let i=1;i<cut.length;i++){
-     const one=cut[i-1],two=cut[i],mid=(one+two)/2;
-     if(two-one<=EPS)continue;
-     // Solo ocultar el borde si el exterior de este tramo está cubierto por otro.
-     const n=.00005;
-     const x=vertical?fixed+(side==='left'?-n:n):mid;
-     const y=vertical?mid:fixed+(side==='top'?-n:n);
-     if(contains(x,y))continue;
-     edges.push(vertical?{a:{x:fixed,y:one},b:{x:fixed,y:two}}:
-      {a:{x:one,y:fixed},b:{x:two,y:fixed}});
+  // El contorno debe seguir los bordes reales, incluso en polígonos importados
+  // no rectangulares. Se parten en cada intersección y se descartan las
+  // porciones con superficie de la zona a AMBOS lados.
+  const polygons=pieces(zone).filter(poly=>Array.isArray(poly)&&poly.length>=3);
+  const segments=polygons.flatMap(poly=>edges(poly)
+   .filter(([a,b])=>Math.hypot(b.x-a.x,b.y-a.y)>EPS)
+   .map(([a,b])=>({a,b})));
+  const unionContains=p=>polygons.some(poly=>inside(p,poly));
+  const output=[],seen=new Set();
+  const pointKey=p=>p.x.toFixed(7)+','+p.y.toFixed(7);
+  for(let i=0;i<segments.length;i++){
+   const {a,b}=segments[i],dx=b.x-a.x,dy=b.y-a.y;
+   const len2=dx*dx+dy*dy,len=Math.sqrt(len2);
+   const cuts=[0,1];
+   const addCut=t=>{if(t>EPS&&t<1-EPS)cuts.push(t);};
+   for(let j=0;j<segments.length;j++){
+    if(i===j)continue;
+    const {a:c,b:d}=segments[j],ex=d.x-c.x,ey=d.y-c.y;
+    const den=dx*ey-dy*ex,rx=c.x-a.x,ry=c.y-a.y;
+    const tolerance=EPS*Math.max(1,len*Math.hypot(ex,ey));
+    if(Math.abs(den)>tolerance){
+     const t=(rx*ey-ry*ex)/den;
+     const u=(rx*dy-ry*dx)/den;
+     if(t>=-EPS&&t<=1+EPS&&u>=-EPS&&u<=1+EPS)
+      addCut(Math.max(0,Math.min(1,t)));
+    }else if(Math.abs(cross(a,b,c))<=EPS*Math.max(1,len)&&
+      Math.abs(cross(a,b,d))<=EPS*Math.max(1,len)){
+     // Bordes colineales: dividir también en los extremos del tramo vecino.
+     addCut((rx*dx+ry*dy)/len2);
+     addCut(((d.x-a.x)*dx+(d.y-a.y)*dy)/len2);
     }
    }
+   cuts.sort((x,y)=>x-y);
+   for(let j=1;j<cuts.length;j++){
+    const t0=cuts[j-1],t1=cuts[j];
+    if((t1-t0)*len<=EPS)continue;
+    const p={x:a.x+dx*t0,y:a.y+dy*t0};
+    const q={x:a.x+dx*t1,y:a.y+dy*t1};
+    const mid={x:(p.x+q.x)/2,y:(p.y+q.y)/2};
+    const delta=Math.min(0.0001,(t1-t0)*len*0.01);
+    const normal={x:-dy/len*delta,y:dx/len*delta};
+    const left=unionContains({x:mid.x+normal.x,y:mid.y+normal.y});
+    const right=unionContains({x:mid.x-normal.x,y:mid.y-normal.y});
+    if(left===right)continue;
+    const k1=pointKey(p),k2=pointKey(q);
+    const key=k1<k2?k1+'|'+k2:k2+'|'+k1;
+    if(seen.has(key))continue;
+    seen.add(key);output.push({a:p,b:q});
+   }
   }
-  return edges;
+  return output;
  }
  function counts(floor,prop){
   const items=floor?.items||[],wallTypes=new Set(['wall','red_wall','half_wall','fence','property_wall']);
