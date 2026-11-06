@@ -774,3 +774,53 @@ body.fh-player-menu-ready #fhInventoryRight[data-empty="true"] #fhInventoryEmpty
   body.fh-player-menu-ready #fhPlayerMenu #inventorySlots {max-width:100%}
   body.fh-player-menu-ready #fhInventoryRight {padding-bottom:48px}
 }
+
+/* Prioridad sobre fh-hud-redesign.css: las pestañas superiores se subrayan;
+   no son botones rectangulares como las acciones del inventario. */
+body.fh-player-menu-ready #fhPlayerMenu #fhPlayerMenuNav button {
+  border:0!important;
+  border-bottom:2px solid transparent!important;
+  border-left:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  color:#a9a49c;
+}
+body.fh-player-menu-ready #fhPlayerMenu #fhPlayerMenuNav button[aria-selected="true"] {
+  border-bottom-color:#f3efe8!important;
+  color:#f3efe8!important;
+}
+body.fh-player-menu-ready #fhPlayerMenu #fhPlayerMenuNav button:hover,
+body.fh-player-menu-ready #fhPlayerMenu #fhPlayerMenuNav button:focus-visible {
+  background:transparent!important;
+  color:#fff!important;
+}
+/* Símbolos monocromos dibujados como SVG; etiquetas accesibles en español.
+   Son decoración de los cuatro filtros, no una segunda lógica de objetos. */
+body.fh-player-menu-ready #fhPlayerMenu #fhInventoryFilters button {
+  position:relative;
+  font-size:0!important;
+}
+body.fh-player-menu-ready #fhPlayerMenu #fhInventoryFilters button::before {
+  content:'';
+  position:absolute;
+  inset:25%;
+  background-position:center;
+  background-repeat:no-repeat;
+  background-size:contain;
+  opacity:.87;
+  pointer-events:none;
+}
+body.fh-player-menu-ready #fhPlayerMenu #fhInventoryFilters button[aria-pressed="true"]::before {opacity:1}
+body.fh-player-menu-ready #fhPlayerMenu #fhInventoryFilters button[data-category="all"]::before {
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cg fill='none' stroke='%23e9e5de' stroke-width='2.2'%3E%3Cpath d='M5 5h8v8H5zM19 5h8v8h-8zM5 19h8v8H5zM19 19h8v8h-8z'/%3E%3C/g%3E%3C/svg%3E");
+}
+body.fh-player-menu-ready #fhPlayerMenu #fhInventoryFilters button[data-category="key"]::before {
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cg fill='none' stroke='%23e9e5de' stroke-width='2.3' stroke-linecap='square'%3E%3Ccircle cx='10' cy='15' r='6'/%3E%3Cpath d='M16 15h12v5m-5-5v4'/%3E%3C/g%3E%3C/svg%3E");
+}
+body.fh-player-menu-ready #fhPlayerMenu #fhInventoryFilters button[data-category="note"]::before {
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cg fill='none' stroke='%23e9e5de' stroke-width='2.2'%3E%3Cpath d='M7 3h13l6 6v20H7zM20 3v7h6M11 15h11M11 20h11M11 25h8'/%3E%3C/g%3E%3C/svg%3E");
+}
+body.fh-player-menu-ready #fhPlayerMenu #fhInventoryFilters button[data-category="other"]::before {
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cg fill='none' stroke='%23e9e5de' stroke-width='2.2'%3E%3Cpath d='M4 9h22v15H4zM26 14h3v6h-3'/%3E%3C/g%3E%3Cpath d='M17 10l-7 8h6l-2 6 8-9h-6z' fill='%23e9e5de'/%3E%3C/svg%3E");
+}
