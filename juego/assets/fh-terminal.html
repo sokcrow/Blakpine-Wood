@@ -352,6 +352,10 @@ function syncPower(){
 }
 function setPowerState(data={}){
  const mode=['off','booting','waking','on','sleep'].includes(data.mode)?data.mode:'off';
+ if(mode==='off'){
+  for(const el of winEls.values())el.remove();
+  winEls.clear();state.windows=[];state.front=null;state.topZ=5;clear($('windowsLayer'));closeStart();
+ }
  state.mode=mode;state.boot=mode==='booting';state.waking=mode==='waking';state.power=mode==='on'||state.boot||state.waking;
  state.bootStarted=Number(data.startedAt)||Date.now();
  state.bootReady=Number(data.readyAt)||state.bootStarted;
