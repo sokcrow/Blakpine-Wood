@@ -143,6 +143,20 @@ body.fh-player-menu-ready #inventoryPanel h2,
 body.fh-player-menu-ready #inventoryPanel h3,
 body.fh-player-menu-ready #noteOverlay h2 {font-family:var(--fh-ritual);color:#f2f2f2}
 body.fh-player-menu-ready #inventoryPanel button {font-family:var(--fh-ritual)}
+/* El inventario legacy permanece en el DOM del motor. Al abrirse se
+   superpone al rombo (z:94); las notas deben quedar delante del inventario. */
+body.fh-player-menu-ready #inventoryPanel.open {
+  z-index:96;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  touch-action:pan-y;
+}
+body.fh-player-menu-ready #noteOverlay.open {z-index:97}
+body.fh-player-menu-ready #inventoryPanel .inventorySlot {
+  cursor:pointer;
+  touch-action:manipulation;
+}
+
 @keyframes fh-menu-in {from{opacity:0;transform:translateX(22px)}to{opacity:1;transform:translateX(0)}}
 @media(max-width:650px) {
  body.fh-player-menu-ready #hud {top:calc(19px + env(safe-area-inset-top,0px));left:13px;min-width:0;width:calc(100vw - 111px);min-height:62px;padding:10px 19px 10px 55px}
