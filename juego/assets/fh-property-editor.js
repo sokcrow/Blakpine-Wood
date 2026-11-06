@@ -29,11 +29,12 @@
   c.save();
   c.fillStyle=color;c.globalAlpha=.16;
   c.beginPath();
-  for(const poly of polys){
+  for(const poly of Z().orientedPieces(zone)){
    poly.forEach((pt,i)=>{const p=toPixel(pt);i?c.lineTo(p.x,p.y):c.moveTo(p.x,p.y)});
    c.closePath();
   }
-  // Un solo fill: las intersecciones entre tramos no se oscurecen.
+  // Un único relleno, con todos los subtrazados orientados igual:
+  // no aparecen ni manchas ni huecos en los tramos superpuestos.
   c.fill();
   c.globalAlpha=1;c.strokeStyle=color;c.lineWidth=2.4/cam.scale;c.setLineDash([8/cam.scale,4/cam.scale]);
   c.beginPath();
