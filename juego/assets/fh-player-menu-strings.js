@@ -39,6 +39,28 @@
     inventoryEmpty: 'La mochila está vacía.',
     chooseItemHint: 'Toca un objeto para ver su descripción, cantidad y acciones disponibles.',
     backToGame: '‹ Atrás',
-    closeInventory: 'Cerrar inventario y volver al juego'
+    closeInventory: 'Cerrar inventario y volver al juego',
+    statusSheet: 'HOJA DE PERSONAJE',
+    statusAttributes: 'Atributos',
+    statusResources: 'Recursos',
+    statusWorld: 'Situación actual',
+    statusNameMissing: 'Identidad no disponible',
+    statusNoCharacter: 'No hay datos de un personaje activo en esta partida.',
+    statusOrigin: 'Origen',
+    originResident: 'Residente',
+    originNewcomer: 'Visitante',
+    resourceNames: {pg:'PG · Salud',sp:'SP · Sanidad',pe:'PE · Energía'},
+    scoreNames: {
+      FOR:'Fortaleza',AGI:'Agilidad',VOL:'Voluntad',PRU:'Prudencia',
+      ING:'Ingenio',ARC:'Arcano',SOC:'Social'
+    },
+    settingsPresentation: 'Presentación',
+    settingsPresentationHelp: 'Estos ajustes modifican la vista del juego, sin afectar el mapa ni tu personaje.',
+    pixelsHelp: 'Cambia la escala pixelada de la imagen.',
+    gridHelp: 'Muestra u oculta la cuadrícula.',
+    fullscreenHelp: 'Alterna la vista a pantalla completa u horizontal.',
+    settingsExitTitle: 'Salir de la partida',
+    settingsExitHelp: 'Regresa al editor mediante la acción original del juego.',
+    settingUnavailable: 'Control no disponible'
   });
 })(typeof window !== 'undefined' ? window : globalThis);
