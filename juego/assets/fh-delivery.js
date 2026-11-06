@@ -105,8 +105,10 @@ function createRuntime(options){
   const door=options.doorById?.(next.doorId,next.floor);if(!door)return null;
   next.status='waiting';delivery.npc={activeOrderId:next.id,doorId:door.id,state:'waiting_at_door',pose:'idle'};
   npcOrder=next;options.showNpc?.(next,door,'idle');
-   if(typeof options.knock==='function')options.knock(door,next);
-   else say(TEXT.orderWaiting||'Llaman a la puerta.',2600);
+   if(typeof options.knock==='function'){
+    const ring=()=>{if(delivery.npc.activeOrderId===next.id&&next.status==='waiting')options.knock(door,next)};
+    const delay=Math.max(0,finite(options.knockDelayMs,0));if(delay)setTimeout(ring,delay);else ring();
+   }else say(TEXT.orderWaiting||'Llaman a la puerta.',2600);
    save();syncOrdersToTerminal();return next;
  }
  function placeOrder(productId,paymentMethod){
