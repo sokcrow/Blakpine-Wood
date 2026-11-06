@@ -25,7 +25,7 @@ function loader(){
   if(!THREE)return reject(Error('Three.js no está disponible'));
   if(THREE.GLTFLoader)return resolve(new THREE.GLTFLoader());
   const script=document.createElement('script');
-  script.src='https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js';
+  script.src=new URL('./vendor/GLTFLoader.js',scriptUrl).href;
   script.onload=()=>THREE.GLTFLoader?resolve(new THREE.GLTFLoader()):reject(Error('GLTFLoader no pudo iniciarse'));
   script.onerror=()=>reject(Error('GLTFLoader no disponible'));
   document.head.appendChild(script);
@@ -53,6 +53,12 @@ function load(id){
  return loaded.get(id);
 }
 function applyFOW(root,fn){if(typeof fn==='function')fn(root);}
+function reportFailure(id,error){
+ console.warn('[Forest Arquitectura] Se conserva el placeholder:',id,error);
+ if(global.parent&&global.parent!==global){
+  global.parent.postMessage({type:'FOREST_ARCHITECTURE_ERROR',id,reason:String(error?.message||error)},'*');
+ }
+}
 function cloneNode(scene,name){
  const source=scene.getObjectByName(name);
  if(!source)throw Error('Falta nodo '+name);
@@ -83,7 +89,7 @@ function decorateDoor(d,it,THREE,sightMask){
   for(const mesh of originalLeaf)hideLegacyVisual(mesh);
   for(const mesh of originalFrame)hideLegacyVisual(mesh);
   d.skinId=model;
- }).catch(error=>console.warn('[Forest Arquitectura] Se conserva puerta original:',error));
+ }).catch(error=>reportFailure(model,error));
 }
 function decorateWindow(args){
  const {it,container,built,a,angle,sightMask}=args||{};
@@ -99,7 +105,7 @@ function decorateWindow(args){
   applyFOW(node,sightMask);
   container.add(node);
   for(const visual of originalPaneAndSideFrames)hideLegacyVisual(visual,true);
- }).catch(error=>console.warn('[Forest Arquitectura] Se conserva ventana original:',error));
+ }).catch(error=>reportFailure(chooseWindow(it),error));
 }
 function one(source,anchor,replacement){
  const first=source.indexOf(anchor);
@@ -119,7 +125,11 @@ function patchEngineDoc(doc){
  const hook="\n window.FHArchitectureSkins?.decorateWindow({it,THREE,container:stories[f],built:stories[f].children.slice(fhWinVisualStart),a,b,angle,sightMask:installVisibility});";
  out=out.slice(0,begin)+part.slice(0,last)+hook+part.slice(last)+out.slice(end);
  const script='<script src="'+scriptUrl.href+'"></scr'+'ipt>';
- return one(out,'</head>',script+'</head>');
+ const headEnd=out.indexOf('</head>');
+ if(headEnd<0)throw Error('El documento del motor no contiene cierre de head');
+ // El motor menciona '</head>' en strings de sus scripts: solo se inserta en
+ // el primer cierre HTML real, sin exigir exclusividad global del texto.
+ return out.slice(0,headEnd)+script+out.slice(headEnd);
 }
 global.FHArchitectureSkins=Object.freeze({chooseDoor,chooseWindow,decorateDoor,decorateWindow,patchEngineDoc,load});
 })(window);
