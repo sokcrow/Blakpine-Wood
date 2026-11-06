@@ -5,7 +5,8 @@ const values=new Map(),localStorage={
  getItem:key=>values.get(key)||null,
  setItem:(key,value)=>values.set(key,String(value))
 };
-const window={localStorage,crypto:{randomUUID:()=> 'character-test-id'}};
+let idCounter=0;
+const window={localStorage,crypto:{randomUUID:()=> ++idCounter===1?'character-test-id':'character-test-id-'+idCounter}};
 window.window=window;
 vm.runInNewContext(fs.readFileSync(path.join(__dirname,'fh-character-core.js'),'utf8'),{window,Date,Math,JSON,Object,Set,Error,Number,String,Array});
 const C=window.FHCharacterCore;
@@ -18,7 +19,7 @@ assert.throws(()=>C.calculate(['FOR','AGI'],['AGI','PRU'],{ING:4}));
 assert.throws(()=>C.calculate(['FOR','AGI'],['VOL','PRU'],{FOR:1,AGI:1,ING:1}));
 assert.throws(()=>C.calculate(['FOR','AGI'],['VOL','PRU'],{VOL:1,ING:3}));
 assert.throws(()=>C.calculate(['FOR','AGI'],['VOL','PRU'],{FOR:1,AGI:1,ING:1,SOC:2}));
-assert.throws(()=>C.calculate(['FOR','AGI'],['VOL','PRU'],{FOR:1,AGI:1,ING:2}));
+assert.throws(()=>C.calculate(['FOR','AGI'],['VOL','PRU'],{FOR:2,AGI:1,ING:1}));
 const profile=C.createProfile({name:' Ana Pérez ',origin:'resident',missingName:'Lucía',relationship:'hermana',...allocation});
 assert.equal(profile.name,'Ana Pérez');
 assert.equal(profile.employment.hasJob,true);
