@@ -1,0 +1,351 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Spectral:wght@400;500;600&display=swap');
+
+/* Blakpine Wood — lenguaje visual compartido del gameplay.
+   Referencia: el menú del jugador (Cinzel/Spectral, negro, plata, doble línea).
+   EXCEPCIONES INTENCIONALES: Raven/OS y computadoras/terminales; interfaces
+   físicas de ascensor/circuitos y las notas que simulan papel.
+   Nunca aplicar reglas genéricas a button, dialog, section, body o .panel. */
+
+body.fh-player-menu-ready,
+#fhcc-root {
+  --fh-ui-ink:#080909;
+  --fh-ui-panel:#111211f5;
+  --fh-ui-panel-raised:#1a1b1af2;
+  --fh-ui-paper:#f1eee8;
+  --fh-ui-soft:#c8c3ba;
+  --fh-ui-muted:#aaa69e;
+  --fh-ui-stroke:rgba(234,231,223,.70);
+  --fh-ui-stroke-soft:rgba(234,231,223,.28);
+  --fh-ui-focus:#f7f2e9;
+  --fh-ui-title:'Cinzel',Georgia,serif;
+  --fh-ui-reading:'Spectral',Georgia,serif;
+}
+
+/* El motor antiguo usa !important para forzar el estilo pixel.
+   Restituimos prioridad solo en controles de gameplay expresamente elegidos. */
+body.fh-player-menu-ready #actions .action,
+body.fh-player-menu-ready #inventoryPanel button,
+body.fh-player-menu-ready #inventoryToggle,
+body.fh-player-menu-ready #inventoryQuickbar .inventorySlot,
+body.fh-player-menu-ready #fhPeekTalk {
+  font-family:var(--fh-ui-title)!important;
+  color:var(--fh-ui-paper)!important;
+  background:var(--fh-ui-panel-raised)!important;
+  border:1px solid var(--fh-ui-stroke)!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+  filter:none!important;
+  text-shadow:none!important;
+}
+body.fh-player-menu-ready #actions .action {
+  border-left:2px solid var(--fh-ui-paper)!important;
+  letter-spacing:.07em!important;
+  font-size:clamp(11px,1.2vw,13px)!important;
+  font-weight:600!important;
+  line-height:1.3;
+  min-height:44px;
+}
+body.fh-player-menu-ready #inventoryPanel button,
+body.fh-player-menu-ready #fhPeekTalk {min-height:44px;touch-action:manipulation;}
+body.fh-player-menu-ready #actions .action:hover,
+body.fh-player-menu-ready #inventoryPanel button:hover:not(:disabled),
+body.fh-player-menu-ready #fhPeekTalk:hover {
+  background:#343330!important;
+  border-color:var(--fh-ui-paper)!important;
+}
+body.fh-player-menu-ready #actions .action:disabled,
+body.fh-player-menu-ready #inventoryPanel button:disabled {
+  opacity:.46;cursor:default;
+}
+
+/* Inicio de partida. No cambia su flujo ni botones. */
+body.fh-player-menu-ready #importPanel {
+  background:radial-gradient(ellipse at 50% 42%,#191a19,#030303 78%);
+}
+body.fh-player-menu-ready #importCard {
+  border:1px solid var(--fh-ui-stroke);
+  outline:1px solid var(--fh-ui-stroke-soft);
+  outline-offset:-7px;
+  border-radius:0;
+  background:linear-gradient(115deg,#222220,#090909 64%,#151515);
+  box-shadow:none;
+  color:var(--fh-ui-paper);
+  font-family:var(--fh-ui-reading);
+  padding:clamp(24px,4vw,35px);
+}
+body.fh-player-menu-ready #importCard h1 {
+  color:var(--fh-ui-paper);
+  font:600 clamp(24px,3.8vw,33px)/1.25 var(--fh-ui-title);
+  letter-spacing:.045em;
+}
+body.fh-player-menu-ready #importCard .eyebrow {
+  color:var(--fh-ui-muted);
+  font:600 11px/1.35 var(--fh-ui-title);
+  letter-spacing:.22em;
+}
+body.fh-player-menu-ready #importCard p,
+body.fh-player-menu-ready #importCard small {
+  color:var(--fh-ui-soft);
+  font:400 15px/1.5 var(--fh-ui-reading);
+}
+body.fh-player-menu-ready #importCard small {font-size:12px;color:var(--fh-ui-muted);}
+body.fh-player-menu-ready #importCard button {
+  border:1px solid var(--fh-ui-stroke);
+  border-radius:0;
+  background:rgba(255,255,255,.045);
+  color:var(--fh-ui-paper);
+  box-shadow:none;
+  min-height:48px;
+  font:600 13px/1.3 var(--fh-ui-title);
+  letter-spacing:.07em;
+  cursor:pointer;
+}
+body.fh-player-menu-ready #importCard .launch {
+  background:rgba(238,235,228,.14);
+  border-color:var(--fh-ui-paper);
+  color:var(--fh-ui-paper);
+}
+body.fh-player-menu-ready #importCard button:hover {background:rgba(255,255,255,.17);}
+
+/* Inventario: panel anclado abajo, pero misma tipografía y acero ennegrecido. */
+body.fh-player-menu-ready #inventoryPanel {
+  background:linear-gradient(180deg,#1c1d1bf8,#080909fc) !important;
+  color:var(--fh-ui-paper)!important;
+  border-top:1px solid var(--fh-ui-stroke)!important;
+  border-left:0;border-right:0;border-bottom:0;
+  box-shadow:none!important;
+  font:400 15px/1.4 var(--fh-ui-reading)!important;
+}
+body.fh-player-menu-ready #inventoryPanel::before {
+  content:'';
+  display:block;
+  border-top:1px solid var(--fh-ui-stroke-soft);
+  margin:0 0 10px;
+  pointer-events:none;
+}
+body.fh-player-menu-ready #inventoryHead h2,
+body.fh-player-menu-ready #inventoryName {
+  color:var(--fh-ui-paper)!important;
+  font:600 clamp(18px,2vw,23px)/1.3 var(--fh-ui-title)!important;
+  letter-spacing:.055em;
+}
+body.fh-player-menu-ready #inventorySummary {
+  font-family:var(--fh-ui-reading);
+}
+body.fh-player-menu-ready .inventoryPill {
+  border:1px solid var(--fh-ui-stroke-soft)!important;
+  border-radius:0!important;
+  background:#191a19!important;
+  color:var(--fh-ui-soft)!important;
+  box-shadow:none!important;
+  font:500 12px/1.35 var(--fh-ui-reading)!important;
+}
+body.fh-player-menu-ready #inventoryPanel .inventorySlot {
+  background:linear-gradient(150deg,#2a2a27,#101110)!important;
+  border:1px solid var(--fh-ui-stroke-soft)!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+}
+body.fh-player-menu-ready #inventoryPanel .inventorySlot.active {
+  border:2px solid var(--fh-ui-paper)!important;
+  background:linear-gradient(145deg,#34342f,#191a18)!important;
+  box-shadow:inset 0 0 0 2px #101110!important;
+}
+body.fh-player-menu-ready #inventoryPanel .inventorySlot:focus-visible,
+body.fh-player-menu-ready #inventoryQuickbar .inventorySlot:focus-visible {
+  outline:2px solid var(--fh-ui-focus);
+  outline-offset:3px;
+}
+body.fh-player-menu-ready #inventoryPanel .inventorySlot small,
+body.fh-player-menu-ready #inventoryPanel .slotIndex {
+  color:var(--fh-ui-soft);
+  font-family:var(--fh-ui-reading)!important;
+  text-shadow:none;
+}
+body.fh-player-menu-ready #inventorySelected {
+  border:1px solid var(--fh-ui-stroke-soft)!important;
+  border-radius:0!important;
+  background:rgba(255,255,255,.035)!important;
+  box-shadow:none!important;
+}
+body.fh-player-menu-ready #inventoryPreviewWrap {
+  border:1px solid var(--fh-ui-stroke-soft)!important;
+  border-radius:0!important;
+  background:#101211!important;
+  box-shadow:none!important;
+}
+body.fh-player-menu-ready #inventoryKind {
+  color:var(--fh-ui-soft);
+  border:1px solid var(--fh-ui-stroke-soft);
+  border-radius:0!important;
+  background:#272825;
+  font:500 11px/1.35 var(--fh-ui-title);
+}
+body.fh-player-menu-ready #inventoryDescription {color:var(--fh-ui-soft);font-family:var(--fh-ui-reading);}
+body.fh-player-menu-ready #inventoryStatus {color:var(--fh-ui-soft);font-family:var(--fh-ui-reading);}
+body.fh-player-menu-ready #inventoryPrimaryAction {
+  border-color:var(--fh-ui-paper)!important;
+  background:#31312c!important;
+}
+
+/* Narración y conversación: composición común sin alterar el typewriter. */
+body.fh-player-menu-ready #fhLiveDialog .fh-panel,
+body.fh-player-menu-ready #fhDeliveryDialog #fhDeliveryCard {
+  border:1px solid var(--fh-ui-stroke)!important;
+  outline:1px solid var(--fh-ui-stroke-soft);
+  outline-offset:-7px;
+  border-radius:0!important;
+  background:linear-gradient(115deg,rgba(35,35,32,.96),rgba(6,7,7,.97) 70%)!important;
+  color:var(--fh-ui-paper)!important;
+  box-shadow:none!important;
+  text-shadow:none;
+  font:400 clamp(16px,2vw,21px)/1.5 var(--fh-ui-reading);
+  padding:clamp(16px,2vw,24px);
+}
+body.fh-player-menu-ready #fhLiveDialog .fh-speaker,
+body.fh-player-menu-ready #fhDeliveryName {
+  color:var(--fh-ui-paper)!important;
+  font:600 15px/1.4 var(--fh-ui-title)!important;
+  letter-spacing:.095em;
+  text-transform:uppercase;
+  margin-bottom:9px;
+}
+body.fh-player-menu-ready #fhLiveDialog .fh-next,
+body.fh-player-menu-ready #fhDeliveryText .fh-next {color:var(--fh-ui-soft);}
+body.fh-player-menu-ready #fhDeliveryDialog #fhDeliveryActions button {
+  min-height:44px;
+  border:1px solid var(--fh-ui-stroke)!important;
+  border-radius:0!important;
+  background:#232421!important;
+  color:var(--fh-ui-paper)!important;
+  box-shadow:none!important;
+  font:600 12px/1.4 var(--fh-ui-title)!important;
+  letter-spacing:.05em;
+}
+body.fh-player-menu-ready #fhDeliveryDialog #fhDeliveryActions button:hover {
+  background:#383833!important;
+  border-color:var(--fh-ui-paper)!important;
+}
+/* La mirilla mantiene tamaño y posición reducidos del diálogo contextual. */
+body.fh-player-menu-ready #fhDeliveryDialog.peephole #fhDeliveryCard {
+  padding:13px 17px;
+}
+
+/* Selección de personaje: reside en la página del editor ANTES de abrir el 3D.
+   Los selectores se limitan a #fhcc-root para nunca cambiar el editor. */
+#fhcc-root {
+  background:rgba(3,4,4,.97);
+  color:var(--fh-ui-paper);
+  font-family:var(--fh-ui-reading);
+}
+#fhcc-root .fhcc-card {
+  background:linear-gradient(125deg,#232321,#080909 55%,#151615);
+  color:var(--fh-ui-paper);
+  border:1px solid var(--fh-ui-stroke);
+  outline:1px solid var(--fh-ui-stroke-soft);
+  outline-offset:-7px;
+  border-radius:0;
+  box-shadow:none;
+  padding:clamp(22px,3vw,34px);
+}
+#fhcc-root .fhcc-title,
+#fhcc-root .fhcc-question {
+  color:var(--fh-ui-paper);
+  font-family:var(--fh-ui-title);
+  font-weight:600;
+  letter-spacing:.035em;
+}
+#fhcc-root .fhcc-overline,
+#fhcc-root .fhcc-step,
+#fhcc-root .fhcc-points,
+#fhcc-root .fhcc-summary h3 {
+  color:var(--fh-ui-muted);
+  font:600 11px/1.4 var(--fh-ui-title);
+  letter-spacing:.16em;
+}
+#fhcc-root .fhcc-help,
+#fhcc-root .fhcc-choice span,
+#fhcc-root .fhcc-score-row small,
+#fhcc-root .fhcc-summary p {
+  color:var(--fh-ui-soft);
+  font:400 15px/1.5 var(--fh-ui-reading);
+}
+#fhcc-root .fhcc-progress {gap:5px;}
+#fhcc-root .fhcc-segment {height:3px;background:#34342f;}
+#fhcc-root .fhcc-segment.active {background:var(--fh-ui-paper);}
+#fhcc-root .fhcc-choice,
+#fhcc-root .fhcc-nav button,
+#fhcc-root .fhcc-adjust {
+  border:1px solid var(--fh-ui-stroke-soft);
+  border-radius:0;
+  box-shadow:none;
+  background:#1b1c19;
+  color:var(--fh-ui-paper);
+  font:500 13px/1.4 var(--fh-ui-title);
+}
+#fhcc-root .fhcc-choice {min-height:68px;}
+#fhcc-root .fhcc-choice[aria-pressed=true] {
+  border-color:var(--fh-ui-paper);
+  background:#33332d;
+  box-shadow:inset 3px 0 0 #e9e4da;
+}
+#fhcc-root .fhcc-choice:hover:not(:disabled),
+#fhcc-root .fhcc-nav button:hover:not(:disabled),
+#fhcc-root .fhcc-adjust:hover:not(:disabled) {background:#363632;}
+#fhcc-root .fhcc-field {color:var(--fh-ui-soft);font-family:var(--fh-ui-reading);}
+#fhcc-root .fhcc-field input,
+#fhcc-root .fhcc-field select {
+  border:1px solid var(--fh-ui-stroke-soft);
+  border-radius:0;
+  background:#0e0f0e;
+  color:var(--fh-ui-paper);
+  font:400 16px/1.4 var(--fh-ui-reading);
+}
+#fhcc-root .fhcc-field input::placeholder {color:var(--fh-ui-muted);}
+#fhcc-root .fhcc-summary section {
+  background:rgba(255,255,255,.04);
+  border:1px solid var(--fh-ui-stroke-soft);
+}
+#fhcc-root .fhcc-score-row {border-color:var(--fh-ui-stroke-soft);}
+#fhcc-root .fhcc-score-row output {
+  color:var(--fh-ui-paper);
+  font:600 19px/1 var(--fh-ui-title);
+}
+#fhcc-root .fhcc-note {
+  color:var(--fh-ui-soft);
+  border-color:var(--fh-ui-stroke);
+}
+#fhcc-root .fhcc-summary-grid span {background:#2c2d29;}
+#fhcc-root .fhcc-nav {border-color:var(--fh-ui-stroke-soft);}
+#fhcc-root .fhcc-nav .fhcc-primary {
+  border-color:var(--fh-ui-paper);
+  background:#33332e;
+  color:var(--fh-ui-paper);
+}
+#fhcc-root .fhcc-error {color:#ffb8a9;}
+
+/* Teclado y pantallas táctiles: mismos estados en todos los menús. */
+body.fh-player-menu-ready #importCard button:focus-visible,
+body.fh-player-menu-ready #actions .action:focus-visible,
+body.fh-player-menu-ready #fhDeliveryDialog button:focus-visible,
+body.fh-player-menu-ready #inventoryPanel button:focus-visible,
+body.fh-player-menu-ready #fhPeekTalk:focus-visible,
+#fhcc-root button:focus-visible,
+#fhcc-root input:focus-visible,
+#fhcc-root select:focus-visible {
+  outline:2px solid var(--fh-ui-focus)!important;
+  outline-offset:3px!important;
+}
+@media(max-width:650px) {
+  body.fh-player-menu-ready #importCard {padding:22px 20px;}
+  body.fh-player-menu-ready #fhLiveDialog .fh-panel,
+  body.fh-player-menu-ready #fhDeliveryDialog #fhDeliveryCard {padding:15px 16px;}
+  body.fh-player-menu-ready #inventoryPanel {font-size:14px!important;}
+  #fhcc-root .fhcc-card {padding:23px 20px;}
+  #fhcc-root .fhcc-help {font-size:14px;}
+}
+@media(prefers-reduced-motion:reduce) {
+  body.fh-player-menu-ready #importCard button,
+  body.fh-player-menu-ready #fhDeliveryDialog button,
+  #fhcc-root button {transition:none!important;}
+}

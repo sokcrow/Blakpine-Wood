@@ -1,0 +1,33 @@
+name: HUD del jugador — pruebas
+
+on:
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'juego/assets/fh-hud-*'
+      - 'juego/assets/fh-game-ui*'
+      - 'juego/assets/fh-location-hud.*'
+      - 'juego/assets/fh-player-menu.*'
+      - '.github/workflows/hud-ui.yml'
+  push:
+    branches:
+      - design/hud-2026-11-06
+    paths:
+      - 'index.html'
+      - 'juego/assets/fh-hud-*'
+      - 'juego/assets/fh-game-ui*'
+      - '.github/workflows/hud-ui.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Comprobar marco y ubicación
+        run: node --test juego/assets/fh-hud-frame.test.js juego/assets/fh-game-ui.test.js juego/assets/fh-location-hud.test.js
