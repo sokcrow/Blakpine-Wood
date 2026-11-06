@@ -164,7 +164,7 @@
     if (++current.page < current.pages.length) { drawPage();return true; }
     elements.dialog.className = '';
     current = null;
-    if (queue.length) begin();else {freeze(false);if(pendingNotice){const n=pendingNotice;pendingNotice=null;notice(n.text,n.ms);}}
+    if (queue.length) begin();else {freeze(false);flushNotice();}
     return true;
   }
 
@@ -240,12 +240,13 @@
   }
   function isDialogOpen() { return !!current; }
   function notice(text, ms = 2800) {
-    if (current) {pendingNotice={text,ms};return true;}
+    if (current || global.document?.getElementById('fhDeliveryDialog')?.classList.contains('open')) {pendingNotice={text,ms};return true;}
     const el = global.document?.getElementById('toast');if (!el) return false;
     ensure();el.textContent = String(text ?? '');el.classList.add('on');
     global.clearTimeout(noticeTimer);noticeTimer = global.setTimeout(() => el.classList.remove('on'), Math.max(500,Number(ms) || 2800));
     return true;
   }
+  function flushNotice() {if(!current && !global.document?.getElementById('fhDeliveryDialog')?.classList.contains('open') && pendingNotice){const n=pendingNotice;pendingNotice=null;notice(n.text,n.ms);}}
   function getView() { return typeof viewProvider === 'function' ? viewProvider() : null; }
   function sourceInRange(spec, view) {
     return audible({x:spec.x,z:spec.z,y:spec.y}, view?.listener, Number(spec.range) || 9);
@@ -304,5 +305,5 @@
       p.el.style.transform = 'translate(-50%,-50%)';
     }
   }
-  global.FHLiveText = Object.freeze({ configure,showDialogue,typeInto,advance,isDialogOpen,notice,soundAt,knockAt,tick,delayAfter,audible,normalizePages,PAUSE });
+  global.FHLiveText = Object.freeze({ configure,showDialogue,typeInto,advance,isDialogOpen,notice,flushNotice,soundAt,knockAt,tick,delayAfter,audible,normalizePages,PAUSE });
 })(typeof window !== 'undefined' ? window : globalThis);
