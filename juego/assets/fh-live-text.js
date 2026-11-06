@@ -38,7 +38,7 @@
         kind: p.kind || spec?.kind || (p.speaker || spec?.speaker ? 'npc' : 'event') };
     }).filter(page => page.text);
   }
-  let viewProvider = null, onFreeze = null, current = null, queue = [], timer = 0, noticeTimer = 0, elements = null;
+  let viewProvider = null, onFreeze = null, current = null, queue = [], timer = 0, noticeTimer = 0, elements = null, pendingNotice = null;
   const spatialItems = [];
   function styleText() {
     return [
@@ -49,7 +49,7 @@
       '#fhLiveDialog .fh-text{position:relative;white-space:pre-wrap;overflow-wrap:anywhere;min-height:1.5em;}#fhLiveDialog .fh-measure{visibility:hidden;}#fhLiveDialog .fh-reveal{position:absolute;inset:0;}#fhLiveDialog .fh-char{opacity:0;}#fhLiveDialog .fh-char.shown{opacity:1;}',
       '#fhLiveDialog .fh-next{opacity:0;text-align:center;height:19px;line-height:19px;font-size:21px;color:#e6dfc7;transition:opacity .15s;}#fhLiveDialog .fh-next.ready{opacity:1;animation:fh-chevron .85s ease-in-out infinite alternate;}',
       '#fhSpatialLayer{position:fixed;z-index:35;inset:0;pointer-events:none;overflow:hidden;}#fhSpatialLayer .fh-sound{position:absolute;left:0;top:0;white-space:nowrap;color:#f3eee4;text-shadow:-2px -2px 0 #171619,2px -2px 0 #171619,-2px 2px 0 #171619,2px 2px 0 #171619,0 3px 5px #000;font:900 italic clamp(21px,3vw,38px)/1 Georgia,serif;animation:fh-impact .55s ease-out both;will-change:transform,opacity;}',
-      '#fhLiveDialog .fh-char.miedo.shown{display:inline-block;animation:fh-shiver .15s linear infinite alternate;}#fhLiveDialog .fh-char.grito.shown{display:inline-block;animation:fh-shout .26s ease-in-out infinite alternate;}',
+      '#fhLiveDialog .fh-char.miedo,#fhLiveDialog .fh-char.grito{display:inline-block;}#fhLiveDialog .fh-char.miedo.shown{animation:fh-shiver .15s linear infinite alternate;}#fhLiveDialog .fh-char.grito.shown{animation:fh-shout .26s ease-in-out infinite alternate;}',
       '@keyframes fh-shiver{from{transform:translate(-.6px,.5px)}to{transform:translate(.6px,-.5px)}}@keyframes fh-shout{from{transform:translateY(-3px)}to{transform:translateY(3px)}}@keyframes fh-impact{0%{opacity:0;scale:.7}28%{opacity:1;scale:1.15}100%{opacity:0;scale:1;translate:0 -14px}}@keyframes fh-chevron{to{transform:translateY(3px)}}',
       '@media (prefers-reduced-motion:reduce){#fhLiveDialog .fh-char.miedo.shown,#fhLiveDialog .fh-char.grito.shown,#fhLiveDialog .fh-next.ready,#fhSpatialLayer .fh-sound{animation:none!important;}#fhSpatialLayer .fh-sound{opacity:1;}}'
     ].join('\n');
@@ -98,14 +98,15 @@
     elements.dialog.className = 'open ' + (page.kind === 'npc' ? 'npc' : 'event');
     elements.dialog.setAttribute('aria-label', page.kind === 'npc' ? T.dialog : T.narration);
     elements.speaker.textContent = page.kind === 'npc' ? page.speaker : '';
-    elements.measure.textContent = page.text;
+    elements.measure.replaceChildren();
     elements.reveal.replaceChildren();elements.next.classList.remove('ready');
     const chars = [];
     for (const segment of page.segments) {
       for (const ch of split(segment.text)) {
         const el = global.document.createElement('span');el.className = 'fh-char ' + (['miedo','grito'].includes(segment.mood) ? segment.mood : '');
         el.textContent = ch;el.style.animationDelay = '-' + (chars.length % 4) * 27 + 'ms';
-        elements.reveal.appendChild(el);chars.push({ el, ch, mood: segment.mood });
+        const reserved = global.document.createElement('span');reserved.className = el.className;reserved.textContent = ch;
+        elements.measure.appendChild(reserved);elements.reveal.appendChild(el);chars.push({ el, ch, mood: segment.mood });
       }
     }
     current.chars = chars;current.glyphs = chars.map(c => c.ch);current.index = 0;
@@ -133,11 +134,12 @@
     if (++current.page < current.pages.length) { drawPage();return true; }
     elements.dialog.className = '';
     current = null;
-    if (queue.length) begin();else freeze(false);
+    if (queue.length) begin();else {freeze(false);if(pendingNotice){const n=pendingNotice;pendingNotice=null;notice(n.text,n.ms);}}
     return true;
   }
   function isDialogOpen() { return !!current; }
   function notice(text, ms = 2800) {
+    if (current) {pendingNotice={text,ms};return true;}
     const el = global.document?.getElementById('toast');if (!el) return false;
     ensure();el.textContent = String(text ?? '');el.classList.add('on');
     global.clearTimeout(noticeTimer);noticeTimer = global.setTimeout(() => el.classList.remove('on'), Math.max(500,Number(ms) || 2800));
@@ -163,7 +165,7 @@
     try {
       const Audio = global.AudioContext || global.webkitAudioContext;
       if (!Audio) return;
-      audio = audio || new Audio();if (audio.state === 'suspended') audio.resume().catch(()=>{});
+      audio = global.ForestHorrorAudioContext || audio || new Audio();if (audio.state === 'suspended') audio.resume().catch(()=>{});
       const now = audio.currentTime, osc = audio.createOscillator(), gain = audio.createGain();
       osc.type = 'triangle';osc.frequency.setValueAtTime(155,now);osc.frequency.exponentialRampToValueAtTime(68,now+.07);
       gain.gain.setValueAtTime(.14,now);gain.gain.exponentialRampToValueAtTime(.001,now+.09);
@@ -182,7 +184,8 @@
     return true;
   }
   function tick() {
-    const view = getView();if (!view || !elements) return;
+    if (!spatialItems.length || !elements) return;
+    const view = getView();if (!view) return;
     const now = global.performance.now();
     for (let i=spatialItems.length-1;i>=0;i--) {
       const p=spatialItems[i];
