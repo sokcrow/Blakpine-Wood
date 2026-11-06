@@ -165,20 +165,20 @@ test('ventanas nuevas: una instancia de mapa con ID único por casilla horizonta
  const source={id:'win_1',type:'window',a:{x:2,y:6},b:{x:5,y:6},windowSkin:'dividida'};
  const pieces=api.splitWindow(source,()=>('win_'+(++next+1)));
  assert.equal(pieces.length,3);
- assert.deepEqual(pieces.map(p=>[p.a.x,p.a.y,p.b.x,p.b.y]),[
+ assert.deepEqual(Array.from(pieces,p=>[p.a.x,p.a.y,p.b.x,p.b.y]),[
   [2,6,3,6],[3,6,4,6],[4,6,5,6]
  ]);
- assert.deepEqual(pieces.map(p=>p.id),['win_1','win_2','win_3']);
+ assert.deepEqual(Array.from(pieces,p=>p.id),['win_1','win_2','win_3']);
  assert.ok(pieces.every(p=>p.windowSkin==='dividida'));
  assert.deepEqual([source.a.x,source.b.x],[2,5],'El original no se muta');
 });
 test('ventanas invertidas, verticales y tramos parciales ocupan tiles completos',()=>{
  const {api}=sceneEnvironment();
  const pieces=api.splitWindow({id:'a',type:'window',a:{x:7,y:5},b:{x:7,y:2}},(()=>{let n=0;return ()=>String(++n)})());
- assert.deepEqual(pieces.map(p=>[p.a.y,p.b.y]),[[5,4],[4,3],[3,2]]);
- const partial=api.splitWindow({id:'p',type:'window',a:{x:1,y:3},b:{x:3.25,y:3}},()=>String(Math.random()));
+ assert.deepEqual(Array.from(pieces,p=>[p.a.y,p.b.y]),[[5,4],[4,3],[3,2]]);
+ const partial=api.splitWindow({id:'p',type:'window',a:{x:1,y:3},b:{x:3.25,y:3}},(()=>{let n=0;return ()=>('partial_'+(++n))})());
  assert.equal(partial.length,3);
- assert.deepEqual(partial.map(p=>[p.a.x,p.b.x]),[[1,2],[2,3],[3,4]]);
+ assert.deepEqual(Array.from(partial,p=>[p.a.x,p.b.x]),[[1,2],[2,3],[3,4]]);
  const single=api.splitWindow({id:'s',type:'window',a:{x:1,y:2},b:{x:2,y:2}});
  assert.equal(single.length,1);assert.equal(single[0].id,'s');
 });
