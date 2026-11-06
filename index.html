@@ -2836,7 +2836,7 @@ function prepareGLBEngineDoc(source){
  const playerMenuScript='<script src="'+new URL('./juego/assets/fh-player-menu.js?v=20261106-player-ui',document.baseURI).href+'"></'+'script>';
  const locationCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-location-hud.css?v=20261106-hud-left-code',document.baseURI).href+'">';
  const locationStrings='<script src="'+new URL('./juego/assets/fh-location-strings.js?v=20261106-location',document.baseURI).href+'"></'+'script>';
- const locationScript='<script src="'+new URL('./juego/assets/fh-location-hud.js?v=20261106-location',document.baseURI).href+'"></'+'script>';
+ const locationScript='<script src="'+new URL('./juego/assets/fh-location-hud.js?v=20261106-exterior-parking',document.baseURI).href+'"></'+'script>';
  const locationHudHook='if(now-lastHud>90){lastHud=now;hudUpdate()}';
  const locationHudAfter='if(now-lastHud>90){lastHud=now;hudUpdate();window.FHLocationHUD?.update(DATA,currentFloor,{x:user.x/CELL,y:user.z/CELL})}';
  if(source.split(locationHudHook).length!==2)throw Error('El HUD original cambió: actualiza el adaptador de ubicación.');
