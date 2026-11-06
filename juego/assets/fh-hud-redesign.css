@@ -1,0 +1,318 @@
+/* Blakpine Wood · capa visual del HUD del jugador.
+   Se aplica solo al motor 3D, nunca al editor ni a la computadora del juego.
+   La silueta y sus dos trazos se dibujan en fh-hud-frame.js. */
+body.fh-player-menu-ready {
+  --fh-hud-paper:#f1eee8;
+  --fh-hud-silver:#bab7b0;
+  --fh-hud-faint:#777772;
+  --fh-hud-line:rgba(234,231,225,.52);
+}
+body.fh-player-menu-ready #hud.fh-location-hud {
+  position:absolute;
+  isolation:isolate;
+  box-sizing:border-box;
+  width:min(400px,calc(100vw - 128px));
+  max-width:calc(100vw - 128px);
+  min-width:0;
+  min-height:76px;
+  padding:13px 23px 15px 16px;
+  display:grid;
+  grid-template-columns:46px minmax(0,1fr);
+  align-items:center;
+  gap:14px;
+  background:transparent;
+  border:0;
+  border-radius:0;
+  clip-path:none;
+  box-shadow:none;
+  text-shadow:none;
+  overflow:visible;
+}
+body.fh-player-menu-ready #hud.fh-location-hud::before { content:none;display:none; }
+body.fh-player-menu-ready #hud.fh-location-hud::after {
+  content:'';
+  position:absolute;
+  z-index:1;
+  left:76px;
+  right:23px;
+  bottom:10px;
+  height:1px;
+  background:linear-gradient(90deg,rgba(231,228,222,.58),rgba(231,228,222,0));
+  pointer-events:none;
+}
+body.fh-player-menu-ready #hud.fh-location-hud > .fh-hud-frame-svg,
+body.fh-player-menu-ready #fhPlayerMenu > .fh-hud-frame-svg {
+  position:absolute;
+  inset:0;
+  z-index:0;
+  width:100%;
+  height:100%;
+  display:block;
+  overflow:visible;
+  pointer-events:none;
+}
+body.fh-player-menu-ready #hud.fh-location-hud > .fh-location-text,
+body.fh-player-menu-ready #hud.fh-location-hud > #fhFloorCode {
+  position:relative;
+  z-index:1;
+}
+body.fh-player-menu-ready #hud.fh-location-hud .fh-location-text {
+  display:flex;
+  min-width:0;
+  flex-direction:column;
+  justify-content:center;
+  align-items:stretch;
+  gap:5px;
+}
+body.fh-player-menu-ready #hud.fh-location-hud #fhFloorCode {
+  display:grid;
+  place-items:center;
+  width:46px;
+  height:46px;
+  padding:0;
+  color:var(--fh-hud-paper);
+  background:rgba(7,7,7,.45);
+  border:1px solid rgba(242,240,233,.85);
+  border-radius:50%;
+  box-shadow:none;
+  font:600 15px/1 var(--fh-ritual,Georgia,serif);
+  letter-spacing:.01em;
+}
+body.fh-player-menu-ready #hud.fh-location-hud #fhFloorCode::after {
+  content:'';
+  position:absolute;
+  inset:4px;
+  border:1px solid rgba(228,225,219,.38);
+  border-radius:50%;
+  pointer-events:none;
+}
+body.fh-player-menu-ready #hud.fh-location-hud #floorLabel {
+  display:block;
+  margin:0;
+  padding:0;
+  max-width:100%;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  color:var(--fh-hud-paper);
+  font:600 clamp(14px,1.55vw,19px)/1.25 var(--fh-ritual,Georgia,serif);
+  letter-spacing:.09em;
+  text-transform:uppercase;
+}
+body.fh-player-menu-ready #hud.fh-location-hud #regionLabel {
+  display:block;
+  margin:0;
+  padding:0;
+  border:0;
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  color:var(--fh-hud-silver);
+  font:400 clamp(11px,1.05vw,13px)/1.35 var(--fh-narrative,Georgia,serif);
+  letter-spacing:.16em;
+  text-transform:uppercase;
+}
+body.fh-player-menu-ready #hud.fh-location-hud #fhFloorCode[hidden],
+body.fh-player-menu-ready #hud.fh-location-hud #regionLabel[hidden] {display:none;}
+body.fh-player-menu-ready #hud.fh-location-hud.fh-location-exterior {
+  grid-template-columns:minmax(0,1fr);
+  padding-left:21px;
+}
+body.fh-player-menu-ready #hud.fh-location-hud.fh-location-exterior::after {left:21px;}
+
+/* Las acciones siguen siendo los botones reales del motor. */
+body.fh-player-menu-ready #actions .action {
+  box-sizing:border-box;
+  min-height:48px;
+  border:1px solid var(--fh-hud-line);
+  border-left:2px solid rgba(242,240,232,.84);
+  border-radius:0;
+  clip-path:none;
+  box-shadow:none;
+  background:linear-gradient(115deg,rgba(25,25,25,.95),rgba(5,5,5,.94));
+  color:var(--fh-hud-paper);
+  text-shadow:none;
+  font:600 12px/1.4 var(--fh-ritual,Georgia,serif);
+  letter-spacing:.065em;
+  transition:background-color .12s ease,border-color .12s ease;
+}
+body.fh-player-menu-ready #actions .action:hover,
+body.fh-player-menu-ready #actions .action:active {
+  background:#252525;
+  border-color:#f1eee8;
+}
+body.fh-player-menu-ready #actions .action[disabled] {opacity:.45;}
+body.fh-player-menu-ready #actions .action:focus-visible,
+body.fh-player-menu-ready #flashlightToggle:focus-visible,
+body.fh-player-menu-ready #fhMenuToggle:focus-visible,
+body.fh-player-menu-ready #fhPlayerMenu button:focus-visible,
+body.fh-player-menu-ready #inventoryPanel button:focus-visible {
+  outline:2px solid var(--fh-hud-paper);
+  outline-offset:3px;
+}
+
+/* Los controles físicos mantienen su geometría: linterna y joystick circulares. */
+body.fh-player-menu-ready #flashlightToggle {
+  box-shadow:none;
+  filter:none;
+  border:1px solid var(--fh-hud-line);
+  background:linear-gradient(130deg,#272727,#060606);
+}
+body.fh-player-menu-ready #flashlightToggle[aria-pressed="true"] {
+  border-color:#f4f0e8;
+  box-shadow:none;
+  background:linear-gradient(130deg,#333,#111);
+}
+body.fh-player-menu-ready #stick {
+  box-shadow:none;
+  filter:none;
+  border:1px solid rgba(233,229,219,.45);
+  background:rgba(8,8,8,.50);
+}
+body.fh-player-menu-ready #stickKnob {
+  box-shadow:none;
+  background:linear-gradient(140deg,#63635e,#262625);
+  border:1px solid rgba(242,239,232,.66);
+}
+
+/* El rombo mantiene dos bordes continuos sin resplandores. */
+body.fh-player-menu-ready #fhMenuToggle {filter:none;box-shadow:none;}
+body.fh-player-menu-ready #fhMenuToggle::before {
+  border:1px solid rgba(243,239,231,.86);
+  background:linear-gradient(145deg,#292929,#070707 75%);
+  box-shadow:none;
+}
+body.fh-player-menu-ready #fhMenuToggle::after {
+  border:1px solid rgba(243,239,231,.35);
+  box-shadow:none;
+}
+body.fh-player-menu-ready #fhMenuToggle .fh-bars i {
+  height:2px;
+  background:var(--fh-hud-paper);
+}
+
+/* Contenedor lateral: SVG para respetar todas las diagonales del marco doble. */
+body.fh-player-menu-ready #fhPlayerMenu {
+  isolation:isolate;
+  background:transparent;
+  border:0;
+  border-radius:0;
+  clip-path:none;
+  box-shadow:none;
+  color:var(--fh-hud-paper);
+}
+body.fh-player-menu-ready #fhPlayerMenu::before {content:none;display:none;}
+body.fh-player-menu-ready #fhPlayerMenu > :not(.fh-hud-frame-svg) {
+  position:relative;
+  z-index:1;
+}
+body.fh-player-menu-ready #fhPlayerMenuHeader {
+  border-color:rgba(238,233,225,.33);
+}
+body.fh-player-menu-ready #fhPlayerMenuHeader small {
+  color:var(--fh-hud-silver);
+  letter-spacing:.19em;
+}
+body.fh-player-menu-ready #fhPlayerMenuTitle {
+  color:var(--fh-hud-paper);
+  letter-spacing:.06em;
+}
+body.fh-player-menu-ready #fhPlayerMenuHeader::after {content:none;display:none;}
+body.fh-player-menu-ready #fhPlayerMenuNav button {
+  border:1px solid rgba(232,229,221,.25);
+  border-left:2px solid rgba(232,229,221,.68);
+  border-radius:0;
+  clip-path:none;
+  background:rgba(255,255,255,.045);
+  box-shadow:none;
+  color:var(--fh-hud-paper);
+}
+body.fh-player-menu-ready #fhPlayerMenuNav button:hover,
+body.fh-player-menu-ready #fhPlayerMenuNav button:focus-visible {
+  background:rgba(255,255,255,.13);
+  border-color:rgba(242,240,235,.78);
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-detail-card {
+  border:1px solid rgba(232,229,221,.28);
+  background:rgba(255,255,255,.035);
+  box-shadow:none;
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail button {
+  border:1px solid rgba(232,229,221,.45);
+  border-radius:0;
+  background:rgba(255,255,255,.06);
+  box-shadow:none;
+}
+body.fh-player-menu-ready #fhPlayerMenuFooter {border-color:rgba(232,229,221,.28);}
+
+/* Inventario y mensajes: se respetan su DOM y los eventos originales. */
+body.fh-player-menu-ready #inventoryPanel {
+  border:1px solid rgba(242,239,231,.68);
+  border-radius:0;
+  background:linear-gradient(130deg,rgba(20,20,20,.98),rgba(4,4,4,.98));
+  box-shadow:none;
+  color:var(--fh-hud-paper);
+}
+body.fh-player-menu-ready #inventoryPanel button {
+  border-radius:0;
+  box-shadow:none;
+}
+body.fh-player-menu-ready #toast {
+  box-shadow:none;
+  background:none;
+  border:0;
+  color:var(--fh-hud-paper);
+  text-shadow:0 1px 2px #000,0 0 7px #000c;
+}
+
+@media (max-width:650px) {
+  body.fh-player-menu-ready #hud.fh-location-hud {
+    top:calc(17px + env(safe-area-inset-top,0px));
+    left:12px;
+    width:calc(100vw - 105px - env(safe-area-inset-left,0px) - env(safe-area-inset-right,0px));
+    max-width:none;
+    min-height:64px;
+    padding:10px 14px 13px 11px;
+    grid-template-columns:37px minmax(0,1fr);
+    gap:10px;
+  }
+  body.fh-player-menu-ready #hud.fh-location-hud #fhFloorCode {
+    width:37px;
+    height:37px;
+    font-size:12px;
+  }
+  body.fh-player-menu-ready #hud.fh-location-hud #fhFloorCode::after {inset:3px;}
+  body.fh-player-menu-ready #hud.fh-location-hud #floorLabel {
+    font-size:clamp(12px,3.45vw,16px);
+    letter-spacing:.065em;
+  }
+  body.fh-player-menu-ready #hud.fh-location-hud #regionLabel {
+    font-size:clamp(10px,2.65vw,12px);
+    letter-spacing:.10em;
+  }
+  body.fh-player-menu-ready #hud.fh-location-hud::after {
+    left:58px;
+    right:17px;
+    bottom:9px;
+  }
+  body.fh-player-menu-ready #hud.fh-location-hud.fh-location-exterior {
+    grid-template-columns:minmax(0,1fr);
+    padding-left:15px;
+  }
+  body.fh-player-menu-ready #hud.fh-location-hud.fh-location-exterior::after {left:15px;}
+  body.fh-player-menu-ready #fhPlayerMenuNav button {min-height:48px;}
+}
+@media (max-width:350px) {
+  body.fh-player-menu-ready #hud.fh-location-hud {
+    width:calc(100vw - 96px);
+    grid-template-columns:32px minmax(0,1fr);
+    gap:8px;
+    padding-left:9px;
+  }
+  body.fh-player-menu-ready #hud.fh-location-hud #fhFloorCode {width:32px;height:32px;}
+  body.fh-player-menu-ready #hud.fh-location-hud::after {left:49px;}
+}
+@media (prefers-reduced-motion:reduce) {
+  body.fh-player-menu-ready #actions .action {transition:none;}
+}
