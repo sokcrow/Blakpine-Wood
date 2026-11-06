@@ -5,6 +5,7 @@ on:
     paths:
       - 'index.html'
       - 'juego/assets/fh-hud-*'
+      - 'juego/assets/fh-game-ui*'
       - 'juego/assets/fh-location-hud.*'
       - 'juego/assets/fh-player-menu.*'
       - '.github/workflows/hud-ui.yml'
@@ -14,6 +15,7 @@ on:
     paths:
       - 'index.html'
       - 'juego/assets/fh-hud-*'
+      - 'juego/assets/fh-game-ui*'
       - '.github/workflows/hud-ui.yml'
 
 permissions:
@@ -28,4 +30,4 @@ jobs:
         with:
           node-version: '22'
       - name: Comprobar marco y ubicación
-        run: node --test juego/assets/fh-hud-frame.test.js juego/assets/fh-location-hud.test.js
+        run: node --test juego/assets/fh-hud-frame.test.js juego/assets/fh-game-ui.test.js juego/assets/fh-location-hud.test.js
