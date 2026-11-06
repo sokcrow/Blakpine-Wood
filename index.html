@@ -3026,7 +3026,7 @@ window.FHDeliveryRuntime=window.FHDelivery?.createRuntime({
  state:GameState,save:saveProgress,notice,CELL:CELL,cell:CELL,feetPerCell:Number(DATA.units.feetPerCell)||5,
  knock:(door)=>window.FHLiveText?.knockAt({x:door.cx,z:door.cz,y:floorElev[door.f]+1.35,floor:door.f,range:11})??false,
  floorItems:f=>DATA.floors[f]?.items||[],currentFloor:()=>currentFloor,
- clockMinutesPerSecond:1,deliveryLeadMinutes:60,
+ clockMinutesPerSecond:1,deliveryLeadMinutes:60,knockDelayMs:1400,
  baseUrl:new URL('./juego/assets/fh-delivery.js',document.baseURI).href,
  freeze:on=>{fhDeliveryUiActive=!!on;user.vx=user.vz=0;clearStick();},
  findDoor:fhDeliveryDoor,doorById:fhDeliveryDoorById,
