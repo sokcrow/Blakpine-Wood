@@ -414,7 +414,7 @@ body.fh-player-menu-ready #fhPlayerMenu #inventoryPanel.open {
   padding:0!important;
   margin:0;
   overflow:hidden!important;
-  display:grid!important;
+  display:grid;
   grid-template-columns:minmax(0,42%) minmax(0,58%);
   gap:clamp(18px,3vw,48px);
   align-content:stretch;
@@ -423,7 +423,7 @@ body.fh-player-menu-ready #fhPlayerMenu #inventoryPanel.open {
   box-shadow:none!important;
   font:400 clamp(14px,1.45vw,22px)/1.45 var(--fh-ui-reading)!important;
 }
-body.fh-player-menu-ready #fhPlayerMenu #inventoryPanel:not(.open){display:none!important}
+body.fh-player-menu-ready #fhPlayerMenu #inventoryPanel:not(.open){display:none}
 body.fh-player-menu-ready #fhPlayerMenu #inventoryPanel::before {content:none;display:none}
 body.fh-player-menu-ready #fhInventoryLeft,
 body.fh-player-menu-ready #fhInventoryRight {
@@ -486,7 +486,7 @@ body.fh-player-menu-ready #fhPlayerMenu .inventoryPill {font-size:clamp(10px,1vw
 body.fh-player-menu-ready #fhPlayerMenu #inventorySlots {
   order:1;
   flex:none;
-  display:grid!important;
+  display:grid;
   grid-template-columns:repeat(4,minmax(0,1fr))!important;
   grid-template-rows:repeat(2,minmax(0,1fr));
   gap:clamp(6px,.9vw,15px)!important;
@@ -542,7 +542,7 @@ body.fh-player-menu-ready #fhInventoryRight {
   touch-action:pan-y;
 }
 body.fh-player-menu-ready #fhPlayerMenu #inventorySelected {
-  display:flex!important;
+  display:flex;
   flex-direction:column;
   align-items:stretch;
   gap:0;
@@ -674,7 +674,7 @@ body.fh-player-menu-ready #fhPlayerMenu #inventoryActions button:not([hidden]) {
   letter-spacing:.08em;
   text-transform:uppercase;
 }
-body.fh-player-menu-ready #fhPlayerMenu #inventoryActions button[hidden] {display:none!important}
+body.fh-player-menu-ready #fhPlayerMenu #inventoryActions button[hidden] {display:none}
 body.fh-player-menu-ready #fhPlayerMenu #inventoryHead {
   position:absolute;
   z-index:2;
@@ -763,7 +763,7 @@ body.fh-player-menu-ready #fhInventoryRight[data-empty="true"] #fhInventoryEmpty
 }
 @media(orientation:portrait) and (max-width:650px) {
   body.fh-player-menu-ready #fhPlayerMenu #inventoryPanel.open {
-    display:flex!important;
+    display:flex;
     flex-direction:column;
     gap:15px;
     overflow-y:auto!important;
