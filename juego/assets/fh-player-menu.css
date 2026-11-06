@@ -178,3 +178,190 @@ body.fh-player-menu-ready #inventoryPanel .inventorySlot {
  #fhPlayerMenuNav button {min-height:46px}
 }
 @media(prefers-reduced-motion:reduce) {#fhPlayerMenu,#fhMenuToggle .fh-bars i {animation:none;transition:none}}
+
+/* Pantalla del jugador: mismo contorno SVG chaflanado, ahora a ancho completo.
+   La capa de inventario legacy se integra como contenido, sin duplicarse. */
+body.fh-player-menu-ready #fhPlayerMenuLayer {
+  padding:clamp(8px,1.3vw,24px);
+  justify-content:center;
+  align-items:stretch;
+}
+body.fh-player-menu-ready #fhPlayerMenu {
+  width:100%;
+  max-width:none;
+  max-height:none;
+  height:100%;
+  min-height:0;
+  margin:0 auto;
+  animation:none;
+  font-family:var(--fh-narrative);
+}
+body.fh-player-menu-ready #fhPlayerMenuHeader {
+  display:flex;
+  gap:clamp(12px,2.5vw,36px);
+  align-items:center;
+  flex:none;
+  min-height:105px;
+  padding:22px clamp(24px,3.2vw,56px) 16px;
+  margin:0 clamp(18px,3.3vw,56px);
+  border-bottom:1px solid rgba(239,235,227,.46);
+}
+body.fh-player-menu-ready #fhPlayerMenuTitle {
+  position:absolute;
+  width:1px;height:1px;overflow:hidden;
+  clip:rect(0,0,0,0);white-space:nowrap;
+}
+body.fh-player-menu-ready #fhPlayerMenuEmblem {
+  display:grid;
+  place-items:center;
+  flex:0 0 66px;
+  width:66px;height:66px;
+  border:2px solid #e7e3da;
+  border-radius:50%;
+  box-shadow:inset 0 0 0 4px #101110,inset 0 0 0 5px #e7e3da;
+  color:#edeae3;
+  font:400 45px/1 Georgia,serif;
+  pointer-events:none;
+}
+body.fh-player-menu-ready #fhPlayerMenuNav {
+  display:flex;
+  min-width:0;
+  flex:1 1 auto;
+  gap:clamp(10px,2.7vw,45px);
+  align-items:stretch;
+  height:72px;
+  overflow-x:auto;
+  scrollbar-width:none;
+}
+body.fh-player-menu-ready #fhPlayerMenuNav::-webkit-scrollbar {display:none}
+body.fh-player-menu-ready #fhPlayerMenuNav button {
+  position:relative;
+  flex:0 0 auto;
+  width:auto;
+  min-height:44px;
+  padding:0 3px 10px;
+  border:0;
+  border-bottom:2px solid transparent;
+  border-left:0;
+  border-radius:0;
+  background:none;
+  box-shadow:none;
+  color:#a7a29b;
+  clip-path:none;
+  font:500 clamp(12px,1.25vw,20px)/1.2 var(--fh-ritual);
+  letter-spacing:.15em;
+  text-transform:uppercase;
+  white-space:nowrap;
+}
+body.fh-player-menu-ready #fhPlayerMenuNav button[aria-selected="true"] {
+  color:#f3efe8;
+  border-bottom-color:#f3efe8;
+}
+body.fh-player-menu-ready #fhPlayerMenuNav button:hover,
+body.fh-player-menu-ready #fhPlayerMenuNav button:focus-visible {
+  background:none;
+  color:#fff;
+}
+body.fh-player-menu-ready #fhInventoryCounter {
+  display:inline-flex;
+  align-items:center;
+  gap:12px;
+  white-space:nowrap;
+  flex:none;
+  color:#f2eee7;
+  font:600 clamp(15px,1.8vw,27px)/1 var(--fh-ritual);
+  letter-spacing:.035em;
+}
+body.fh-player-menu-ready #fhInventoryCounter::before {
+  content:'';
+  width:30px;height:34px;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 38'%3E%3Cg fill='none' stroke='%23eeeae2' stroke-width='2'%3E%3Cpath d='M5 17h22l2 17H3zM11 17v-6a5 5 0 0110 0v6M10 24h12'/%3E%3C/g%3E%3C/svg%3E") center/contain no-repeat;
+  opacity:.94;
+}
+body.fh-player-menu-ready #fhPlayerMenuScroll {
+  flex:1 1 auto;
+  min-height:0;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  padding:clamp(12px,1.6vw,25px) clamp(24px,3.4vw,56px) 0;
+  margin:0 clamp(18px,3.3vw,56px);
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail {
+  min-height:100%;
+  height:auto;
+  padding:0;
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail[hidden] {display:none}
+body.fh-player-menu-ready #fhPlayerMenuDetail:not(:has(#inventoryPanel)) {
+  max-width:950px;
+  margin:0 auto;
+  padding:clamp(20px,4vw,65px);
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-section-title {
+  color:#f2efe8;
+  font:600 clamp(25px,3.4vw,45px)/1.25 var(--fh-ritual);
+  text-align:center;
+  margin:0 0 22px;
+  letter-spacing:.1em;
+}
+body.fh-player-menu-ready #fhPlayerMenuFooter {
+  flex:none;
+  display:flex;
+  justify-content:flex-end;
+  align-items:center;
+  min-height:57px;
+  padding:0 clamp(24px,3.3vw,56px) 12px;
+  border:0;
+  background:none;
+}
+body.fh-player-menu-ready #fhPlayerMenuExit {
+  min-height:44px;
+  border:0;
+  background:none;
+  color:#cfc9c0;
+  font:500 17px/1.25 var(--fh-ritual);
+  text-transform:uppercase;
+  letter-spacing:.12em;
+}
+body.fh-player-menu-ready #fhPlayerMenuExit:hover {color:#fff}
+body.fh-player-menu-ready #fhPlayerMenuExit[hidden] {display:none!important}
+/* No dejar el rombo fijo tapando el contador y los botones del panel. */
+body.fh-player-menu-open #fhMenuToggle {
+  visibility:hidden;
+  pointer-events:none;
+}
+@media(max-width:850px) {
+  body.fh-player-menu-ready #fhPlayerMenuHeader {
+    min-height:65px;
+    margin:0 16px;
+    padding:8px 14px 6px;
+    gap:15px;
+  }
+  body.fh-player-menu-ready #fhPlayerMenuEmblem {
+    flex-basis:44px;width:44px;height:44px;
+    box-shadow:inset 0 0 0 3px #101110,inset 0 0 0 4px #e7e3da;
+    font-size:29px;
+  }
+  body.fh-player-menu-ready #fhPlayerMenuNav {height:48px;gap:clamp(10px,2vw,22px)}
+  body.fh-player-menu-ready #fhPlayerMenuNav button {
+    font-size:clamp(10px,1.55vw,13px);
+    letter-spacing:.09em;
+    padding:0 1px 6px;
+  }
+  body.fh-player-menu-ready #fhInventoryCounter {font-size:17px;gap:5px}
+  body.fh-player-menu-ready #fhInventoryCounter::before {width:21px;height:23px}
+  body.fh-player-menu-ready #fhPlayerMenuScroll {margin:0 16px;padding:10px 14px 0}
+  body.fh-player-menu-ready #fhPlayerMenuFooter {min-height:43px;padding:0 24px 5px}
+  body.fh-player-menu-ready #fhPlayerMenuExit {font-size:12px}
+}
+@media(orientation:landscape) and (max-height:480px) {
+  body.fh-player-menu-ready #fhPlayerMenuLayer {padding:5px}
+  body.fh-player-menu-ready #fhPlayerMenuHeader {min-height:54px;padding:4px 10px;margin:0 10px;gap:10px}
+  body.fh-player-menu-ready #fhPlayerMenuEmblem {width:38px;height:38px;flex-basis:38px;font-size:26px}
+  body.fh-player-menu-ready #fhPlayerMenuNav {height:43px;gap:clamp(6px,1.7vw,17px)}
+  body.fh-player-menu-ready #fhPlayerMenuNav button {font-size:clamp(10px,1.4vw,12px);padding-bottom:4px}
+  body.fh-player-menu-ready #fhInventoryCounter {font-size:13px;gap:4px}
+  body.fh-player-menu-ready #fhInventoryCounter::before {width:16px;height:19px}
+  body.fh-player-menu-ready #fhPlayerMenuScroll {margin:0 10px;padding:7px 12px 0}
+  body.fh-player-menu-ready #fhPlayerMenuFooter {min-height:34px;padding:0 16px 2px}
+}
