@@ -7,5 +7,15 @@ window.FH_ARCHITECTURE_TEXT=Object.freeze({
  automatic:'Automático según puerta',
  simple:'Cristal sencillo',
  panic:'Barra antipánico',
- tinted:'Cristal tintado'
+ tinted:'Cristal tintado',
+ closeCatalog:'Cerrar',
+ selectModel:'Selecciona el modelo por su miniatura antes de dibujarlo.',
+ doorModels:'Modelos de puerta',
+ windowModels:'Modelos de ventana',
+ loadingModels:'Cargando modelos…',
+ noModels:'No hay modelos disponibles en esta categoría.',
+ imageUnavailable:'Miniatura no disponible',
+ catalogError:'No se pudo cargar el catálogo de puertas y ventanas.',
+ useOriginalTool:'Continuar con la herramienta básica',
+ notAllowed:'No puedes modificar este elemento fuera de tu propiedad.'
 });
