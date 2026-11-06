@@ -298,10 +298,10 @@ const DATA = {
   {t:'20:12',type:'ACCESO',txt:'Se cerró la entrada de carga.\nSin credencial registrada.'}
  ]
 };
-const state={power:false,boot:false,zoom:false,windows:[],front:null,topZ:5,mail:0,floor:0,room:'VESTÍBULO',camera:0,log:0};
+const state={power:false,boot:false,waking:false,mode:'off',bootStarted:0,bootReady:0,bootDuration:0,lastBootDraw:0,zoom:false,windows:[],front:null,topZ:5,mail:0,floor:0,room:'VESTÍBULO',camera:0,log:0};
 const reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const winEls=new Map();
-let bootTimer=null,toastTimer=null,renderer=null,scene=null,camera3d=null,monitorGroup=null,screenPlane=null,powerKnob=null,raycaster=null,ndc=null,texture=null,modelEnabled=false,camFrameLast=0;
+let toastTimer=null,renderer=null,scene=null,camera3d=null,monitorGroup=null,screenPlane=null,powerKnob=null,raycaster=null,ndc=null,texture=null,modelEnabled=false,camFrameLast=0;
 const preview=$('screenTexture'),pctx=preview.getContext('2d',{alpha:false});pctx.imageSmoothingEnabled=false;
 const emit=(name,detail)=>{window.dispatchEvent(new CustomEvent('forest-terminal:'+name,{detail}));if(window.parent!==window)window.parent.postMessage({type:'FOREST_TERMINAL_EVENT',name,detail},'*')};
 window.addEventListener('message',event=>{
@@ -312,16 +312,68 @@ function say(msg){let el=$('message');el.textContent=msg;el.classList.add('show'
 function node(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=text;return e}
 function clear(el){el.replaceChildren()}
 function labelButton(text,cls,onClick){const b=node('button',cls,text);b.type='button';b.addEventListener('click',onClick);return b}
-function syncPower(){const txt=state.power?'[ APAGAR ]':'[ ENCENDER ]';$('powerBtn').textContent=txt;$('focusPower').textContent=txt;$('miniLed').classList.toggle('on',state.power);$('offStatus').textContent=state.power?'● SISTEMA ACTIVO':'● SIN ENERGÍA';$('offStatus').style.color=state.power?'#94caa8':'#a8b59c';$('screenOff').style.display=state.power?'none':'flex';$('boot').style.display=state.power&&state.boot?'flex':'none';$('desktop').style.display=state.power&&!state.boot?'block':'none';previewPaint()}
-function setPower(on){on=!!on;if(state.power===on)return;closeStart();clearTimeout(bootTimer);state.power=on;state.boot=on&&!reduceMotion;
- if(on&&state.boot){bootTimer=setTimeout(()=>{if(!state.power)return;state.boot=false;syncPower();emit('listo',{});},900)}else if(on)emit('listo',{});
- syncPower();emit('energia',{on});}
-function toggleZoom(on){on=typeof on==='boolean'?on:!state.zoom;if(on===state.zoom)return;state.zoom=on;closeStart();$('focus').classList.toggle('open',on);if(on){$('leaveBtn').focus({preventScroll:true})}else{$('zoomBtn').focus({preventScroll:true})}emit('zoom',{on});previewPaint()}
+function syncPower(){
+ const statuses={off:COMPUTER_TEXT.statusOff||'● SIN ENERGÍA',booting:COMPUTER_TEXT.statusBoot||'● INICIANDO',waking:COMPUTER_TEXT.statusWake||'● REANUDANDO',on:COMPUTER_TEXT.statusOn||'● SISTEMA ACTIVO',sleep:COMPUTER_TEXT.statusSleep||'● EN REPOSO'};
+ $('powerBtn').textContent=state.mode==='off'||state.mode==='sleep'?'[ ENCENDER ]':'[ APAGAR ]';
+ $('miniLed').classList.toggle('on',state.mode!=='off');
+ $('offStatus').textContent=statuses[state.mode]||statuses.off;
+ $('offStatus').style.color=state.mode==='on'?'#94caa8':'#c8c19f';
+ $('screenOff').style.display=['off','sleep'].includes(state.mode)?'flex':'none';
+ $('screenOff').querySelector('em').textContent=state.mode==='sleep'?(COMPUTER_TEXT.sleeping||'SISTEMA EN REPOSO'):(COMPUTER_TEXT.offScreen||'EL MONITOR ESTÁ APAGADO');
+ $('boot').style.display=state.boot?'flex':'none';
+ $('wake').style.display=state.waking?'flex':'none';
+ $('desktop').style.display=state.mode==='on'?'block':'none';
+ $('taskItems').style.display=state.mode==='on'?'flex':'none';
+ $('taskItems').setAttribute('aria-hidden',String(state.mode!=='on'));
+ refreshStartMenu();previewPaint();
+}
+function setPowerState(data={}){
+ const mode=['off','booting','waking','on','sleep'].includes(data.mode)?data.mode:'off';
+ state.mode=mode;state.boot=mode==='booting';state.waking=mode==='waking';state.power=mode==='on'||state.boot||state.waking;
+ state.bootStarted=Number(data.startedAt)||Date.now();
+ state.bootReady=Number(data.readyAt)||state.bootStarted;
+ state.bootDuration=Math.max(1,Number(data.durationMs)||state.bootReady-state.bootStarted||1);
+ state.lastBootDraw=0;updateBootProgress(true);syncPower();
+}
+function updateBootProgress(force=false){
+ if(!state.boot&&!state.waking)return;
+ const now=Date.now();if(!force&&now-state.lastBootDraw<80)return;
+ state.lastBootDraw=now;
+ const pct=Math.max(0,Math.min(100,Math.floor(100*(now-state.bootStarted)/state.bootDuration)));
+ $('bootFill').style.width=pct+'%';$('bootTrack').setAttribute('aria-valuenow',String(pct));$('bootPercent').textContent=pct+'%';
+ if(now>=state.bootReady){state.mode='on';state.power=true;state.boot=false;state.waking=false;syncPower();emit('listo',{stationId:sessionStationId})}
+ else previewPaint();
+}
+function setPower(on){
+ const now=Date.now();setPowerState(on?{mode:'booting',startedAt:now,readyAt:now+7000,durationMs:7000}:{mode:'off'});
+ emit('energia',{on:!!on});
+}
+function toggleZoom(on){
+ on=typeof on==='boolean'?on:!state.zoom;if(on===state.zoom)return;
+ state.zoom=on;closeStart();$('focus').classList.toggle('open',on);
+ if(on)$('startButton').focus({preventScroll:true});else $('zoomBtn').focus({preventScroll:true});
+ emit('zoom',{on});previewPaint();
+}
 function bringFront(app){let win=winEls.get(app);if(!win)return;win.style.display='flex';win.dataset.minimized='';state.front=app;state.topZ++;win.style.zIndex=String(state.topZ);for(const [key,el] of winEls)el.classList.toggle('active',key===app);drawTasks();previewPaint()}
 function closeWindow(app){let win=winEls.get(app);if(!win)return;win.remove();winEls.delete(app);state.windows=state.windows.filter(v=>v!==app);state.front=state.windows.at(-1)||null;drawTasks();previewPaint();emit('ventana',{app,open:false})}
 function drawTasks(){const task=$('taskItems');clear(task);state.windows.forEach(app=>{let b=labelButton(LABELS[app],'task-app'+(state.front===app?' selected':''),()=>bringFront(app));task.append(b)})}
 function closeStart(){ $('startMenu').classList.remove('open'); $('startButton').setAttribute('aria-expanded','false'); }
-function refreshStartMenu(){const menu=$('startMenu'),symbols={mail:'✉',map:'▧',cams:'◉',files:'▣',hamazon:'H'};clear(menu);sessionApps.forEach(app=>menu.append(labelButton(symbols[app]+'  '+LABELS[app],'',()=>{closeStart();openWindow(app)})));menu.append(labelButton('⏻  APAGAR TERMINAL','',()=>{closeStart();setPower(false)}))}
+function requestControl(action){
+ closeStart();
+ if(window.parent===window){
+  if(action==='reposo')setPowerState({mode:'sleep'});
+  if(action==='apagar')setPowerState({mode:'off'});
+  toggleZoom(false);
+ }else emit('control',{action,stationId:sessionStationId});
+}
+function refreshStartMenu(){
+ const menu=$('startMenu'),symbols={mail:'✉',map:'▧',cams:'◉',files:'▣',hamazon:'H'};
+ clear(menu);menu.append(node('strong','',COMPUTER_TEXT.menuTitle||'RAVEN/OS · SISTEMA'));
+ if(state.mode==='on')for(const app of sessionApps)menu.append(labelButton(symbols[app]+'  '+LABELS[app],'',()=>{closeStart();openWindow(app)}));
+ menu.append(labelButton(COMPUTER_TEXT.menuExit||'↩  SALIR AL JUEGO','',()=>requestControl('salir')));
+ if(state.mode==='on')menu.append(labelButton(COMPUTER_TEXT.menuSleep||'◐  PONER EN REPOSO','',()=>requestControl('reposo')));
+ menu.append(labelButton(COMPUTER_TEXT.menuShutdown||'⏻  APAGAR','',()=>requestControl('apagar')));
+}
 function initStart(){const menu=$('startMenu');refreshStartMenu();$('startButton').addEventListener('click',()=>{const open=menu.classList.toggle('open');$('startButton').setAttribute('aria-expanded',String(open))});document.addEventListener('pointerdown',ev=>{if(!menu.contains(ev.target)&&ev.target!==$('startButton'))closeStart()})}
 function makeIcons(){let layer=$('desktopIcons');clear(layer);let icons={mail:['✉','symbol-mail'],map:['▧','symbol-map'],cams:['◉','symbol-cams'],files:['▣','symbol-files'],hamazon:['H','symbol-hamazon']};for(const app of sessionApps){const b=labelButton('', 'desktop-icon',()=>openWindow(app));b.setAttribute('aria-label','Abrir '+LABELS[app]);const icon=node('span','pixel-symbol '+icons[app][1],icons[app][0]);b.append(icon,node('span','',LABELS[app]));layer.append(b)}}
 // Las ventanas se miden respecto al escritorio del iframe, no respecto al navegador exterior.
