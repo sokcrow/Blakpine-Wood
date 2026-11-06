@@ -90,6 +90,21 @@
   if(Array.isArray(zone?.polygons)&&zone.polygons.length)return zone.polygons;
   return Array.isArray(zone?.polygon)?[zone.polygon]:[];
  }
+ // Canvas2D usa winding no nulo al rellenar subtrazados. Mantener una
+ // orientación uniforme evita que un polígono importado en sentido inverso
+ // cancele el relleno de un tramo nuevo en la zona de intersección.
+ // No mutar las coordenadas originales: solo cambia la vista de dibujo.
+ function orientedPieces(zone){
+  return pieces(zone).map(poly=>{
+   if(!Array.isArray(poly)||poly.length<3)return poly;
+   let twiceArea=0;
+   for(let i=0;i<poly.length;i++){
+    const a=poly[i],b=poly[(i+1)%poly.length];
+    twiceArea+=a.x*b.y-b.x*a.y;
+   }
+   return twiceArea<0?poly.slice().reverse():poly.slice();
+  });
+ }
  function zoneContains(zone,p){return pieces(zone).some(poly=>inside(p,poly));}
  function locations(map,floorId){
   return (map.locationZones||[]).filter(z=>z.floorId===floorId&&['exterior','common'].includes(z.kind)&&pieces(z).length>0);
@@ -289,5 +304,5 @@
   }
   return {walls,areas,objects,doors};
  }
- return Object.freeze({rectangle,polygon,inside,intersectionArea,conflicts,at,doorAt,create,counts,locations,locationAt,createLocation,recolorLocation,pieces,zoneContains,colorOf,nextColor,boundarySegments,ZONE_COLORS});
+ return Object.freeze({rectangle,polygon,inside,intersectionArea,conflicts,at,doorAt,create,counts,locations,locationAt,createLocation,recolorLocation,pieces,orientedPieces,zoneContains,colorOf,nextColor,boundarySegments,ZONE_COLORS});
 });
