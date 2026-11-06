@@ -32,7 +32,7 @@ test('el adaptador 3D declara integración local y el motor base tiene sintaxis 
  // El adaptador usa funciones auxiliares del editor que no están en este
  // aislamiento: validar su sintaxis y contratos sin simularlas incorrectamente.
  assert.doesNotThrow(()=>new vm.Script('('+source+')'));
- assert.match(source,/juego\\/assets\\/vendor\\/three\\.min\\.js/);
+ assert.ok(source.includes('juego/assets/vendor/three.min.js'));
  assert.match(source,/FOREST_PREVIEW_RUNNING/);
  assert.match(source,/FOREST_PREVIEW_ERROR/);
  const start=motor.lastIndexOf('<script>')+8;
