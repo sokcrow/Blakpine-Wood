@@ -104,7 +104,10 @@ function createRuntime(options){
   const next=nextDueOrder(state);if(!next)return null;
   const door=options.doorById?.(next.doorId,next.floor);if(!door)return null;
   next.status='waiting';delivery.npc={activeOrderId:next.id,doorId:door.id,state:'waiting_at_door',pose:'idle'};
-  npcOrder=next;options.showNpc?.(next,door,'idle');say(TEXT.orderWaiting||'Llaman a la puerta.',2600);save();syncOrdersToTerminal();return next;
+  npcOrder=next;options.showNpc?.(next,door,'idle');
+   if(typeof options.knock==='function')options.knock(door,next);
+   else say(TEXT.orderWaiting||'Llaman a la puerta.',2600);
+   save();syncOrdersToTerminal();return next;
  }
  function placeOrder(productId,paymentMethod){
   const p=productById(productId);if(!p){say(TEXT.productMissing||'Producto no disponible.');return null}
