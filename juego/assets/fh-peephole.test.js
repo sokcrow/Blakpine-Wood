@@ -62,7 +62,7 @@ function setup(){
  const delivery=()=>body.children.find(n=>n.id==='fhDeliveryDialog');
  const visitorActions=()=>visitor()?.querySelector('#fhVisitorActions').children||[];
  const action=label=>visitorActions().find(n=>n.textContent===label);
- return {runtime,visitor,delivery,action,visitorActions,overlay,order,
+ return {win,runtime,visitor,delivery,action,visitorActions,overlay,order,
   get frozen(){return frozen},get opened(){return opened}};
 }
 
@@ -119,6 +119,28 @@ test('evento configurable sin NPC conserva opciones contextuales y apertura',()=
  ui.action('¿Qué ocurre?').onclick();
  assert.equal(ui.visitor().querySelector('#fhVisitorText').textContent,'No responde.');
  assert.ok(ui.action('Abrir la puerta'));
+});
+
+test('apertura confirmada emite el evento una sola vez',()=>{
+ const win={FH_VISITOR_TEXT:{open:'Abrir la puerta',leave:'No abrir'}};
+ const overlay=node('div'),head=node('head'),body=node('body');
+ const document={head,body,createElement:node,getElementById:()=>overlay};
+ vm.runInNewContext(visitorSrc,{window:win,document});
+ const door={id:'peligrosa',visitorEvent:{description:'Alguien respira detrás de la puerta.',line:'Abre.'}};
+ let opened=0,attempts=0,permitted=true;
+ const runtime=win.FHVisitor.createRuntime({
+  resolveEvent:d=>d.visitorEvent,
+  openDoor:()=>{attempts++;return permitted},
+  onOpened:()=>opened++
+ });
+ const open=()=>body.children.find(x=>x.id==='fhVisitorDialog').querySelector('#fhVisitorActions').children.find(x=>x.textContent==='Abrir la puerta');
+ assert.equal(runtime.onDoorAttempt(door),true);
+ open().onclick();assert.equal(opened,0);assert.equal(attempts,1);
+ assert.equal(runtime.onDoorOpened(door),true);assert.equal(opened,1);
+ assert.equal(runtime.onDoorOpened(door),false);assert.equal(opened,1);
+ permitted=false;runtime.onDoorAttempt(door);open().onclick();
+ assert.equal(runtime.onDoorOpened(door),false);
+ assert.equal(opened,1);
 });
 
 test('integración: el motor usa un solo flujo y aplica visión a NPC dinámicos',()=>{
