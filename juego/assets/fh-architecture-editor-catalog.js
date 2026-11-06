@@ -5,7 +5,7 @@
  const scriptUrl=new URL(document.currentScript?.src||'./juego/assets/fh-architecture-editor-catalog.js',document.baseURI);
  const base=new URL('../../forest-horror/biblioteca/arquitectura/',scriptUrl);
  const allowed=/^(puerta_madera|puerta_metal|puerta_mirilla|puerta_cristal_simple|puerta_cristal_antipanico|puerta_cristal_tintada|ventana_clasica|ventana_dividida)$/;
- let catalogPromise=null,models=[],openingTool='door',opener=null;
+ let catalogPromise=null,models=[],openingTool='door',opener=null,lastDoorModel='puerta_madera';
  const active={door:'puerta_madera',peephole_door:'puerta_mirilla',window:'ventana_clasica'};
  const css=document.createElement('style');
  css.textContent='#fhArchCatalog[hidden]{display:none!important}#fhArchCatalog{position:fixed;inset:0;z-index:91;display:flex;align-items:center;justify-content:center;padding:12px;background:#05080de8}#fhArchCatalog .fhArchPanel{display:flex;flex-direction:column;gap:10px;width:min(680px,100%);max-height:92dvh;padding:14px;background:#131b25;border:2px solid #8a978d;box-shadow:0 18px 55px #000c;color:#f4eddd}#fhArchCatalog .fhArchTop{display:flex;align-items:center;justify-content:space-between;gap:10px}#fhArchCatalog h2{font:700 17px system-ui;margin:0}#fhArchCatalog p{font:12px/1.5 system-ui;margin:0;color:#d0d5d0}#fhArchCatalog .fhArchList{display:grid;grid-template-columns:repeat(auto-fill,minmax(125px,1fr));gap:8px;overflow-y:auto}#fhArchCatalog button:focus-visible,.fhArchInspector button:focus-visible{outline:3px solid #efca88;outline-offset:2px}.fhArchCard{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0;padding:7px;background:#27323b;border:2px solid #56646a;border-radius:3px;color:#f7f0e4;text-align:center;cursor:pointer}.fhArchCard[aria-pressed=true]{border-color:#f1bf78;background:#3f3a31}.fhArchCard img{display:block;width:100%;height:94px;object-fit:contain;image-rendering:pixelated;background:#0e171e}.fhArchCard span{font:600 11px/1.35 system-ui}.fhArchCard small{font:11px system-ui;color:#e3ad86}.fhArchInspector{grid-column:1/-1;display:grid;gap:7px}.fhArchInspector>strong{font:700 12px system-ui}.fhArchInspector .fhArchList{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:6px}.fhArchInspector .fhArchCard{padding:5px}.fhArchInspector .fhArchCard img{height:77px}@media(max-width:480px){#fhArchCatalog .fhArchList{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}#fhArchCatalog .fhArchCard img{height:74px}#fhArchCatalog .fhArchCard{padding:4px}}';
@@ -62,6 +62,7 @@
  function choosePlacement(model){
   const tool=model.type;
   active[tool]=model.id;
+  if(tool==='door'||tool==='peephole_door')lastDoorModel=model.id;
   oldChooseTool(tool);
   refreshToolbar();
   close();
@@ -74,7 +75,7 @@
    if(modal.hidden||openingTool!==tool)return;
    const available=subset(tool);
    if(!available.length){list.replaceChildren(el('p',T.noModels));return;}
-   list.replaceChildren(...available.map(m=>modelCard(m,active[m.type],choosePlacement)));
+   list.replaceChildren(...available.map(m=>modelCard(m,tool==='door'?lastDoorModel:active[tool],choosePlacement)));
   }).catch(error=>{
    console.warn('[Forest Horror arquitectura catálogo]',error);
    if(modal.hidden||openingTool!==tool)return;
