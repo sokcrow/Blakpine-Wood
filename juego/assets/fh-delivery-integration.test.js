@@ -69,7 +69,7 @@ test('La caja y el mueble entregado usan modo decoración sin cambiar el layout'
  assert.match(index,/function fhRotateDecoration\(/);
  assert.match(index,/#fhDecorateBtn\{position:fixed/);
  assert.match(index,/#fhDecorControls\{position:fixed/);
- assert.match(index,/fhDecorationTick\(\);if\(!fhDeliveryUiActive&&!fhDecorationActive\)moveUpdate\(dt\)/);
+ assert.match(index,/fhDecorationTick\(\);if\(!fhDeliveryUiActive&&!fhVisitorUiActive&&!fhDecorationActive\)moveUpdate\(dt\)/);
  assert.match(delivery,/runtimeDecoratable:true,runtimePackage/);
  assert.match(index,/runtimeDecoratable:true,runtimeDeliveryFurniture/);
  assert.match(decoration,/function candidate\(/);
