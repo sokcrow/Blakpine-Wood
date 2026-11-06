@@ -111,6 +111,7 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
 @media(max-width:780px){#circuitAudit{font-size:10px;padding:5px}#circuitStatus{display:none}#circuitTools .circuit-all{display:none}#circuitTools select{max-width:140px}}
 </style>
 <link rel="stylesheet" href="./juego/assets/fh-character-creation.css?v=20261106-phase1">
+<link rel="stylesheet" href="./juego/assets/fh-game-ui.css?v=20261106-common-ui">
 </head>
 <body>
 <div id="app">
@@ -2847,6 +2848,7 @@ function prepareGLBEngineDoc(source){
  const locationStrings='<script src="'+new URL('./juego/assets/fh-location-strings.js?v=20261106-location',document.baseURI).href+'"></'+'script>';
  const locationScript='<script src="'+new URL('./juego/assets/fh-location-hud.js?v=20261106-zonas-color',document.baseURI).href+'"></'+'script>';
  const hudRedesignCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-hud-redesign.css?v=20261106-hud-redesign',document.baseURI).href+'">';
+ const gameUiCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-game-ui.css?v=20261106-common-ui',document.baseURI).href+'">';
  const hudFrameScript='<script src="'+new URL('./juego/assets/fh-hud-frame.js?v=20261106-hud-redesign',document.baseURI).href+'"></'+'script>';
  const locationHudHook='if(now-lastHud>90){lastHud=now;hudUpdate()}';
  const locationHudAfter='if(now-lastHud>90){lastHud=now;hudUpdate();window.FHLocationHUD?.update(DATA,currentFloor,{x:user.x/CELL,y:user.z/CELL})}';
@@ -3135,7 +3137,7 @@ window.FHDeliveryRuntime=window.FHDelivery?.createRuntime({
   .replace(attachBefore,' window.FHAssets?.attach(g,a);\n'+attachBefore)
   .replace(cloneBefore,'const clone=source.clone(true);\n   window.FHAssets?.mirror(source,clone);\n   clone.position.y+=floorElev[f];')
   .replace(engineSuccessBefore,engineSuccessAfter).replace(engineFailBefore,engineFailAfter).replace(loadFailBefore,loadFailAfter)
-  .replace('</head>',localThree+coverageScript+lightsModule+surfaceScript+decorationScript+ruleScript+bridge+sleepStrings+sleepModule+pcAssemblyModule+computerStrings+computerModule+deliveryStrings+deliveryModule+styleCore+styleRender+parkingScript+playerMenuCss+playerMenuStrings+playerMenuScript+locationCss+locationStrings+locationScript+hudRedesignCss+hudFrameScript+'</head>'));
+  .replace('</head>',localThree+coverageScript+lightsModule+surfaceScript+decorationScript+ruleScript+bridge+sleepStrings+sleepModule+pcAssemblyModule+computerStrings+computerModule+deliveryStrings+deliveryModule+styleCore+styleRender+parkingScript+playerMenuCss+playerMenuStrings+playerMenuScript+locationCss+locationStrings+locationScript+hudRedesignCss+gameUiCss+hudFrameScript+'</head>'));
 }
 let fhCharacterLaunchPending=false;
 async function start3DPreview(){
