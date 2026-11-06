@@ -1,0 +1,30 @@
+name: Texto Vivo y repartidor — pruebas
+
+on:
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'juego/assets/fh-live-*'
+      - 'juego/assets/fh-delivery*'
+      - '.github/workflows/live-text.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'index.html'
+      - 'juego/assets/fh-live-*'
+      - 'juego/assets/fh-delivery*'
+      - '.github/workflows/live-text.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verificar Typewriter y entregas
+        run: node --test juego/assets/fh-live-text.test.js juego/assets/fh-live-courier.test.js juego/assets/fh-delivery-runtime.test.js

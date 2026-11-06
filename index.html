@@ -2688,6 +2688,47 @@ function makeCurrent3DProject(){
    ceilingHeightFt:f.ceilingHeightFt,lightingManual:!!f.lightingManual,items:clone(window.FHAreaMerge?.forEngine(f.items)||f.items),apartments:clone(f.apartments||[])}))};
 }
 function show3DStatus(message){play3DState.textContent=message;play3DState.classList.remove('hide')}
+
+function addLiveTextToEngine(doc){
+ const noticeBefore="let noticeTimeout;function notice(msg,ms=2800){$('toast').textContent=msg;$('toast').classList.add('on');clearTimeout(noticeTimeout);noticeTimeout=setTimeout(()=>$('toast').classList.remove('on'),ms)}";
+ const config=[
+  "window.FHLiveText?.configure({",
+  " freeze:on=>{user.vx=user.vz=0;clearStick();for(const k of Object.keys(keys))keys[k]=false;},",
+  " view:()=>({",
+  "  listener:{x:user.x,z:user.z,y:floorElev[currentFloor]+1.5},floor:currentFloor,",
+  "  camera:peeking?eye:cam,canvas:$('view'),",
+  "  visible:(x,z,f)=>{",
+  "   if(f!==currentFloor)return false;",
+  "   const at=eyeLocation(),opaque=sightWalls[currentFloor].slice();",
+  "   for(const d of doorList[currentFloor])if(!d.transparent&&!d.passable&&(!peeking||d!==peekDoor))opaque.push(d.block);",
+  "   const params=sightParameters();",
+  "   params.sources=lighting.sourcesNear(roomLampEntries,currentFloor,at.x,at.z,LOOK_RADIUS,7.2,4);",
+  "   return litPointVisible(x,z,at,opaque,params);",
+  "  }",
+  " })",
+  "});"
+ ].join('\n');
+ const changes=[
+  [noticeBefore,noticeBefore.replace('function notice(msg,ms=2800){','function notice(msg,ms=2800){if(window.FHLiveText?.notice(msg,ms))return;')+'\n'+config],
+  ["case 'say':messages.push(effect.text);bus.emit('say',{text:effect.text,item});break;",
+   "case 'say':messages.push(effect.text);bus.emit('say',{text:effect.text,item,speaker:effect.speaker||'',kind:effect.kind,mood:effect.mood,segments:effect.segments});break;"],
+  ["GameEvents.on('say',({text})=>{if(text)notice(text,2700)});",
+   "GameEvents.on('say',({text,speaker,kind,mood,segments})=>{if(text&&!(window.FHLiveText?.showDialogue({text,speaker,kind,mood,segments})))notice(text,2700)});"],
+  ["GameEvents.on('sound:play',({id})=>playInteractionSound(id));",
+   "GameEvents.on('sound:play',({id,item})=>{playInteractionSound(id);if(item){const a=interactionAnchor(item);window.FHLiveText?.soundAt({id,x:a.x*CELL,z:a.y*CELL,y:floorElev[currentFloor]+1.15,floor:currentFloor});}});"],
+  ["function walk(dx,dz){const n=", "function walk(dx,dz){if(window.FHLiveText?.isDialogOpen())return 0;const n="],
+  [" cameraUpdate(dt);updateCabinIsolation();"," cameraUpdate(dt);window.FHLiveText?.tick();updateCabinIsolation();"]
+ ];
+ for(const [before,after] of changes){
+  const occurrences=doc.split(before).length-1;
+  if(occurrences!==1)throw Error('Hook texto vivo incompatible: '+before.slice(0,85)+' ('+occurrences+')');
+  doc=doc.replace(before,after);
+ }
+ const str='<script src="'+new URL('./juego/assets/fh-live-text-strings.js?v=20261106-live-courier',document.baseURI).href+'"></'+'script>';
+ const ui='<script src="'+new URL('./juego/assets/fh-live-text.js?v=20261106-live-courier',document.baseURI).href+'"></'+'script>';
+ return doc.replace('</head>',str+ui+'</head>');
+}
+
 function prepareGLBEngineDoc(source){
  const attachBefore=' return g;\n}\nfunction windowModel(f,it){';
  const cloneBefore='const clone=source.clone(true);\n   clone.position.y+=floorElev[f];';
@@ -2706,8 +2747,8 @@ function prepareGLBEngineDoc(source){
  const sleepModule='<script src="'+new URL('./juego/assets/fh-sleep.js',document.baseURI).href+'"></'+'script>';
  const coverageScript='<script src="'+new URL('./juego/assets/fh-light-coverage.js?v=20261105-light-ui2',document.baseURI).href+'"></'+'script>';
  const lightsModule='<script src="'+new URL('./juego/assets/fh-lights.js?v=20261105-light-ui2',document.baseURI).href+'"></'+'script>';
- const deliveryStrings='<script src="'+new URL('./juego/assets/fh-delivery-strings.js?v=20261105-peephole',document.baseURI).href+'"></'+'script>';
- const deliveryModule='<script src="'+new URL('./juego/assets/fh-delivery.js?v=20261105-peephole',document.baseURI).href+'"></'+'script>';
+ const deliveryStrings='<script src="'+new URL('./juego/assets/fh-delivery-strings.js?v=20261106-live-courier',document.baseURI).href+'"></'+'script>';
+ const deliveryModule='<script src="'+new URL('./juego/assets/fh-delivery.js?v=20261106-live-courier',document.baseURI).href+'"></'+'script>';
  const pcAssemblyModule='<script src="'+new URL('./juego/assets/fh-pc-assembly.js',document.baseURI).href+'"></'+'script>';
  const computerModule='<script src="'+new URL('./juego/assets/fh-computer.js',document.baseURI).href+'"></'+'script>';
  const computerStrings='<script src="'+new URL('./juego/assets/fh-computer-strings.js',document.baseURI).href+'"></'+'script>';
@@ -2983,8 +3024,9 @@ window.FHComputerRuntime=window.FHComputer?.createRuntime({
 window.FHDeliveryRuntime=window.FHDelivery?.createRuntime({
  computer:window.FHComputerRuntime,
  state:GameState,save:saveProgress,notice,CELL:CELL,cell:CELL,feetPerCell:Number(DATA.units.feetPerCell)||5,
+ knock:(door)=>window.FHLiveText?.knockAt({x:door.cx,z:door.cz,y:floorElev[door.f]+1.35,floor:door.f,range:11})??false,
  floorItems:f=>DATA.floors[f]?.items||[],currentFloor:()=>currentFloor,
- clockMinutesPerSecond:1,deliveryLeadMinutes:60,
+ clockMinutesPerSecond:1,deliveryLeadMinutes:60,knockDelayMs:1400,
  baseUrl:new URL('./juego/assets/fh-delivery.js',document.baseURI).href,
  freeze:on=>{fhDeliveryUiActive=!!on;user.vx=user.vz=0;clearStick();},
  findDoor:fhDeliveryDoor,doorById:fhDeliveryDoorById,
@@ -3024,7 +3066,7 @@ window.FHDeliveryRuntime=window.FHDelivery?.createRuntime({
  const loadFailAfter="if(index>=providers.length){status.textContent='No se pudo cargar Three.js. Conéctate a internet y vuelve a abrir este HTML.';parent.postMessage({type:'FOREST_PREVIEW_ERROR',message:status.textContent},'*');return}";
  for(const hook of [engineSuccessBefore,engineFailBefore,loadFailBefore])if(source.split(hook).length!==2)throw Error('Hook de inicio 3D incompatible: '+hook.slice(0,80));
  const cameraLightAfter=" const lightDistance=camDistance+(window.FHLights?.cameraBonus(roomLampEntries,lighting,currentFloor,user.x,user.z)||0);\n const ahead=lighting.state.enabled?0.80:0;target.x+=flashDir.x*ahead;target.z+=flashDir.z*ahead;\n const desired=new THREE.Vector3(user.x+behind.x*lightDistance,y+.88+lightDistance*Math.tan(Math.PI/6),user.z+behind.z*lightDistance);";
- return addDeliveryToEngine(addParkingToEngine(addStylesToEngine(addLightToEngine(source)))).replace(furnitureVisibilityHook,furnitureRenderHook).replace(cameraBefore,cameraAfter).replace(cameraBefore,cameraLightAfter).replace(loopBefore,loopAfter)
+ return addLiveTextToEngine(addDeliveryToEngine(addParkingToEngine(addStylesToEngine(addLightToEngine(source)))).replace(furnitureVisibilityHook,furnitureRenderHook).replace(cameraBefore,cameraAfter).replace(cameraBefore,cameraLightAfter).replace(loopBefore,loopAfter)
   .replace(maskBefore,maskAfter).replace(wakeHUDBefore,wakeHUDAfter)
   .split(wakeBefore).join(wakeAfter)
   .replace(chairSelection," const poseReachable=(item,anchor)=>canWalk(user.x,user.z)&&safePoseRoute(item,{x:user.x,z:user.z},anchor);\n const stockSeat=selectSeatInteractable(visible,user,yaw,CELL,poseReachable);\n const glbChair=window.FHFurnitureRules?.findReachableChair(visible,user,yaw,CELL,poseReachable,ForestShared);\n const sitting=glbChair&&(!stockSeat||glbChair.score<stockSeat.score)?glbChair:stockSeat;")
@@ -3039,7 +3081,7 @@ window.FHDeliveryRuntime=window.FHDelivery?.createRuntime({
   .replace(attachBefore,' window.FHAssets?.attach(g,a);\n'+attachBefore)
   .replace(cloneBefore,'const clone=source.clone(true);\n   window.FHAssets?.mirror(source,clone);\n   clone.position.y+=floorElev[f];')
   .replace(engineSuccessBefore,engineSuccessAfter).replace(engineFailBefore,engineFailAfter).replace(loadFailBefore,loadFailAfter)
-  .replace('</head>',localThree+coverageScript+lightsModule+surfaceScript+decorationScript+ruleScript+bridge+sleepStrings+sleepModule+pcAssemblyModule+computerStrings+computerModule+deliveryStrings+deliveryModule+styleCore+styleRender+parkingScript+'</head>');
+  .replace('</head>',localThree+coverageScript+lightsModule+surfaceScript+decorationScript+ruleScript+bridge+sleepStrings+sleepModule+pcAssemblyModule+computerStrings+computerModule+deliveryStrings+deliveryModule+styleCore+styleRender+parkingScript+'</head>'));
 }
 function start3DPreview(){
  if(preview3DActive)return;
