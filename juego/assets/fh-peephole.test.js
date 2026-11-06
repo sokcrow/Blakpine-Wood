@@ -72,14 +72,14 @@ test('mirar primero: el botón Hablar no abre el diálogo ni cierra la mirilla',
  assert.equal(ui.overlay.children[0].hidden,true);
 });
 
-test('hablar abre un panel compacto con sprite; cerrar conserva la mirilla',()=>{
+test('hablar abre un panel compacto sin sprite; cerrar conserva la mirilla',()=>{
  const ui=setup();ui.runtime.onPeephole({id:'puerta1'});
  let prevented=false;
  ui.overlay.children[0].handlers.click({stopPropagation(){prevented=true}});
  assert.equal(prevented,true);
  assert.equal(ui.dialog().classList.contains('open'),true);
  assert.equal(ui.dialog().classList.contains('peephole'),true);
- assert.equal(ui.dialog().querySelector('#fhDeliveryPortrait').children[0].src,'https://example.test/sprite.webp');
+ assert.equal(ui.dialog().html.includes('fhDeliveryPortrait'),false);
  assert.equal(ui.overlay.children[0].hidden,true);
  assert.equal(ui.frozen,true);
  ui.action('Terminar conversación').onclick();

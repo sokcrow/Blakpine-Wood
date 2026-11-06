@@ -42,10 +42,15 @@ test('El catálogo de cajas es opcional para no romper muebles normales',()=>{
  assert.match(bridge,/Catálogo de paquetería no disponible/);
 });
 
-test('Las siete poses del Delivery Man están conectadas',()=>{
- for(const file of ['delivery_idle.webp','delivery_walk.webp','delivery_thinking.webp','delivery_clipboard.webp','delivery_peephole.webp','delivery_cash.webp','delivery_card.webp']){
+test('Las ocho poses originales del repartidor existen en el repositorio y están conectadas',()=>{
+ for(const file of ['delivery_normal_idle.png','delivery_normal_walk.png','delivery_normal_thinking.png','delivery_door_idle.png','delivery_door_greeting.png','delivery_door_signature.png','delivery_door_cash.png','delivery_door_card.png']){
   assert.ok(index.includes(file),file);
+  const data=fs.readFileSync(path.join(root,'juego/assets/npc',file));
+  assert.equal(data.subarray(0,8).toString('hex'),'89504e470d0a1a0a',file+' debe ser PNG');
+  assert.ok(data.length>10000,file+' no debe ser un recurso vacío');
  }
+ assert.match(index,/finalPose:'door_idle'/);
+ assert.match(index,/fhSetDeliveryNpcPose\('greeting'\)/);
 });
 
 test('Los pedidos esperan su ETA antes de llamar a la puerta',()=>{
