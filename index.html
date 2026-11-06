@@ -2846,6 +2846,8 @@ function prepareGLBEngineDoc(source){
  const locationCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-location-hud.css?v=20261106-hud-left-code',document.baseURI).href+'">';
  const locationStrings='<script src="'+new URL('./juego/assets/fh-location-strings.js?v=20261106-location',document.baseURI).href+'"></'+'script>';
  const locationScript='<script src="'+new URL('./juego/assets/fh-location-hud.js?v=20261106-zonas-color',document.baseURI).href+'"></'+'script>';
+ const hudRedesignCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-hud-redesign.css?v=20261106-hud-redesign',document.baseURI).href+'">';
+ const hudFrameScript='<script src="'+new URL('./juego/assets/fh-hud-frame.js?v=20261106-hud-redesign',document.baseURI).href+'"></'+'script>';
  const locationHudHook='if(now-lastHud>90){lastHud=now;hudUpdate()}';
  const locationHudAfter='if(now-lastHud>90){lastHud=now;hudUpdate();window.FHLocationHUD?.update(DATA,currentFloor,{x:user.x/CELL,y:user.z/CELL})}';
  if(source.split(locationHudHook).length!==2)throw Error('El HUD original cambió: actualiza el adaptador de ubicación.');
@@ -3133,7 +3135,7 @@ window.FHDeliveryRuntime=window.FHDelivery?.createRuntime({
   .replace(attachBefore,' window.FHAssets?.attach(g,a);\n'+attachBefore)
   .replace(cloneBefore,'const clone=source.clone(true);\n   window.FHAssets?.mirror(source,clone);\n   clone.position.y+=floorElev[f];')
   .replace(engineSuccessBefore,engineSuccessAfter).replace(engineFailBefore,engineFailAfter).replace(loadFailBefore,loadFailAfter)
-  .replace('</head>',localThree+coverageScript+lightsModule+surfaceScript+decorationScript+ruleScript+bridge+sleepStrings+sleepModule+pcAssemblyModule+computerStrings+computerModule+deliveryStrings+deliveryModule+styleCore+styleRender+parkingScript+playerMenuCss+playerMenuStrings+playerMenuScript+locationCss+locationStrings+locationScript+'</head>'));
+  .replace('</head>',localThree+coverageScript+lightsModule+surfaceScript+decorationScript+ruleScript+bridge+sleepStrings+sleepModule+pcAssemblyModule+computerStrings+computerModule+deliveryStrings+deliveryModule+styleCore+styleRender+parkingScript+playerMenuCss+playerMenuStrings+playerMenuScript+locationCss+locationStrings+locationScript+hudRedesignCss+hudFrameScript+'</head>'));
 }
 let fhCharacterLaunchPending=false;
 async function start3DPreview(){
