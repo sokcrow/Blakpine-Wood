@@ -2674,7 +2674,7 @@ function decodeEmbedded3DEngine(base64){
 const play3DLayer=document.getElementById('play3dLayer');
 const play3DFrame=document.getElementById('play3dFrame');
 const play3DState=document.getElementById('play3dState');
-let preview3DActive=false,preview3DSent=false,preview3DRunning=false,preview3DTimer=null;
+let preview3DActive=false,preview3DSent=false,preview3DRunning=false,preview3DTimer=null,preview3DArchitectureError='';
 function stop3DWatchdog(){if(preview3DTimer!==null){clearTimeout(preview3DTimer);preview3DTimer=null}}
 function preview3DError(message){
  stop3DWatchdog();
@@ -3047,21 +3047,27 @@ function start3DPreview(){
  if(spawn<0){setCategory('areas');chooseTool('spawn');toast('Coloca primero 📍 Spawn en el mapa que estás editando.');return}
  closeInspector();closeModal();anchor=null;preview=null;
  document.activeElement?.blur?.();
- preview3DActive=true;preview3DSent=false;preview3DRunning=false;
+ preview3DActive=true;preview3DSent=false;preview3DRunning=false;preview3DArchitectureError='';
  show3DStatus(PREVIEW_TEXT.preparing);
  play3DLayer.classList.add('show');play3DLayer.setAttribute('aria-hidden','false');
  // La vista se crea fresca en cada prueba: las puertas abiertas durante juego no editan el mapa.
  try{
   const originalEngineDoc=decodeEmbedded3DEngine(PREVIEW_ENGINE_DOC_B64);
   const fhEngineDoc=prepareGLBEngineDoc(originalEngineDoc);
-  try{play3DFrame.srcdoc=window.FHArchitectureSkins?.patchEngineDoc(fhEngineDoc)||fhEngineDoc;}
-  catch(architectureError){console.warn('[Forest Arquitectura] Se conserva 3D original:',architectureError);play3DFrame.srcdoc=fhEngineDoc;}
+  try{
+   if(!window.FHArchitectureSkins?.patchEngineDoc)throw Error('Adaptador del kit no disponible');
+   play3DFrame.srcdoc=window.FHArchitectureSkins.patchEngineDoc(fhEngineDoc);
+  }catch(architectureError){
+   console.error('[Forest Arquitectura] Falló la integración visual:',architectureError);
+   preview3DArchitectureError=window.FH_ARCHITECTURE_TEXT.patchFailure;
+   play3DFrame.srcdoc=fhEngineDoc;
+  }
   preview3DTimer=setTimeout(()=>{if(preview3DActive&&!preview3DRunning)preview3DError(PREVIEW_TEXT.timeout)},30000);
  }catch(error){console.error('[Forest Horror 3D]',error);preview3DError(error.message);}
 }
 function close3DPreview(){
  if(!preview3DActive)return;
- stop3DWatchdog();preview3DActive=false;preview3DSent=false;preview3DRunning=false;
+ stop3DWatchdog();preview3DActive=false;preview3DSent=false;preview3DRunning=false;preview3DArchitectureError='';
  play3DLayer.classList.remove('show');play3DLayer.setAttribute('aria-hidden','true');
  play3DFrame.removeAttribute('srcdoc');play3DFrame.src='about:blank';
  show3DStatus(PREVIEW_TEXT.preparing);render();
@@ -3074,7 +3080,11 @@ window.addEventListener('message',e=>{
   try{play3DFrame.contentWindow.postMessage({type:'FOREST_PREVIEW_MAP',project:makeCurrent3DProject()},'*')}
   catch(err){console.error('[Forest Horror 3D]',err);preview3DError(err.message)}
  } else if(e.data.type==='FOREST_PREVIEW_RUNNING'){
-  preview3DRunning=true;stop3DWatchdog();play3DState.classList.add('hide');
+  preview3DRunning=true;stop3DWatchdog();if(preview3DArchitectureError)show3DStatus(preview3DArchitectureError);else play3DState.classList.add('hide');
+ } else if(e.data.type==='FOREST_ARCHITECTURE_ERROR'){
+  console.warn('[Forest Arquitectura]',e.data.id,e.data.reason);
+  preview3DArchitectureError=window.FH_ARCHITECTURE_TEXT.loadFailure+' ('+String(e.data.id||'GLB')+'). '+window.FH_ARCHITECTURE_TEXT.retainedPlaceholder;
+  show3DStatus(preview3DArchitectureError);
  } else if(e.data.type==='FOREST_PREVIEW_ERROR'){
   console.error('[Forest Horror 3D]',e.data.message);preview3DError(e.data.message);
  } else if(e.data.type==='FOREST_GAMESTATE_SAVE'){if(typeof e.data.key==='string'&&e.data.key===ForestShared.gameSaveKey(project)&&typeof e.data.json==='string')safeStorage(e.data.key,e.data.json);}
@@ -3121,6 +3131,7 @@ init();
 <script src="./juego/assets/fh-editor-catalog.js"></script>
 <script src="./juego/assets/fh-surface-editor.js"></script>
 <script src="./juego/assets/fh-property-editor.js"></script>
-<script src="./juego/assets/fh-architecture-skins.js?v=20261105-kit01"></script>
+<script src="./juego/assets/fh-architecture-strings.js"></script>
+<script src="./juego/assets/fh-architecture-skins.js?v=20261106-hotfix1"></script>
 </body>
 </html>
