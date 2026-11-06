@@ -86,8 +86,56 @@ test('el hook valida anclas y preserva el comportamiento original del motor',()=
  assert.throws(()=>api.patchEngineDoc('incompatible'),/Motor 3D no compatible/);
 });
 test('editor carga el adaptador, permite escoger marco y conserva fallback 3D',()=>{
- assert.match(index,/fh-architecture-skins\.js\?v=20261105-kit01/);
+ assert.match(index,/fh-architecture-skins\.js\?v=20261106-hotfix1/);
  assert.match(index,/Marco de ventana','windowSkin'/);
- assert.match(index,/FHArchitectureSkins\?\.patchEngineDoc\(fhEngineDoc\)/);
+ assert.match(index,/window\.FHArchitectureSkins\.patchEngineDoc\(fhEngineDoc\)/);
  assert.match(index,/play3DFrame\.srcdoc=fhEngineDoc/);
+});
+
+test('regresión: el motor REAL contiene varias etiquetas de cierre de head y acepta el kit',()=>{
+ const env=sceneEnvironment(),{api}=env;
+ const globals={window:{__FOREST_EMBEDDED_ENGINE__:''}};
+ vm.createContext(globals);
+ for(let i=0;i<=12;i++){
+  const js=fs.readFileSync(path.join(__dirname,'engine-'+String(i).padStart(2,'0')+'.js'),'utf8');
+  vm.runInContext(js,globals,{filename:'engine-'+i+'.js'});
+ }
+ const realHtml=Buffer.from(globals.window.__FOREST_EMBEDDED_ENGINE__,'base64').toString('utf8');
+ assert.ok((realHtml.match(/<\/head>/g)||[]).length>1,'el caso original tiene cierres repetidos en strings');
+ const patched=api.patchEngineDoc(realHtml);
+ assert.ok(patched.includes('FHArchitectureSkins?.decorateDoor(d,it,THREE,installVisibility)'));
+ assert.ok(patched.includes('FHArchitectureSkins?.decorateWindow({it,THREE,container:stories[f]'));
+ const injected='<script src="https://example.test/juego/assets/fh-architecture-skins.js"></script>';
+ assert.ok(patched.indexOf(injected)>0);
+ assert.ok(patched.indexOf(injected)<patched.indexOf('</head>'));
+ assert.equal(patched.split(injected).length-1,1);
+});
+test('el GLTFLoader procede del repositorio y no depende de un CDN',async()=>{
+ assert.ok(fs.existsSync(path.join(__dirname,'vendor/GLTFLoader.js')));
+ assert.ok(fs.existsSync(path.join(__dirname,'vendor/GLTFLoader.LICENSE')));
+ const loadedScripts=[];
+ const fakeTHREE={NearestFilter:1,NearestMipmapNearestFilter:2};
+ const mockScene={traverse(fn){fn({isMesh:true,material:{}});}};
+ class LocalGLTFLoader{load(url,done){assert.match(url,/\/arquitectura\/modelos_glb\/puerta_madera\.glb$/);done({scene:mockScene});}}
+ const mockDoc={
+  currentScript:{src:'https://example.test/juego/assets/fh-architecture-skins.js'},
+  baseURI:'https://example.test/index.html',
+  createElement(){return {src:'',onload:null,onerror:null};},
+  head:{appendChild(script){
+   loadedScripts.push(script.src);
+   fakeTHREE.GLTFLoader=LocalGLTFLoader;
+   script.onload();
+  }}
+ };
+ const sandbox={window:{THREE:fakeTHREE},document:mockDoc,URL,Promise,console};
+ vm.runInNewContext(code,sandbox);
+ await sandbox.window.FHArchitectureSkins.load('puerta_madera');
+ assert.deepEqual(loadedScripts,['https://example.test/juego/assets/vendor/GLTFLoader.js']);
+});
+test('el editor nunca oculta un fallo de integración de arquitectura',()=>{
+ assert.match(index,/preview3DArchitectureError=window\.FH_ARCHITECTURE_TEXT\.patchFailure/);
+ assert.match(index,/FOREST_ARCHITECTURE_ERROR/);
+ assert.match(index,/FH_ARCHITECTURE_TEXT\.loadFailure/);
+ assert.match(index,/fh-architecture-strings\.js/);
+ assert.match(index,/if\(preview3DArchitectureError\)show3DStatus/);
 });
