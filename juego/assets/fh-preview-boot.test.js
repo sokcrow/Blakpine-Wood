@@ -28,7 +28,7 @@ test('el documento 3D integra Three.js local, comunica el estado real y mantiene
  const base64=sandbox.window.__FOREST_EMBEDDED_ENGINE__;
  assert.ok(base64&&base64.length>10000000,'Se requieren los 13 fragmentos del motor');
  const motor=Buffer.from(base64,'base64').toString('utf8');
- const source=extract('function prepareGLBEngineDoc(source){','\nasync function start3DPreview(){').trim();
+ const source=extract('function prepareGLBEngineDoc(source){','\nlet fhCharacterLaunchPending=false;').trim();
  const prepare=new Function('document','URL','return ('+source+')')({baseURI:'https://example.test/Blakpine-Wood/'},URL);
  const resultado=prepare(motor);
  assert.match(resultado,/juego\/assets\/vendor\/three\.min\.js/);
