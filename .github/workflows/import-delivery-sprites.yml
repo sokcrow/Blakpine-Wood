@@ -59,6 +59,14 @@ jobs:
               got.convert('RGBA').save('juego/assets/npc/'+name,format='PNG',optimize=True)
           print('PASS: all 8 images downloaded to juego/assets/npc/')
           PY
+      - name: Run delivery regression tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          node juego/assets/fh-delivery-integration.test.js
+          node --test juego/assets/fh-peephole.test.js
+          node juego/assets/fh-delivery.test.js
+          node juego/assets/fh-delivery-runtime.test.js
       - name: Commit imported images to the branch
         shell: bash
         run: |
