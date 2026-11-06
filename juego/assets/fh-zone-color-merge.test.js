@@ -85,4 +85,56 @@ test('Datos antiguos con polygon sin polygons siguen funcionando',()=>{
  assert.equal(Z.zoneContains(old,{x:23,y:1}),true);
  assert.equal(Z.pieces(old).length,1);
 });
+test('Colores automáticos siguen siendo únicos tras agotar los 18 iniciales',()=>{
+ const world={floors:[{id:'p1',items:[]}],locationZones:[],properties:[]};
+ const colors=new Set();
+ for(let i=0;i<64;i++){
+  const chosen=Z.nextColor(world,'p1');
+  assert.equal(colors.has(chosen),false,'Color duplicado en zona '+(i+1));
+  const result=Z.createLocation(world,'p1',{x:i,y:0},{x:i+1,y:2},100,10,
+   'auto_'+i,'exterior',chosen);
+  assert.equal(result.ok,true);
+  assert.equal(result.created,true,'La zona '+(i+1)+' se fusionó accidentalmente');
+  world.locationZones.push(result.zone);
+  colors.add(chosen);
+ }
+ assert.equal(world.locationZones.length,64);
+ assert.equal(colors.size,64);
+});
+test('Triángulo importado no se amplía por contacto falso con su caja exterior',()=>{
+ const old={floors,locationZones:[{id:'triangle',floorId:'p1',kind:'exterior',
+  color:'#AABBCC',name:'Triángulo',polygon:[{x:0,y:0},{x:4,y:0},{x:0,y:4}]}]};
+ const result=Z.createLocation(old,'p1',{x:3,y:3},{x:4,y:4},30,30,
+  'new','exterior','#AABBCC','triangle');
+ assert.equal(result.ok,false);
+ assert.equal(Z.zoneContains(old.locationZones[0],{x:3.5,y:3.5}),false);
+});
+test('Triángulo importado sí se amplía con una extensión que toca su borde real',()=>{
+ const old={floors,locationZones:[{id:'triangle',floorId:'p1',kind:'exterior',
+  color:'#AABBCC',name:'Triángulo',polygon:[{x:0,y:0},{x:4,y:0},{x:0,y:4}]}]};
+ const result=Z.createLocation(old,'p1',{x:0,y:1},{x:1,y:3},30,30,
+  'new','exterior','#AABBCC','triangle');
+ assert.equal(result.ok,true);
+ assert.equal(result.created,false);
+ assert.equal(result.zone.id,'triangle');
+});
+test('Recoloración respeta contorno importado en lugar de su rectángulo envolvente',()=>{
+ const first={id:'triangle',floorId:'p1',kind:'exterior',
+  color:'#AABBCC',name:'Triángulo',polygon:[{x:0,y:0},{x:4,y:0},{x:0,y:4}]};
+ const other={id:'out',floorId:'p1',kind:'exterior',
+  color:'#99AA44',name:'Otro',polygon:Z.polygon({x:3,y:3,w:1,h:1})};
+ const world={floors,locationZones:[first,other]};
+ const edited=Z.recolorLocation(world,other,{kind:'exterior',color:'#AABBCC',name:'Otro'});
+ assert.equal(edited.ok,true);
+ assert.deepEqual(edited.removeIds,[]);
+});
+test('Recoloración sigue rechazando superposición geométrica verdadera',()=>{
+ const tri={id:'triangle',floorId:'p1',kind:'exterior',
+  color:'#AABBCC',name:'Triángulo',polygon:[{x:0,y:0},{x:4,y:0},{x:0,y:4}]};
+ const inside={id:'inside',floorId:'p1',kind:'exterior',
+  color:'#99AA44',name:'Otro',polygon:Z.polygon({x:1,y:1,w:1,h:1})};
+ const world={floors,locationZones:[tri,inside]};
+ const edited=Z.recolorLocation(world,inside,{kind:'exterior',color:'#AABBCC',name:'Otro'});
+ assert.equal(edited.ok,false);
+});
 console.log(passed+' pruebas correctas');
