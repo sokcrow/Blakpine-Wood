@@ -399,7 +399,7 @@ function createWindow(app){const win=node('section','window win-'+app);win.datas
  title.addEventListener('pointerdown',ev=>{if(ev.target.closest('button')||innerWidth<730||innerHeight<=600||win.classList.contains('maximized'))return;if(ev.button!==0)return;bringFront(app);let x=ev.clientX,y=ev.clientY,left=parseFloat(win.style.left),top=parseFloat(win.style.top);const move=e=>{const container=$('desktop').getBoundingClientRect();const bounds=win.getBoundingClientRect();win.style.left=Math.max(0,Math.min(container.width-bounds.width,left+e.clientX-x))+'px';win.style.top=Math.max(30,Math.min(Math.max(30,container.height-bounds.height-34),top+e.clientY-y))+'px'};const stop=()=>{window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',stop);previewPaint()};window.addEventListener('pointermove',move);window.addEventListener('pointerup',stop,{once:true})});win.addEventListener('pointerdown',()=>bringFront(app));
  return win;
 }
-function openWindow(app){if(!APPS.includes(app))return;if(!sessionApps.includes(app)){say(COMPUTER_TEXT.appUnavailable||'Esta aplicación no está instalada.');return}if(!state.power){say('Enciende la computadora primero.');return}if(state.boot)return;let win=winEls.get(app);if(!win){win=createWindow(app);winEls.set(app,win);state.windows.push(app);$('windowsLayer').append(win);fitWindowsToDesktop();renderWindow(app);emit('ventana',{app,open:true})}win.style.display='flex';win.dataset.minimized='';fitWindowsToDesktop();bringFront(app)}
+function openWindow(app){if(!APPS.includes(app))return;if(!sessionApps.includes(app)){say(COMPUTER_TEXT.appUnavailable||'Esta aplicación no está instalada.');return}if(!state.power){say(COMPUTER_TEXT.turnOnFirst||'Enciende la computadora primero.');return}if(state.boot)return;let win=winEls.get(app);if(!win){win=createWindow(app);winEls.set(app,win);state.windows.push(app);$('windowsLayer').append(win);fitWindowsToDesktop();renderWindow(app);emit('ventana',{app,open:true})}win.style.display='flex';win.dataset.minimized='';fitWindowsToDesktop();bringFront(app)}
 function renderWindow(app){const body=$('body-'+app);if(!body)return;let preservedScroll=body.scrollTop;clear(body);if(app==='mail')renderMail(body);if(app==='map')renderMap(body);if(app==='cams')renderCams(body);if(app==='files')renderFiles(body);if(app==='hamazon')renderHamazon(body);body.scrollTop=preservedScroll;}
 function renderMail(body){let layout=node('div','mail-layout');let list=node('div','mail-list');let reading=node('article','mail-reading');layout.append(list,reading);body.append(layout);
  DATA.mails.forEach((m,i)=>{let b=labelButton('', 'mail-choice'+(state.mail===i?' selected':''),()=>{state.mail=i;renderWindow('mail');emit('correo',{id:m.id})});b.append(node('span','',m.date+' • '+m.from),node('strong','',m.subject));list.append(b)});
@@ -454,8 +454,8 @@ function drawCamera(t){let cnv=$('camCanvas');if(!cnv||!state.power)return;const
 function paintText(text,x,y,color='#e3e6c8',size=12){pctx.fillStyle=color;pctx.font='bold '+size+'px monospace';pctx.textBaseline='top';pctx.fillText(String(text),x,y)}
 function syncGameClock(value){const clock=/^\d{2}:\d{2}$/.test(String(value||''))?String(value):'08:00';DATA.gameClock=clock;const el=document.querySelector('.os-date');if(el)el.textContent=(COMPUTER_TEXT.userLabel||'USUARIO')+': '+sessionUserId+'   │   '+clock;previewPaint();}
 function previewPaint(){const c=pctx,W=512,H=320;c.fillStyle='#020708';c.fillRect(0,0,W,H);
- if(!state.power){c.fillStyle='#091317';c.fillRect(0,0,W,H);c.fillStyle='#102025';c.fillRect(0,0,W,14);paintText('RAVEN 486 / SIN ENERGÍA',158,153,'#51645c',12);if(texture)texture.needsUpdate=true;return}
- if(state.boot){c.fillStyle='#163530';c.fillRect(0,0,W,H);paintText('RAVEN BIOS 1.9',38,62,'#afe9ba',18);paintText('COMPROBACIÓN DE MEMORIA... OK',38,112,'#b9cfae',12);paintText('INICIANDO RAVEN/OS...',38,146,'#f2d09f',12);if(texture)texture.needsUpdate=true;return}
+ if(!state.power){c.fillStyle='#091317';c.fillRect(0,0,W,H);c.fillStyle='#102025';c.fillRect(0,0,W,14);paintText(state.mode==='sleep'?'RAVEN 486 / REPOSO':'RAVEN 486 / SIN ENERGÍA',148,153,'#51645c',12);if(texture)texture.needsUpdate=true;return}
+ if(state.boot){c.fillStyle='#163530';c.fillRect(0,0,W,H);paintText('RAVEN BIOS 1.9',38,62,'#afe9ba',18);paintText('COMPROBACIÓN DE MEMORIA... OK',38,112,'#b9cfae',12);paintText('INICIANDO RAVEN/OS...',38,146,'#f2d09f',12);c.strokeStyle='#c5c39e';c.strokeRect(38,181,420,22);c.fillStyle='#9ed1ad';c.fillRect(41,184,414*Math.max(0,Math.min(1,(Date.now()-state.bootStarted)/state.bootDuration)),16);if(texture)texture.needsUpdate=true;return}
  c.fillStyle='#356f78';c.fillRect(0,0,W,H);c.fillStyle='#518c91';for(let i=0;i<13;i++){c.fillRect((i*83+23)%512,(i*39+14)%320,3,3)}
  c.fillStyle='#e1d4a3';c.fillRect(385,40,53,53);c.fillStyle='#214450';for(let i=0;i<9;i++)c.fillRect(265+i*26,220-(i%3)*20,34,130);
  c.fillStyle='#dbc99d';c.fillRect(0,0,W,29);c.fillStyle='#b99f76';c.fillRect(0,26,W,3);paintText('▣ RAVEN/OS',12,9,'#2b4d53',13);paintText(sessionUserId.slice(0,12)+'   '+DATA.gameClock,352,10,'#6c6a5c',10);
@@ -471,7 +471,7 @@ function previewPaint(){const c=pctx,W=512,H=320;c.fillStyle='#020708';c.fillRec
  c.fillStyle='#dfcea4';c.fillRect(0,289,W,31);paintText('▦ RAVEN',11,299,'#2f4851',12);paintText(state.windows.map(a=>LABELS[a]).join('   ').slice(0,49),129,300,'#426065',10);
  if(texture)texture.needsUpdate=true;
 }
-function animation(t){if(state.power&&!state.boot&&state.zoom&&winEls.has('cams')&&winEls.get('cams').style.display!=='none'&&t-camFrameLast>135){drawCamera(t);camFrameLast=t}if(renderer&&scene&&camera3d)renderer.render(scene,camera3d);requestAnimationFrame(animation)}
+function animation(t){updateBootProgress();if(state.power&&!state.boot&&state.zoom&&winEls.has('cams')&&winEls.get('cams').style.display!=='none'&&t-camFrameLast>135){drawCamera(t);camFrameLast=t}if(renderer&&scene&&camera3d)renderer.render(scene,camera3d);requestAnimationFrame(animation)}
 function initThree(){if(!window.THREE)return;try{let T=window.THREE;renderer=new T.WebGLRenderer({canvas:$('threeCanvas'),antialias:false,powerPreference:'low-power'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.25));renderer.setSize(innerWidth,innerHeight,false);renderer.setClearColor(0x101719);scene=new T.Scene();scene.fog=new T.Fog(0x101719,11,27);camera3d=new T.PerspectiveCamera(39,innerWidth/innerHeight,.1,60);camera3d.position.set(0,2.8,10.3);camera3d.lookAt(0,2.25,0);
  scene.add(new T.AmbientLight(0x869597,.75));let light=new T.DirectionalLight(0xf7d7a9,1.14);light.position.set(-4,7,7);scene.add(light);let rim=new T.PointLight(0x558e8c,.6,18);rim.position.set(5,5,-1);scene.add(rim);
  const mat=(hex,metal=0)=>new T.MeshStandardMaterial({color:hex,roughness:.85,metalness:metal});const shell=mat(0x9c9882,.22),bevel=mat(0x424d45,.23),dark=mat(0x131c1b,.04),trim=mat(0xc4b69a,.25),screenBorder=mat(0x222f2f,.05),keyboard=mat(0x797b6d,.18),keys=mat(0xcac4a4,.05),wall=mat(0x1f2b2c,.08),metal=mat(0x969381,.6);
@@ -489,17 +489,19 @@ function initThree(){if(!window.THREE)return;try{let T=window.THREE;renderer=new
  function resize(){if(!renderer)return;let w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);camera3d.aspect=w/h;camera3d.fov=w<h?50:39;camera3d.position.set(0,2.8,w<h?16.5:10.3);camera3d.lookAt(0,2.25,0);camera3d.updateProjectionMatrix()}window.addEventListener('resize',resize);resize();previewPaint();
  }catch(err){console.error('Fallo WebGL:',err);modelEnabled=false;$('fallback').style.display='flex';renderer=null}}
 makeIcons();initStart();for(let i=0;i<64;i++)$('fauxKeyboard').append(node('i'));
-$('zoomBtn').addEventListener('click',()=>toggleZoom(true));$('leaveBtn').addEventListener('click',()=>toggleZoom(false));$('powerBtn').addEventListener('click',()=>setPower(!state.power));$('focusPower').addEventListener('click',()=>setPower(!state.power));
+$('zoomBtn').addEventListener('click',()=>toggleZoom(true));$('powerBtn').addEventListener('click',()=>setPower(state.mode==='off'||state.mode==='sleep'));
 $('resetBtn').addEventListener('click',()=>{if(monitorGroup)monitorGroup.rotation.set(0,0,0);say('Vista centrada.')});$('fauxDisplay').addEventListener('click',()=>toggleZoom(true));$('fauxDisplay').addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();toggleZoom(true)}});
-window.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&state.zoom){if(state.front){closeWindow(state.front)}else toggleZoom(false);return}if(!state.zoom)return;if(state.power&&!state.boot&&ev.altKey&&/^Digit[1-5]$/.test(ev.code)){ev.preventDefault();openWindow(APPS[+ev.code.at(-1)-1])}});
+window.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&state.zoom){if(state.front)closeWindow(state.front);else closeStart();return}if(!state.zoom)return;if(state.power&&!state.boot&&ev.altKey&&/^Digit[1-5]$/.test(ev.code)){ev.preventDefault();openWindow(APPS[+ev.code.at(-1)-1])}});
 // API de integración. No crea reglas de juego ni datos de mapas.
 window.ForestTerminal3D={
- open(){toggleZoom(true)},close(){toggleZoom(false)},power(on){setPower(on)},
+ open(){toggleZoom(true)},close(){toggleZoom(false)},power(on){setPower(on)},setPowerState,
  setSession(session={}){
-  if(state.power)setPower(false);
-  for(const el of winEls.values())el.remove();
-  winEls.clear();state.windows=[];state.front=null;state.topZ=5;clear($('windowsLayer'));closeStart();
-  sessionStationId=String(session.stationId||'').slice(0,100);
+  const nextId=String(session.stationId||'').slice(0,100);
+  if(sessionStationId!==nextId){
+   for(const el of winEls.values())el.remove();
+   winEls.clear();state.windows=[];state.front=null;state.topZ=5;clear($('windowsLayer'));closeStart();
+  }
+  sessionStationId=nextId;
   sessionUserId=String(session.userId||'GUARDIA_03').slice(0,24);
   sessionApps=Array.isArray(session.apps)?APPS.filter(app=>session.apps.includes(app)):APPS.slice();
   DATA.cameras=Array.isArray(session.cameras)?session.cameras.map((cam,i)=>({
@@ -516,7 +518,7 @@ window.ForestTerminal3D={
  setHamazonProducts(items){if(!Array.isArray(items))return;DATA.hamazonProducts=items.map(p=>({...p,id:String(p.id??''),name:String(p.name??p.id??''),kind:String(p.kind??'furniture')}));renderWindow('hamazon');previewPaint()},
  setHamazonOrders(items){DATA.hamazonOrders=Array.isArray(items)?items.map(o=>({...o})):[];renderWindow('hamazon');previewPaint()},
  setGameClock(value){syncGameClock(value)},
- getState(){return{power:state.power,zoom:state.zoom,windows:[...state.windows],front:state.front,floor:state.floor,room:state.room,camera:state.camera,gameClock:DATA.gameClock,stationId:sessionStationId,userId:sessionUserId,apps:[...sessionApps]}}
+ getState(){return{power:state.power,mode:state.mode,zoom:state.zoom,windows:[...state.windows],front:state.front,floor:state.floor,room:state.room,camera:state.camera,gameClock:DATA.gameClock,stationId:sessionStationId,userId:sessionUserId,apps:[...sessionApps]}}
 };
 // Three.js r128 es la única dependencia: sin red se presenta el monitor CSS interactivo.
 function loadThree(){if(window.THREE){initThree();return}const script=document.createElement('script');script.src='https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';script.onload=initThree;script.onerror=()=>{$('fallback').style.display='flex'};document.head.appendChild(script)}
