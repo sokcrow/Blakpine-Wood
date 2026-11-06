@@ -43,3 +43,15 @@ test('la proximidad auditiva respeta distancia 3D y datos inválidos', () => {
   assert.equal(ui.audible({x:NaN,y:2,z:0},listener,10),false);
   assert.equal(ui.audible({x:0,y:2,z:0},listener,0),false);
 });
+
+
+test('los textos extensos se dividen sin perder palabras ni emoción', () => {
+  const scary = 'Algo camina detrás de la puerta. '.repeat(9);
+  const shout = '¡SAL DE AHÍ!';
+  const pages=ui.normalizePages({speaker:'Guardabosques',segments:[{text:scary,mood:'miedo'},{text:shout,mood:'impacto'}]});
+  assert.ok(pages.length>1);
+  assert.equal(pages.map(p=>p.text).join(''),scary+shout);
+  assert.equal(pages.flatMap(p=>p.segments).map(s=>s.text).join(''),scary+shout);
+  assert.equal(pages.at(-1).segments.at(-1).mood,'impacto');
+  assert.ok(pages.every(p=>p.kind==='npc' && p.speaker==='Guardabosques'));
+});
