@@ -37,18 +37,61 @@
   const mails=Array.isArray(state.computer?.mails)?state.computer.mails:null;
   return {
    ...hardware,
-   stationId:safeText(item?.id),
+   stationId:safeText(item?.id||('pc_'+(item?.modelId||'estacion')+'_'+(item?.x??0)+'_'+(item?.y??0))),
    floor:Number.isInteger(options.floor)?options.floor:0,
    userId,apps,cameras,
    mails:mails?mails.slice(0,100):null
   };
  }
+ // Única fuente de verdad del consumo y estado por estación; no calcula facturas.
+ function createPowerStore(options={}){
+  const entries=options.entries||new Map();
+  const now=options.now||Date.now;
+  const random=options.random||Math.random;
+  const notify=options.onChange||(()=>{});
+  function read(key){
+   const entry=entries.get(key)||{mode:'off',startedAt:0,readyAt:0,durationMs:0};
+   if((entry.mode==='booting'||entry.mode==='waking')&&now()>=entry.readyAt){
+    entry.mode='on';entries.set(key,entry);notify(key,{...entry});
+   }
+   return {...entry};
+  }
+  function change(key,mode,ms=0){
+   const startedAt=now();
+   const entry={mode,startedAt,readyAt:startedAt+ms,durationMs:ms};
+   entries.set(key,entry);notify(key,{...entry});return read(key);
+  }
+  function start(key){
+   const entry=read(key);
+   if(entry.mode==='off'){
+    const seed=Math.max(0,Math.min(1,Number(random())||0));
+    return change(key,'booting',5000+Math.floor(seed*5000));
+   }
+   if(entry.mode==='sleep')return change(key,'waking',650);
+   return entry;
+  }
+  function sleep(key){
+   const entry=read(key);
+   return entry.mode==='on'?change(key,'sleep'):entry;
+  }
+  function shutdown(key){return change(key,'off')}
+  function draw(key){
+   const mode=read(key).mode;
+   return mode==='off'?0:mode==='sleep'?.15:1;
+  }
+  return Object.freeze({read,start,sleep,shutdown,draw});
+ }
  function createRuntime(options={}){
   const assembly=options.assembly||root.FHPcAssembly;
   const TEXT=options.strings||root.FH_COMPUTER_TEXT||root.FH_DELIVERY_TEXT||{};
-  let frame=null,active=null,opened=false;
+  const host=options.hostWindow||root;
+  const powerStore=options.powerStore||createPowerStore({
+   now:options.now,random:options.random,onChange:options.onPowerChange
+  });
+  let frame=null,active=null,activeKey='',opened=false;
   const floorItems=f=>options.floorItems?.(f)||[];
   const say=(value,ms=2900)=>options.notice?.(value,ms);
+  const stationKey=(session,floor)=>String(floor)+':'+(session.stationId||'pc-sin-id');
   function isStation(item,floor=options.currentFloor?.()||0){
    return isPc(item,floorItems(floor),options.feetPerCell||5,assembly);
   }
@@ -59,24 +102,47 @@
    api.setSession?.({stationId:active.stationId,userId:active.userId,apps:active.apps,cameras:active.cameras});
    if(active.mails)api.setMails?.(active.mails);
    options.onTerminalReady?.(api,active);
-   api.power?.(true);api.open?.();
+   if(api.setPowerState)api.setPowerState(powerStore.read(activeKey));
+   else api.power?.(powerStore.read(activeKey).mode!=='off');
+   api.open?.();
+  }
+  function close(){
+   if(!frame||!opened)return;
+   frame.parentElement.classList.remove('open');
+   frame.parentElement.setAttribute('aria-hidden','true');
+   opened=false;active=null;activeKey='';
+   options.freeze?.(false);options.onClose?.();
+  }
+  function action(command,stationId){
+   if(!opened||!active||String(stationId)!==active.stationId)return false;
+   if(command==='reposo')powerStore.sleep(activeKey);
+   else if(command==='apagar')powerStore.shutdown(activeKey);
+   else if(command!=='salir')return false;
+   close();
+   return true;
+  }
+  function receiveMessage(event){
+   if(!frame||event.source!==frame.contentWindow)return;
+   if(event.origin&&event.origin!==new URL(frame.src).origin)return;
+   const data=event.data;
+   if(data?.type!=='FOREST_TERMINAL_EVENT'||data.name!=='control')return;
+   action(data.detail?.action,data.detail?.stationId);
   }
   function ensureFrame(){
    if(frame)return frame;
    const doc=options.document||root.document;
    if(!doc)return null;
    const style=doc.createElement('style');
-   style.textContent='#fhPcOverlay{position:fixed;inset:0;z-index:60;background:#070b0d;display:none}'+
-    '#fhPcOverlay.open{display:block}#fhPcFrame{width:100%;height:100%;border:0;display:block}'+
-    '#fhPcExit{position:absolute;z-index:5;right:max(10px,env(safe-area-inset-right));bottom:max(10px,env(safe-area-inset-bottom));'+
-    'border:2px solid #b59b6e;background:#171d1c;color:#f1dfb8;padding:9px 13px;font:700 11px monospace;box-shadow:3px 4px #0009}';
+   style.textContent='#fhPcOverlay{position:fixed;inset:0;inset:0 env(safe-area-inset-right) 0 env(safe-area-inset-left);z-index:60;background:#070b0d;display:none}'+
+    '#fhPcOverlay.open{display:block}#fhPcFrame{width:100%;height:100%;border:0;display:block}';
    doc.head.append(style);
    const wrap=doc.createElement('div');wrap.id='fhPcOverlay';wrap.setAttribute('aria-hidden','true');
-   frame=doc.createElement('iframe');frame.id='fhPcFrame';frame.title='RAVEN/OS';frame.setAttribute('allow','fullscreen');
+   frame=doc.createElement('iframe');frame.id='fhPcFrame';frame.title='RAVEN/OS';
+   frame.setAttribute('allow','fullscreen');
    frame.src=new URL('fh-terminal.html',options.baseUrl||doc.baseURI).href;
-   const exit=doc.createElement('button');exit.id='fhPcExit';exit.textContent=TEXT.pcClose||'Salir de la PC';exit.onclick=close;
-   wrap.append(frame,exit);doc.body.append(wrap);
+   wrap.append(frame);doc.body.append(wrap);
    frame.addEventListener('load',applySession);
+   host.addEventListener?.('message',receiveMessage);
    return frame;
   }
   function open(item,floor=options.currentFloor?.()||0){
@@ -92,25 +158,24 @@
     }else say(TEXT.unavailable||'No hay una computadora funcional aquí.');
     return false;
    }
-   const view=ensureFrame();if(!view){say(TEXT.terminalError||'No se pudo abrir RAVEN/OS.');return false;}
-   active=session;opened=true;
+   const view=ensureFrame();
+   if(!view){say(TEXT.terminalError||'No se pudo abrir RAVEN/OS.');return false;}
+   active=session;activeKey=stationKey(session,floor);
+   powerStore.start(activeKey);
+   opened=true;
    view.parentElement.classList.add('open');view.parentElement.setAttribute('aria-hidden','false');
    options.freeze?.(true);options.onOpen?.(item,floor,session);
-   // La primera visita espera al evento load; las siguientes reutilizan el iframe.
+   // La carga del iframe puede terminar después; el reloj de la PC no se pausa.
    if(terminalApi())applySession();
    return true;
   }
-  function close(){
-   if(!frame||!opened)return;
-   frame.parentElement.classList.remove('open');
-   frame.parentElement.setAttribute('aria-hidden','true');
-   opened=false;active=null;options.freeze?.(false);options.onClose?.();
-  }
   return Object.freeze({
-   isPc:isStation,open,close,terminalApi,
+   isPc:isStation,open,close,action,terminalApi,
+   powerFor:(item,floor=options.currentFloor?.()||0)=>powerStore.read(stationKey(item,floor)),
+   consumptionFor:(item,floor=options.currentFloor?.()||0)=>powerStore.draw(stationKey(item,floor)),
    get frame(){return frame},get isOpen(){return opened},
    get session(){return active?{...active,apps:[...active.apps],cameras:active.cameras.map(x=>({...x}))}:null}
   });
  }
- return {APPS,isLegacyPc,isPc,inspect,sessionFor,createRuntime};
+ return {APPS,isLegacyPc,isPc,inspect,sessionFor,createPowerStore,createRuntime};
 });
