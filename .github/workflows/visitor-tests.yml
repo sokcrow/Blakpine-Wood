@@ -1,0 +1,22 @@
+name: JavaScript runtime tests
+
+on:
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'juego/assets/*.js'
+      - '.github/workflows/visitor-tests.yml'
+  push:
+    branches:
+      - feat/door-visitor-events-20261105
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run runtime regression tests
+        run: node --test juego/assets/*.test.js
