@@ -4,26 +4,27 @@ const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const code=fs.readFileSync(path.join(__dirname,'fh-architecture-skins.js'),'utf8');
 const index=fs.readFileSync(path.join(__dirname,'../..','index.html'),'utf8');
 const catalog=JSON.parse(fs.readFileSync(path.join(__dirname,'../../forest-horror/biblioteca/arquitectura/catalogo_arquitectura.json'),'utf8'));
-function sceneEnvironment(){
+function sceneEnvironment({leafFarEdge=1.444}={}){
  let loads=0,masks=0;
  class Group{
-  constructor(){this.children=[];this.parent=null;this.position={x:0,y:0,z:0,set(x,y,z){Object.assign(this,{x,y,z})}};this.rotation={y:0};this.visible=true;}
+  constructor(){this.children=[];this.parent=null;this.position={x:0,y:0,z:0,set(x,y,z){Object.assign(this,{x,y,z})}};this.rotation={y:0};this.scale={x:1,y:1,z:1};this.visible=true;}
   add(child){this.children.push(child);child.parent=this;}
   remove(child){this.children=this.children.filter(x=>x!==child);child.parent=null;}
  }
  const nodes={};
  for(const name of ['MARCO_FIJO','HOJA_PIVOTE','VIDRIO'])nodes[name]={
-  name,clone(){return {name,visible:true,parent:null}}
+  name,clone(){return {name,visible:true,parent:null,scale:{x:1,y:1,z:1},testFarEdge:leafFarEdge}}
  };
  const modelScene={getObjectByName:n=>nodes[n],clone(){const obj=new Group();obj.name='modelo_glb';return obj;},traverse(fn){fn({isMesh:true,material:{}})}};
  class GLTFLoader{load(url,ok){loads++;ok({scene:modelScene})}}
- const win={THREE:{GLTFLoader,Group,NearestFilter:1,NearestMipmapNearestFilter:2}};
+ class Box3{constructor(){this.max={x:0}}setFromObject(obj){this.max.x=obj.testFarEdge;return this;}}
+ const win={THREE:{GLTFLoader,Group,Box3,NearestFilter:1,NearestMipmapNearestFilter:2}};
  const doc={currentScript:{src:'https://example.test/juego/assets/fh-architecture-skins.js'},baseURI:'https://example.test/',
   head:{appendChild(){}}};
  vm.runInNewContext(code,{window:win,document:doc,URL,Promise,console});
  return {api:win.FHArchitectureSkins,THREE:win.THREE,Group,loads:()=>loads,masks:()=>masks,mask(){masks++}};
 }
-test('catálogo estructural: cinco modelos y rutas, sin transformar puertas en muebles',()=>{
+test('catálogo estructural: ocho modelos individuales, sin puertas dobles prefabricadas',()=>{
  assert.equal(catalog.schema,'forest-horror-architecture-catalog-v1');
  assert.equal(catalog.architecture.length,8);
  assert.deepEqual(catalog.architecture.map(x=>x.type),['door','door','peephole_door','window','window','door','door','door']);
@@ -59,26 +60,70 @@ test('puerta mantiene bisagra, estado de paso y marco fijo',async()=>{
  assert.equal(frame.children[1].rotation.y,.35);
  assert.equal(door.skinId,'puerta_madera');assert.equal(env.masks(),2);
 });
-test('puerta doble instancia dos GLB individuales, segundo a 180 grados, apertura conservada',async()=>{
+test('puerta doble: dos hojas individuales que se tocan y SIN poste en medio',async()=>{
  const env=sceneEnvironment(),{api,THREE,Group}=env;
- const frame=new Group();frame.parent={};const oldFrame={visible:true};frame.add(oldFrame);
- const animated=[0,1].map((n)=>{
-  const group=new Group();group.parent={};group.position.set(n?10:7,0,9);
-  group.add({visible:true});
-  return {group,base:.35+n*Math.PI};
+ const frame=new Group();frame.parent={};
+ // El marco original ya contiene solamente dintel y jambas EXTERIORES.
+ const outerHeader={visible:true},leftJamb={visible:true},rightJamb={visible:true};
+ for(const node of [outerHeader,leftJamb,rightJamb])frame.add(node);
+ const animated=[0,1].map(n=>{
+  const group=new Group();group.parent={};group.position.set(n?3.048:0,0,0);
+  group.add({visible:true});return {group,base:n*Math.PI};
  });
- const door={family:'double',variant:'metal',transparent:false,open:true,angle:1.2,target:1.2,
+ const door={family:'double',variant:'wood',transparent:false,open:true,angle:1.2,target:1.2,
   passable:true,frame,hinge:{parent:{}},animated};
  api.decorateDoor(door,{type:'door'},THREE,()=>env.mask());
  await new Promise(setImmediate);
- assert.equal(door.skinId,'puerta_metal');
- assert.equal(frame.children.length,3);
- assert.equal(frame.children[1].rotation.y,.35);
- assert.equal(frame.children[2].rotation.y,.35+Math.PI);
- for(const part of animated){assert.equal(part.group.children.length,2);assert.equal(part.group.children[0].visible,false);assert.equal(part.group.children[1].name,'HOJA_PIVOTE');}
- assert.equal(env.masks(),4);
- assert.equal(oldFrame.visible,false);
+ assert.equal(door.skinId,'puerta_madera');
+ assert.deepEqual(frame.children,[outerHeader,leftJamb,rightJamb],
+  'Una doble no puede agregar copias de MARCO_FIJO ni postes centrales');
+ for(const legacy of [outerHeader,leftJamb,rightJamb])assert.equal(legacy.visible,true);
+ assert.equal(env.masks(),2,'Solo se aplica FOW a las dos hojas GLB');
+ for(const part of animated){
+  assert.equal(part.group.children.length,2);
+  assert.equal(part.group.children[0].visible,false);
+  assert.equal(part.group.children[1].name,'HOJA_PIVOTE');
+ }
+ const edge=1.444;
+ const leftEnd=animated[0].group.position.x+edge*animated[0].group.children[1].scale.x;
+ const rightEnd=animated[1].group.position.x-edge*animated[1].group.children[1].scale.x;
+ assert.ok(Math.abs(leftEnd-rightEnd)<1e-9,'Las hojas se tocan en el centro del vano');
+ assert.ok(Math.abs(leftEnd-1.524)<1e-9,'El contacto coincide con el centro nominal del vano');
+ assert.equal(animated[1].base-animated[0].base,Math.PI);
  assert.equal(door.open,true);assert.equal(door.angle,1.2);assert.equal(door.target,1.2);assert.equal(door.passable,true);
+});
+test('el encuentro central se ajusta también al ancho del marco de cristal',async()=>{
+ const env=sceneEnvironment({leafFarEdge:1.494}),{api,THREE,Group}=env;
+ const frame=new Group();frame.parent={};const outerHeader={visible:true};frame.add(outerHeader);
+ const animated=[0,1].map(n=>{
+  const group=new Group();group.parent={};group.position.set(n?2.8:0,0,0);
+  group.add({visible:true});return {group,base:n*Math.PI};
+ });
+ const door={family:'double',variant:'glass',transparent:true,frame,hinge:{parent:{}},animated};
+ api.decorateDoor(door,{type:'door',architectureSkin:'puerta_cristal_antipanico'},THREE,()=>{});
+ await new Promise(setImmediate);
+ assert.equal(door.skinId,'puerta_cristal_antipanico');
+ assert.equal(frame.children.length,1);
+ assert.equal(outerHeader.visible,true);
+ const x0=animated[0].group.children[1].scale.x*1.494;
+ const x1=2.8-animated[1].group.children[1].scale.x*1.494;
+ assert.ok(Math.abs(x0-x1)<1e-9);
+});
+test('dos puertas sencillas independientes conservan cada marco cuando hay pared T',async()=>{
+ const env=sceneEnvironment(),{api,THREE,Group}=env;
+ const doors=[0,2].map(x=>{
+  const group=new Group();group.parent={};group.position.set(x,0,0);group.add({visible:true});
+  const frame=new Group();frame.parent={};frame.add({visible:true});
+  return {family:'single',variant:'wood',transparent:false,frame,hinge:{parent:{}},animated:[{group,base:0}]};
+ });
+ for(const door of doors)api.decorateDoor(door,{type:'door'},THREE,()=>{});
+ await new Promise(setImmediate);
+ for(const door of doors){
+  assert.equal(door.frame.children.length,2,'Cada puerta sencilla recibe su propio marco completo');
+  assert.equal(door.frame.children[0].visible,false);
+  assert.equal(door.frame.children[1].children[0].name,'MARCO_FIJO');
+  assert.equal(door.animated[0].group.children[1].scale.x,1,'La puerta sencilla no se estira');
+ }
 });
 test('rotaciones de puerta doble: ambas hojas avanzan al mismo lado del muro',()=>{
  const {api}=sceneEnvironment();
@@ -131,7 +176,7 @@ test('el hook valida anclas y preserva el comportamiento original del motor',()=
  assert.throws(()=>api.patchEngineDoc('incompatible'),/Motor 3D no compatible/);
 });
 test('editor carga el adaptador, permite escoger marco y conserva fallback 3D',()=>{
- assert.match(index,/fh-architecture-skins\.js\?v=20261106-hotfix2/);
+ assert.match(index,/fh-architecture-skins\.js\?v=20261106-hotfix3/);
  assert.match(index,/architectureSkin/);
  assert.match(index,/Marco de ventana','windowSkin'/);
  assert.match(index,/window\.FHArchitectureSkins\.patchEngineDoc\(fhEngineDoc\)/);

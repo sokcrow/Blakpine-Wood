@@ -77,25 +77,43 @@ function hideLegacyVisual(node,detach=false){
 }
 function decorateDoor(d,it,THREE,sightMask){
  const model=chooseDoor(d,it);if(!model)return;
- const count=d.family==='double'?2:1;
+ const double=d.family==='double',count=double?2:1;
  if(!Array.isArray(d.animated)||d.animated.length!==count||!d.frame?.parent||!d.hinge?.parent)return;
  const parts=d.animated;
  load(model).then(scene=>{
   if(!d.hinge?.parent||!d.frame?.parent||parts.some(p=>!p.group?.parent))return;
   const leaves=parts.map(()=>cloneNode(scene,'HOJA_PIVOTE'));
-  const frames=parts.map(part=>{
+  if(double){
+   // Dos copias de UNA sola hoja, con la segunda orientada 180° por el motor.
+   // Se unen por los cantos interiores. No generar un GLB doble ni un poste.
+   const first=parts[0].group.position,second=parts[1].group.position;
+   const halfSpan=Math.hypot(second.x-first.x,second.z-first.z)/2;
+   const farEdge=new THREE.Box3().setFromObject(leaves[0]).max.x;
+   if(!Number.isFinite(halfSpan)||halfSpan<=0||!Number.isFinite(farEdge)||farEdge<=0){
+    throw Error('No se puede calcular el encuentro de las dos hojas');
+   }
+   // Escalar solo las hojas, no sus grupos de bisagra ni las colisiones.
+   // El extremo libre de cada hoja llega exactamente al centro del vano.
+   const stretch=halfSpan/farEdge;
+   for(const leaf of leaves)leaf.scale.x*=stretch;
+  }
+  // Una puerta simple lleva su marco GLB completo. La doble usa exclusivamente
+  // el dintel y las dos jambas EXTERIORES del motor, nunca dos marcos completos.
+  const frames=double?[]:parts.map(part=>{
    const fixed=new THREE.Group();
    fixed.position.set(part.group.position.x,part.group.position.y,part.group.position.z);
-   fixed.rotation.y=part.base; // En la segunda hoja, el motor ya suma PI.
+   fixed.rotation.y=part.base;
    fixed.add(cloneNode(scene,'MARCO_FIJO'));
    return fixed;
   });
   for(const node of [...leaves,...frames])applyFOW(node,sightMask);
   const originalLeaves=parts.map(part=>part.group.children.slice());
-  const originalFrame=d.frame.children.slice();
+  const originalFrame=double?[]:d.frame.children.slice();
   parts.forEach((part,i)=>part.group.add(leaves[i]));
   for(const fixed of frames)d.frame.add(fixed);
   for(const original of originalLeaves)for(const visual of original)hideLegacyVisual(visual);
+  // Con una 'T' o pared divisoria se dibujan dos puertas independientes:
+  // cada puerta simple conserva su marco completo.
   for(const visual of originalFrame)hideLegacyVisual(visual);
   d.skinId=model;
  }).catch(error=>reportFailure(model,error));

@@ -24,7 +24,9 @@ Una puerta doble ocupa dos casillas. El motor crea **dos grupos de bisagra**, am
 - Primera hoja en la posición y orientación del motor.
 - Segunda hoja en el extremo opuesto, con **+180° en su orientación base**.
 - Apertura hacia el **mismo lado del muro**: el ángulo de la segunda hoja se aplica con signo inverso.
-- Cada hoja y marco se coloca por separado; no se crea ni registra un modelo doble.
+- Cada hoja se coloca sobre su bisagra correspondiente. Las hojas se ajustan visualmente para **tocarse en el centro** del vano, sin modificar bisagras ni colisiones.
+- **Solo se conservan el dintel y las dos jambas exteriores** del marco original del motor. No se clona ningún marco GLB para la puerta doble; por tanto, no existe poste intermedio.
+- Dos puertas sencillas separadas por una pared en **T** continúan siendo dos puertas independientes, cada una con su marco completo. No se crea ni registra un modelo doble.
 
 El ajuste de giro se aplica en `patchEngineDoc` al documento HTML generado para la vista 3D. No se reescriben los archivos `engine-00.js` a `engine-12.js`.
 
