@@ -160,6 +160,44 @@ test('ventana conserva antepecho y dintel y retira panel original del render FOW
  assert.equal(container.children[2].position.y,.83);
  assert.equal(env.masks(),1);
 });
+test('ventanas nuevas: una instancia de mapa con ID único por casilla horizontal',()=>{
+ const {api}=sceneEnvironment();let next=0;
+ const source={id:'win_1',type:'window',a:{x:2,y:6},b:{x:5,y:6},windowSkin:'dividida'};
+ const pieces=api.splitWindow(source,()=>('win_'+(++next+1)));
+ assert.equal(pieces.length,3);
+ assert.deepEqual(Array.from(pieces,p=>[p.a.x,p.a.y,p.b.x,p.b.y]),[
+  [2,6,3,6],[3,6,4,6],[4,6,5,6]
+ ]);
+ assert.deepEqual(Array.from(pieces,p=>p.id),['win_1','win_2','win_3']);
+ assert.ok(pieces.every(p=>p.windowSkin==='dividida'));
+ assert.deepEqual([source.a.x,source.b.x],[2,5],'El original no se muta');
+});
+test('ventanas invertidas, verticales y tramos parciales ocupan tiles completos',()=>{
+ const {api}=sceneEnvironment();
+ const pieces=api.splitWindow({id:'a',type:'window',a:{x:7,y:5},b:{x:7,y:2}},(()=>{let n=0;return ()=>String(++n)})());
+ assert.deepEqual(Array.from(pieces,p=>[p.a.y,p.b.y]),[[5,4],[4,3],[3,2]]);
+ const partial=api.splitWindow({id:'p',type:'window',a:{x:1,y:3},b:{x:3.25,y:3}},(()=>{let n=0;return ()=>('partial_'+(++n))})());
+ assert.equal(partial.length,3);
+ assert.deepEqual(Array.from(partial,p=>[p.a.x,p.b.x]),[[1,2],[2,3],[3,4]]);
+ const single=api.splitWindow({id:'s',type:'window',a:{x:1,y:2},b:{x:2,y:2}});
+ assert.equal(single.length,1);assert.equal(single[0].id,'s');
+});
+test('un segmento legado de 3 tiles crea tres GLB sin estirarlos',async()=>{
+ const env=sceneEnvironment(),{api,THREE,Group}=env;
+ const container=new Group();container.parent={};
+ const low={visible:true},high={visible:true},pane={visible:true},side1={visible:true},side2={visible:true};
+ for(const node of [low,high,pane,side1,side2])container.add(node);
+ api.decorateWindow({it:{id:'old',type:'window',a:{x:4,y:7},b:{x:7,y:7}},THREE,container,
+  built:[low,high,pane,side1,side2],a:{x:6.096,z:10.668},b:{x:10.668,z:10.668},
+  angle:0,sightMask:()=>env.mask()});
+ await new Promise(setImmediate);
+ assert.equal(container.children.length,5);
+ assert.deepEqual(container.children.slice(2).map(n=>n.position.x),[6.096,7.62,9.144]);
+ assert.ok(container.children.slice(2).every(n=>n.scale.x===1&&n.scale.y===1&&n.scale.z===1));
+ assert.equal(env.masks(),3);
+ for(const original of [pane,side1,side2])assert.equal(original.parent,null);
+ for(const original of [low,high])assert.equal(original.parent,container);
+});
 test('el hook valida anclas y preserva el comportamiento original del motor',()=>{
  const {api}=sceneEnvironment();
  const fixture='<html><head></head><body><script>'+
@@ -176,7 +214,9 @@ test('el hook valida anclas y preserva el comportamiento original del motor',()=
  assert.throws(()=>api.patchEngineDoc('incompatible'),/Motor 3D no compatible/);
 });
 test('editor carga el adaptador, permite escoger marco y conserva fallback 3D',()=>{
- assert.match(index,/fh-architecture-skins\.js\?v=20261106-hotfix3/);
+ assert.match(index,/fh-architecture-skins\.js\?v=20261106-window-tiles/);
+ assert.match(index,/windowPieces=it\.type==='window'/);
+ assert.match(index,/FHArchitectureSkins\?\.splitWindow\(it,numId\)/);
  assert.match(index,/architectureSkin/);
  assert.match(index,/Marco de ventana','windowSkin'/);
  assert.match(index,/window\.FHArchitectureSkins\.patchEngineDoc\(fhEngineDoc\)/);

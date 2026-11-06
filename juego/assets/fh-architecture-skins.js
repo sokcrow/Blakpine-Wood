@@ -23,6 +23,27 @@ function chooseDoor(d,it){
  return d.variant==='metal'?'puerta_metal':d.variant==='wood'?'puerta_madera':null;
 }
 function chooseWindow(it){return it?.windowSkin==='dividida'?'ventana_dividida':'ventana_clasica';}
+// Una ventana GLB ocupa exactamente una casilla: nunca se escala para cubrir un tramo.
+function windowTilePlan(it){
+ if(!it?.a||!it?.b)return null;
+ const dx=Number(it.b.x)-Number(it.a.x),dy=Number(it.b.y)-Number(it.a.y);
+ const length=Math.hypot(dx,dy);
+ if(!Number.isFinite(length)||length<.05)return null;
+ return {count:Math.max(1,Math.ceil(length-1e-6)),length,ux:dx/length,uy:dy/length};
+}
+function splitWindow(it,newId){
+ if(it?.type!=='window')return [it];
+ const plan=windowTilePlan(it);
+ if(!plan)return [it];
+ if(plan.count>1&&typeof newId!=='function')throw new TypeError('Se requieren IDs únicos para cada ventana');
+ const point=t=>({
+  x:Math.round((Number(it.a.x)+plan.ux*t)*1e6)/1e6,
+  y:Math.round((Number(it.a.y)+plan.uy*t)*1e6)/1e6
+ });
+ return Array.from({length:plan.count},(_,i)=>({
+  ...it,id:i===0?it.id:newId(),a:point(i),b:point(i+1)
+ }));
+}
 function loader(){
  if(!loaderPromise)loaderPromise=new Promise((resolve,reject)=>{
   const THREE=global.THREE;
@@ -119,20 +140,30 @@ function decorateDoor(d,it,THREE,sightMask){
  }).catch(error=>reportFailure(model,error));
 }
 function decorateWindow(args){
- const {it,container,built,a,angle,sightMask}=args||{};
+ const {it,container,built,a,b,angle,sightMask}=args||{};
  if(!it||!container||!Array.isArray(built)||!a)return;
- // Los dos primeros son antepecho y dintel; deben permanecer siempre.
+ // El antepecho y el dintel originales mantienen su colisión y visibilidad.
  const originalPaneAndSideFrames=built.slice(2);
  if(originalPaneAndSideFrames.length!==3)return;
- load(chooseWindow(it)).then(scene=>{
+ const plan=windowTilePlan(it),count=plan?.count||1;
+ // Los mapas antiguos pueden contener un solo segmento de varios tiles.
+ // Se colocan N instancias individuales, espaciadas un tile, sin escalar el GLB.
+ const stepX=plan?(b?(b.x-a.x)/plan.length:plan.ux*1.524):0;
+ const stepZ=plan?(b?(b.z-a.z)/plan.length:plan.uy*1.524):0;
+ const model=chooseWindow(it);
+ load(model).then(scene=>{
   if(!container.parent)return;
-  const node=scene.clone(true);
-  node.position.set(a.x,.83,a.z);
-  node.rotation.y=angle;
-  applyFOW(node,sightMask);
-  container.add(node);
+  const windows=[];
+  for(let i=0;i<count;i++){
+   const node=scene.clone(true);
+   node.position.set(a.x+stepX*i,.83,a.z+stepZ*i);
+   node.rotation.y=angle;
+   applyFOW(node,sightMask);
+   windows.push(node);
+  }
+  for(const node of windows)container.add(node);
   for(const visual of originalPaneAndSideFrames)hideLegacyVisual(visual,true);
- }).catch(error=>reportFailure(chooseWindow(it),error));
+ }).catch(error=>reportFailure(model,error));
 }
 function one(source,anchor,replacement){
  const first=source.indexOf(anchor);
@@ -161,5 +192,5 @@ function patchEngineDoc(doc){
  // el primer cierre HTML real, sin exigir exclusividad global del texto.
  return out.slice(0,headEnd)+script+out.slice(headEnd);
 }
-global.FHArchitectureSkins=Object.freeze({chooseDoor,chooseWindow,decorateDoor,decorateWindow,patchEngineDoc,load});
+global.FHArchitectureSkins=Object.freeze({chooseDoor,chooseWindow,splitWindow,decorateDoor,decorateWindow,patchEngineDoc,load});
 })(window);
