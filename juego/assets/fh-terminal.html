@@ -190,6 +190,52 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
  .focus-top .label-hardware{display:none}
 }
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+/* HUD táctil de RAVEN/OS: sin botones externos y con barra permanente. */
+#focus{padding-top:max(6px,env(safe-area-inset-top));padding-right:max(7px,env(safe-area-inset-right));padding-left:max(7px,env(safe-area-inset-left));padding-bottom:max(7px,env(safe-area-inset-bottom));gap:6px}
+.focus-top{min-height:25px;flex:none;justify-content:space-between}
+#desktop,#screenOff,#boot,#wake{bottom:31px}
+#boot{padding:14px;text-align:left}
+.boot-panel{width:min(100%,480px);padding:18px;border:2px solid #597a6c;background:#10201f;box-shadow:inset 2px 2px #375549}
+.boot-panel strong{display:block;font-size:clamp(13px,2vw,20px);letter-spacing:.1em}
+.boot-panel p{line-height:1.8;margin:16px 0;font-size:clamp(11px,1.5vw,14px)}
+#bootTrack{height:23px;border:3px solid #a4bb9e;background:#0b1417;padding:2px;overflow:hidden}
+#bootFill{display:block;height:100%;width:0;background:#9ed1ad}
+#bootPercent{display:block;text-align:right;padding-top:7px;font-size:12px;color:#cbd7aa}
+#wake{display:none;position:absolute;inset:0 0 31px;z-index:7;background:#102b29;color:#b5dcbb;align-items:center;justify-content:center;font-size:clamp(13px,2vw,19px);letter-spacing:.09em}
+.start-menu{bottom:31px;max-height:min(78%,370px);overflow-y:auto;overscroll-behavior:contain}
+.start-menu button{min-height:39px}
+@media(max-width:730px){
+ #focus{gap:3px}
+ .focus-top{min-height:20px;font-size:10px}
+ .focus-frame{flex:1;margin:1px auto 0}
+ #desktop,#screenOff,#boot,#wake{bottom:44px}
+ #desktopIcons{top:39px;left:6px;right:6px;bottom:5px;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));grid-auto-rows:81px;gap:5px;overflow-y:auto;align-content:start}
+ .desktop-icon{min-width:0;width:100%;height:79px;padding:4px 2px;font-size:10px}
+ .pixel-symbol{width:42px;height:39px}
+ .footer-note{display:none}
+ .os-taskbar{height:44px;min-height:44px;padding:3px 6px}
+ .task-brand{min-height:38px;min-width:77px}
+ .task-app{min-height:36px}
+ .task-led{font-size:9px}
+ .start-menu{bottom:44px;left:4px;min-width:min(238px,calc(100% - 8px));max-width:calc(100% - 8px);max-height:calc(100% - 50px)}
+ .start-menu button{min-height:44px}
+ .window:not(.maximized),.window.maximized{top:33px!important;left:5px!important;width:calc(100% - 10px)!important;height:calc(100% - 37px)!important;max-height:none}
+ .window-title{height:42px;min-height:42px;font-size:11px}
+ .window-title .wm{min-width:36px;min-height:36px;font-size:18px}
+ .window-status{height:22px;gap:6px;overflow:hidden;white-space:nowrap}
+ #message{bottom:52px}
+}
+@media(max-width:730px) and (orientation:landscape){
+ .focus-top .label-hardware{display:none}
+ .focus-frame{border-width:4px}
+ #desktopIcons{grid-template-columns:repeat(auto-fill,minmax(68px,85px));grid-auto-rows:70px;top:32px}
+ .desktop-icon{height:67px}
+ .pixel-symbol{height:32px;width:38px}
+ .os-topbar{height:27px}
+ .window:not(.maximized),.window.maximized{top:28px!important;height:calc(100% - 30px)!important}
+}
+@media(max-width:370px){.task-led{display:none}.os-topbar{padding:0 6px}.os-topbar .os-date{font-size:8px}.mail-choice,.file-choice{flex-basis:130px}}
 </style>
 </head>
 <body>
@@ -204,17 +250,17 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 <div class="scene-hint">MONITOR: ACERCAR VISTA<br>BOTÓN FÍSICO: ENCENDER / APAGAR</div>
 <div class="controls" id="mainControls"><button id="zoomBtn" class="hardware highlight">[ ACERCAR PANTALLA ]</button><button id="powerBtn" class="hardware">[ ENCENDER ]</button><button id="resetBtn" class="hardware">[ CENTRAR ]</button></div>
 <div id="focus" role="dialog" aria-label="Control de la computadora" aria-modal="true">
- <div class="focus-top"><span class="label-hardware">RAVEN 486 // CRT 03</span><span id="offStatus">● SIN ENERGÍA</span><span class="focus-right"><button id="focusPower" class="hardware">[ ENCENDER ]</button><button id="leaveBtn" class="hardware highlight">[ VOLVER ]</button></span></div>
+ <div class="focus-top"><span class="label-hardware">RAVEN 486 // CRT 03</span><span id="offStatus" role="status">● SIN ENERGÍA</span></div>
  <div class="focus-frame"><div id="focusScreen">
   <div id="screenOff"><div>RAVEN / TERMINAL 03</div><em>EL MONITOR ESTÁ APAGADO</em></div>
-  <div id="boot"><div>RAVEN BIOS · V 1.9<br><p>MEMORIA: OK<br>INICIANDO ESCRITORIO...</p></div></div>
+   <div id="boot"><div class="boot-panel"><strong>RAVEN BIOS · V 1.9</strong><p>MEMORIA: OK<br>INICIANDO RAVEN/OS...</p><div id="bootTrack" role="progressbar" aria-label="Iniciando sistema operativo" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="bootFill"></i></div><span id="bootPercent">0%</span></div></div><div id="wake" role="status">REANUDANDO RAVEN/OS ▋</div>
   <div id="desktop">
    <div class="wall-moon"></div><div class="wall-building"></div>
    <div class="os-topbar"><span class="os-brand"><i></i>RAVEN/OS <span style="color:#846e5b">v.96</span></span><span class="os-date">USUARIO: GUARDIA_03 &nbsp;│&nbsp; 23:47</span></div>
    <div class="footer-note">ESTACIÓN DE SEGURIDAD / RED LOCAL</div>
    <div id="desktopIcons"></div><div id="windowsLayer"></div>
-   <div id="startMenu" class="start-menu" role="menu"><strong>RAVEN/OS · APLICACIONES</strong></div><div class="os-taskbar"><button id="startButton" class="task-brand" type="button" aria-label="Abrir menú de aplicaciones" aria-expanded="false">▦ RAVEN</button><div id="taskItems"></div><span class="task-led"><b>●</b> RED LOCAL</span></div>
-  </div>
+   </div>
+   <div id="startMenu" class="start-menu" role="menu" aria-label="Menú RAVEN"></div><div class="os-taskbar"><button id="startButton" class="task-brand" type="button" aria-label="Abrir menú RAVEN" aria-expanded="false" aria-controls="startMenu">▦ RAVEN</button><div id="taskItems"></div><span class="task-led"><b>●</b> RED LOCAL</span></div>
   <div id="message" role="status" aria-live="polite"></div>
  </div></div>
 </div>
