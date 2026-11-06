@@ -190,6 +190,75 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
  .focus-top .label-hardware{display:none}
 }
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+/* HUD táctil de RAVEN/OS: sin botones externos y con barra permanente. */
+#focus{padding-top:max(6px,env(safe-area-inset-top));padding-right:max(7px,env(safe-area-inset-right));padding-left:max(7px,env(safe-area-inset-left));padding-bottom:max(7px,env(safe-area-inset-bottom));gap:6px}
+.focus-top{min-height:25px;flex:none;justify-content:space-between}
+#desktop,#screenOff,#boot,#wake{bottom:31px}
+#boot{padding:14px;text-align:left}
+.boot-panel{width:min(100%,480px);padding:18px;border:2px solid #597a6c;background:#10201f;box-shadow:inset 2px 2px #375549}
+.boot-panel strong{display:block;font-size:clamp(13px,2vw,20px);letter-spacing:.1em}
+.boot-panel p{line-height:1.8;margin:16px 0;font-size:clamp(11px,1.5vw,14px)}
+#bootTrack{height:23px;border:3px solid #a4bb9e;background:#0b1417;padding:2px;overflow:hidden}
+#bootFill{display:block;height:100%;width:0;background:#9ed1ad}
+#bootPercent{display:block;text-align:right;padding-top:7px;font-size:12px;color:#cbd7aa}
+#wake{display:none;position:absolute;inset:0 0 31px;z-index:7;background:#102b29;color:#b5dcbb;align-items:center;justify-content:center;font-size:clamp(13px,2vw,19px);letter-spacing:.09em}
+.start-menu{bottom:31px;max-height:min(78%,370px);overflow-y:auto;overscroll-behavior:contain}
+.start-menu button{min-height:39px}
+@media(max-width:730px){
+ #focus{gap:3px}
+ .focus-top{min-height:20px;font-size:10px}
+ .focus-frame{flex:1;margin:1px auto 0}
+ #desktop,#screenOff,#boot,#wake{bottom:44px}
+ #desktopIcons{top:39px;left:6px;right:6px;bottom:5px;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));grid-auto-rows:81px;gap:5px;overflow-y:auto;align-content:start}
+ .desktop-icon{min-width:0;width:100%;height:79px;padding:4px 2px;font-size:10px}
+ .pixel-symbol{width:42px;height:39px}
+ .footer-note{display:none}
+ .os-taskbar{height:44px;min-height:44px;padding:3px 6px}
+ .task-brand{min-height:38px;min-width:77px}
+ .task-app{min-height:36px}
+ .task-led{font-size:9px}
+ .start-menu{bottom:44px;left:4px;min-width:min(238px,calc(100% - 8px));max-width:calc(100% - 8px);max-height:calc(100% - 50px)}
+ .start-menu button{min-height:44px}
+ .window:not(.maximized),.window.maximized{top:33px!important;left:5px!important;width:calc(100% - 10px)!important;height:calc(100% - 37px)!important;max-height:none}
+ .window-title{height:42px;min-height:42px;font-size:11px}
+ .window-title .wm{min-width:36px;min-height:36px;font-size:18px}
+ .window-status{height:22px;gap:6px;overflow:hidden;white-space:nowrap}
+ #message{bottom:52px}
+}
+@media(max-width:730px) and (orientation:landscape){
+ .focus-top .label-hardware{display:none}
+ .focus-frame{border-width:4px}
+ #desktopIcons{grid-template-columns:repeat(auto-fill,minmax(68px,85px));grid-auto-rows:70px;top:32px}
+ .desktop-icon{height:67px}
+ .pixel-symbol{height:32px;width:38px}
+ .os-topbar{height:27px}
+ .window:not(.maximized),.window.maximized{top:28px!important;height:calc(100% - 30px)!important}
+}
+@media(max-width:370px){.task-led{display:none}.os-topbar{padding:0 6px}.os-topbar .os-date{font-size:8px}.mail-choice,.file-choice{flex-basis:130px}}
+
+/* Teléfonos apaisados: el viewport CSS puede superar 730 px. */
+@media(orientation:landscape) and (max-height:600px) and (max-width:1100px){
+ #focus{gap:3px;padding:max(3px,env(safe-area-inset-top)) max(5px,env(safe-area-inset-right)) max(3px,env(safe-area-inset-bottom)) max(5px,env(safe-area-inset-left))}
+ .focus-top{min-height:20px;font-size:10px}
+ .focus-top .label-hardware{display:none}
+ .focus-frame{border-width:4px;margin:1px auto 0}
+ #desktop,#screenOff,#boot,#wake{bottom:42px}
+ #desktopIcons{top:33px;left:6px;right:6px;bottom:3px;grid-template-columns:repeat(auto-fill,minmax(68px,85px));grid-auto-rows:70px;gap:4px;overflow-y:auto;align-content:start}
+ .desktop-icon{width:100%;height:67px;font-size:10px}
+ .pixel-symbol{width:38px;height:32px;font-size:20px}
+ .footer-note{display:none}
+ .os-topbar{height:27px}
+ .os-taskbar{height:42px;min-height:42px;padding:2px 5px}
+ .task-brand{min-height:36px;min-width:77px}
+ .task-app{min-height:34px}
+ .start-menu{bottom:42px;max-height:calc(100% - 47px);left:4px}
+ .start-menu button{min-height:40px}
+ .window:not(.maximized),.window.maximized{left:5px!important;top:29px!important;width:calc(100% - 10px)!important;height:calc(100% - 32px)!important;max-width:none;max-height:none}
+ .window-title{height:37px;min-height:37px}
+ .window-title .wm{min-width:33px;min-height:32px}
+ #message{bottom:46px}
+}
 </style>
 </head>
 <body>
@@ -204,17 +273,17 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 <div class="scene-hint">MONITOR: ACERCAR VISTA<br>BOTÓN FÍSICO: ENCENDER / APAGAR</div>
 <div class="controls" id="mainControls"><button id="zoomBtn" class="hardware highlight">[ ACERCAR PANTALLA ]</button><button id="powerBtn" class="hardware">[ ENCENDER ]</button><button id="resetBtn" class="hardware">[ CENTRAR ]</button></div>
 <div id="focus" role="dialog" aria-label="Control de la computadora" aria-modal="true">
- <div class="focus-top"><span class="label-hardware">RAVEN 486 // CRT 03</span><span id="offStatus">● SIN ENERGÍA</span><span class="focus-right"><button id="focusPower" class="hardware">[ ENCENDER ]</button><button id="leaveBtn" class="hardware highlight">[ VOLVER ]</button></span></div>
+ <div class="focus-top"><span class="label-hardware">RAVEN 486 // CRT 03</span><span id="offStatus" role="status">● SIN ENERGÍA</span></div>
  <div class="focus-frame"><div id="focusScreen">
   <div id="screenOff"><div>RAVEN / TERMINAL 03</div><em>EL MONITOR ESTÁ APAGADO</em></div>
-  <div id="boot"><div>RAVEN BIOS · V 1.9<br><p>MEMORIA: OK<br>INICIANDO ESCRITORIO...</p></div></div>
+   <div id="boot"><div class="boot-panel"><strong>RAVEN BIOS · V 1.9</strong><p>MEMORIA: OK<br>INICIANDO RAVEN/OS...</p><div id="bootTrack" role="progressbar" aria-label="Iniciando sistema operativo" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="bootFill"></i></div><span id="bootPercent">0%</span></div></div><div id="wake" role="status">REANUDANDO RAVEN/OS ▋</div>
   <div id="desktop">
    <div class="wall-moon"></div><div class="wall-building"></div>
    <div class="os-topbar"><span class="os-brand"><i></i>RAVEN/OS <span style="color:#846e5b">v.96</span></span><span class="os-date">USUARIO: GUARDIA_03 &nbsp;│&nbsp; 23:47</span></div>
    <div class="footer-note">ESTACIÓN DE SEGURIDAD / RED LOCAL</div>
    <div id="desktopIcons"></div><div id="windowsLayer"></div>
-   <div id="startMenu" class="start-menu" role="menu"><strong>RAVEN/OS · APLICACIONES</strong></div><div class="os-taskbar"><button id="startButton" class="task-brand" type="button" aria-label="Abrir menú de aplicaciones" aria-expanded="false">▦ RAVEN</button><div id="taskItems"></div><span class="task-led"><b>●</b> RED LOCAL</span></div>
-  </div>
+   </div>
+   <div id="startMenu" class="start-menu" role="menu" aria-label="Menú RAVEN"></div><div class="os-taskbar"><button id="startButton" class="task-brand" type="button" aria-label="Abrir menú RAVEN" aria-expanded="false" aria-controls="startMenu">▦ RAVEN</button><div id="taskItems"></div><span class="task-led"><b>●</b> RED LOCAL</span></div>
   <div id="message" role="status" aria-live="polite"></div>
  </div></div>
 </div>
@@ -252,10 +321,10 @@ const DATA = {
   {t:'20:12',type:'ACCESO',txt:'Se cerró la entrada de carga.\nSin credencial registrada.'}
  ]
 };
-const state={power:false,boot:false,zoom:false,windows:[],front:null,topZ:5,mail:0,floor:0,room:'VESTÍBULO',camera:0,log:0};
+const state={power:false,boot:false,waking:false,mode:'off',bootStarted:0,bootReady:0,bootDuration:0,lastBootDraw:0,zoom:false,windows:[],front:null,topZ:5,mail:0,floor:0,room:'VESTÍBULO',camera:0,log:0};
 const reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const winEls=new Map();
-let bootTimer=null,toastTimer=null,renderer=null,scene=null,camera3d=null,monitorGroup=null,screenPlane=null,powerKnob=null,raycaster=null,ndc=null,texture=null,modelEnabled=false,camFrameLast=0;
+let toastTimer=null,renderer=null,scene=null,camera3d=null,monitorGroup=null,screenPlane=null,powerKnob=null,raycaster=null,ndc=null,texture=null,modelEnabled=false,camFrameLast=0;
 const preview=$('screenTexture'),pctx=preview.getContext('2d',{alpha:false});pctx.imageSmoothingEnabled=false;
 const emit=(name,detail)=>{window.dispatchEvent(new CustomEvent('forest-terminal:'+name,{detail}));if(window.parent!==window)window.parent.postMessage({type:'FOREST_TERMINAL_EVENT',name,detail},'*')};
 window.addEventListener('message',event=>{
@@ -266,16 +335,72 @@ function say(msg){let el=$('message');el.textContent=msg;el.classList.add('show'
 function node(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=text;return e}
 function clear(el){el.replaceChildren()}
 function labelButton(text,cls,onClick){const b=node('button',cls,text);b.type='button';b.addEventListener('click',onClick);return b}
-function syncPower(){const txt=state.power?'[ APAGAR ]':'[ ENCENDER ]';$('powerBtn').textContent=txt;$('focusPower').textContent=txt;$('miniLed').classList.toggle('on',state.power);$('offStatus').textContent=state.power?'● SISTEMA ACTIVO':'● SIN ENERGÍA';$('offStatus').style.color=state.power?'#94caa8':'#a8b59c';$('screenOff').style.display=state.power?'none':'flex';$('boot').style.display=state.power&&state.boot?'flex':'none';$('desktop').style.display=state.power&&!state.boot?'block':'none';previewPaint()}
-function setPower(on){on=!!on;if(state.power===on)return;closeStart();clearTimeout(bootTimer);state.power=on;state.boot=on&&!reduceMotion;
- if(on&&state.boot){bootTimer=setTimeout(()=>{if(!state.power)return;state.boot=false;syncPower();emit('listo',{});},900)}else if(on)emit('listo',{});
- syncPower();emit('energia',{on});}
-function toggleZoom(on){on=typeof on==='boolean'?on:!state.zoom;if(on===state.zoom)return;state.zoom=on;closeStart();$('focus').classList.toggle('open',on);if(on){$('leaveBtn').focus({preventScroll:true})}else{$('zoomBtn').focus({preventScroll:true})}emit('zoom',{on});previewPaint()}
+function syncPower(){
+ const statuses={off:COMPUTER_TEXT.statusOff||'● SIN ENERGÍA',booting:COMPUTER_TEXT.statusBoot||'● INICIANDO',waking:COMPUTER_TEXT.statusWake||'● REANUDANDO',on:COMPUTER_TEXT.statusOn||'● SISTEMA ACTIVO',sleep:COMPUTER_TEXT.statusSleep||'● EN REPOSO'};
+ $('powerBtn').textContent=state.mode==='off'||state.mode==='sleep'?'[ ENCENDER ]':'[ APAGAR ]';
+ $('miniLed').classList.toggle('on',state.mode!=='off');
+ $('offStatus').textContent=statuses[state.mode]||statuses.off;
+ $('offStatus').style.color=state.mode==='on'?'#94caa8':'#c8c19f';
+ $('screenOff').style.display=['off','sleep'].includes(state.mode)?'flex':'none';
+ $('screenOff').querySelector('em').textContent=state.mode==='sleep'?(COMPUTER_TEXT.sleeping||'SISTEMA EN REPOSO'):(COMPUTER_TEXT.offScreen||'EL MONITOR ESTÁ APAGADO');
+ $('boot').style.display=state.boot?'flex':'none';
+ $('wake').style.display=state.waking?'flex':'none';
+ $('desktop').style.display=state.mode==='on'?'block':'none';
+ $('taskItems').style.display=state.mode==='on'?'flex':'none';
+ $('taskItems').setAttribute('aria-hidden',String(state.mode!=='on'));
+ refreshStartMenu();previewPaint();
+}
+function setPowerState(data={}){
+ const mode=['off','booting','waking','on','sleep'].includes(data.mode)?data.mode:'off';
+ if(mode==='off'){
+  for(const el of winEls.values())el.remove();
+  winEls.clear();state.windows=[];state.front=null;state.topZ=5;clear($('windowsLayer'));closeStart();
+ }
+ state.mode=mode;state.boot=mode==='booting';state.waking=mode==='waking';state.power=mode==='on'||state.boot||state.waking;
+ state.bootStarted=Number(data.startedAt)||Date.now();
+ state.bootReady=Number(data.readyAt)||state.bootStarted;
+ state.bootDuration=Math.max(1,Number(data.durationMs)||state.bootReady-state.bootStarted||1);
+ state.lastBootDraw=0;updateBootProgress(true);syncPower();
+}
+function updateBootProgress(force=false){
+ if(!state.boot&&!state.waking)return;
+ const now=Date.now();if(!force&&now-state.lastBootDraw<80)return;
+ state.lastBootDraw=now;
+ const pct=Math.max(0,Math.min(100,Math.floor(100*(now-state.bootStarted)/state.bootDuration)));
+ $('bootFill').style.width=pct+'%';$('bootTrack').setAttribute('aria-valuenow',String(pct));$('bootPercent').textContent=pct+'%';
+ if(now>=state.bootReady){state.mode='on';state.power=true;state.boot=false;state.waking=false;syncPower();emit('listo',{stationId:sessionStationId})}
+ else previewPaint();
+}
+function setPower(on){
+ const now=Date.now();setPowerState(on?{mode:'booting',startedAt:now,readyAt:now+7000,durationMs:7000}:{mode:'off'});
+ emit('energia',{on:!!on});
+}
+function toggleZoom(on){
+ on=typeof on==='boolean'?on:!state.zoom;if(on===state.zoom)return;
+ state.zoom=on;closeStart();$('focus').classList.toggle('open',on);
+ if(on)$('startButton').focus({preventScroll:true});else $('zoomBtn').focus({preventScroll:true});
+ emit('zoom',{on});previewPaint();
+}
 function bringFront(app){let win=winEls.get(app);if(!win)return;win.style.display='flex';win.dataset.minimized='';state.front=app;state.topZ++;win.style.zIndex=String(state.topZ);for(const [key,el] of winEls)el.classList.toggle('active',key===app);drawTasks();previewPaint()}
 function closeWindow(app){let win=winEls.get(app);if(!win)return;win.remove();winEls.delete(app);state.windows=state.windows.filter(v=>v!==app);state.front=state.windows.at(-1)||null;drawTasks();previewPaint();emit('ventana',{app,open:false})}
 function drawTasks(){const task=$('taskItems');clear(task);state.windows.forEach(app=>{let b=labelButton(LABELS[app],'task-app'+(state.front===app?' selected':''),()=>bringFront(app));task.append(b)})}
 function closeStart(){ $('startMenu').classList.remove('open'); $('startButton').setAttribute('aria-expanded','false'); }
-function refreshStartMenu(){const menu=$('startMenu'),symbols={mail:'✉',map:'▧',cams:'◉',files:'▣',hamazon:'H'};clear(menu);sessionApps.forEach(app=>menu.append(labelButton(symbols[app]+'  '+LABELS[app],'',()=>{closeStart();openWindow(app)})));menu.append(labelButton('⏻  APAGAR TERMINAL','',()=>{closeStart();setPower(false)}))}
+function requestControl(action){
+ closeStart();
+ if(window.parent===window){
+  if(action==='reposo')setPowerState({mode:'sleep'});
+  if(action==='apagar')setPowerState({mode:'off'});
+  toggleZoom(false);
+ }else emit('control',{action,stationId:sessionStationId});
+}
+function refreshStartMenu(){
+ const menu=$('startMenu'),symbols={mail:'✉',map:'▧',cams:'◉',files:'▣',hamazon:'H'};
+ clear(menu);menu.append(node('strong','',COMPUTER_TEXT.menuTitle||'RAVEN/OS · SISTEMA'));
+ if(state.mode==='on')for(const app of sessionApps)menu.append(labelButton(symbols[app]+'  '+LABELS[app],'',()=>{closeStart();openWindow(app)}));
+ menu.append(labelButton(COMPUTER_TEXT.menuExit||'↩  SALIR AL JUEGO','',()=>requestControl('salir')));
+ if(state.mode==='on')menu.append(labelButton(COMPUTER_TEXT.menuSleep||'◐  PONER EN REPOSO','',()=>requestControl('reposo')));
+ menu.append(labelButton(COMPUTER_TEXT.menuShutdown||'⏻  APAGAR','',()=>requestControl('apagar')));
+}
 function initStart(){const menu=$('startMenu');refreshStartMenu();$('startButton').addEventListener('click',()=>{const open=menu.classList.toggle('open');$('startButton').setAttribute('aria-expanded',String(open))});document.addEventListener('pointerdown',ev=>{if(!menu.contains(ev.target)&&ev.target!==$('startButton'))closeStart()})}
 function makeIcons(){let layer=$('desktopIcons');clear(layer);let icons={mail:['✉','symbol-mail'],map:['▧','symbol-map'],cams:['◉','symbol-cams'],files:['▣','symbol-files'],hamazon:['H','symbol-hamazon']};for(const app of sessionApps){const b=labelButton('', 'desktop-icon',()=>openWindow(app));b.setAttribute('aria-label','Abrir '+LABELS[app]);const icon=node('span','pixel-symbol '+icons[app][1],icons[app][0]);b.append(icon,node('span','',LABELS[app]));layer.append(b)}}
 // Las ventanas se miden respecto al escritorio del iframe, no respecto al navegador exterior.
@@ -301,7 +426,7 @@ function createWindow(app){const win=node('section','window win-'+app);win.datas
  title.addEventListener('pointerdown',ev=>{if(ev.target.closest('button')||innerWidth<730||innerHeight<=600||win.classList.contains('maximized'))return;if(ev.button!==0)return;bringFront(app);let x=ev.clientX,y=ev.clientY,left=parseFloat(win.style.left),top=parseFloat(win.style.top);const move=e=>{const container=$('desktop').getBoundingClientRect();const bounds=win.getBoundingClientRect();win.style.left=Math.max(0,Math.min(container.width-bounds.width,left+e.clientX-x))+'px';win.style.top=Math.max(30,Math.min(Math.max(30,container.height-bounds.height-34),top+e.clientY-y))+'px'};const stop=()=>{window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',stop);previewPaint()};window.addEventListener('pointermove',move);window.addEventListener('pointerup',stop,{once:true})});win.addEventListener('pointerdown',()=>bringFront(app));
  return win;
 }
-function openWindow(app){if(!APPS.includes(app))return;if(!sessionApps.includes(app)){say(COMPUTER_TEXT.appUnavailable||'Esta aplicación no está instalada.');return}if(!state.power){say('Enciende la computadora primero.');return}if(state.boot)return;let win=winEls.get(app);if(!win){win=createWindow(app);winEls.set(app,win);state.windows.push(app);$('windowsLayer').append(win);fitWindowsToDesktop();renderWindow(app);emit('ventana',{app,open:true})}win.style.display='flex';win.dataset.minimized='';fitWindowsToDesktop();bringFront(app)}
+function openWindow(app){if(!APPS.includes(app))return;if(!sessionApps.includes(app)){say(COMPUTER_TEXT.appUnavailable||'Esta aplicación no está instalada.');return}if(!state.power){say(COMPUTER_TEXT.turnOnFirst||'Enciende la computadora primero.');return}if(state.boot)return;let win=winEls.get(app);if(!win){win=createWindow(app);winEls.set(app,win);state.windows.push(app);$('windowsLayer').append(win);fitWindowsToDesktop();renderWindow(app);emit('ventana',{app,open:true})}win.style.display='flex';win.dataset.minimized='';fitWindowsToDesktop();bringFront(app)}
 function renderWindow(app){const body=$('body-'+app);if(!body)return;let preservedScroll=body.scrollTop;clear(body);if(app==='mail')renderMail(body);if(app==='map')renderMap(body);if(app==='cams')renderCams(body);if(app==='files')renderFiles(body);if(app==='hamazon')renderHamazon(body);body.scrollTop=preservedScroll;}
 function renderMail(body){let layout=node('div','mail-layout');let list=node('div','mail-list');let reading=node('article','mail-reading');layout.append(list,reading);body.append(layout);
  DATA.mails.forEach((m,i)=>{let b=labelButton('', 'mail-choice'+(state.mail===i?' selected':''),()=>{state.mail=i;renderWindow('mail');emit('correo',{id:m.id})});b.append(node('span','',m.date+' • '+m.from),node('strong','',m.subject));list.append(b)});
@@ -356,8 +481,8 @@ function drawCamera(t){let cnv=$('camCanvas');if(!cnv||!state.power)return;const
 function paintText(text,x,y,color='#e3e6c8',size=12){pctx.fillStyle=color;pctx.font='bold '+size+'px monospace';pctx.textBaseline='top';pctx.fillText(String(text),x,y)}
 function syncGameClock(value){const clock=/^\d{2}:\d{2}$/.test(String(value||''))?String(value):'08:00';DATA.gameClock=clock;const el=document.querySelector('.os-date');if(el)el.textContent=(COMPUTER_TEXT.userLabel||'USUARIO')+': '+sessionUserId+'   │   '+clock;previewPaint();}
 function previewPaint(){const c=pctx,W=512,H=320;c.fillStyle='#020708';c.fillRect(0,0,W,H);
- if(!state.power){c.fillStyle='#091317';c.fillRect(0,0,W,H);c.fillStyle='#102025';c.fillRect(0,0,W,14);paintText('RAVEN 486 / SIN ENERGÍA',158,153,'#51645c',12);if(texture)texture.needsUpdate=true;return}
- if(state.boot){c.fillStyle='#163530';c.fillRect(0,0,W,H);paintText('RAVEN BIOS 1.9',38,62,'#afe9ba',18);paintText('COMPROBACIÓN DE MEMORIA... OK',38,112,'#b9cfae',12);paintText('INICIANDO RAVEN/OS...',38,146,'#f2d09f',12);if(texture)texture.needsUpdate=true;return}
+ if(!state.power){c.fillStyle='#091317';c.fillRect(0,0,W,H);c.fillStyle='#102025';c.fillRect(0,0,W,14);paintText(state.mode==='sleep'?'RAVEN 486 / REPOSO':'RAVEN 486 / SIN ENERGÍA',148,153,'#51645c',12);if(texture)texture.needsUpdate=true;return}
+ if(state.boot){c.fillStyle='#163530';c.fillRect(0,0,W,H);paintText('RAVEN BIOS 1.9',38,62,'#afe9ba',18);paintText('COMPROBACIÓN DE MEMORIA... OK',38,112,'#b9cfae',12);paintText('INICIANDO RAVEN/OS...',38,146,'#f2d09f',12);c.strokeStyle='#c5c39e';c.strokeRect(38,181,420,22);c.fillStyle='#9ed1ad';c.fillRect(41,184,414*Math.max(0,Math.min(1,(Date.now()-state.bootStarted)/state.bootDuration)),16);if(texture)texture.needsUpdate=true;return}
  c.fillStyle='#356f78';c.fillRect(0,0,W,H);c.fillStyle='#518c91';for(let i=0;i<13;i++){c.fillRect((i*83+23)%512,(i*39+14)%320,3,3)}
  c.fillStyle='#e1d4a3';c.fillRect(385,40,53,53);c.fillStyle='#214450';for(let i=0;i<9;i++)c.fillRect(265+i*26,220-(i%3)*20,34,130);
  c.fillStyle='#dbc99d';c.fillRect(0,0,W,29);c.fillStyle='#b99f76';c.fillRect(0,26,W,3);paintText('▣ RAVEN/OS',12,9,'#2b4d53',13);paintText(sessionUserId.slice(0,12)+'   '+DATA.gameClock,352,10,'#6c6a5c',10);
@@ -373,7 +498,7 @@ function previewPaint(){const c=pctx,W=512,H=320;c.fillStyle='#020708';c.fillRec
  c.fillStyle='#dfcea4';c.fillRect(0,289,W,31);paintText('▦ RAVEN',11,299,'#2f4851',12);paintText(state.windows.map(a=>LABELS[a]).join('   ').slice(0,49),129,300,'#426065',10);
  if(texture)texture.needsUpdate=true;
 }
-function animation(t){if(state.power&&!state.boot&&state.zoom&&winEls.has('cams')&&winEls.get('cams').style.display!=='none'&&t-camFrameLast>135){drawCamera(t);camFrameLast=t}if(renderer&&scene&&camera3d)renderer.render(scene,camera3d);requestAnimationFrame(animation)}
+function animation(t){updateBootProgress();if(state.power&&!state.boot&&state.zoom&&winEls.has('cams')&&winEls.get('cams').style.display!=='none'&&t-camFrameLast>135){drawCamera(t);camFrameLast=t}if(renderer&&scene&&camera3d)renderer.render(scene,camera3d);requestAnimationFrame(animation)}
 function initThree(){if(!window.THREE)return;try{let T=window.THREE;renderer=new T.WebGLRenderer({canvas:$('threeCanvas'),antialias:false,powerPreference:'low-power'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.25));renderer.setSize(innerWidth,innerHeight,false);renderer.setClearColor(0x101719);scene=new T.Scene();scene.fog=new T.Fog(0x101719,11,27);camera3d=new T.PerspectiveCamera(39,innerWidth/innerHeight,.1,60);camera3d.position.set(0,2.8,10.3);camera3d.lookAt(0,2.25,0);
  scene.add(new T.AmbientLight(0x869597,.75));let light=new T.DirectionalLight(0xf7d7a9,1.14);light.position.set(-4,7,7);scene.add(light);let rim=new T.PointLight(0x558e8c,.6,18);rim.position.set(5,5,-1);scene.add(rim);
  const mat=(hex,metal=0)=>new T.MeshStandardMaterial({color:hex,roughness:.85,metalness:metal});const shell=mat(0x9c9882,.22),bevel=mat(0x424d45,.23),dark=mat(0x131c1b,.04),trim=mat(0xc4b69a,.25),screenBorder=mat(0x222f2f,.05),keyboard=mat(0x797b6d,.18),keys=mat(0xcac4a4,.05),wall=mat(0x1f2b2c,.08),metal=mat(0x969381,.6);
@@ -391,17 +516,19 @@ function initThree(){if(!window.THREE)return;try{let T=window.THREE;renderer=new
  function resize(){if(!renderer)return;let w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);camera3d.aspect=w/h;camera3d.fov=w<h?50:39;camera3d.position.set(0,2.8,w<h?16.5:10.3);camera3d.lookAt(0,2.25,0);camera3d.updateProjectionMatrix()}window.addEventListener('resize',resize);resize();previewPaint();
  }catch(err){console.error('Fallo WebGL:',err);modelEnabled=false;$('fallback').style.display='flex';renderer=null}}
 makeIcons();initStart();for(let i=0;i<64;i++)$('fauxKeyboard').append(node('i'));
-$('zoomBtn').addEventListener('click',()=>toggleZoom(true));$('leaveBtn').addEventListener('click',()=>toggleZoom(false));$('powerBtn').addEventListener('click',()=>setPower(!state.power));$('focusPower').addEventListener('click',()=>setPower(!state.power));
+$('zoomBtn').addEventListener('click',()=>toggleZoom(true));$('powerBtn').addEventListener('click',()=>setPower(state.mode==='off'||state.mode==='sleep'));
 $('resetBtn').addEventListener('click',()=>{if(monitorGroup)monitorGroup.rotation.set(0,0,0);say('Vista centrada.')});$('fauxDisplay').addEventListener('click',()=>toggleZoom(true));$('fauxDisplay').addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();toggleZoom(true)}});
-window.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&state.zoom){if(state.front){closeWindow(state.front)}else toggleZoom(false);return}if(!state.zoom)return;if(state.power&&!state.boot&&ev.altKey&&/^Digit[1-5]$/.test(ev.code)){ev.preventDefault();openWindow(APPS[+ev.code.at(-1)-1])}});
+window.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&state.zoom){if(state.front)closeWindow(state.front);else closeStart();return}if(!state.zoom)return;if(state.power&&!state.boot&&ev.altKey&&/^Digit[1-5]$/.test(ev.code)){ev.preventDefault();openWindow(APPS[+ev.code.at(-1)-1])}});
 // API de integración. No crea reglas de juego ni datos de mapas.
 window.ForestTerminal3D={
- open(){toggleZoom(true)},close(){toggleZoom(false)},power(on){setPower(on)},
+ open(){toggleZoom(true)},close(){toggleZoom(false)},power(on){setPower(on)},setPowerState,
  setSession(session={}){
-  if(state.power)setPower(false);
-  for(const el of winEls.values())el.remove();
-  winEls.clear();state.windows=[];state.front=null;state.topZ=5;clear($('windowsLayer'));closeStart();
-  sessionStationId=String(session.stationId||'').slice(0,100);
+  const nextId=String(session.stationId||'').slice(0,100);
+  if(sessionStationId!==nextId){
+   for(const el of winEls.values())el.remove();
+   winEls.clear();state.windows=[];state.front=null;state.topZ=5;clear($('windowsLayer'));closeStart();
+  }
+  sessionStationId=nextId;
   sessionUserId=String(session.userId||'GUARDIA_03').slice(0,24);
   sessionApps=Array.isArray(session.apps)?APPS.filter(app=>session.apps.includes(app)):APPS.slice();
   DATA.cameras=Array.isArray(session.cameras)?session.cameras.map((cam,i)=>({
@@ -418,7 +545,7 @@ window.ForestTerminal3D={
  setHamazonProducts(items){if(!Array.isArray(items))return;DATA.hamazonProducts=items.map(p=>({...p,id:String(p.id??''),name:String(p.name??p.id??''),kind:String(p.kind??'furniture')}));renderWindow('hamazon');previewPaint()},
  setHamazonOrders(items){DATA.hamazonOrders=Array.isArray(items)?items.map(o=>({...o})):[];renderWindow('hamazon');previewPaint()},
  setGameClock(value){syncGameClock(value)},
- getState(){return{power:state.power,zoom:state.zoom,windows:[...state.windows],front:state.front,floor:state.floor,room:state.room,camera:state.camera,gameClock:DATA.gameClock,stationId:sessionStationId,userId:sessionUserId,apps:[...sessionApps]}}
+ getState(){return{power:state.power,mode:state.mode,zoom:state.zoom,windows:[...state.windows],front:state.front,floor:state.floor,room:state.room,camera:state.camera,gameClock:DATA.gameClock,stationId:sessionStationId,userId:sessionUserId,apps:[...sessionApps]}}
 };
 // Three.js r128 es la única dependencia: sin red se presenta el monitor CSS interactivo.
 function loadThree(){if(window.THREE){initThree();return}const script=document.createElement('script');script.src='https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';script.onload=initThree;script.onerror=()=>{$('fallback').style.display='flex'};document.head.appendChild(script)}
