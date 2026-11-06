@@ -150,11 +150,15 @@
       if (current) showMain();else closeMenu();
       return;
     }
-    if (event.key === 'Tab') cycleFocus(event);
-    if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','a','s','d','e','f','q','t','j','l',' '].includes(event.key)) {
-      // Solo dejamos el espacio activar un botón que tenga el foco.
-      if (event.key !== ' ' || !panel.contains(global.document.activeElement)) event.preventDefault();
+    if (event.key === 'Tab') {cycleFocus(event);event.stopImmediatePropagation();return;}
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();event.stopImmediatePropagation();
+      if (panel.contains(global.document.activeElement) && global.document.activeElement?.tagName === 'BUTTON')
+        global.document.activeElement.click();
+      return;
     }
+    if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','a','s','d','e','f','q','t','j','l'].includes(event.key))
+      event.preventDefault();
     event.stopImmediatePropagation();
   }
   function init() {
