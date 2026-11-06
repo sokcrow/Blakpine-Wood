@@ -58,6 +58,127 @@
   function appendLocation(host){
     host.append(card(label('floor'),textOf('floorLabel')),card(label('room'),textOf('regionLabel')));
   }
+  const SCORE_CODES=Object.freeze(['FOR','AGI','VOL','PRU','ING','ARC','SOC']);
+  const RESOURCE_CODES=Object.freeze(['pg','sp','pe']);
+  function scoreReading(scores,key){
+    const n=scores?.[key];
+    return Number.isInteger(n)&&n>=1&&n<=6?n:null;
+  }
+  function resourceReading(resources,key){
+    const current=resources?.[key],maximum=resources?.[key+'Max'];
+    if(!Number.isFinite(current)||current<0||!Number.isFinite(maximum)||maximum<=0)
+      return null;
+    return {current,maximum,percent:Math.max(0,Math.min(100,100*current/maximum))};
+  }
+  function renderStatus(host){
+    // Fuente de verdad: GameState.character, expuesta por FHCharacterRuntime.
+    const character=global.FHCharacterRuntime?.character||null;
+    const hero=node('header','fh-status-identity');
+    hero.append(node('small','fh-status-overline',label('statusSheet')));
+    const name=typeof character?.name==='string'&&character.name.trim()
+      ? character.name.trim():label('statusNameMissing');
+    hero.append(node('h4','fh-status-name',name));
+    if(character){
+      const origin=character.origin==='resident'?label('originResident')
+        :character.origin==='newcomer'?label('originNewcomer'):label('notAvailable');
+      hero.append(node('p','fh-status-origin',label('statusOrigin')+' · '+origin));
+    } else {
+      hero.append(node('p','fh-status-origin',label('statusNoCharacter')));
+    }
+    const grid=node('div','fh-status-grid');
+    const attributes=node('section','fh-status-column fh-status-attributes');
+    const resources=node('section','fh-status-column fh-status-resources');
+    attributes.append(node('h4','fh-status-column-heading',label('statusAttributes')));
+    resources.append(node('h4','fh-status-column-heading',label('statusResources')));
+    for(const key of SCORE_CODES){
+      const score=scoreReading(character?.scores,key);
+      const row=node('div','fh-stat-row');
+      row.append(node('span','fh-stat-label',label('scoreNames')?.[key]||key));
+      const ticks=node('span','fh-stat-ticks');
+      ticks.setAttribute('aria-hidden','true');
+      for(let i=1;i<=6;i++){
+        const tick=node('i',score!==null&&i<=score?'filled':'');
+        ticks.append(tick);
+      }
+      row.append(ticks,node('strong','fh-stat-score',score===null?'—':String(score)));
+      attributes.append(row);
+    }
+    for(const key of RESOURCE_CODES){
+      const reading=resourceReading(character?.resources,key);
+      const name=label('resourceNames')?.[key]||key.toUpperCase();
+      const item=node('div','fh-resource fh-resource-'+key);
+      const heading=node('div','fh-resource-heading');
+      const text=reading?reading.current+' / '+reading.maximum:'—';
+      heading.append(node('span','fh-resource-label',name),node('strong','fh-resource-number',text));
+      const track=node('div','fh-resource-track');
+      if(reading){
+        track.setAttribute('role','progressbar');
+        track.setAttribute('aria-label',name);
+        track.setAttribute('aria-valuemin','0');
+        track.setAttribute('aria-valuemax',String(reading.maximum));
+        track.setAttribute('aria-valuenow',String(reading.current));
+      } else track.setAttribute('aria-hidden','true');
+      const fill=node('div','fh-resource-fill');
+      fill.style.width=(reading?reading.percent:0)+'%';
+      track.append(fill);
+      item.append(heading,track);
+      resources.append(item);
+    }
+    grid.append(attributes,resources);
+    const world=node('section','fh-status-world');
+    world.append(node('h4','fh-status-column-heading',label('statusWorld')));
+    const cards=node('div','fh-status-world-grid');
+    appendLocation(cards);
+    cards.append(card(label('currentInventory'),textOf('inventoryToggle')));
+    cards.append(card(label('torch'),textOf('flashlightToggle')));
+    world.append(cards);
+    host.append(hero,grid,world);
+  }
+  function syncSettingsControls(){
+    if(!open||current!=='settings')return;
+    detail.querySelectorAll('[data-fh-setting]').forEach(button=>{
+      const control=available(button.dataset.fhSetting);
+      const display=control?textOf(button.dataset.fhSetting):label('settingUnavailable');
+      button.textContent=display;
+      button.disabled=!control;
+      button.setAttribute('aria-label',button.dataset.fhName+' · '+display);
+    });
+  }
+  function renderSettings(host){
+    const intro=node('p','fh-settings-intro',label('settingsPresentationHelp'));
+    host.append(intro);
+    const area=node('section','fh-settings-area');
+    area.append(node('h4','fh-status-column-heading',label('settingsPresentation')));
+    for(const [id,name,help] of [
+      ['pixelBtn','pixels','pixelsHelp'],
+      ['gridBtn','grid','gridHelp'],
+      ['fullscreenBtn','fullscreen','fullscreenHelp']
+    ]){
+      const row=node('div','fh-setting-row');
+      const info=node('div','fh-setting-copy');
+      info.append(node('h5','fh-setting-name',label(name)));
+      info.append(node('p','fh-setting-help',label(help)));
+      const button=action('',()=>{
+        const target=available(id);
+        if(target)clickOriginalControl(target);
+        syncSettingsControls();
+      });
+      button.className='fh-setting-control';
+      button.dataset.fhSetting=id;
+      button.dataset.fhName=label(name);
+      row.append(info,button);
+      area.append(row);
+    }
+    host.append(area);
+    const exit=node('section','fh-settings-exit');
+    exit.append(node('h4','fh-status-column-heading',label('settingsExitTitle')));
+    exit.append(node('p','fh-setting-help',label('settingsExitHelp')));
+    const go=action(label('editor'),()=>pressReal('mapBtn',true));
+    go.className='fh-setting-editor';
+    exit.append(go);
+    host.append(exit);
+    syncSettingsControls();
+  }
   function inventorySlotKind(slot){
     if(!slot||slot.disabled)return 'empty';
     const sprite=slot.querySelector?.('.itemSprite');
@@ -201,19 +322,10 @@
           appendLocation(detail);
           break;
         case 'status':
-          appendLocation(detail);
-          detail.append(card(label('currentInventory'),textOf('inventoryToggle')));
-          detail.append(card(label('torch'),textOf('flashlightToggle')));
+          renderStatus(detail);
           break;
         case 'settings':
-          for(const [id,name] of [
-            ['floorBtn','changeFloor'],['pixelBtn','pixels'],['gridBtn','grid'],
-            ['fullscreenBtn','fullscreen'],['mapBtn','editor']
-          ]){
-            if(!el(id))continue;
-            const caption=label(name)+(name==='editor'?'':' · '+textOf(id));
-            detail.append(action(caption,()=>pressReal(id,name==='editor')));
-          }
+          renderSettings(detail);
           break;
       }
     }
@@ -367,6 +479,7 @@
     toggle.addEventListener('click',()=>open?closeMenu():openMenu());
     scrim.addEventListener('click',()=>closeMenu());
     global.addEventListener('keydown',onKeydown,true);
+    global.document.addEventListener('fullscreenchange',syncSettingsControls);
     global.addEventListener('blur',()=>{if(open&&!el('noteOverlay')?.classList.contains('open'))closeMenu();});
     global.document.body.classList.add('fh-player-menu-ready');
     observeModalFocus();
@@ -383,7 +496,7 @@
   });
   global.FHPlayerMenu=api;
   if(typeof module==='object'&&module.exports)
-    module.exports=Object.freeze({clickOriginalControl,categoryMatches,inventorySlotKind});
+    module.exports=Object.freeze({clickOriginalControl,categoryMatches,inventorySlotKind,scoreReading,resourceReading});
   if(global.document?.readyState==='loading')global.document.addEventListener('DOMContentLoaded',init,{once:true});
   else init();
 })(typeof window!=='undefined'?window:globalThis);
@@ -391,13 +504,29 @@
 /* Pruebas autocontenidas para preservar el alcance del cambio. */
 if(typeof module==='object'&&module.exports&&typeof require==='function'&&require.main===module){
   const test=require('node:test'),assert=require('node:assert/strict');
-  const {clickOriginalControl,categoryMatches,inventorySlotKind}=module.exports;
+  const {clickOriginalControl,categoryMatches,inventorySlotKind,scoreReading,resourceReading}=module.exports;
   test('el control legacy conserva su onclick y se cierra la vista antes del clic',()=>{
     const seq=[],real={hidden:false,disabled:false,click(){seq.push('motor');}};
     assert.equal(clickOriginalControl(real,()=>seq.push('HUD')),true);
     assert.deepEqual(seq,['HUD','motor']);
     assert.equal(clickOriginalControl({...real,hidden:true}),false);
     assert.equal(clickOriginalControl({...real,disabled:true}),false);
+  });
+  test('los siete atributos usan puntuaciones reales de 1 a 6',()=>{
+    assert.equal(scoreReading({FOR:5},'FOR'),5);
+    assert.equal(scoreReading({FOR:0},'FOR'),null);
+    assert.equal(scoreReading({FOR:7},'FOR'),null);
+    assert.equal(scoreReading(null,'VOL'),null);
+  });
+  test('PG, SP y PE usan recursos actuales y máximos; no inventan valores',()=>{
+    assert.deepEqual(resourceReading({pg:18,pgMax:36},'pg'),{
+      current:18,maximum:36,percent:50
+    });
+    assert.equal(resourceReading({sp:0,spMax:26},'sp').percent,0);
+    assert.equal(resourceReading({pe:12,peMax:16},'pe').percent,75);
+    assert.equal(resourceReading({pg:4},'pg'),null);
+    assert.equal(resourceReading({pg:-1,pgMax:30},'pg'),null);
+    assert.equal(resourceReading(null,'sp'),null);
   });
   test('categorías usan los cuatro tipos originales sin modificar el motor',()=>{
     assert.equal(categoryMatches('key','key'),true);

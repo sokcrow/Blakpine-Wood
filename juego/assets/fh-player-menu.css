@@ -365,3 +365,250 @@ body.fh-player-menu-open #fhMenuToggle {
   body.fh-player-menu-ready #fhPlayerMenuScroll {margin:0 10px;padding:7px 12px 0}
   body.fh-player-menu-ready #fhPlayerMenuFooter {min-height:34px;padding:0 16px 2px}
 }
+
+/* Estado: hoja del personaje real, en la misma estética del inventario.
+   Sin barras editables: los recursos solo se modifican desde el gameplay. */
+body.fh-player-menu-ready #fhPlayerMenu[data-fh-section="status"] #fhPlayerMenuDetail,
+body.fh-player-menu-ready #fhPlayerMenu[data-fh-section="settings"] #fhPlayerMenuDetail {
+  max-width:1120px;
+  margin:0 auto;
+  padding:clamp(10px,1.8vw,25px) clamp(4px,1.1vw,18px) 25px;
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-status-identity {
+  margin:0 0 clamp(17px,2vw,28px);
+  padding:0 0 15px;
+  border-bottom:1px solid rgba(235,230,220,.38);
+  text-align:center;
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-status-overline {
+  display:block;
+  margin-bottom:6px;
+  font:500 11px/1.35 var(--fh-ritual);
+  letter-spacing:.22em;
+  color:#b6b0a7;
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-status-name {
+  margin:0;
+  color:#f5f0e8;
+  font:600 clamp(20px,2.8vw,38px)/1.25 var(--fh-ritual);
+  letter-spacing:.07em;
+  overflow-wrap:anywhere;
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-status-origin {
+  margin:7px 0 0;
+  color:#c3bdb4;
+  font:400 clamp(13px,1.35vw,17px)/1.4 var(--fh-narrative);
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-status-grid {
+  display:grid;
+  grid-template-columns:minmax(0,1.08fr) minmax(0,1fr);
+  gap:clamp(14px,2.7vw,42px);
+  align-items:start;
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-status-column {
+  min-width:0;
+  padding:clamp(13px,2vw,24px);
+  background:linear-gradient(140deg,rgba(255,255,255,.045),rgba(0,0,0,.2));
+  border:1px solid rgba(232,226,214,.26);
+  border-radius:0;
+  box-shadow:none;
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-status-column-heading {
+  margin:0 0 15px;
+  padding:0 0 11px;
+  border-bottom:1px solid rgba(230,224,212,.36);
+  color:#f0ebe2;
+  font:600 clamp(13px,1.4vw,18px)/1.3 var(--fh-ritual);
+  text-transform:uppercase;
+  letter-spacing:.14em;
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-stat-row {
+  display:grid;
+  grid-template-columns:minmax(110px,1fr) minmax(60px,1fr) 29px;
+  align-items:center;
+  gap:12px;
+  min-height:39px;
+  border-bottom:1px solid rgba(230,224,212,.12);
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-stat-row:last-child {border-bottom:0}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-stat-label {
+  color:#d5d0c8;
+  font:400 clamp(13px,1.3vw,17px)/1.35 var(--fh-narrative);
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-stat-score {
+  color:#f1ece4;
+  text-align:right;
+  font:600 18px/1.2 var(--fh-ritual);
+  font-variant-numeric:tabular-nums;
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-stat-ticks {
+  display:grid;
+  grid-template-columns:repeat(6,minmax(0,1fr));
+  gap:4px;
+  width:100%;
+  align-items:center;
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-stat-ticks i {
+  height:12px;
+  border:1px solid rgba(229,224,214,.42);
+  background:rgba(229,224,214,.035);
+  transform:skew(-16deg);
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-stat-ticks i.filled {
+  background:#d9d3c8;
+  border-color:#e4dfd5;
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-resource {
+  margin:17px 0 23px;
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-resource:last-child {margin-bottom:7px}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-resource-heading {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:11px;
+  font:400 clamp(13px,1.35vw,18px)/1.3 var(--fh-narrative);
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-resource-label {color:#d8d3cb}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-resource-number {
+  color:#f4f0e8;
+  font:600 clamp(13px,1.45vw,20px)/1.2 var(--fh-ritual);
+  white-space:nowrap;
+  font-variant-numeric:tabular-nums;
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-resource-track {
+  height:12px;
+  overflow:hidden;
+  padding:2px;
+  border:1px solid rgba(231,226,216,.55);
+  background:#090a09;
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-resource-fill {
+  height:100%;
+  background:#b8b2a8;
+  transition:width .15s ease-out;
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-resource-pg .fh-resource-fill {background:#af9991}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-resource-sp .fh-resource-fill {background:#a8a9af}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-resource-pe .fh-resource-fill {background:#c3b49a}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-status-world {
+  margin-top:clamp(16px,2vw,28px);
+  padding-top:4px;
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-status-world-grid {
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:12px;
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-status-world-grid .fh-detail-card {
+  min-width:0;
+  margin:0;
+  padding:11px 13px;
+}
+
+/* Opciones: cada control actúa sobre el botón real del motor,
+   no se replican preferencias ni se crea otro sistema de ajustes. */
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-settings-intro {
+  max-width:740px;
+  margin:0 auto clamp(18px,2vw,30px);
+  text-align:center;
+  color:#c7c1b8;
+  font:400 clamp(14px,1.45vw,19px)/1.5 var(--fh-narrative);
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-settings-area,
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-settings-exit {
+  margin:0 0 clamp(17px,2.6vw,32px);
+  padding:clamp(13px,2vw,24px);
+  border:1px solid rgba(232,226,214,.28);
+  background:linear-gradient(135deg,rgba(255,255,255,.044),rgba(0,0,0,.18));
+  border-radius:0;
+  box-shadow:none;
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-setting-row {
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(155px,215px);
+  align-items:center;
+  gap:clamp(12px,2.7vw,40px);
+  padding:13px 0;
+  border-bottom:1px solid rgba(232,226,214,.15);
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-setting-row:last-child {border-bottom:0}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-setting-name {
+  margin:0;
+  color:#f0ece4;
+  font:600 clamp(13px,1.45vw,18px)/1.35 var(--fh-ritual);
+  letter-spacing:.055em;
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-setting-help {
+  margin:5px 0 0;
+  color:#bcb6ad;
+  font:400 clamp(13px,1.25vw,16px)/1.4 var(--fh-narrative);
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-setting-control,
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-setting-editor {
+  min-height:48px;
+  width:100%;
+  padding:8px 13px;
+  border:1px solid rgba(238,233,222,.6);
+  border-radius:0;
+  background:rgba(234,230,220,.08);
+  color:#f1ede5;
+  font:500 clamp(11px,1.16vw,15px)/1.35 var(--fh-ritual);
+  text-align:center;
+  letter-spacing:.03em;
+  box-shadow:none;
+  touch-action:manipulation;
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-setting-control:hover:not(:disabled),
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-setting-editor:hover:not(:disabled) {
+  border-color:#f4efe6;
+  background:rgba(234,230,220,.18);
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-setting-control:disabled {opacity:.45}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-settings-exit {
+  border-color:rgba(232,226,214,.15);
+  background:rgba(0,0,0,.13);
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-setting-editor {
+  max-width:260px;
+  margin-top:15px;
+  text-align:center;
+}
+@media(max-width:740px) and (orientation:portrait){
+  body.fh-player-menu-ready #fhPlayerMenuDetail .fh-status-grid {grid-template-columns:1fr}
+  body.fh-player-menu-ready #fhPlayerMenuDetail .fh-status-world-grid {grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:650px) {
+  body.fh-player-menu-ready #fhPlayerMenuDetail .fh-setting-row {
+    grid-template-columns:minmax(0,1fr) minmax(110px,38%);
+    gap:10px;
+  }
+  body.fh-player-menu-ready #fhPlayerMenuDetail .fh-stat-row {
+    grid-template-columns:minmax(100px,1fr) minmax(50px,1fr) 23px;
+    gap:7px;
+  }
+}
+@media(orientation:landscape) and (max-height:480px) {
+  body.fh-player-menu-ready #fhPlayerMenu[data-fh-section="status"] #fhPlayerMenuDetail,
+  body.fh-player-menu-ready #fhPlayerMenu[data-fh-section="settings"] #fhPlayerMenuDetail {
+    padding:0 4px 14px;
+  }
+  body.fh-player-menu-ready #fhPlayerMenuDetail .fh-status-identity {margin-bottom:10px;padding-bottom:8px}
+  body.fh-player-menu-ready #fhPlayerMenuDetail .fh-status-name {font-size:20px}
+  body.fh-player-menu-ready #fhPlayerMenuDetail .fh-status-grid {gap:12px;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr)}
+  body.fh-player-menu-ready #fhPlayerMenuDetail .fh-status-column {padding:9px 12px}
+  body.fh-player-menu-ready #fhPlayerMenuDetail .fh-status-column-heading {margin-bottom:8px;padding-bottom:6px;font-size:13px}
+  body.fh-player-menu-ready #fhPlayerMenuDetail .fh-stat-row {min-height:30px}
+  body.fh-player-menu-ready #fhPlayerMenuDetail .fh-stat-label {font-size:13px}
+  body.fh-player-menu-ready #fhPlayerMenuDetail .fh-stat-ticks i {height:9px}
+  body.fh-player-menu-ready #fhPlayerMenuDetail .fh-resource {margin:9px 0 14px}
+  body.fh-player-menu-ready #fhPlayerMenuDetail .fh-resource-heading {margin-bottom:6px}
+  body.fh-player-menu-ready #fhPlayerMenuDetail .fh-status-world {margin-top:12px}
+  body.fh-player-menu-ready #fhPlayerMenuDetail .fh-setting-row {padding:8px 0}
+  body.fh-player-menu-ready #fhPlayerMenuDetail .fh-settings-area,
+  body.fh-player-menu-ready #fhPlayerMenuDetail .fh-settings-exit {padding:10px 13px;margin-bottom:12px}
+}
+@media(prefers-reduced-motion:reduce) {
+  body.fh-player-menu-ready #fhPlayerMenuDetail .fh-resource-fill {transition:none}
+}
