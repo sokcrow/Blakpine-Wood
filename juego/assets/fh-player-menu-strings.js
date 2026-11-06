@@ -29,6 +29,16 @@
     missingControl: 'Esta acción no está disponible.',
     closeLabel: 'Cerrar',
     navHelp: 'Selecciona una sección.',
-    locationLabel: 'UBICACIÓN'
+    locationLabel: 'UBICACIÓN',
+    categoryLabel: 'Categorías del inventario',
+    categoryAll: 'Todos los objetos',
+    categoryKeys: 'Llaves',
+    categoryNotes: 'Documentos y notas',
+    categoryOther: 'Energía, herramientas y otros',
+    emptyCategory: 'No llevas objetos de esta categoría.',
+    inventoryEmpty: 'La mochila está vacía.',
+    chooseItemHint: 'Toca un objeto para ver su descripción, cantidad y acciones disponibles.',
+    backToGame: '‹ Atrás',
+    closeInventory: 'Cerrar inventario y volver al juego'
   });
 })(typeof window !== 'undefined' ? window : globalThis);
