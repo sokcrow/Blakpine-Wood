@@ -13,7 +13,7 @@ on:
       - .github/workflows/architecture-kit.yml
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   verify:
@@ -43,8 +43,34 @@ jobs:
         run: |
           test ! -f forest-horror/biblioteca/arquitectura/modelos_glb/puerta_cristal_doble.glb
           test ! -f forest-horror/biblioteca/arquitectura/modelos_glb/puerta_comercial_panel_lateral.glb
-      - name: Publicar recursos verificados solamente en la rama del hotfix
-        if: github.event_name == 'push'
+      - name: La rama debe contener los recursos reproducibles
+        if: github.event_name == 'pull_request'
+        run: |
+          git diff --exit-code -- forest-horror/biblioteca/arquitectura/modelos_glb/ forest-horror/biblioteca/arquitectura/texturas/ forest-horror/biblioteca/arquitectura/miniaturas/
+
+  publish:
+    needs: verify
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Reconstruir activos verificados para el commit
+        run: |
+          python -m pip install --disable-pip-version-check numpy==2.3.5 Pillow==12.3.0 trimesh==4.11.1
+          python forest-horror/biblioteca/arquitectura/generar_kit.py
+          python forest-horror/biblioteca/arquitectura/generar_kit_cristal.py
+          python forest-horror/biblioteca/arquitectura/generar_miniaturas.py
+          python forest-horror/biblioteca/arquitectura/generar_miniaturas_cristal.py
+          cd forest-horror/biblioteca/arquitectura
+          sha256sum --check hotfix_perillas.sha256
+      - name: Publicar los GLB y atlas en esta rama solamente
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
@@ -53,7 +79,3 @@ jobs:
             git commit -m 'build(architecture): actualizar GLB y texturas verificadas del hotfix'
             git push origin "HEAD:$GITHUB_REF_NAME"
           fi
-      - name: La rama debe contener los recursos reproducibles
-        if: github.event_name == 'pull_request'
-        run: |
-          git diff --exit-code -- forest-horror/biblioteca/arquitectura/modelos_glb/ forest-horror/biblioteca/arquitectura/texturas/ forest-horror/biblioteca/arquitectura/miniaturas/

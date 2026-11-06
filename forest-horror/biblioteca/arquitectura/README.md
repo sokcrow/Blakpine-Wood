@@ -1,33 +1,48 @@
-# Forest Horror — Kit 01 · Puertas y ventanas
+# Forest Horror — Arquitectura 01+02 · Hotfix de puertas y perillas
 
-Recursos importados de `Forest_Horror_Kit_01_Puertas_y_Ventanas.zip`.
+El kit contiene **ocho modelos GLB estructurales de una casilla**: seis puertas individuales y dos ventanas. Se mantienen las medidas del mapa (5 pies por casilla; GLB en metros), el esquema `forest-horror-map-v1` y la carga con `GLTFLoader` local.
 
-## Estructura
+## Catálogo
 
-- `modelos_glb/`: cinco modelos estructurales en metros (1 casilla = 1.524 m).
-- `texturas/`: cinco atlas pixel art con filtrado NEAREST.
-- `miniaturas/`: vistas de catálogo de los cinco modelos.
-- `catalogo_arquitectura.json`: catálogo separado del mobiliario.
-- `kit_01.sha256`: huellas exactas de los quince recursos del ZIP.
-- `generar_kit.py`, `generar_miniaturas.py`: generadores reproducibles del paquete.
+| Modelo | Uso |
+|---|---|
+| `puerta_madera.glb` | Puerta opaca de madera |
+| `puerta_metal.glb` | Puerta opaca metálica |
+| `puerta_mirilla.glb` | Puerta con mirilla |
+| `puerta_cristal_simple.glb` | Cristal sencillo |
+| `puerta_cristal_antipanico.glb` | Cristal con barra antipánico |
+| `puerta_cristal_tintada.glb` | Cristal tintado |
+| `ventana_clasica.glb` | Ventana clásica |
+| `ventana_dividida.glb` | Ventana dividida |
 
-## Uso dentro de Blakpine Wood
+Las tres puertas opacas tienen perillas y placas físicas simétricas en frente/dorso, sin una perilla pintada que aparezca invertida. El marco es `MARCO_FIJO` y la hoja usa `HOJA_PIVOTE`.
 
-El editor continúa creando segmentos `type:'door'`, `type:'peephole_door'` y `type:'window'`, sin muebles ficticios. `juego/assets/fh-architecture-skins.js` sustituye únicamente el aspecto 3D:
+## Puertas dobles: dos puertas individuales, ningún GLB doble
 
-- Puerta sencilla de madera → `puerta_madera.glb`.
-- Puerta sencilla metálica → `puerta_metal.glb`.
-- Puerta con mirilla → `puerta_mirilla.glb`.
-- Ventana → `ventana_clasica.glb` o `ventana_dividida.glb`.
+Una puerta doble ocupa dos casillas. El motor crea **dos grupos de bisagra**, ambos con el mismo estado de apertura, cerradura y colisión. El adaptador visual instancia **dos copias del mismo GLB de puerta sencilla**:
 
-La selección de ventana se guarda en el campo opcional `windowSkin`; ausencia o valor desconocido utiliza `clasica`. Los mapas anteriores siguen siendo `forest-horror-map-v1`.
+- Primera hoja en la posición y orientación del motor.
+- Segunda hoja en el extremo opuesto, con **+180° en su orientación base**.
+- Apertura hacia el **mismo lado del muro**: el ángulo de la segunda hoja se aplica con signo inverso.
+- Cada hoja y marco se coloca por separado; no se crea ni registra un modelo doble.
 
-Las puertas dobles, las puertas de garaje y las acristaladas conservan su aspecto anterior por ahora. El ángulo de apertura actual no se modifica en esta tarea. Los eventos, la interacción de mirilla, las llaves, las colisiones, el FOW y la iluminación siguen dependiendo del motor.
+El ajuste de giro se aplica en `patchEngineDoc` al documento HTML generado para la vista 3D. No se reescriben los archivos `engine-00.js` a `engine-12.js`.
 
-Si GLTFLoader o un GLB no se carga, el aspecto original se conserva. Para servir los archivos, se recomienda ejecutar el editor desde un servidor HTTP local.
+## Opciones del editor y compatibilidad
 
-## Pruebas
+Las puertas de cristal o escaparate admiten el campo opcional `architectureSkin` con las tres variantes; sin selección, usan cristal sencillo. Las ventanas conservan `windowSkin` opcional, con valor por defecto `clasica`.
 
-`node --test juego/assets/*.test.js`
+El motor original conserva llaves, mirilla, colisiones, visibilidad/FOW, luz, guardado y estados de puerta. Si un GLB falla al cargar, se mantiene el aspecto provisional y se informa el error.
 
-La automatización de GitHub reconstruye los binarios con las versiones fijadas de NumPy, Pillow y trimesh, comprueba los quince SHA-256 del ZIP y ejecuta la suite del motor. La inspección visual en un navegador WebGL y FPS en móvil se deben validar manualmente.
+## Recursos y verificación
+
+- `modelos_glb/`: ocho modelos.
+- `texturas/`: atlas PNG de 128 × 128 con filtrado NEAREST.
+- `miniaturas/`: ocho imágenes de catálogo.
+- `catalogo_arquitectura.json`: metadatos; ninguna entrada representa una puerta doble.
+- `hotfix_perillas.sha256`: 18 archivos del ZIP con huellas SHA-256 exactas.
+- `generar_kit.py`, `generar_kit_cristal.py` y generadores de miniaturas: reproducción del kit.
+
+Pruebas de Node: `node --test juego/assets/*.test.js`. GitHub Actions reconstruye con dependencias fijadas, verifica los hashes y publica los activos en la rama del hotfix.
+
+La inspección visual dentro de una partida WebGL real y el rendimiento móvil siguen requiriendo una comprobación manual.
