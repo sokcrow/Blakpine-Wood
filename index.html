@@ -2843,6 +2843,11 @@ function fhDeliveryNpcTick(dt){
  if(m.t>=1){fhDeliveryNpcMotion=null;if(m.finalPose)fhSetDeliveryNpcPose(m.finalPose);}
 }
 function fhHideDeliveryNpc(){fhDisposeDeliveryNpc();fhDeliveryNpcMotion=null;visibilityDirty=true}
+function fhDeliveryPeekPose(active,door){
+ if(!door||!fhDeliveryNpc||!window.FHDeliveryRuntime?.visitorEvent(door))return;
+ const pose=active?'peephole_front':'idle';fhSetDeliveryNpcPose(pose);
+ if(fhDeliveryNpcMotion)fhDeliveryNpcMotion.finalPose=pose;
+}
 function fhDeliveryNpcSight(at,opaque,params){
  if(!fhDeliveryNpc)return;
  const sameFloor=fhDeliveryNpc.parent===stories[currentFloor];
@@ -2999,9 +3004,9 @@ window.FHVisitorRuntime=window.FHVisitor?.createRuntime({
   const doorBefore=" notice(d.open?'Abres la puerta.':'Cierras la puerta.',1800);\n}";
   const doorAfter=" notice(d.open?'Abres la puerta.':'Cierras la puerta.',1800);\n if(d.open&&isInsideDoor(d))window.FHDeliveryRuntime?.onDoorOpened(d);\n}";
   const peekBefore=" $('peekText').textContent='◉ MIRILLA · Ves el pasillo, sin abrir la puerta · toca para salir';visibilityDirty=true;";
-  const peekAfter=" $('peekText').textContent='◉ MIRILLA · Ves el pasillo, sin abrir la puerta · toca para salir';visibilityDirty=true;\n window.FHDeliveryRuntime?.onPeephole(d);";
+  const peekAfter=" $('peekText').textContent='◉ MIRILLA · Ves el pasillo, sin abrir la puerta · toca para salir';visibilityDirty=true;\n window.FHDeliveryRuntime?.onPeephole(d);fhDeliveryPeekPose(true,d);";
   const peekExitBefore="function stopPeek(){peeking=false;peekDoor=null;$('peekOverlay').classList.remove('active');document.body.classList.remove('peeking');visibilityDirty=true}";
-  const peekExitAfter="function stopPeek(){window.FHDeliveryRuntime?.onPeepholeExit();peeking=false;peekDoor=null;$('peekOverlay').classList.remove('active');document.body.classList.remove('peeking');visibilityDirty=true}";
+  const peekExitAfter="function stopPeek(){fhDeliveryPeekPose(false,peekDoor);window.FHDeliveryRuntime?.onPeepholeExit();peeking=false;peekDoor=null;$('peekOverlay').classList.remove('active');document.body.classList.remove('peeking');visibilityDirty=true}";
   const frameBefore=" moveUpdate(dt);";
   const frameAfter=" window.FHDeliveryRuntime?.update(dt);fhDecorationTick();if(!fhDeliveryUiActive&&!fhVisitorUiActive&&!fhDecorationActive)moveUpdate(dt);else{user.vx=user.vz=0;}fhDeliveryNpcTick(dt);";
   const apiBefore="get watchingTV(){return watchingTvId},watchTV:useTVFromSeat,breakers:";
