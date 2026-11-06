@@ -40,7 +40,7 @@ test('El contorno no incluye bordes internos de los tramos unidos',()=>{
  const edges=Z.boundarySegments(project.locationZones[0]);
  assert(edges.length>=8);
  const onJoinedSeam=edges.some(e=>Math.abs(e.a.x-2)<1e-6&&Math.abs(e.b.x-2)<1e-6&&
-  e.a.y>=5&&e.b.y<=7);
+  Math.min(e.a.y,e.b.y)<7-1e-6&&Math.max(e.a.y,e.b.y)>5+1e-6);
  assert.equal(onJoinedSeam,false);
 });
 test('Zona de distinto color no puede solaparse con la T',()=>{
@@ -136,5 +136,40 @@ test('Recoloración sigue rechazando superposición geométrica verdadera',()=>{
  const world={floors,locationZones:[tri,inside]};
  const edited=Z.recolorLocation(world,inside,{kind:'exterior',color:'#AABBCC',name:'Otro'});
  assert.equal(edited.ok,false);
+});
+test('Zona triangular importada conserva diagonal en el contorno',()=>{
+ const triangle={polygon:[{x:0,y:0},{x:4,y:0},{x:0,y:4}]};
+ const edges=Z.boundarySegments(triangle);
+ assert.equal(edges.length,3);
+ const diagonal=edges.some(({a,b})=>
+  (Math.abs(a.x-4)<1e-6&&Math.abs(a.y)<1e-6&&Math.abs(b.x)<1e-6&&Math.abs(b.y-4)<1e-6)||
+  (Math.abs(b.x-4)<1e-6&&Math.abs(b.y)<1e-6&&Math.abs(a.x)<1e-6&&Math.abs(a.y-4)<1e-6));
+ assert.equal(diagonal,true);
+ assert.equal(edges.some(e=>e.a.x===4&&e.b.x===4),false);
+ assert.equal(edges.some(e=>e.a.y===4&&e.b.y===4),false);
+});
+test('Polígono irregular importado mantiene sus aristas inclinadas',()=>{
+ const poly={polygon:[{x:0,y:0},{x:5,y:0},{x:5,y:2},{x:3,y:4},{x:0,y:4}]};
+ const edges=Z.boundarySegments(poly);
+ assert.equal(edges.length,5);
+ assert.equal(edges.some(e=>
+  (e.a.x===5&&e.a.y===2&&e.b.x===3&&e.b.y===4)||
+  (e.b.x===5&&e.b.y===2&&e.a.x===3&&e.a.y===4)),true);
+});
+test('Dos rectángulos compartiendo borde no generan costuras interiores',()=>{
+ const zone={polygons:[Z.polygon({x:0,y:0,w:2,h:2}),Z.polygon({x:2,y:0,w:3,h:2})]};
+ const edges=Z.boundarySegments(zone);
+ const seam=edges.some(({a,b})=>Math.abs(a.x-2)<1e-6&&Math.abs(b.x-2)<1e-6);
+ assert.equal(seam,false);
+});
+test('Dos triángulos importados con lado diagonal compartido eliminan la costura',()=>{
+ const zone={polygons:[
+  [{x:0,y:0},{x:4,y:0},{x:0,y:4}],
+  [{x:4,y:0},{x:4,y:4},{x:0,y:4}]
+ ]};
+ const edges=Z.boundarySegments(zone);
+ assert.equal(edges.some(e=>Math.abs(e.a.x+e.a.y-4)<1e-6&&
+  Math.abs(e.b.x+e.b.y-4)<1e-6&&
+  Math.hypot(e.a.x-e.b.x,e.a.y-e.b.y)>1),false);
 });
 console.log(passed+' pruebas correctas');
