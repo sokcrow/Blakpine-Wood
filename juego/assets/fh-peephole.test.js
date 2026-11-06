@@ -28,6 +28,7 @@ function node(tag){
   this.html=html;
   if(this.id==='fhDeliveryDialog')this.parts={
    '#fhDeliveryPortrait':node('div'),
+   '#fhDeliveryName':node('div'),
    '#fhDeliveryText':node('div'),
    '#fhDeliveryActions':node('div')
   };

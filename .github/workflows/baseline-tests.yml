@@ -1,0 +1,22 @@
+name: Verificación de pruebas del motor
+
+on:
+  pull_request:
+    paths:
+      - 'juego/assets/fh-peephole.test.js'
+      - 'juego/assets/fh-preview-boot.test.js'
+      - '.github/workflows/baseline-tests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Pruebas del motor y editor
+        run: node --test juego/assets/*.test.js
