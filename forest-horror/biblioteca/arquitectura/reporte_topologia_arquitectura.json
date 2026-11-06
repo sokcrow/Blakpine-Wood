@@ -1,0 +1,64 @@
+{
+  "glb": [
+    {
+      "id": "puerta_madera",
+      "tipo": "door",
+      "triangulos": 60,
+      "mallas": 2,
+      "materiales": 1,
+      "nodos": [
+        "HOJA_PIVOTE",
+        "MARCO_FIJO"
+      ],
+      "bytes": 6484
+    },
+    {
+      "id": "puerta_metal",
+      "tipo": "door",
+      "triangulos": 60,
+      "mallas": 2,
+      "materiales": 1,
+      "nodos": [
+        "HOJA_PIVOTE",
+        "MARCO_FIJO"
+      ],
+      "bytes": 6488
+    },
+    {
+      "id": "puerta_mirilla",
+      "tipo": "door",
+      "triangulos": 60,
+      "mallas": 2,
+      "materiales": 1,
+      "nodos": [
+        "HOJA_PIVOTE",
+        "MARCO_FIJO"
+      ],
+      "bytes": 6584
+    },
+    {
+      "id": "ventana_clasica",
+      "tipo": "window",
+      "triangulos": 50,
+      "mallas": 2,
+      "materiales": 2,
+      "nodos": [
+        "VIDRIO",
+        "MARCO_FIJO"
+      ],
+      "bytes": 5704
+    },
+    {
+      "id": "ventana_dividida",
+      "tipo": "window",
+      "triangulos": 74,
+      "mallas": 2,
+      "materiales": 2,
+      "nodos": [
+        "VIDRIO",
+        "MARCO_FIJO"
+      ],
+      "bytes": 6992
+    }
+  ]
+}
