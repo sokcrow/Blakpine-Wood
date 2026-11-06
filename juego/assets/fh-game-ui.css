@@ -188,6 +188,57 @@ body.fh-player-menu-ready #inventoryPrimaryAction {
   background:#31312c!important;
 }
 
+/* Inventario original: selección táctil y lectura en celular horizontal.
+   Los botones y sus handlers siguen siendo los del motor Base64. */
+body.fh-player-menu-ready #inventoryPanel .inventorySlot {
+  cursor:pointer;
+  touch-action:manipulation;
+}
+body.fh-player-menu-ready #inventoryPanel #inventoryDescription,
+body.fh-player-menu-ready #inventoryPanel #inventoryStatus {
+  overflow-wrap:anywhere;
+}
+@media (orientation:landscape) and (max-height:480px) {
+  body.fh-player-menu-ready #inventoryPanel.open {
+    max-height:94dvh!important;
+    padding:8px 12px calc(10px + env(safe-area-inset-bottom,0px))!important;
+    overflow-y:auto!important;
+    touch-action:pan-y;
+  }
+  body.fh-player-menu-ready #inventoryPanel #inventoryHead {min-height:44px;}
+  body.fh-player-menu-ready #inventoryPanel #inventorySlots {
+    grid-template-columns:repeat(8,minmax(0,1fr))!important;
+    gap:clamp(3px,.7vw,8px);
+    margin:7px 0;
+  }
+  body.fh-player-menu-ready #inventoryPanel .inventorySlot {
+    min-width:0;
+    min-height:44px;
+  }
+  body.fh-player-menu-ready #inventoryPanel #inventorySelected {
+    grid-template-columns:minmax(80px,108px) minmax(0,1fr)!important;
+    gap:10px;
+    padding:10px;
+    margin-top:8px;
+  }
+  body.fh-player-menu-ready #inventoryPanel #inventoryPreviewWrap {
+    width:100%!important;
+    min-width:0!important;
+    height:96px!important;
+  }
+  body.fh-player-menu-ready #inventoryPanel #inventoryDescription {
+    min-height:0;
+    line-height:1.4;
+  }
+  body.fh-player-menu-ready #inventoryPanel #inventoryActions {
+    gap:6px;
+    margin-top:7px;
+  }
+  body.fh-player-menu-ready #inventoryPanel #inventoryActions button {
+    min-height:44px;
+  }
+}
+
 /* Narración y conversación: composición común sin alterar el typewriter. */
 body.fh-player-menu-ready #fhLiveDialog .fh-panel,
 body.fh-player-menu-ready #fhDeliveryDialog #fhDeliveryCard {
