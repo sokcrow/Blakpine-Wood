@@ -30,4 +30,6 @@ jobs:
         with:
           node-version: '22'
       - name: Comprobar marco y ubicación
-        run: node --test juego/assets/fh-hud-frame.test.js juego/assets/fh-game-ui.test.js juego/assets/fh-location-hud.test.js
+        run: |
+          node juego/assets/fh-player-menu.js
+          node --test juego/assets/fh-player-menu.test.js juego/assets/fh-hud-frame.test.js juego/assets/fh-game-ui.test.js juego/assets/fh-location-hud.test.js
