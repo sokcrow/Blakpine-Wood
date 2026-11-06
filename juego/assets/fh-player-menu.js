@@ -36,12 +36,39 @@
     const target = el(id);
     return target && !target.disabled && !target.hidden ? target : null;
   }
+  // Adaptador: utiliza el onclick real del motor, incluso si el toggle
+  // legacy se oculta solo con display:none.
+  function clickOriginalControl(target, beforeClick) {
+    if (!target || target.hidden || target.disabled) return false;
+    if (beforeClick) beforeClick();
+    target.click();
+    return true;
+  }
   function pressReal(id, leaveMenu = false) {
     const target = available(id);
     if (!target) { detail.append(node('p', '', label('missingControl'))); return; }
-    if (leaveMenu) closeMenu();
-    target.click();
+    const inventory = id === 'inventoryToggle';
+    clickOriginalControl(target, leaveMenu ? () => closeMenu(!inventory) : null);
+    if (inventory && leaveMenu) {
+      // El motor conserva toda la apertura/selección/cierre del panel.
+      if (el('inventoryPanel')?.classList.contains('open')) el('inventoryClose')?.focus();
+      else toggle?.focus();
+    }
     if (!leaveMenu && current) renderDetail(current);
+  }
+  function observeInventoryFocus() {
+    const inventory = el('inventoryPanel');
+    if (!inventory || typeof global.MutationObserver !== 'function') return;
+    let wasOpen = inventory.classList.contains('open');
+    const sync = () => {
+      const nowOpen = inventory.classList.contains('open');
+      if (wasOpen && !nowOpen && !el('noteOverlay')?.classList.contains('open'))
+        toggle?.focus();
+      wasOpen = nowOpen;
+    };
+    new global.MutationObserver(sync).observe(inventory, {
+      attributes:true, attributeFilter:['class', 'aria-hidden']
+    });
   }
   function appendLocation(host) {
     host.append(card(label('floor'), textOf('floorLabel')));
@@ -103,14 +130,14 @@
     scroll.scrollTop = 0;
     navigation.querySelector('button')?.focus();
   }
-  function closeMenu() {
+  function closeMenu(restoreFocus = true) {
     if (!open) return;
     open = false;current = null;
     layer.hidden = true;
     global.document.body.classList.remove('fh-player-menu-open');
     toggle.setAttribute('aria-expanded', 'false');
     toggle.setAttribute('aria-label', label('open'));
-    (previousFocus?.isConnected ? previousFocus : toggle).focus();
+    if (restoreFocus) (previousFocus?.isConnected ? previousFocus : toggle).focus();
   }
   function hasModal() {
     return Boolean(
@@ -197,6 +224,7 @@
     global.addEventListener('keydown',onKeydown,true);
     global.addEventListener('blur',()=>{if(open)closeMenu()});
     global.document.body.classList.add('fh-player-menu-ready');
+    observeInventoryFocus();
     if (global.parent !== global) global.parent.postMessage({type:'FOREST_PLAYER_MENU_READY'},'*');
     return true;
   }
@@ -207,6 +235,32 @@
     init
   });
   global.FHPlayerMenu=api;
+  // Permite probar el adaptador desde Node sin añadir archivos al motor.
+  if (typeof module === 'object' && module.exports)
+    module.exports = Object.freeze({clickOriginalControl});
   if (global.document?.readyState==='loading') global.document.addEventListener('DOMContentLoaded',init,{once:true});
   else init();
 })(typeof window!=='undefined'?window:globalThis);
+
+/* Prueba de regresión dentro del módulo autorizado:
+   node --test juego/assets/fh-player-menu.js */
+if (typeof module === 'object' && module.exports &&
+    typeof require === 'function' && require.main === module) {
+  const test = require('node:test');
+  const assert = require('node:assert/strict');
+  const {clickOriginalControl} = module.exports;
+  test('Abrir inventario cierra el menú y llama click() al toggle legacy real', () => {
+    const calls = [];
+    const inventoryToggle = {
+      hidden:false, disabled:false,
+      click(){calls.push('onclick original: inventoryToggle');}
+    };
+    assert.equal(clickOriginalControl(inventoryToggle, () => calls.push('cerrar menú')), true);
+    assert.deepEqual(calls, ['cerrar menú','onclick original: inventoryToggle']);
+    inventoryToggle.hidden=true;
+    assert.equal(clickOriginalControl(inventoryToggle, () => calls.push('no ejecutar')), false);
+    inventoryToggle.hidden=false;inventoryToggle.disabled=true;
+    assert.equal(clickOriginalControl(inventoryToggle),false);
+    assert.equal(calls.length,2);
+  });
+}
