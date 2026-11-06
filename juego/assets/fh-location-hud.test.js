@@ -79,4 +79,53 @@ test('Rechazar zonas exteriores solapadas, permitir otras categorías',()=>{
  const common=Z.createLocation(map,'p1',{x:12,y:2},{x:13,y:3},22,22,'other','common');
  assert.equal(common.ok,true);
 });
+test('Área Estacionamiento sin zona extra muestra EXTERIOR / ESTACIONAMIENTO',()=>{
+ const m={title:'Complejo',floors:[{id:'f1',elevationFt:0,items:[
+  {type:'parking',label:'Estacionamiento',x:1,y:1,w:8,h:6}]}]};
+ const r=H.resolve(m,0,{x:2,y:2},P);
+ assert.deepEqual([r.kind,r.floorCode,r.primary,r.secondary],
+  ['exterior','','EXTERIOR','Estacionamiento']);
+});
+test('Zona exterior explícita tiene prioridad sobre contorno de edificio',()=>{
+ const m=JSON.parse(JSON.stringify(map));
+ m.locationZones.push({id:'park',floorId:'p2',kind:'exterior',
+  name:'Estacionamiento',polygon:poly(5,5,3,2)});
+ const r=H.resolve(m,3,{x:6,y:6},P);
+ assert.deepEqual([r.kind,r.floorCode,r.primary,r.secondary],
+  ['exterior','','EXTERIOR','Estacionamiento']);
+});
+test('Zona exterior explícita tiene prioridad sobre zona común solapada',()=>{
+ const m=JSON.parse(JSON.stringify(map));
+ m.locationZones.push({id:'park',floorId:'p2',kind:'exterior',
+  name:'Patio Norte',polygon:poly(5,5,3,2)});
+ const r=H.resolve(m,3,{x:6,y:6},P);
+ assert.equal(r.kind,'exterior');assert.equal(r.secondary,'Patio Norte');
+});
+test('Una propiedad tiene prioridad sobre zona exterior accidentalmente solapada',()=>{
+ const m=JSON.parse(JSON.stringify(map));
+ m.locationZones.push({id:'park',floorId:'p2',kind:'exterior',
+  name:'Patio Norte',polygon:poly(1,1,3,3)});
+ const r=H.resolve(m,3,{x:2,y:2},P);
+ assert.equal(r.kind,'property');assert.equal(r.primary,'Departamento 203');
+});
+test('Estacionamiento sobre un área Exterior genérica usa nombre del estacionamiento',()=>{
+ const m={title:'Complejo',floors:[{id:'f1',elevationFt:0,items:[
+  {type:'outside',label:'Exterior',x:0,y:0,w:10,h:10},
+  {type:'parking',label:'Estacionamiento',x:1,y:1,w:6,h:6}]}]};
+ const r=H.resolve(m,0,{x:2,y:2},P);
+ assert.deepEqual([r.primary,r.secondary],['EXTERIOR','Estacionamiento']);
+});
+test('La superficie Pasto se ignora por defecto pero acepta un nombre del DM',()=>{
+ const m={title:'Complejo',floors:[{id:'f1',elevationFt:0,items:[
+  {type:'grass',label:'Pasto',x:0,y:0,w:7,h:7}]}]};
+ assert.equal(H.resolve(m,0,{x:2,y:2},P).secondary,'');
+ m.floors[0].items[0].label='Jardines';
+ assert.equal(H.resolve(m,0,{x:2,y:2},P).secondary,'Jardines');
+});
+test('Estacionamiento dentro de un edificio sigue indicando planta',()=>{
+ const m={title:'Hospital',floors:[{id:'f1',elevationFt:0,items:[
+  ...redBox(),{type:'parking',label:'Estacionamiento',x:1,y:1,w:6,h:6}]}]};
+ const r=H.resolve(m,0,{x:2,y:2},P);
+ assert.equal(r.kind,'building');assert.equal(r.floorCode,'F1');
+});
 console.log(passed+' pruebas correctas');
