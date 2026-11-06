@@ -44,7 +44,20 @@
   const areas=(floor.items||[]).filter(it=>inArea(point,it));
   const find=(types)=>areas.find(it=>types.includes(it.type));
   const room=find(['room']),hall=find(['hall']),buildingArea=find(['building']);
-  const outsideArea=find(['outside']); // Los materiales de suelo no son nombres de zonas.
+  // Los tipos "parking" y "outside" sí son áreas de ubicación para el HUD;
+  // el asfalto/pasto solamente se muestra si el DM le dio un nombre distinto del material.
+  const outsideArea=find(['outside']);
+  const parkingArea=find(['parking']);
+  const materialDefaults={
+   pavement:'Banqueta / piso',asphalt:'Asfalto',alley:'Callejón manchado',
+   sidewalk:'Banqueta',concrete:'Concreto',gravel:'Grava',cobblestone:'Adoquín',
+   grass:'Pasto',dirt:'Tierra'
+  };
+  const namedSurface=areas.find(it=>Object.hasOwn(materialDefaults,it.type)&&
+   label(it.label)&&label(it.label)!==materialDefaults[it.type]);
+  const outdoorName=()=>label(parkingArea?.label)|| (parkingArea?'ESTACIONAMIENTO':'')||
+   (label(outsideArea?.label).toUpperCase()==='EXTERIOR'?'':label(outsideArea?.label))||
+   label(namedSurface?.label);
   const regions=(map.locationZones||[]).filter(z=>z.floorId===floorId&&inPolygon(point,z.polygon));
   const common=regions.find(z=>z.kind==='common');
   const exterior=regions.find(z=>z.kind==='exterior');
@@ -53,6 +66,13 @@
     primary:label(property.name)||text('property','PROPIEDAD'),
     secondary:label(room?.label)};
   }
+  // Una zona que el DM marca explícitamente como exterior debe ganar a las
+  // áreas de edificio o pasillo que puedan quedar solapadas visualmente.
+  if(exterior){
+   const ownName=label(exterior.name);
+   return {kind:'exterior',floorCode:'',primary:text('exterior','EXTERIOR'),
+    secondary:ownName.toUpperCase()==='EXTERIOR'?outdoorName():ownName||outdoorName()};
+  }
   if(building||common||buildingArea||hall||room){
    return {kind:'building',floorCode:codeForFloor(map.floors,floorIndex),
     primary:label(map.buildingNames?.[building?.id])||label(buildingArea?.label)||
@@ -60,7 +80,7 @@
     secondary:label(common?.name)||label(hall?.label)||label(room?.label)};
   }
   return {kind:'exterior',floorCode:'',primary:text('exterior','EXTERIOR'),
-   secondary:label(exterior?.name)||label(outsideArea?.label)};
+   secondary:outdoorName()};
  }
  let host=null,code=null,first=null,second=null,last='';
  function ensure(){
