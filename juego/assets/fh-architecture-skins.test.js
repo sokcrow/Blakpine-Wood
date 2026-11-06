@@ -88,7 +88,7 @@ test('el hook valida anclas y preserva el comportamiento original del motor',()=
 test('editor carga el adaptador, permite escoger marco y conserva fallback 3D',()=>{
  assert.match(index,/fh-architecture-skins\.js\?v=20261106-hotfix1/);
  assert.match(index,/Marco de ventana','windowSkin'/);
- assert.match(index,/FHArchitectureSkins\?\.patchEngineDoc\(fhEngineDoc\)/);
+ assert.match(index,/window\.FHArchitectureSkins\.patchEngineDoc\(fhEngineDoc\)/);
  assert.match(index,/play3DFrame\.srcdoc=fhEngineDoc/);
 });
 
