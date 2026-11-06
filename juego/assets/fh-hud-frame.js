@@ -92,7 +92,9 @@
       }
     }
     if(entry.svg.parentNode!==node)node.insertBefore(entry.svg,node.firstChild);
-    if(node.classList?.add)node.classList.add('fh-hud-framed');
+    // No reescribir la clase en cada MutationObserver: evita un ciclo de atributos.
+    if(node.classList?.add && !node.classList.contains?.('fh-hud-framed'))
+      node.classList.add('fh-hud-framed');
     entry.render();
     return true;
   }
