@@ -154,7 +154,7 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
 <script src="./juego/assets/engine-11.js"></script>
 <script src="./juego/assets/engine-12.js"></script>
 <script src="./juego/assets/fh-style-property.js"></script>
-<script src="./juego/assets/fh-property-zones.js?v=20261106-location"></script>
+<script src="./juego/assets/fh-property-zones.js?v=20261106-zonas-color"></script>
 <script src="./juego/assets/fh-style-renderer.js"></script>
 <script src="./juego/assets/fh-style-strings.js"></script>
 <script src="./juego/assets/fh-style-editor.js"></script>
@@ -1488,8 +1488,13 @@ function validate(project){
    if(typeof z.floorId!=='string'||!project.floors.some(f=>f.id===z.floorId))err(p+'.floorId','piso inexistente');
    if(!['common','exterior'].includes(z.kind))err(p+'.kind','tipo inválido');
    if(typeof z.name!=='string'||z.name.length>80)err(p+'.name','nombre inválido (máximo 80 caracteres)');
-   if(!Array.isArray(z.polygon)||z.polygon.length<3||z.polygon.length>32||
-      z.polygon.some(q=>!q||!Number.isFinite(q.x)||!Number.isFinite(q.y)))err(p+'.polygon','polígono inválido');
+   const validPolygon=poly=>Array.isArray(poly)&&poly.length>=3&&poly.length<=32&&
+     poly.every(q=>q&&Number.isFinite(q.x)&&Number.isFinite(q.y));
+   if(!validPolygon(z.polygon))err(p+'.polygon','polígono inválido');
+   if(z.color!==undefined&&!/^#[0-9a-fA-F]{6}$/.test(z.color))err(p+'.color','color debe ser #RRGGBB');
+   if(z.polygons!==undefined&&(!Array.isArray(z.polygons)||z.polygons.length<1||
+      z.polygons.length>128||z.polygons.some(poly=>!validPolygon(poly))))
+     err(p+'.polygons','los tramos deben ser de 1 a 128 polígonos válidos');
   });
  }
  return {ok:errors.length===0,errors};
@@ -2836,7 +2841,7 @@ function prepareGLBEngineDoc(source){
  const playerMenuScript='<script src="'+new URL('./juego/assets/fh-player-menu.js?v=20261106-player-ui',document.baseURI).href+'"></'+'script>';
  const locationCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-location-hud.css?v=20261106-hud-left-code',document.baseURI).href+'">';
  const locationStrings='<script src="'+new URL('./juego/assets/fh-location-strings.js?v=20261106-location',document.baseURI).href+'"></'+'script>';
- const locationScript='<script src="'+new URL('./juego/assets/fh-location-hud.js?v=20261106-exterior-parking',document.baseURI).href+'"></'+'script>';
+ const locationScript='<script src="'+new URL('./juego/assets/fh-location-hud.js?v=20261106-zonas-color',document.baseURI).href+'"></'+'script>';
  const locationHudHook='if(now-lastHud>90){lastHud=now;hudUpdate()}';
  const locationHudAfter='if(now-lastHud>90){lastHud=now;hudUpdate();window.FHLocationHUD?.update(DATA,currentFloor,{x:user.x/CELL,y:user.z/CELL})}';
  if(source.split(locationHudHook).length!==2)throw Error('El HUD original cambió: actualiza el adaptador de ubicación.');
@@ -3204,7 +3209,7 @@ init();
 <script src="./juego/assets/fh-furniture-rules.js"></script>
 <script src="./juego/assets/fh-editor-catalog.js"></script>
 <script src="./juego/assets/fh-surface-editor.js"></script>
-<script src="./juego/assets/fh-property-editor.js?v=20261106-location"></script>
+<script src="./juego/assets/fh-property-editor.js?v=20261106-zonas-color"></script>
 <script src="./juego/assets/fh-architecture-strings.js"></script>
 <script src="./juego/assets/fh-architecture-skins.js?v=20261106-hotfix3"></script>
 <script src="./juego/assets/fh-architecture-editor-catalog.js?v=20261105-visual-models"></script>
