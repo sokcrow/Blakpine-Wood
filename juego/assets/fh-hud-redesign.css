@@ -20,13 +20,18 @@ body.fh-player-menu-ready #hud.fh-location-hud {
   grid-template-columns:46px minmax(0,1fr);
   align-items:center;
   gap:14px;
-  background:transparent;
-  border:0;
+  background:#080808f2; /* respaldo legible si falta el marco SVG */
+  border:1px solid rgba(240,238,231,.55);
   border-radius:0;
   clip-path:none;
   box-shadow:none;
   text-shadow:none;
   overflow:visible;
+}
+body.fh-player-menu-ready #hud.fh-location-hud.fh-hud-framed,
+body.fh-player-menu-ready #fhPlayerMenu.fh-hud-framed {
+  background:transparent;
+  border:0;
 }
 body.fh-player-menu-ready #hud.fh-location-hud::before { content:none;display:none; }
 body.fh-player-menu-ready #hud.fh-location-hud::after {
@@ -195,8 +200,8 @@ body.fh-player-menu-ready #fhMenuToggle .fh-bars i {
 /* Contenedor lateral: SVG para respetar todas las diagonales del marco doble. */
 body.fh-player-menu-ready #fhPlayerMenu {
   isolation:isolate;
-  background:transparent;
-  border:0;
+  background:#080808f2; /* respaldo legible si falta el marco SVG */
+  border:1px solid rgba(240,238,231,.55);
   border-radius:0;
   clip-path:none;
   box-shadow:none;
