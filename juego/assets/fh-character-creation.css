@@ -1,0 +1,44 @@
+/* Blakpine Wood — ficha narrativa de inicio, sin modificar el editor. */
+#fhcc-root{position:fixed;inset:0;z-index:95;display:grid;place-items:center;padding:clamp(10px,3vw,30px);background:rgba(5,9,13,.96);color:#eee9d9;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;overflow:auto;overscroll-behavior:contain}
+#fhcc-root *{box-sizing:border-box}
+#fhcc-root button,#fhcc-root input,#fhcc-root select{font:inherit}
+#fhcc-root button:focus-visible,#fhcc-root input:focus-visible,#fhcc-root select:focus-visible{outline:3px solid #e8c58c;outline-offset:2px}
+#fhcc-root .fhcc-card{width:min(680px,100%);max-height:min(92dvh,900px);overflow-y:auto;background:#111b20;border:1px solid #647276;box-shadow:0 16px 90px #000b;padding:clamp(18px,3vw,30px);border-radius:3px;touch-action:pan-y}
+#fhcc-root .fhcc-overline{color:#c7a978;font:800 11px/1.5 ui-monospace,monospace;letter-spacing:.13em;margin:0 0 12px}
+#fhcc-root .fhcc-title{font:600 clamp(21px,3vw,30px)/1.22 Georgia,serif;margin:0 0 10px}
+#fhcc-root .fhcc-progress{display:flex;gap:4px;margin:0 0 23px}
+#fhcc-root .fhcc-segment{height:5px;background:#2c393b;flex:1}
+#fhcc-root .fhcc-segment.active{background:#c3a170}
+#fhcc-root .fhcc-step{font:700 11px ui-monospace,monospace;color:#c6bdb0;margin:0 0 7px}
+#fhcc-root .fhcc-question{font:600 clamp(19px,2.5vw,24px)/1.3 Georgia,serif;margin:0 0 9px}
+#fhcc-root .fhcc-help{font:400 13px/1.65 system-ui,sans-serif;color:#b6c4c4;margin:0 0 19px}
+#fhcc-root .fhcc-choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:14px 0}
+#fhcc-root .fhcc-choice{border:1px solid #56666b;border-radius:2px;background:#1a272d;color:#f0eadc;text-align:left;padding:13px;min-height:66px;display:flex;flex-direction:column;justify-content:center;gap:5px;cursor:pointer}
+#fhcc-root .fhcc-choice[aria-pressed=true]{border-color:#e3c48b;background:#384032;box-shadow:inset 4px 0 #e3c48b}
+#fhcc-root .fhcc-choice:disabled{opacity:.45;cursor:not-allowed}
+#fhcc-root .fhcc-choice strong{font-size:14px}
+#fhcc-root .fhcc-choice span{color:#b7c4c1;font:400 12px/1.4 system-ui,sans-serif}
+#fhcc-root label.fhcc-field{display:flex;flex-direction:column;gap:7px;margin:0 0 17px;font-size:13px;font-weight:600}
+#fhcc-root .fhcc-field input,#fhcc-root .fhcc-field select{min-height:46px;width:100%;border:1px solid #738085;background:#091217;border-radius:2px;color:#f7f4eb;padding:10px 12px}
+#fhcc-root .fhcc-field input::placeholder{color:#95a2a2}
+#fhcc-root .fhcc-points{font:700 12px ui-monospace,monospace;color:#e1c18a;margin:0 0 12px}
+#fhcc-root .fhcc-score-row{display:flex;gap:8px;align-items:center;min-height:55px;padding:7px 0;border-bottom:1px solid #293639}
+#fhcc-root .fhcc-score-row .fhcc-score-name{flex:1;min-width:0;font-size:13px;font-weight:600}
+#fhcc-root .fhcc-score-row small{font-size:11px;color:#9bafae;font-weight:400;display:block}
+#fhcc-root .fhcc-score-row output{min-width:32px;text-align:center;font:800 19px ui-monospace,monospace}
+#fhcc-root .fhcc-adjust{min-width:40px;min-height:40px;border-radius:2px;border:1px solid #677477;background:#24353a;color:#fff;padding:4px}
+#fhcc-root .fhcc-adjust:disabled{opacity:.3}
+#fhcc-root .fhcc-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:14px 0}
+#fhcc-root .fhcc-summary section{padding:14px;border:1px solid #415358;background:#182529}
+#fhcc-root .fhcc-summary h3{font:700 11px ui-monospace,monospace;text-transform:uppercase;letter-spacing:.08em;color:#c5ae86;margin:0 0 7px}
+#fhcc-root .fhcc-summary p{font-size:13px;line-height:1.5;margin:0;overflow-wrap:anywhere}
+#fhcc-root .fhcc-summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+#fhcc-root .fhcc-summary-grid span{background:#253238;padding:5px;text-align:center;font:700 12px ui-monospace,monospace}
+#fhcc-root .fhcc-note{color:#d2b78c;font-size:12px;line-height:1.6;border-left:3px solid #b29466;padding:6px 9px;margin:12px 0}
+#fhcc-root .fhcc-error{color:#ffc2b0;font-size:12px;font-weight:600;margin:12px 0}
+#fhcc-root .fhcc-nav{display:flex;align-items:center;gap:9px;margin-top:22px;padding-top:16px;border-top:1px solid #364346}
+#fhcc-root .fhcc-nav button{min-height:44px;border-radius:2px;border:1px solid #7b857e;background:#233035;color:#f3eadb;padding:9px 13px;font-size:13px;cursor:pointer}
+#fhcc-root .fhcc-nav .fhcc-primary{margin-left:auto;border-color:#ddbd7f;background:#5a4830;color:#fff4d9;font-weight:750}
+#fhcc-root .fhcc-nav button:disabled{opacity:.35;cursor:not-allowed}
+@media(max-width:470px){#fhcc-root .fhcc-card{max-height:96dvh}#fhcc-root .fhcc-choices,#fhcc-root .fhcc-summary{grid-template-columns:1fr}#fhcc-root .fhcc-nav{gap:5px}#fhcc-root .fhcc-nav button{padding:9px 8px;font-size:12px}}
+@media(prefers-reduced-motion:reduce){#fhcc-root *{scroll-behavior:auto!important}}

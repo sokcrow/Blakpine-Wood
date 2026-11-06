@@ -1,0 +1,49 @@
+/* node juego/assets/fh-character-core.test.js */
+const assert=require('node:assert/strict');
+const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
+const values=new Map(),localStorage={
+ getItem:key=>values.get(key)||null,
+ setItem:(key,value)=>values.set(key,String(value))
+};
+const window={localStorage,crypto:{randomUUID:()=> 'character-test-id'}};
+window.window=window;
+vm.runInNewContext(fs.readFileSync(path.join(__dirname,'fh-character-core.js'),'utf8'),{window,Date,Math,JSON,Object,Set,Error,Number,String,Array});
+const C=window.FHCharacterCore;
+const allocation={strengths:['FOR','AGI'],weaknesses:['VOL','PRU'],bonus:{FOR:1,AGI:1,ING:1,SOC:1}};
+const stats=C.calculate(allocation.strengths,allocation.weaknesses,allocation.bonus);
+assert.deepEqual(JSON.parse(JSON.stringify(stats)),{FOR:6,AGI:6,VOL:1,PRU:1,ING:4,ARC:3,SOC:4});
+assert.equal(Object.values(stats).reduce((a,b)=>a+b,0),25);
+assert.throws(()=>C.calculate(['FOR','FOR'],['VOL','PRU'],{ING:4}));
+assert.throws(()=>C.calculate(['FOR','AGI'],['AGI','PRU'],{ING:4}));
+assert.throws(()=>C.calculate(['FOR','AGI'],['VOL','PRU'],{FOR:1,AGI:1,ING:1}));
+assert.throws(()=>C.calculate(['FOR','AGI'],['VOL','PRU'],{VOL:1,ING:3}));
+assert.throws(()=>C.calculate(['FOR','AGI'],['VOL','PRU'],{FOR:1,AGI:1,ING:1,SOC:2}));
+assert.throws(()=>C.calculate(['FOR','AGI'],['VOL','PRU'],{FOR:1,AGI:1,ING:2}));
+const profile=C.createProfile({name:' Ana Pérez ',origin:'resident',missingName:'Lucía',relationship:'hermana',...allocation});
+assert.equal(profile.name,'Ana Pérez');
+assert.equal(profile.employment.hasJob,true);
+assert.equal(profile.housing.propertyId,null);
+assert.equal(profile.resources.pgMax,38);
+assert.equal(profile.resources.spMax,16);
+assert.equal(profile.resources.peMax,18);
+C.store(profile);
+assert.equal(C.current().id,'character-test-id');
+const oldSave=JSON.stringify({version:1,state:{characterId:'otra-persona',inventory:['llave']}});
+const ownSave=JSON.stringify({version:1,state:{characterId:profile.id,inventory:['llave']}});
+assert.equal(C.selectMapSave(oldSave,profile.id),null);
+assert.equal(C.selectMapSave(JSON.stringify({version:1,state:{inventory:['llave']}}),profile.id),null);
+assert.equal(C.selectMapSave(JSON.stringify({characterId:profile.id}),profile.id),null);
+assert.equal(C.syncResourcesFromSave(JSON.stringify({version:1,state:{characterId:profile.id,character:{resources:{pg:7,sp:11,pe:3}}}}),profile.id),true);
+assert.equal(C.current().resources.pg,7);
+assert.equal(C.current().resources.sp,11);
+assert.equal(C.current().resources.pe,3);
+assert.equal(C.selectMapSave(ownSave,profile.id),ownSave);
+assert.equal(C.markDead('id-erróneo'),false);
+assert.equal(C.markDead(profile.id),true);
+assert.equal(C.current(),null);
+assert.equal(C.load().life,'dead');
+assert.equal(C.markDead(profile.id),false);
+const next=C.createProfile({name:'Otro personaje',origin:'newcomer',relationship:'amigo',...allocation});
+C.store(next);assert.equal(C.current().life,'alive');
+assert.equal(C.selectMapSave(ownSave,next.id),null);
+console.log('PASS fh-character-core: Scores, recursos, persistencia y muerte');
