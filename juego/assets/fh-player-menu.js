@@ -246,6 +246,8 @@
     previousFocus=global.document.activeElement;
     try{onOpen?.();}catch(err){console.warn('[FH Player Menu] pausa no disponible',err);}
     open=true;layer.hidden=false;
+    // Actualizar el SVG ahora que el menú tiene tamaño visible.
+    global.FHHUDFrame?.mount?.(panel,'menu');
     global.document.body.classList.add('fh-player-menu-open');
     toggle.setAttribute('aria-expanded','true');
     toggle.setAttribute('aria-label',label('close'));
