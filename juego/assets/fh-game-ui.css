@@ -750,7 +750,7 @@ body.fh-player-menu-ready #fhInventoryRight[data-empty="true"] #fhInventoryEmpty
     width:44px;height:44px;flex-basis:44px;font-size:23px!important;
   }
   body.fh-player-menu-ready #fhInventoryHint {font-size:11px;line-height:1.25}
-  body.fh-player-menu-ready #fhPlayerMenu #inventorySlots .inventorySlot {min-height:36px}
+  body.fh-player-menu-ready #fhPlayerMenu #inventorySlots .inventorySlot {min-height:44px}
   body.fh-player-menu-ready #fhInventoryRight {padding-bottom:32px}
   body.fh-player-menu-ready #fhPlayerMenu #inventoryPreviewWrap {width:94px!important;height:62px!important;margin-bottom:3px}
   body.fh-player-menu-ready #fhPlayerMenu #inventoryName {font-size:clamp(14px,2vw,18px)!important}
@@ -759,7 +759,7 @@ body.fh-player-menu-ready #fhInventoryRight[data-empty="true"] #fhInventoryEmpty
   body.fh-player-menu-ready #fhPlayerMenu #inventoryDescription::after {top:-10px;font-size:14px}
   body.fh-player-menu-ready #fhPlayerMenu #inventoryStatus {font-size:10px;margin:2px 0}
   body.fh-player-menu-ready #fhPlayerMenu #inventoryActions {margin:3px 0 0;padding:4px 0 0}
-  body.fh-player-menu-ready #fhPlayerMenu #inventoryActions button:not([hidden]) {min-height:40px}
+  body.fh-player-menu-ready #fhPlayerMenu #inventoryActions button:not([hidden]) {min-height:44px}
 }
 @media(orientation:portrait) and (max-width:650px) {
   body.fh-player-menu-ready #fhPlayerMenu #inventoryPanel.open {
