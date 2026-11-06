@@ -257,10 +257,9 @@ if (typeof module === 'object' && module.exports &&
     };
     assert.equal(clickOriginalControl(inventoryToggle, () => calls.push('cerrar menú')), true);
     assert.deepEqual(calls, ['cerrar menú','onclick original: inventoryToggle']);
-    inventoryToggle.hidden=true;
-    assert.equal(clickOriginalControl(inventoryToggle, () => calls.push('no ejecutar')), false);
-    inventoryToggle.hidden=false;inventoryToggle.disabled=true;
-    assert.equal(clickOriginalControl(inventoryToggle),false);
+    assert.equal(clickOriginalControl({...inventoryToggle,hidden:true},
+      () => calls.push('no ejecutar')), false);
+    assert.equal(clickOriginalControl({...inventoryToggle,disabled:true}),false);
     assert.equal(calls.length,2);
   });
 }
