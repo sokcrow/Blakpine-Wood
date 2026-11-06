@@ -175,6 +175,7 @@ function createRuntime(options){
   typedDialogue?.dispose();typedDialogue=null;
   if(!dialog)return;
   dialog.classList.remove('open','peephole');
+  global.FHLiveText?.flushNotice?.();
   if(!options.computer?.isOpen)options.freeze?.(false);
   syncPeekTalkButton();
  }
