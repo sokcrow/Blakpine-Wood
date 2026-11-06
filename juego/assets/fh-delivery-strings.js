@@ -13,6 +13,7 @@ window.FH_DELIVERY_TEXT=Object.freeze({
  orderScheduled:(name,time)=>'Pedido registrado: '+name+'. Entrega estimada: '+time+'.',
  orderQueued:'Pedido en cola. El repartidor terminará la entrega anterior primero.',
  orderWaiting:'Llaman a la puerta.',
+ visitorDescription:'Escuchas varios golpes en la puerta. Alguien espera en el pasillo.',
  noDeliveryDoor:'No se encontró una puerta de entrada con mirilla para esta entrega.',
  peepholeGreeting:name=>'Buenas. Traigo una entrega de Hamazon'+(name?' para '+name:'')+'.',
  peepholePackage:name=>'El paquete contiene: '+name+'.',
