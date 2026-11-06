@@ -118,6 +118,7 @@
    if(command==='reposo')powerStore.sleep(activeKey);
    else if(command==='apagar')powerStore.shutdown(activeKey);
    else if(command!=='salir')return false;
+   if(command!=='salir')terminalApi()?.setPowerState?.(powerStore.read(activeKey));
    close();
    return true;
   }
