@@ -25,19 +25,21 @@ function sceneEnvironment(){
 }
 test('catálogo estructural: cinco modelos y rutas, sin transformar puertas en muebles',()=>{
  assert.equal(catalog.schema,'forest-horror-architecture-catalog-v1');
- assert.equal(catalog.architecture.length,5);
- assert.deepEqual(catalog.architecture.map(x=>x.type),['door','door','peephole_door','window','window']);
+ assert.equal(catalog.architecture.length,8);
+ assert.deepEqual(catalog.architecture.map(x=>x.type),['door','door','peephole_door','window','window','door','door','door']);
  assert.ok(catalog.architecture.every(x=>x.widthTiles===1));
  assert.ok(catalog.architecture.every(x=>x.glb.startsWith('modelos_glb/')));
 });
-test('elige la puerta correcta, sin sustituir dobles, garaje ni cristal',()=>{
+test('elige puertas sencillas y dobles con los mismos modelos de una hoja',()=>{
  const {api}=sceneEnvironment();
  assert.equal(api.chooseDoor({family:'single',variant:'wood',transparent:false},{type:'door'}),'puerta_madera');
  assert.equal(api.chooseDoor({family:'single',variant:'metal',transparent:false},{type:'door'}),'puerta_metal');
  assert.equal(api.chooseDoor({family:'single',variant:'wood',transparent:false},{type:'peephole_door'}),'puerta_mirilla');
- assert.equal(api.chooseDoor({family:'double',variant:'wood',transparent:false},{type:'door'}),null);
+ assert.equal(api.chooseDoor({family:'double',variant:'wood',transparent:false},{type:'door'}),'puerta_madera');
  assert.equal(api.chooseDoor({family:'garage',variant:'metal',transparent:false},{type:'door'}),null);
- assert.equal(api.chooseDoor({family:'single',variant:'glass',transparent:true},{type:'door'}),null);
+ assert.equal(api.chooseDoor({family:'single',variant:'glass',transparent:true},{type:'door'}),'puerta_cristal_simple');
+ assert.equal(api.chooseDoor({family:'double',variant:'storefront',transparent:true},{type:'door',architectureSkin:'puerta_cristal_antipanico'}),'puerta_cristal_antipanico');
+ assert.equal(api.chooseDoor({family:'single',variant:'glass',transparent:true},{type:'door',architectureSkin:'puerta_cristal_doble'}),null);
  assert.equal(api.chooseWindow({windowSkin:'dividida'}),'ventana_dividida');
  assert.equal(api.chooseWindow({windowSkin:'no-existe'}),'ventana_clasica');
 });
@@ -57,6 +59,47 @@ test('puerta mantiene bisagra, estado de paso y marco fijo',async()=>{
  assert.equal(frame.children[1].rotation.y,.35);
  assert.equal(door.skinId,'puerta_madera');assert.equal(env.masks(),2);
 });
+test('puerta doble instancia dos GLB individuales, segundo a 180 grados, apertura conservada',async()=>{
+ const env=sceneEnvironment(),{api,THREE,Group}=env;
+ const frame=new Group();frame.parent={};const oldFrame={visible:true};frame.add(oldFrame);
+ const animated=[0,1].map((n)=>{
+  const group=new Group();group.parent={};group.position.set(n?10:7,0,9);
+  group.add({visible:true});
+  return {group,base:.35+n*Math.PI};
+ });
+ const door={family:'double',variant:'metal',transparent:false,open:true,angle:1.2,target:1.2,
+  passable:true,frame,hinge:{parent:{}},animated};
+ api.decorateDoor(door,{type:'door'},THREE,()=>env.mask());
+ await new Promise(setImmediate);
+ assert.equal(door.skinId,'puerta_metal');
+ assert.equal(frame.children.length,3);
+ assert.equal(frame.children[1].rotation.y,.35);
+ assert.equal(frame.children[2].rotation.y,.35+Math.PI);
+ for(const part of animated){assert.equal(part.group.children.length,2);assert.equal(part.group.children[0].visible,false);assert.equal(part.group.children[1].name,'HOJA_PIVOTE');}
+ assert.equal(env.masks(),4);
+ assert.equal(oldFrame.visible,false);
+ assert.equal(door.open,true);assert.equal(door.angle,1.2);assert.equal(door.target,1.2);assert.equal(door.passable,true);
+});
+test('rotaciones de puerta doble: ambas hojas avanzan al mismo lado del muro',()=>{
+ const {api}=sceneEnvironment();
+ const fixture='<html><head></head><body><script>'+
+  'function applyDoorPose(d){if(d.family==="garage"){}else for(const part of d.animated)part.group.rotation.y=part.base+d.angle;}\n'+
+  'function windowModel(f,it){\nconst a=world(it.a),b=world(it.b),angle=0;\n}\n'+
+  'function doorTarget(d){return 1.20;}\n'+
+  'function doorModel(f,it){applyDoorPose(d);doorList[f].push(d);return d;}</scr'+'ipt></body></html>';
+ const patched=api.patchEngineDoc(fixture);
+ const match=patched.match(/else for\(let i=0;i<d\.animated\.length;i\+\+\)\{[^}]+\}/);
+ assert.ok(match,'No se inyectó el cambio de giro de la segunda hoja');
+ const rig={family:'double',angle:.8,animated:[
+  {base:0,group:{rotation:{y:0}}},{base:Math.PI,group:{rotation:{y:0}}}
+ ]};
+ vm.runInNewContext('if(false){}'+match[0],{d:rig});
+ const side=rig.animated.map(part=>Math.sign(-Math.sin(part.group.rotation.y)));
+ assert.deepEqual(side,[-1,-1]);
+ const single={family:'single',angle:.8,animated:[{base:0,group:{rotation:{y:0}}}]};
+ vm.runInNewContext('if(false){}'+match[0],{d:single});
+ assert.equal(single.animated[0].group.rotation.y,.8);
+});
 test('ventana conserva antepecho y dintel y retira panel original del render FOW',async()=>{
  const env=sceneEnvironment(),{api,THREE,Group}=env;
  const container=new Group();container.parent={};
@@ -75,6 +118,7 @@ test('ventana conserva antepecho y dintel y retira panel original del render FOW
 test('el hook valida anclas y preserva el comportamiento original del motor',()=>{
  const {api}=sceneEnvironment();
  const fixture='<html><head></head><body><script>'+
+  'function applyDoorPose(d){if(d.family==="garage"){}else for(const part of d.animated)part.group.rotation.y=part.base+d.angle;}\n'+
   'function windowModel(f,it){\nconst a=world(it.a),b=world(it.b),angle=0;\n}\n'+
   'function doorTarget(d){return 1.20;}\n'+
   'function doorModel(f,it){applyDoorPose(d);doorList[f].push(d);return d;}</scr'+'ipt></body></html>';
@@ -82,11 +126,13 @@ test('el hook valida anclas y preserva el comportamiento original del motor',()=
  assert.match(result,/FHArchitectureSkins\?\.decorateDoor\(d,it,THREE,installVisibility\)/);
  assert.match(result,/FHArchitectureSkins\?\.decorateWindow/);
  assert.match(result,/function doorTarget\(d\)\{return 1.20;\}/);
+ assert.match(result,/d\.family==='double'&&i===1\?-d\.angle:d\.angle/);
  assert.match(result,/fh-architecture-skins\.js/);
  assert.throws(()=>api.patchEngineDoc('incompatible'),/Motor 3D no compatible/);
 });
 test('editor carga el adaptador, permite escoger marco y conserva fallback 3D',()=>{
- assert.match(index,/fh-architecture-skins\.js\?v=20261106-hotfix1/);
+ assert.match(index,/fh-architecture-skins\.js\?v=20261106-hotfix2/);
+ assert.match(index,/architectureSkin/);
  assert.match(index,/Marco de ventana','windowSkin'/);
  assert.match(index,/window\.FHArchitectureSkins\.patchEngineDoc\(fhEngineDoc\)/);
  assert.match(index,/play3DFrame\.srcdoc=fhEngineDoc/);
@@ -105,6 +151,7 @@ test('regresión: el motor REAL contiene varias etiquetas de cierre de head y ac
  const patched=api.patchEngineDoc(realHtml);
  assert.ok(patched.includes('FHArchitectureSkins?.decorateDoor(d,it,THREE,installVisibility)'));
  assert.ok(patched.includes('FHArchitectureSkins?.decorateWindow({it,THREE,container:stories[f]'));
+ assert.ok(patched.includes("d.family==='double'&&i===1?-d.angle:d.angle"));
  const injected='<script src="https://example.test/juego/assets/fh-architecture-skins.js"></script>';
  assert.ok(patched.indexOf(injected)>0);
  assert.ok(patched.indexOf(injected)<patched.indexOf('</head>'));
