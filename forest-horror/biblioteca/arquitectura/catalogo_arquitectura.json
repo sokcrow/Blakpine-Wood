@@ -1,0 +1,93 @@
+{
+  "schema": "forest-horror-architecture-catalog-v1",
+  "units": {
+    "feetPerCell": 5,
+    "glbUnits": "meters",
+    "doorSpanTiles": 1,
+    "windowSpanTiles": 1
+  },
+  "behaviour": "visual-only; door/window gameplay remains in ForestShared and the 3D engine",
+  "architecture": [
+    {
+      "id": "puerta_madera",
+      "name": "Puerta de madera con marco",
+      "type": "door",
+      "variant": "wood",
+      "widthTiles": 1,
+      "widthFt": 5,
+      "leafHeightFt": 7,
+      "frameHeightFt": 7.38,
+      "glb": "modelos_glb/puerta_madera.glb",
+      "thumbnail": "miniaturas/puerta_madera.png",
+      "nodes": [
+        "MARCO_FIJO",
+        "HOJA_PIVOTE"
+      ]
+    },
+    {
+      "id": "puerta_metal",
+      "name": "Puerta metálica con marco",
+      "type": "door",
+      "variant": "metal",
+      "widthTiles": 1,
+      "widthFt": 5,
+      "leafHeightFt": 7,
+      "frameHeightFt": 7.38,
+      "glb": "modelos_glb/puerta_metal.glb",
+      "thumbnail": "miniaturas/puerta_metal.png",
+      "nodes": [
+        "MARCO_FIJO",
+        "HOJA_PIVOTE"
+      ]
+    },
+    {
+      "id": "puerta_mirilla",
+      "name": "Puerta con mirilla y marco",
+      "type": "peephole_door",
+      "widthTiles": 1,
+      "widthFt": 5,
+      "leafHeightFt": 7,
+      "frameHeightFt": 7.38,
+      "glb": "modelos_glb/puerta_mirilla.glb",
+      "thumbnail": "miniaturas/puerta_mirilla.png",
+      "nodes": [
+        "MARCO_FIJO",
+        "HOJA_PIVOTE"
+      ]
+    },
+    {
+      "id": "ventana_clasica",
+      "name": "Ventana clásica con marco",
+      "type": "window",
+      "variant": "clasica",
+      "widthTiles": 1,
+      "widthFt": 5,
+      "openingHeightTiles": 1,
+      "openingHeightFt": 5,
+      "sillElevationFt": 2.72,
+      "glb": "modelos_glb/ventana_clasica.glb",
+      "thumbnail": "miniaturas/ventana_clasica.png",
+      "nodes": [
+        "MARCO_FIJO",
+        "VIDRIO"
+      ]
+    },
+    {
+      "id": "ventana_dividida",
+      "name": "Ventana dividida con marco",
+      "type": "window",
+      "variant": "dividida",
+      "widthTiles": 1,
+      "widthFt": 5,
+      "openingHeightTiles": 1,
+      "openingHeightFt": 5,
+      "sillElevationFt": 2.72,
+      "glb": "modelos_glb/ventana_dividida.glb",
+      "thumbnail": "miniaturas/ventana_dividida.png",
+      "nodes": [
+        "MARCO_FIJO",
+        "VIDRIO"
+      ]
+    }
+  ]
+}
