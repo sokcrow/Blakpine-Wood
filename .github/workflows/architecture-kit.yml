@@ -1,0 +1,53 @@
+name: Forest Horror — kit arquitectura 01
+
+on:
+  push:
+    branches:
+      - feat/architecture-kit-doors-windows-20261105
+  pull_request:
+    paths:
+      - index.html
+      - juego/assets/fh-architecture-skins.js
+      - juego/assets/fh-architecture-skins.test.js
+      - forest-horror/biblioteca/arquitectura/**
+      - .github/workflows/architecture-kit.yml
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Reconstruct exact assets from the supplied kit
+        run: |
+          python -m pip install --disable-pip-version-check numpy==2.3.5 Pillow==12.3.0 trimesh==4.11.1
+          python forest-horror/biblioteca/arquitectura/generar_kit.py
+          python forest-horror/biblioteca/arquitectura/generar_miniaturas.py
+          cd forest-horror/biblioteca/arquitectura
+          sha256sum --check kit_01.sha256
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run Forest Horror runtime tests
+        run: node --test juego/assets/*.test.js
+      - name: Commit original GLB, texture and preview files to the feature branch
+        if: github.event_name == 'push'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add forest-horror/biblioteca/arquitectura/modelos_glb/
+          git add forest-horror/biblioteca/arquitectura/texturas/
+          git add forest-horror/biblioteca/arquitectura/miniaturas/
+          git add forest-horror/biblioteca/arquitectura/hoja_miniaturas_arquitectura.png
+          git add forest-horror/biblioteca/arquitectura/reporte_topologia_arquitectura.json
+          if ! git diff --cached --quiet; then
+            git commit -m "assets(architecture): añadir GLB, texturas y miniaturas verificados del kit 01"
+            git push origin HEAD:refs/heads/feat/architecture-kit-doors-windows-20261105
+          fi
