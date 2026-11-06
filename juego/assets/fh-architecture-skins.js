@@ -8,14 +8,18 @@ const scriptUrl=document.currentScript?.src
  ?new URL(document.currentScript.src,document.baseURI)
  :new URL('./fh-architecture-skins.js',document.baseURI);
 const libraryBase=new URL('../../forest-horror/biblioteca/arquitectura/',scriptUrl);
-const safeModel=/^(puerta_madera|puerta_metal|puerta_mirilla|ventana_clasica|ventana_dividida)$/;
+const safeModel=/^(puerta_madera|puerta_metal|puerta_mirilla|puerta_cristal_simple|puerta_cristal_antipanico|puerta_cristal_tintada|ventana_clasica|ventana_dividida)$/;
 const loaded=new Map();
 let loaderPromise=null;
 
 function chooseDoor(d,it){
- if(!d||d.family!=='single')return null;
- if(it?.type==='peephole_door')return 'puerta_mirilla';
- if(d.transparent)return null;
+ if(!d||!['single','double'].includes(d.family)||!it)return null;
+ if(it.type==='peephole_door')return d.family==='single'&&!d.transparent?'puerta_mirilla':null;
+ if(it.type!=='door')return null;
+ if(d.transparent){
+  if(it.architectureSkin)return ['puerta_cristal_simple','puerta_cristal_antipanico','puerta_cristal_tintada'].includes(it.architectureSkin)?it.architectureSkin:null;
+  return 'puerta_cristal_simple';
+ }
  return d.variant==='metal'?'puerta_metal':d.variant==='wood'?'puerta_madera':null;
 }
 function chooseWindow(it){return it?.windowSkin==='dividida'?'ventana_dividida':'ventana_clasica';}
@@ -73,21 +77,26 @@ function hideLegacyVisual(node,detach=false){
 }
 function decorateDoor(d,it,THREE,sightMask){
  const model=chooseDoor(d,it);if(!model)return;
- const animated=d.animated?.[0]?.group;
- if(!animated||!d.frame||!d.hinge)return;
- const pivot={x:animated.position.x,y:animated.position.y,z:animated.position.z,rotation:d.animated[0].base};
+ const count=d.family==='double'?2:1;
+ if(!Array.isArray(d.animated)||d.animated.length!==count||!d.frame?.parent||!d.hinge?.parent)return;
+ const parts=d.animated;
  load(model).then(scene=>{
-  if(!d.hinge?.parent||!d.frame?.parent)return;
-  const leaf=cloneNode(scene,'HOJA_PIVOTE'),frameMesh=cloneNode(scene,'MARCO_FIJO');
-  const fixed=new THREE.Group();
-  fixed.position.set(pivot.x,pivot.y,pivot.z);
-  fixed.rotation.y=pivot.rotation;
-  fixed.add(frameMesh);
-  applyFOW(leaf,sightMask);applyFOW(fixed,sightMask);
-  const originalLeaf=animated.children.slice(),originalFrame=d.frame.children.slice();
-  animated.add(leaf);d.frame.add(fixed);
-  for(const mesh of originalLeaf)hideLegacyVisual(mesh);
-  for(const mesh of originalFrame)hideLegacyVisual(mesh);
+  if(!d.hinge?.parent||!d.frame?.parent||parts.some(p=>!p.group?.parent))return;
+  const leaves=parts.map(()=>cloneNode(scene,'HOJA_PIVOTE'));
+  const frames=parts.map(part=>{
+   const fixed=new THREE.Group();
+   fixed.position.set(part.group.position.x,part.group.position.y,part.group.position.z);
+   fixed.rotation.y=part.base; // En la segunda hoja, el motor ya suma PI.
+   fixed.add(cloneNode(scene,'MARCO_FIJO'));
+   return fixed;
+  });
+  for(const node of [...leaves,...frames])applyFOW(node,sightMask);
+  const originalLeaves=parts.map(part=>part.group.children.slice());
+  const originalFrame=d.frame.children.slice();
+  parts.forEach((part,i)=>part.group.add(leaves[i]));
+  for(const fixed of frames)d.frame.add(fixed);
+  for(const original of originalLeaves)for(const visual of original)hideLegacyVisual(visual);
+  for(const visual of originalFrame)hideLegacyVisual(visual);
   d.skinId=model;
  }).catch(error=>reportFailure(model,error));
 }

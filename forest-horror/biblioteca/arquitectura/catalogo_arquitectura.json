@@ -22,7 +22,10 @@
       "nodes": [
         "MARCO_FIJO",
         "HOJA_PIVOTE"
-      ]
+      ],
+      "hotfix": "perillas_simetrico_2026_11_05",
+      "triangleCount": 96,
+      "note": "Herrajes 3D simétricos frente/dorso, sin perilla pintada; marco y hoja separados."
     },
     {
       "id": "puerta_metal",
@@ -38,7 +41,10 @@
       "nodes": [
         "MARCO_FIJO",
         "HOJA_PIVOTE"
-      ]
+      ],
+      "hotfix": "perillas_simetrico_2026_11_05",
+      "triangleCount": 96,
+      "note": "Herrajes 3D simétricos frente/dorso, sin perilla pintada; marco y hoja separados."
     },
     {
       "id": "puerta_mirilla",
@@ -53,7 +59,10 @@
       "nodes": [
         "MARCO_FIJO",
         "HOJA_PIVOTE"
-      ]
+      ],
+      "hotfix": "perillas_simetrico_2026_11_05",
+      "triangleCount": 96,
+      "note": "Herrajes 3D simétricos frente/dorso, sin perilla pintada; marco y hoja separados."
     },
     {
       "id": "ventana_clasica",
@@ -88,6 +97,70 @@
         "MARCO_FIJO",
         "VIDRIO"
       ]
+    },
+    {
+      "id": "puerta_cristal_simple",
+      "name": "Cristal sencillo",
+      "type": "door",
+      "variant": "glass",
+      "architectureSkin": "puerta_cristal_simple",
+      "widthTiles": 1,
+      "widthFt": 5,
+      "leafHeightFt": 7,
+      "frameHeightFt": 7.38,
+      "glb": "modelos_glb/puerta_cristal_simple.glb",
+      "thumbnail": "miniaturas/puerta_cristal_simple.png",
+      "nodes": [
+        "MARCO_FIJO",
+        "HOJA_PIVOTE"
+      ],
+      "materialType": "opaque frame + transparent glass",
+      "geometryRole": "visual-only",
+      "mounting": "single",
+      "note": "Una sola hoja; para puerta doble se instancian dos copias, la segunda con +180°"
+    },
+    {
+      "id": "puerta_cristal_antipanico",
+      "name": "Barra antipánico",
+      "type": "door",
+      "variant": "glass",
+      "architectureSkin": "puerta_cristal_antipanico",
+      "widthTiles": 1,
+      "widthFt": 5,
+      "leafHeightFt": 7,
+      "frameHeightFt": 7.38,
+      "glb": "modelos_glb/puerta_cristal_antipanico.glb",
+      "thumbnail": "miniaturas/puerta_cristal_antipanico.png",
+      "nodes": [
+        "MARCO_FIJO",
+        "HOJA_PIVOTE"
+      ],
+      "materialType": "opaque frame + transparent glass",
+      "geometryRole": "visual-only",
+      "mounting": "single",
+      "note": "Una sola hoja; para puerta doble se instancian dos copias, la segunda con +180°"
+    },
+    {
+      "id": "puerta_cristal_tintada",
+      "name": "Cristal tintado",
+      "type": "door",
+      "variant": "glass",
+      "architectureSkin": "puerta_cristal_tintada",
+      "widthTiles": 1,
+      "widthFt": 5,
+      "leafHeightFt": 7,
+      "frameHeightFt": 7.38,
+      "glb": "modelos_glb/puerta_cristal_tintada.glb",
+      "thumbnail": "miniaturas/puerta_cristal_tintada.png",
+      "nodes": [
+        "MARCO_FIJO",
+        "HOJA_PIVOTE"
+      ],
+      "materialType": "opaque frame + transparent glass",
+      "geometryRole": "visual-only",
+      "mounting": "single",
+      "note": "Una sola hoja; para puerta doble se instancian dos copias, la segunda con +180°"
     }
-  ]
+  ],
+  "description": "Arquitectura 01+02: seis puertas sencillas y dos ventanas; para puertas dobles el motor instancia dos puertas individuales, la segunda a 180°. Hotfix de herrajes simétricos frente/dorso."
 }
