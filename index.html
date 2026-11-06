@@ -2809,8 +2809,8 @@ function prepareGLBEngineDoc(source){
   const interactAfter="const interactableItems=DATA.floors.map(f=>(f.items||[]).filter(it=>it.interact||it.type==='light_switch'||it.type==='breaker_panel'||ForestShared.PROP_ACTIONS[it.type]||it.pcTerminal===true||it.modelId==='escritorio_pc'||window.FHComputer?.isPc(it,f.items,Number(DATA.units.feetPerCell)||5))\n .map(it=>(it.pcTerminal===true||it.modelId==='escritorio_pc'||window.FHComputer?.isPc(it,f.items,Number(DATA.units.feetPerCell)||5))?{...it,interact:{id:'pc_'+it.id,verb:'use',label:window.FH_COMPUTER_TEXT?.pcAction||'Usar PC',effects:[]}}:it.interact?it:{...it,interact:ForestShared.PROP_ACTIONS[it.type]?\n  {...ForestShared.interactionPreset(it.type==='bed'?'bed_lie':it.type==='tv'?'tv_watch':it.type),id:'pose_'+it.id}:\n  {id:'power_'+it.id,verb:'use',label:it.type==='breaker_panel'?LIGHTING_TEXT.breakerAction:LIGHTING_TEXT.switchAction,effects:[]}}));";
   const buildAnchor="DATA.floors.forEach((_,i)=>buildFloor(i));";
   const runtimeBlock=`DATA.floors.forEach((_,i)=>buildFloor(i));
-let fhDeliveryUiActive=false,fhDeliveryNpc=null,fhDeliveryNpcMotion=null,fhDecorationActive=null,fhDecorationUi=null;
-const FH_DELIVERY_POSES={idle:'delivery_idle.webp',walk:'delivery_walk.webp',thinking:'delivery_thinking.webp',clipboard:'delivery_clipboard.webp',peephole_front:'delivery_peephole.webp',cash:'delivery_cash.webp',card:'delivery_card.webp'};
+let fhDeliveryUiActive=false,fhDeliveryNpc=null,fhDeliveryNpcMotion=null,fhDeliveryNpcGreetingOrderId=null,fhDecorationActive=null,fhDecorationUi=null;
+const FH_DELIVERY_POSES={idle:'delivery_normal_idle.png',walk:'delivery_normal_walk.png',thinking:'delivery_normal_thinking.png',door_idle:'delivery_door_idle.png',greeting:'delivery_door_greeting.png',clipboard:'delivery_door_signature.png',peephole_front:'delivery_door_idle.png',cash:'delivery_door_cash.png',card:'delivery_door_card.png'};
 function fhDeliverySpriteUrl(pose){return new URL('./juego/assets/npc/'+(FH_DELIVERY_POSES[pose]||FH_DELIVERY_POSES.idle),document.baseURI).href}
 function fhDeliveryNpcTexture(pose){
  const c=document.createElement('canvas');c.width=120;c.height=160;const x=c.getContext('2d');
@@ -2827,20 +2827,31 @@ function fhSetDeliveryNpcPose(pose){
  texture.magFilter=THREE.NearestFilter;texture.minFilter=THREE.LinearFilter;material.map=texture;material.needsUpdate=true;
 }
 function fhShowDeliveryNpc(order,door,pose='idle'){
+ const arriving=pose==='idle',displayPose=arriving?'walk':pose;
+ const greet=!arriving&&pose!=='greeting'&&fhDeliveryNpcGreetingOrderId!==order?.id;
  fhDisposeDeliveryNpc();
  const material=new THREE.SpriteMaterial({transparent:true,depthWrite:false}),sprite=new THREE.Sprite(material);
- fhDeliveryNpc=sprite;const arriving=pose==='idle',displayPose=arriving?'walk':pose;fhSetDeliveryNpcPose(displayPose);
+ fhDeliveryNpc=sprite;if(greet){fhDeliveryNpcGreetingOrderId=order?.id||null;fhSetDeliveryNpcPose('greeting')}else fhSetDeliveryNpcPose(displayPose);
  const outside=.72,start=arriving?2.4:.72,baseY=floorElev[door.f]+1.05;
  sprite.scale.set(1.12,1.68,1);sprite.position.set(door.cx+door.norm.x*start,baseY,door.cz+door.norm.z*start);
- stories[door.f].add(sprite);fhDeliveryNpcMotion=arriving?{door,t:0,duration:1.35,start,target:outside,finalPose:'idle'}:null;visibilityDirty=true;
+ stories[door.f].add(sprite);
+ fhDeliveryNpcMotion=arriving?{door,t:0,duration:1.35,start,target:outside,finalPose:'door_idle'}:
+   greet?{door,t:0,duration:.65,start:outside,target:outside,finalPose:displayPose}:null;
+ visibilityDirty=true;
 }
 function fhDeliveryNpcTick(dt){
- const m=fhDeliveryNpcMotion;if(!m||!fhDeliveryNpc)return;m.t=Math.min(1,m.t+dt/m.duration);
+ const m=fhDeliveryNpcMotion;if(!m||!fhDeliveryNpc)return;
+ if(m.ending){m.t=Math.min(1,m.t+dt/m.duration);if(m.t>=1){fhDeliveryNpcMotion=null;fhDisposeDeliveryNpc()}visibilityDirty=true;return}
+ m.t=Math.min(1,m.t+dt/m.duration);
  const q=m.t*m.t*(3-2*m.t),dist=m.start+(m.target-m.start)*q;
  fhDeliveryNpc.position.x=m.door.cx+m.door.norm.x*dist;fhDeliveryNpc.position.z=m.door.cz+m.door.norm.z*dist;
  if(m.t>=1){fhDeliveryNpcMotion=null;if(m.finalPose)fhSetDeliveryNpcPose(m.finalPose);}
 }
-function fhHideDeliveryNpc(){fhDisposeDeliveryNpc();fhDeliveryNpcMotion=null;visibilityDirty=true}
+function fhHideDeliveryNpc(){
+ fhDeliveryNpcGreetingOrderId=null;
+ if(!fhDeliveryNpc){fhDeliveryNpcMotion=null;return}
+ fhSetDeliveryNpcPose('greeting');fhDeliveryNpcMotion={ending:true,t:0,duration:.65};visibilityDirty=true;
+}
 function fhRuntimeItemById(id,f){return (DATA.floors[f]?.items||[]).find(it=>it.id===id)||null}
 function fhSpawnRuntimeItem(item,f){
  if(!item||!DATA.floors[f]||fhRuntimeItemById(item.id,f))return false;
