@@ -154,7 +154,7 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
 <script src="./juego/assets/engine-11.js"></script>
 <script src="./juego/assets/engine-12.js"></script>
 <script src="./juego/assets/fh-style-property.js"></script>
-<script src="./juego/assets/fh-property-zones.js"></script>
+<script src="./juego/assets/fh-property-zones.js?v=20261106-location"></script>
 <script src="./juego/assets/fh-style-renderer.js"></script>
 <script src="./juego/assets/fh-style-strings.js"></script>
 <script src="./juego/assets/fh-style-editor.js"></script>
@@ -1473,6 +1473,25 @@ function validate(project){
  }
  if(project.buildingSlabs!==undefined&&(!project.buildingSlabs||!Array.isArray(project.buildingSlabs.spans)))err('buildingSlabs.spans','debe ser una lista');
  if(project.slabsByLevel!==undefined&&!Array.isArray(project.slabsByLevel))err('slabsByLevel','debe ser una lista');
+ if(project.buildingNames!==undefined){
+  if(!project.buildingNames||typeof project.buildingNames!=='object'||Array.isArray(project.buildingNames))err('buildingNames','debe ser un objeto');
+  else for(const [id,name] of Object.entries(project.buildingNames)){
+   if(!id||typeof name!=='string'||name.length>80)err('buildingNames.'+id,'nombre inválido (máximo 80 caracteres)');
+  }
+ }
+ if(project.locationZones!==undefined){
+  if(!Array.isArray(project.locationZones))err('locationZones','debe ser una lista');
+  else project.locationZones.forEach((z,i)=>{
+   const p='locationZones['+i+']';
+   if(!z||typeof z!=='object'||Array.isArray(z)){err(p,'debe ser objeto');return}
+   if(typeof z.id!=='string'||!z.id.trim())err(p+'.id','identificador obligatorio');
+   if(typeof z.floorId!=='string'||!project.floors.some(f=>f.id===z.floorId))err(p+'.floorId','piso inexistente');
+   if(!['common','exterior'].includes(z.kind))err(p+'.kind','tipo inválido');
+   if(typeof z.name!=='string'||z.name.length>80)err(p+'.name','nombre inválido (máximo 80 caracteres)');
+   if(!Array.isArray(z.polygon)||z.polygon.length<3||z.polygon.length>32||
+      z.polygon.some(q=>!q||!Number.isFinite(q.x)||!Number.isFinite(q.y)))err(p+'.polygon','polígono inválido');
+  });
+ }
  return {ok:errors.length===0,errors};
 }
 
@@ -1590,11 +1609,11 @@ function syncPropertyDoorRoles(){
   }
  }
 }
-function record(){syncStairLinks();normalizeArchitecture(floorIndex);const created=rebuildFloorSpaces(floorIndex);syncPropertyDoorRoles();history=history.slice(0,historyIndex+1);history.push(JSON.stringify({floors:project.floors.map(f=>({id:f.id,name:f.name,items:f.items,elevationFt:f.elevationFt,ceilingHeightFt:f.ceilingHeightFt,lightingManual:!!f.lightingManual,apartments:f.apartments||[]})),properties:project.properties||[],patterns:project.patterns||[],buildingOwnerId:project.buildingOwnerId||"",buildingOwners:project.buildingOwners||{},styleSystem:project.styleSystem||0}));if(history.length>75)history.shift();historyIndex=history.length-1;saveSoon();if(activeLayer==='lighting')refreshCircuits();render();return created}
+function record(){syncStairLinks();normalizeArchitecture(floorIndex);const created=rebuildFloorSpaces(floorIndex);syncPropertyDoorRoles();history=history.slice(0,historyIndex+1);history.push(JSON.stringify({floors:project.floors.map(f=>({id:f.id,name:f.name,items:f.items,elevationFt:f.elevationFt,ceilingHeightFt:f.ceilingHeightFt,lightingManual:!!f.lightingManual,apartments:f.apartments||[]})),properties:project.properties||[],locationZones:project.locationZones||[],buildingNames:project.buildingNames||{},patterns:project.patterns||[],buildingOwnerId:project.buildingOwnerId||"",buildingOwners:project.buildingOwners||{},styleSystem:project.styleSystem||0}));if(history.length>75)history.shift();historyIndex=history.length-1;saveSoon();if(activeLayer==='lighting')refreshCircuits();render();return created}
 function undo(){if(historyIndex<=0)return;historyIndex--;restoreHistory()}
 function redo(){if(historyIndex>=history.length-1)return;historyIndex++;restoreHistory()}
 function restoreHistory(){
- const saved=JSON.parse(history[historyIndex]);const states=Array.isArray(saved)?saved:saved.floors;if(!Array.isArray(saved)){project.properties=saved.properties||[];project.patterns=saved.patterns||[];project.buildingOwnerId=saved.buildingOwnerId||'';project.buildingOwners=saved.buildingOwners||{};project.styleSystem=saved.styleSystem||0;}
+ const saved=JSON.parse(history[historyIndex]);const states=Array.isArray(saved)?saved:saved.floors;if(!Array.isArray(saved)){project.properties=saved.properties||[];project.locationZones=saved.locationZones||[];project.buildingNames=saved.buildingNames||{};project.patterns=saved.patterns||[];project.buildingOwnerId=saved.buildingOwnerId||'';project.buildingOwners=saved.buildingOwners||{};project.styleSystem=saved.styleSystem||0;}
  project.floors=states.map((state,i)=>{
   const old=project.floors.find(f=>f.id===state.id)||project.floors[i]||floorDefault(state.id||`floor${i+1}`,state.name||`Piso ${i+1}`,state.elevationFt??i*12,i);
   return {...old,id:state.id||old.id,name:state.name||old.name,items:state.items,elevationFt:state.elevationFt,
@@ -2537,7 +2556,7 @@ function modalElevatorEvents(){
   };
  });
 }
-function modalProject(){modal(`<h2>Proyecto · Forest Horror</h2><p>Conserva los pisos del mapa y compártelo como JSON para convertirlo después al juego 3D.</p><div class="tip">El <b>JSON completo</b> incluye las imágenes base, muros, ventanas, puertas con mirilla, muebles y altura de cada piso.</div><div class="actions"><button class="primary" id="fullExport">⬇ Exportar JSON completo</button><button id="liteExport">⬇ JSON ligero</button><button id="importJSON">⬆ Importar JSON</button><button id="previewPNG">▧ Imagen PNG del piso</button><button id="loadDemo" class="accent">⌂ Cargar ejemplo arquitectónico</button><button id="projectRoomsBtn">⌂ Ver / renombrar cuartos</button><button id="itemCatalogBtn">▣ Catálogo de objetos</button><button id="elevatorConfigBtn">⇅ Eventos del ascensor</button><button id="propertyManagerBtn">▰ Propiedades y dueños</button><button id="wallpaperEditorBtn">▨ Diseñar tapiz</button><button id="parkingDemoBtn">▤ Demo: 8 cajones y 4 coches</button></div><h3>Administrar</h3><label>Nombre del proyecto<input type="text" id="projectName" value="${escapeAttr(project.title)}"></label><div class="actions"><button id="applyName">Guardar nombre</button><button id="newMap" class="danger">Vaciar dibujos</button><button id="closeProject">Cerrar</button></div><p><small>El borrador se intenta guardar en el dispositivo. Exporta el JSON regularmente para tener una copia segura.</small></p>`,()=>{$('#closeProject').onclick=closeModal;$('#fullExport').onclick=()=>exportJSON(true);$('#liteExport').onclick=()=>exportJSON(false);$('#importJSON').onclick=()=>{$('#jsonInput').click()};$('#previewPNG').onclick=exportPNG;$('#loadDemo').onclick=loadArchitectureExample;$('#projectRoomsBtn').onclick=modalRoomList;$('#itemCatalogBtn').onclick=modalItemCatalog;$('#elevatorConfigBtn').onclick=modalElevatorEvents;$('#propertyManagerBtn').onclick=()=>window.FHStyleEditor?.propertyManager();$('#wallpaperEditorBtn').onclick=()=>window.FHStyleEditor?.wallpaperEditor();$('#parkingDemoBtn').onclick=()=>{closeModal();window.FHParkingEditor?.demo()};$('#applyName').onclick=()=>{project.title=$('#projectName').value||'Mapa sin título';saveSoon();toast('Nombre guardado')};$('#newMap').onclick=()=>{if(confirm('¿Borrar TODOS los elementos dibujados en los dos pisos? Se conservan las imágenes.')){try{localStorage.removeItem(ForestShared.gameSaveKey(project))}catch{};project.createdAt=new Date().toISOString();project.floors.forEach(f=>{f.items=[];f.apartments=[]});project.properties=[];project.patterns=[];recalcAllSpaces();selection=null;history=[];historyIndex=-1;record();closeModal();toast('Mapa de dibujos vaciado')}}})}
+function modalProject(){modal(`<h2>Proyecto · Forest Horror</h2><p>Conserva los pisos del mapa y compártelo como JSON para convertirlo después al juego 3D.</p><div class="tip">El <b>JSON completo</b> incluye las imágenes base, muros, ventanas, puertas con mirilla, muebles y altura de cada piso.</div><div class="actions"><button class="primary" id="fullExport">⬇ Exportar JSON completo</button><button id="liteExport">⬇ JSON ligero</button><button id="importJSON">⬆ Importar JSON</button><button id="previewPNG">▧ Imagen PNG del piso</button><button id="loadDemo" class="accent">⌂ Cargar ejemplo arquitectónico</button><button id="projectRoomsBtn">⌂ Ver / renombrar cuartos</button><button id="itemCatalogBtn">▣ Catálogo de objetos</button><button id="elevatorConfigBtn">⇅ Eventos del ascensor</button><button id="propertyManagerBtn">▰ Propiedades y dueños</button><button id="wallpaperEditorBtn">▨ Diseñar tapiz</button><button id="parkingDemoBtn">▤ Demo: 8 cajones y 4 coches</button></div><h3>Administrar</h3><label>Nombre del proyecto<input type="text" id="projectName" value="${escapeAttr(project.title)}"></label><div class="actions"><button id="applyName">Guardar nombre</button><button id="newMap" class="danger">Vaciar dibujos</button><button id="closeProject">Cerrar</button></div><p><small>El borrador se intenta guardar en el dispositivo. Exporta el JSON regularmente para tener una copia segura.</small></p>`,()=>{$('#closeProject').onclick=closeModal;$('#fullExport').onclick=()=>exportJSON(true);$('#liteExport').onclick=()=>exportJSON(false);$('#importJSON').onclick=()=>{$('#jsonInput').click()};$('#previewPNG').onclick=exportPNG;$('#loadDemo').onclick=loadArchitectureExample;$('#projectRoomsBtn').onclick=modalRoomList;$('#itemCatalogBtn').onclick=modalItemCatalog;$('#elevatorConfigBtn').onclick=modalElevatorEvents;$('#propertyManagerBtn').onclick=()=>window.FHStyleEditor?.propertyManager();$('#wallpaperEditorBtn').onclick=()=>window.FHStyleEditor?.wallpaperEditor();$('#parkingDemoBtn').onclick=()=>{closeModal();window.FHParkingEditor?.demo()};$('#applyName').onclick=()=>{project.title=$('#projectName').value||'Mapa sin título';saveSoon();toast('Nombre guardado')};$('#newMap').onclick=()=>{if(confirm('¿Borrar TODOS los elementos dibujados en los dos pisos? Se conservan las imágenes.')){try{localStorage.removeItem(ForestShared.gameSaveKey(project))}catch{};project.createdAt=new Date().toISOString();project.floors.forEach(f=>{f.items=[];f.apartments=[]});project.properties=[];project.locationZones=[];project.buildingNames={};project.patterns=[];recalcAllSpaces();selection=null;history=[];historyIndex=-1;record();closeModal();toast('Mapa de dibujos vaciado')}}})}
 function escapeAttr(v){return String(v).replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;')}
 function exportProject(includeImages){syncStairLinks();recalcAllSpaces();const out=clone(project);out.buildingSlabs=clone(buildingSlabs());out.slabsByLevel=project.floors.slice(1).map((_,i)=>clone(buildingSlabs(i)));out.exportedAt=new Date().toISOString();out.floors.forEach((f,i)=>{f.architectureGraph=buildArchitectureGraph(f.items.filter(it=>STRUCTURAL_TYPES.has(it.type)));f.grid={columns:out.units.columns,rows:out.units.rows,fitToImage:out.units.fitGridToImage,cellWidthPx:rounded(out.units.fitGridToImage?(f.reference.width-out.units.originPx.x)/out.units.columns:out.units.gridPx,5),cellHeightPx:rounded(out.units.fitGridToImage?(f.reference.height-out.units.originPx.y)/out.units.rows:out.units.gridPx,5),feetPerCell:out.units.feetPerCell};if(!includeImages){delete f.reference.data;f.reference.imageIncluded=false}else{f.reference.imageIncluded=true}for(const it of f.items){if(it.type==='peephole_door'){const dx=it.b.x-it.a.x,dy=it.b.y-it.a.y,len=Math.hypot(dx,dy)||1,sign=it.peekSide||1;it.peekTo={x:rounded(-dy/len*sign,5),y:rounded(dx/len*sign,5)};it.peekFrom={x:-it.peekTo.x,y:-it.peekTo.y}}}});return out}
 function downloadBlob(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000)}
@@ -2815,6 +2834,12 @@ function prepareGLBEngineDoc(source){
  const playerMenuCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-player-menu.css?v=20261106-player-ui',document.baseURI).href+'">';
  const playerMenuStrings='<script src="'+new URL('./juego/assets/fh-player-menu-strings.js?v=20261106-player-ui',document.baseURI).href+'"></'+'script>';
  const playerMenuScript='<script src="'+new URL('./juego/assets/fh-player-menu.js?v=20261106-player-ui',document.baseURI).href+'"></'+'script>';
+ const locationCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-location-hud.css?v=20261106-location',document.baseURI).href+'">';
+ const locationStrings='<script src="'+new URL('./juego/assets/fh-location-strings.js?v=20261106-location',document.baseURI).href+'"></'+'script>';
+ const locationScript='<script src="'+new URL('./juego/assets/fh-location-hud.js?v=20261106-location',document.baseURI).href+'"></'+'script>';
+ const locationHudHook='if(now-lastHud>90){lastHud=now;hudUpdate()}';
+ const locationHudAfter='if(now-lastHud>90){lastHud=now;hudUpdate();window.FHLocationHUD?.update(DATA,currentFloor,{x:user.x/CELL,y:user.z/CELL})}';
+ if(source.split(locationHudHook).length!==2)throw Error('El HUD original cambió: actualiza el adaptador de ubicación.');
   function addParkingToEngine(doc){
    const anchors=[
     ["const areaMaterials={outside:MAT.hall,hall:MAT.hall,building:MAT.building,pavement:MAT.sidewalk,parking:MAT.parking,grass:MAT.grass,dirt:MAT.dirt};",
@@ -3072,7 +3097,7 @@ window.FHDeliveryRuntime=window.FHDelivery?.createRuntime({
  for(const hook of [engineSuccessBefore,engineFailBefore,loadFailBefore])if(source.split(hook).length!==2)throw Error('Hook de inicio 3D incompatible: '+hook.slice(0,80));
  const cameraLightAfter=" const lightDistance=camDistance+(window.FHLights?.cameraBonus(roomLampEntries,lighting,currentFloor,user.x,user.z)||0);\n const ahead=lighting.state.enabled?0.80:0;target.x+=flashDir.x*ahead;target.z+=flashDir.z*ahead;\n const desired=new THREE.Vector3(user.x+behind.x*lightDistance,y+.88+lightDistance*Math.tan(Math.PI/6),user.z+behind.z*lightDistance);";
  return addLiveTextToEngine(addDeliveryToEngine(addParkingToEngine(addStylesToEngine(addLightToEngine(source)))).replace(furnitureVisibilityHook,furnitureRenderHook).replace(cameraBefore,cameraAfter).replace(cameraBefore,cameraLightAfter).replace(loopBefore,loopAfter)
-  .replace(maskBefore,maskAfter).replace(wakeHUDBefore,wakeHUDAfter)
+  .replace(maskBefore,maskAfter).replace(wakeHUDBefore,wakeHUDAfter).replace(locationHudHook,locationHudAfter)
   .split(wakeBefore).join(wakeAfter)
   .replace(chairSelection," const poseReachable=(item,anchor)=>canWalk(user.x,user.z)&&safePoseRoute(item,{x:user.x,z:user.z},anchor);\n const stockSeat=selectSeatInteractable(visible,user,yaw,CELL,poseReachable);\n const glbChair=window.FHFurnitureRules?.findReachableChair(visible,user,yaw,CELL,poseReachable,ForestShared);\n const sitting=glbChair&&(!stockSeat||glbChair.score<stockSeat.score)?glbChair:stockSeat;")
   .replace(fowStart,'const fhSightMaskedMaterials=new WeakSet();function installVisibility(root=scene){root.traverse(mesh=>{')
@@ -3086,7 +3111,7 @@ window.FHDeliveryRuntime=window.FHDelivery?.createRuntime({
   .replace(attachBefore,' window.FHAssets?.attach(g,a);\n'+attachBefore)
   .replace(cloneBefore,'const clone=source.clone(true);\n   window.FHAssets?.mirror(source,clone);\n   clone.position.y+=floorElev[f];')
   .replace(engineSuccessBefore,engineSuccessAfter).replace(engineFailBefore,engineFailAfter).replace(loadFailBefore,loadFailAfter)
-  .replace('</head>',localThree+coverageScript+lightsModule+surfaceScript+decorationScript+ruleScript+bridge+sleepStrings+sleepModule+pcAssemblyModule+computerStrings+computerModule+deliveryStrings+deliveryModule+styleCore+styleRender+parkingScript+playerMenuCss+playerMenuStrings+playerMenuScript+'</head>'));
+  .replace('</head>',localThree+coverageScript+lightsModule+surfaceScript+decorationScript+ruleScript+bridge+sleepStrings+sleepModule+pcAssemblyModule+computerStrings+computerModule+deliveryStrings+deliveryModule+styleCore+styleRender+parkingScript+playerMenuCss+playerMenuStrings+playerMenuScript+locationCss+locationStrings+locationScript+'</head>'));
 }
 function start3DPreview(){
  if(preview3DActive)return;
@@ -3179,7 +3204,7 @@ init();
 <script src="./juego/assets/fh-furniture-rules.js"></script>
 <script src="./juego/assets/fh-editor-catalog.js"></script>
 <script src="./juego/assets/fh-surface-editor.js"></script>
-<script src="./juego/assets/fh-property-editor.js"></script>
+<script src="./juego/assets/fh-property-editor.js?v=20261106-location"></script>
 <script src="./juego/assets/fh-architecture-strings.js"></script>
 <script src="./juego/assets/fh-architecture-skins.js?v=20261106-hotfix3"></script>
 <script src="./juego/assets/fh-architecture-editor-catalog.js?v=20261105-visual-models"></script>
