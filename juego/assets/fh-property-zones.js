@@ -74,13 +74,17 @@
   const used=new Set(locations(map,floorId).map(colorOf));
   const available=ZONE_COLORS.find(c=>!used.has(c));
   if(available)return available;
-  for(let i=0;i<360;i++){
-   const h=(i*137.508)%360,k=Math.round(h/60)%6,t=60;
-   const hues=[[208,132,132],[208,170,132],[208,208,132],[132,208,132],[132,171,208],[168,132,208]];
-   const rgb=hues[k],c='#'+rgb.map(n=>n.toString(16).padStart(2,'0')).join('').toUpperCase();
-   if(!used.has(c))return c;
+  // Permutación biyectiva de colores RGB: multiplicador impar sobre 24 bits.
+  // Cada candidato es diferente; nunca reciclar un color, ya que equivale a fusionar zonas.
+  for(let i=0;i<0x1000000;i++){
+   const rgb=(Math.imul(i,0x9E3779B1)+0x8C9AAD)&0xFFFFFF;
+   const r=(rgb>>>16)&255,g=(rgb>>>8)&255,b=rgb&255;
+   // Evitar colores muy oscuros, pálidos o grises poco visibles en el editor.
+   if(Math.max(r,g,b)<110||Math.min(r,g,b)>226||Math.max(r,g,b)-Math.min(r,g,b)<30)continue;
+   const color='#'+rgb.toString(16).padStart(6,'0').toUpperCase();
+   if(!used.has(color))return color;
   }
-  return '#82C9AE';
+  throw Error('No quedan colores distintos disponibles para este piso.');
  }
  function pieces(zone){
   if(Array.isArray(zone?.polygons)&&zone.polygons.length)return zone.polygons;
@@ -102,14 +106,63 @@
   if(xs.some(v=>!Number.isFinite(v))||ys.some(v=>!Number.isFinite(v)))return null;
   return {x:Math.min(...xs),y:Math.min(...ys),w:Math.max(...xs)-Math.min(...xs),h:Math.max(...ys)-Math.min(...ys)};
  }
- function touchingRect(a,b){
-  const r=rectFor(a);if(!r)return false;
-  const xOverlap=Math.min(r.x+r.w,b.x+b.w)-Math.max(r.x,b.x);
-  const yOverlap=Math.min(r.y+r.h,b.y+b.h)-Math.max(r.y,b.y);
-  return (xOverlap>EPS&&yOverlap>=-EPS)||(yOverlap>EPS&&xOverlap>=-EPS);
+ // Geometría real para polígonos importados (triángulos, concavidades, etc.).
+ // El contacto por esquina NO fusiona; un borde compartido de longitud positiva sí.
+ const cross=(a,b,c)=>(b.x-a.x)*(c.y-a.y)-(b.y-a.y)*(c.x-a.x);
+ function onSegment(p,a,b){
+  return Math.abs(cross(a,b,p))<=EPS*Math.max(1,Math.hypot(b.x-a.x,b.y-a.y))&&
+   p.x>=Math.min(a.x,b.x)-EPS&&p.x<=Math.max(a.x,b.x)+EPS&&
+   p.y>=Math.min(a.y,b.y)-EPS&&p.y<=Math.max(a.y,b.y)+EPS;
+ }
+ function strictInside(p,poly){
+  return inside(p,poly)&&!poly.some((a,i)=>onSegment(p,a,poly[(i+1)%poly.length]));
+ }
+ function edges(poly){return poly.map((a,i)=>[a,poly[(i+1)%poly.length]]);}
+ function properIntersection(a,b,c,d){
+  const dx=b.x-a.x,dy=b.y-a.y,ex=d.x-c.x,ey=d.y-c.y;
+  const den=dx*ey-dy*ex;
+  if(Math.abs(den)<=EPS*Math.max(1,Math.hypot(dx,dy)*Math.hypot(ex,ey)))return false;
+  const cx=c.x-a.x,cy=c.y-a.y;
+  const t=(cx*ey-cy*ex)/den,u=(cx*dy-cy*dx)/den;
+  return t>EPS&&t<1-EPS&&u>EPS&&u<1-EPS;
+ }
+ function sharedEdge(a,b,c,d){
+  const ax=b.x-a.x,ay=b.y-a.y,bx=d.x-c.x,by=d.y-c.y;
+  if(Math.abs(ax*by-ay*bx)>EPS*Math.max(1,Math.hypot(ax,ay)*Math.hypot(bx,by))||
+     Math.abs(cross(a,b,c))>EPS*Math.max(1,Math.hypot(ax,ay)))return false;
+  const useX=Math.abs(ax)>=Math.abs(ay),axis=useX?'x':'y';
+  return Math.min(Math.max(a[axis],b[axis]),Math.max(c[axis],d[axis]))-
+   Math.max(Math.min(a[axis],b[axis]),Math.min(c[axis],d[axis]))>EPS;
+ }
+ function interiorSampleInside(a,b){
+  let signedArea=0;
+  for(const [p,q] of edges(a))signedArea+=p.x*q.y-q.x*p.y;
+  const side=signedArea>=0?1:-1;
+  for(const [p,q] of edges(a)){
+   const dx=q.x-p.x,dy=q.y-p.y,len=Math.hypot(dx,dy);
+   if(len<=EPS)continue;
+   const step=Math.min(0.0001,len*0.01);
+   const point={x:(p.x+q.x)/2-side*dy/len*step,
+                y:(p.y+q.y)/2+side*dx/len*step};
+   if(strictInside(point,a)&&strictInside(point,b))return true;
+  }
+  return false;
+ }
+ function polygonsOverlap(a,b){
+  if(!Array.isArray(a)||!Array.isArray(b)||a.length<3||b.length<3)return false;
+  if(a.some(p=>strictInside(p,b))||b.some(p=>strictInside(p,a)))return true;
+  for(const [p,q] of edges(a))for(const [u,v] of edges(b))
+   if(properIntersection(p,q,u,v))return true;
+  return interiorSampleInside(a,b)||interiorSampleInside(b,a);
+ }
+ function polygonsTouch(a,b){
+  if(polygonsOverlap(a,b))return true;
+  for(const [p,q] of edges(a))for(const [u,v] of edges(b))
+   if(sharedEdge(p,q,u,v))return true;
+  return false;
  }
  function overlaps(zone,rect){return pieces(zone).some(poly=>intersectionArea(poly,rect)>EPS);}
- function touches(zone,rect){return pieces(zone).some(poly=>touchingRect(poly,rect));}
+ function touches(zone,rect){const poly=polygon(rect);return pieces(zone).some(p=>polygonsTouch(p,poly));}
  function tooManyParts(parts){return parts.length>128;}
  function createLocation(map,floorId,a,b,columns,rows,id,kind,color=undefined,extendId=''){
   if(!['exterior','common'].includes(kind))return {ok:false,reason:'Tipo de zona inválido.'};
@@ -144,8 +197,7 @@
   const kind=options.kind,color=String(options.color||'').toUpperCase();
   if(!['common','exterior'].includes(kind)||!HEX.test(color))return {ok:false,reason:'Tipo o color inválido.'};
   const other=existing.find(z=>pieces(zone).some(poly=>{
-   const r=rectFor(poly);
-   return r&&overlaps(z,r);
+   return pieces(z).some(other=>polygonsOverlap(poly,other));
   }));
   if(other)return {ok:false,reason:'No se puede modificar esta zona: se superpone con «'+(other.name||'Zona')+'».'};
   let list=[{...zone,kind,color,name:String(options.name||'').trim().slice(0,80)}],merged=[];
@@ -154,7 +206,7 @@
    changed=false;
    for(const otherZone of existing){
     if(merged.includes(otherZone.id)||otherZone.kind!==kind||colorOf(otherZone)!==color)continue;
-    if(!pieces(otherZone).some(poly=>list.some(base=>pieces(base).some(q=>touchingRect(q,rectFor(poly))))))continue;
+    if(!pieces(otherZone).some(poly=>list.some(base=>pieces(base).some(q=>polygonsTouch(q,poly)))))continue;
     list.push(otherZone);merged.push(otherZone.id);changed=true;
    }
   }
