@@ -125,6 +125,9 @@ function patchEngineDoc(doc){
  if(typeof doc!=='string')throw new TypeError('Se requiere documento HTML del motor 3D');
  let out=one(doc,'applyDoorPose(d);doorList[f].push(d);return d;',
   'applyDoorPose(d);doorList[f].push(d);window.FHArchitectureSkins?.decorateDoor(d,it,THREE,installVisibility);return d;');
+ // Dos bisagras espejadas: la segunda gira en sentido contrario para abrir al mismo lado del muro.
+ out=one(out,'else for(const part of d.animated)part.group.rotation.y=part.base+d.angle;',
+  "else for(let i=0;i<d.animated.length;i++){const part=d.animated[i];part.group.rotation.y=part.base+(d.family==='double'&&i===1?-d.angle:d.angle);}");
  out=one(out,'function windowModel(f,it){',
   'function windowModel(f,it){const fhWinVisualStart=stories[f].children.length;');
  const begin=out.indexOf('function windowModel(f,it){'),end=out.indexOf('function doorTarget(d)',begin);

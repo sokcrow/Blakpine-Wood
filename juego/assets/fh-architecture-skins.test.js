@@ -80,6 +80,26 @@ test('puerta doble instancia dos GLB individuales, segundo a 180 grados, apertur
  assert.equal(oldFrame.visible,false);
  assert.equal(door.open,true);assert.equal(door.angle,1.2);assert.equal(door.target,1.2);assert.equal(door.passable,true);
 });
+test('rotaciones de puerta doble: ambas hojas avanzan al mismo lado del muro',()=>{
+ const {api}=sceneEnvironment();
+ const fixture='<html><head></head><body><script>'+
+  'function applyDoorPose(d){if(d.family==="garage"){}else for(const part of d.animated)part.group.rotation.y=part.base+d.angle;}\n'+
+  'function windowModel(f,it){\nconst a=world(it.a),b=world(it.b),angle=0;\n}\n'+
+  'function doorTarget(d){return 1.20;}\n'+
+  'function doorModel(f,it){applyDoorPose(d);doorList[f].push(d);return d;}</scr'+'ipt></body></html>';
+ const patched=api.patchEngineDoc(fixture);
+ const match=patched.match(/else for\(let i=0;i<d\.animated\.length;i\+\+\)\{[^}]+\}/);
+ assert.ok(match,'No se inyectó el cambio de giro de la segunda hoja');
+ const rig={family:'double',angle:.8,animated:[
+  {base:0,group:{rotation:{y:0}}},{base:Math.PI,group:{rotation:{y:0}}}
+ ]};
+ vm.runInNewContext('if(false){}'+match[0],{d:rig});
+ const side=rig.animated.map(part=>Math.sign(-Math.sin(part.group.rotation.y)));
+ assert.deepEqual(side,[-1,-1]);
+ const single={family:'single',angle:.8,animated:[{base:0,group:{rotation:{y:0}}}]};
+ vm.runInNewContext('if(false){}'+match[0],{d:single});
+ assert.equal(single.animated[0].group.rotation.y,.8);
+});
 test('ventana conserva antepecho y dintel y retira panel original del render FOW',async()=>{
  const env=sceneEnvironment(),{api,THREE,Group}=env;
  const container=new Group();container.parent={};
@@ -98,6 +118,7 @@ test('ventana conserva antepecho y dintel y retira panel original del render FOW
 test('el hook valida anclas y preserva el comportamiento original del motor',()=>{
  const {api}=sceneEnvironment();
  const fixture='<html><head></head><body><script>'+
+  'function applyDoorPose(d){if(d.family==="garage"){}else for(const part of d.animated)part.group.rotation.y=part.base+d.angle;}\n'+
   'function windowModel(f,it){\nconst a=world(it.a),b=world(it.b),angle=0;\n}\n'+
   'function doorTarget(d){return 1.20;}\n'+
   'function doorModel(f,it){applyDoorPose(d);doorList[f].push(d);return d;}</scr'+'ipt></body></html>';
@@ -105,6 +126,7 @@ test('el hook valida anclas y preserva el comportamiento original del motor',()=
  assert.match(result,/FHArchitectureSkins\?\.decorateDoor\(d,it,THREE,installVisibility\)/);
  assert.match(result,/FHArchitectureSkins\?\.decorateWindow/);
  assert.match(result,/function doorTarget\(d\)\{return 1.20;\}/);
+ assert.match(result,/d\.family==='double'&&i===1\?-d\.angle:d\.angle/);
  assert.match(result,/fh-architecture-skins\.js/);
  assert.throws(()=>api.patchEngineDoc('incompatible'),/Motor 3D no compatible/);
 });
@@ -129,6 +151,7 @@ test('regresión: el motor REAL contiene varias etiquetas de cierre de head y ac
  const patched=api.patchEngineDoc(realHtml);
  assert.ok(patched.includes('FHArchitectureSkins?.decorateDoor(d,it,THREE,installVisibility)'));
  assert.ok(patched.includes('FHArchitectureSkins?.decorateWindow({it,THREE,container:stories[f]'));
+ assert.ok(patched.includes("d.family==='double'&&i===1?-d.angle:d.angle"));
  const injected='<script src="https://example.test/juego/assets/fh-architecture-skins.js"></script>';
  assert.ok(patched.indexOf(injected)>0);
  assert.ok(patched.indexOf(injected)<patched.indexOf('</head>'));
