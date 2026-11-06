@@ -92,6 +92,7 @@
       }
     }
     if(entry.svg.parentNode!==node)node.insertBefore(entry.svg,node.firstChild);
+    if(node.classList?.add)node.classList.add('fh-hud-framed');
     entry.render();
     return true;
   }
