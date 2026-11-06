@@ -2707,7 +2707,9 @@ function prepareGLBEngineDoc(source){
  const coverageScript='<script src="'+new URL('./juego/assets/fh-light-coverage.js?v=20261105-light-ui2',document.baseURI).href+'"></'+'script>';
  const lightsModule='<script src="'+new URL('./juego/assets/fh-lights.js?v=20261105-light-ui2',document.baseURI).href+'"></'+'script>';
  const deliveryStrings='<script src="'+new URL('./juego/assets/fh-delivery-strings.js?v=20261105-peephole',document.baseURI).href+'"></'+'script>';
- const deliveryModule='<script src="'+new URL('./juego/assets/fh-delivery.js?v=20261105-peephole',document.baseURI).href+'"></'+'script>';
+ const deliveryModule='<script src="'+new URL('./juego/assets/fh-delivery.js?v=20261105-visitor',document.baseURI).href+'"></'+'script>';
+ const visitorStrings='<script src="'+new URL('./juego/assets/fh-visitor-strings.js?v=20261105-visitor',document.baseURI).href+'"></'+'script>';
+ const visitorModule='<script src="'+new URL('./juego/assets/fh-visitor.js?v=20261105-visitor',document.baseURI).href+'"></'+'script>';
  const pcAssemblyModule='<script src="'+new URL('./juego/assets/fh-pc-assembly.js',document.baseURI).href+'"></'+'script>';
  const computerModule='<script src="'+new URL('./juego/assets/fh-computer.js',document.baseURI).href+'"></'+'script>';
  const computerStrings='<script src="'+new URL('./juego/assets/fh-computer-strings.js',document.baseURI).href+'"></'+'script>';
@@ -2809,7 +2811,7 @@ function prepareGLBEngineDoc(source){
   const interactAfter="const interactableItems=DATA.floors.map(f=>(f.items||[]).filter(it=>it.interact||it.type==='light_switch'||it.type==='breaker_panel'||ForestShared.PROP_ACTIONS[it.type]||it.pcTerminal===true||it.modelId==='escritorio_pc'||window.FHComputer?.isPc(it,f.items,Number(DATA.units.feetPerCell)||5))\n .map(it=>(it.pcTerminal===true||it.modelId==='escritorio_pc'||window.FHComputer?.isPc(it,f.items,Number(DATA.units.feetPerCell)||5))?{...it,interact:{id:'pc_'+it.id,verb:'use',label:window.FH_COMPUTER_TEXT?.pcAction||'Usar PC',effects:[]}}:it.interact?it:{...it,interact:ForestShared.PROP_ACTIONS[it.type]?\n  {...ForestShared.interactionPreset(it.type==='bed'?'bed_lie':it.type==='tv'?'tv_watch':it.type),id:'pose_'+it.id}:\n  {id:'power_'+it.id,verb:'use',label:it.type==='breaker_panel'?LIGHTING_TEXT.breakerAction:LIGHTING_TEXT.switchAction,effects:[]}}));";
   const buildAnchor="DATA.floors.forEach((_,i)=>buildFloor(i));";
   const runtimeBlock=`DATA.floors.forEach((_,i)=>buildFloor(i));
-let fhDeliveryUiActive=false,fhDeliveryNpc=null,fhDeliveryNpcMotion=null,fhDecorationActive=null,fhDecorationUi=null;
+let fhDeliveryUiActive=false,fhVisitorUiActive=false,fhVisitorSkipNext=false,fhDeliveryNpc=null,fhDeliveryNpcMotion=null,fhDecorationActive=null,fhDecorationUi=null;
 const FH_DELIVERY_POSES={idle:'delivery_idle.webp',walk:'delivery_walk.webp',thinking:'delivery_thinking.webp',clipboard:'delivery_clipboard.webp',peephole_front:'delivery_peephole.webp',cash:'delivery_cash.webp',card:'delivery_card.webp'};
 function fhDeliverySpriteUrl(pose){return new URL('./juego/assets/npc/'+(FH_DELIVERY_POSES[pose]||FH_DELIVERY_POSES.idle),document.baseURI).href}
 function fhDeliveryNpcTexture(pose){
@@ -2829,7 +2831,7 @@ function fhSetDeliveryNpcPose(pose){
 function fhShowDeliveryNpc(order,door,pose='idle'){
  fhDisposeDeliveryNpc();
  const material=new THREE.SpriteMaterial({transparent:true,depthWrite:false}),sprite=new THREE.Sprite(material);
- fhDeliveryNpc=sprite;const arriving=pose==='idle',displayPose=arriving?'walk':pose;fhSetDeliveryNpcPose(displayPose);
+ fhDeliveryNpc=sprite;sprite.visible=false;const arriving=pose==='idle',displayPose=arriving?'walk':pose;fhSetDeliveryNpcPose(displayPose);
  const outside=.72,start=arriving?2.4:.72,baseY=floorElev[door.f]+1.05;
  sprite.scale.set(1.12,1.68,1);sprite.position.set(door.cx+door.norm.x*start,baseY,door.cz+door.norm.z*start);
  stories[door.f].add(sprite);fhDeliveryNpcMotion=arriving?{door,t:0,duration:1.35,start,target:outside,finalPose:'idle'}:null;visibilityDirty=true;
@@ -2837,10 +2839,15 @@ function fhShowDeliveryNpc(order,door,pose='idle'){
 function fhDeliveryNpcTick(dt){
  const m=fhDeliveryNpcMotion;if(!m||!fhDeliveryNpc)return;m.t=Math.min(1,m.t+dt/m.duration);
  const q=m.t*m.t*(3-2*m.t),dist=m.start+(m.target-m.start)*q;
- fhDeliveryNpc.position.x=m.door.cx+m.door.norm.x*dist;fhDeliveryNpc.position.z=m.door.cz+m.door.norm.z*dist;
+ fhDeliveryNpc.position.x=m.door.cx+m.door.norm.x*dist;fhDeliveryNpc.position.z=m.door.cz+m.door.norm.z*dist;visibilityDirty=true;
  if(m.t>=1){fhDeliveryNpcMotion=null;if(m.finalPose)fhSetDeliveryNpcPose(m.finalPose);}
 }
 function fhHideDeliveryNpc(){fhDisposeDeliveryNpc();fhDeliveryNpcMotion=null;visibilityDirty=true}
+function fhDeliveryNpcSight(at,opaque,params){
+ if(!fhDeliveryNpc)return;
+ const sameFloor=fhDeliveryNpc.parent===stories[currentFloor];
+ setSightRootVisibility(fhDeliveryNpc,sameFloor&&litPointVisible(fhDeliveryNpc.position.x,fhDeliveryNpc.position.z,at,opaque,params));
+}
 function fhRuntimeItemById(id,f){return (DATA.floors[f]?.items||[]).find(it=>it.id===id)||null}
 function fhSpawnRuntimeItem(item,f){
  if(!item||!DATA.floors[f]||fhRuntimeItemById(item.id,f))return false;
@@ -2981,6 +2988,11 @@ window.FHDeliveryRuntime=window.FHDelivery?.createRuntime({
  packagePlacement:(door)=>({floor:door.f,x:door.cx-door.norm.x*1.15,z:door.cz-door.norm.z*1.15}),
  spawnRuntimeItem:fhSpawnRuntimeItem,hasRuntimeItem:(id,f)=>!!fhRuntimeItemById(id,f),replacePackage:fhReplacePackage,restoreFurniture:fhRestoreDeliveredFurniture,
  showNpc:fhShowDeliveryNpc,hideNpc:fhHideDeliveryNpc,spriteUrl:fhDeliverySpriteUrl
+});
+window.FHVisitorRuntime=window.FHVisitor?.createRuntime({
+ resolveEvent:door=>window.FHDeliveryRuntime?.visitorEvent(door)||door.visitorEvent,
+ freeze:on=>{fhVisitorUiActive=!!on;user.vx=user.vz=0;clearStick();},
+ openDoor:door=>{if(peeking)stopPeek();if(door.open)return;fhVisitorSkipNext=true;try{toggleDoor()}finally{fhVisitorSkipNext=false;}}
 });`;
   const furnitureBefore="function useFurniture(item,selectedSeat=null){\n if(['sit','lie'].includes(item.interact?.verb)){";
   const furnitureAfter="let fhSeatFrontCache=null,fhSeatFrontCacheAt=0,fhSeatFrontCacheSeat=null,fhSeatFrontCacheFloor=-1;\nfunction fhSeatFrontTarget(){\n if(playerPose.state.phase!=='sitting'||!playerPoseItem)return null;\n const now=performance.now();\n if(fhSeatFrontCacheSeat===playerPoseItem&&fhSeatFrontCacheFloor===currentFloor&&now-fhSeatFrontCacheAt<250)return fhSeatFrontCache;\n const target=window.FHPcAssembly?.frontTarget(playerPoseItem,interactableItems[currentFloor],{\n  cell:CELL,isPc:item=>window.FHComputerRuntime?.isPc(item),\n  isClear:(from,to,seat,item)=>ForestShared.poseRouteClear(from,to,(x,z)=>ForestShared.solidAt(x,z,{\n   width:MAX_X,height:MAX_Z,radius:.025,\n   walls:blockers[currentFloor].filter(w=>w.ownerItemId!==seat.id&&w.ownerItemId!==item.id),wallThickness:WALL_THICK,\n   doors:doorList[currentFloor],doorPad:.02,\n   objects:furnitureColliders[currentFloor].filter(o=>o.id!==seat.id&&o.id!==item.id),objectMode:'box'\n  }),.12)\n })||null;\n fhSeatFrontCache=target;fhSeatFrontCacheAt=now;fhSeatFrontCacheSeat=playerPoseItem;fhSeatFrontCacheFloor=currentFloor;\n return target;\n}\nfunction fhUseFrontFromSeat(){\n const target=fhSeatFrontTarget();\n return target?useFurniture(target.item):useTVFromSeat();\n}\nfunction useFurniture(item,selectedSeat=null){\n if(fhDecorationActive)return {ok:false,reason:'decorating'};\n if(window.FHComputerRuntime?.isPc(item))return {ok:!!window.FHComputerRuntime.open(item,currentFloor)};\n if(window.FHDeliveryRuntime?.isPackage(item))return {ok:!!window.FHDeliveryRuntime.openPackage(item)};\n if(['sit','lie'].includes(item.interact?.verb)){";
@@ -2991,7 +3003,7 @@ window.FHDeliveryRuntime=window.FHDelivery?.createRuntime({
   const peekExitBefore="function stopPeek(){peeking=false;peekDoor=null;$('peekOverlay').classList.remove('active');document.body.classList.remove('peeking');visibilityDirty=true}";
   const peekExitAfter="function stopPeek(){window.FHDeliveryRuntime?.onPeepholeExit();peeking=false;peekDoor=null;$('peekOverlay').classList.remove('active');document.body.classList.remove('peeking');visibilityDirty=true}";
   const frameBefore=" moveUpdate(dt);";
-  const frameAfter=" window.FHDeliveryRuntime?.update(dt);fhDecorationTick();if(!fhDeliveryUiActive&&!fhDecorationActive)moveUpdate(dt);else{user.vx=user.vz=0;}fhDeliveryNpcTick(dt);";
+  const frameAfter=" window.FHDeliveryRuntime?.update(dt);fhDecorationTick();if(!fhDeliveryUiActive&&!fhVisitorUiActive&&!fhDecorationActive)moveUpdate(dt);else{user.vx=user.vz=0;}fhDeliveryNpcTick(dt);";
   const apiBefore="get watchingTV(){return watchingTvId},watchTV:useTVFromSeat,breakers:";
   const apiAfter="get watchingTV(){return watchingTvId},watchTV:useTVFromSeat,delivery:window.FHDeliveryRuntime,computer:window.FHComputerRuntime,breakers:";
   const watchHudBefore=" const combo=currentTVCombo();\n $('watchTv').hidden=!combo;\n if(combo)$('watchTv').textContent=watchingTvId===combo.tvId?POSTURE_TEXT.stopWatching:POSTURE_TEXT.watch;";
@@ -3000,6 +3012,15 @@ window.FHDeliveryRuntime=window.FHDelivery?.createRuntime({
   const watchListenerAfter="$('watchTv').addEventListener('click',fhUseFrontFromSeat);";
   const watchKeyBefore="if(k==='t'&&!e.repeat&&playerPose.state.phase==='sitting')useTVFromSeat();";
   const watchKeyAfter="if(k==='t'&&!e.repeat&&playerPose.state.phase==='sitting')fhUseFrontFromSeat();";
+  const visitorDoorFieldBefore="role:it.doorRole||'auto',hinge:leaf,frame,baseAngle:restAngle,family:spec.family,variant:spec.variant,";
+  const visitorDoorFieldAfter="role:it.doorRole||'auto',visitorEvent:it.visitorEvent||null,hinge:leaf,frame,baseAngle:restAngle,family:spec.family,variant:spec.variant,";
+  const visitorAttemptBefore=" if(d.locked){const result=ForestShared.unlockDoor(d,GameState,itemDefs);";
+  const visitorAttemptAfter=" if(!fhVisitorSkipNext&&!d.open&&isInsideDoor(d)&&window.FHVisitorRuntime?.onDoorAttempt(d))return;\n if(d.locked){const result=ForestShared.unlockDoor(d,GameState,itemDefs);";
+  const visitorSightBefore=" updateLampSight(at,opaque,params);";
+  const visitorSightAfter=" updateLampSight(at,opaque,params);\n fhDeliveryNpcSight(at,opaque,params);";
+  for(const [before,after] of [[visitorDoorFieldBefore,visitorDoorFieldAfter],[visitorAttemptBefore,visitorAttemptAfter],[visitorSightBefore,visitorSightAfter]]){
+   const n=doc.split(before).length-1;if(n!==1)throw Error('Hook de visitante incompatible: '+before.slice(0,85)+' ('+n+')');doc=doc.replace(before,after);
+  }
   const changes=[[stateAnchor,stateAfter],[interactBefore,interactAfter],[buildAnchor,runtimeBlock],[furnitureBefore,furnitureAfter],[watchHudBefore,watchHudAfter],[watchListenerBefore,watchListenerAfter],[watchKeyBefore,watchKeyAfter],[doorBefore,doorAfter],[peekBefore,peekAfter],[peekExitBefore,peekExitAfter],[frameBefore,frameAfter],[apiBefore,apiAfter]];
   for(const [a,b] of changes){const n=doc.split(a).length-1;if(n!==1)throw Error('Hook delivery incompatible: '+a.slice(0,90)+' ('+n+')');doc=doc.replace(a,b);}
   return doc;
@@ -3028,7 +3049,7 @@ window.FHDeliveryRuntime=window.FHDelivery?.createRuntime({
   .replace(attachBefore,' window.FHAssets?.attach(g,a);\n'+attachBefore)
   .replace(cloneBefore,'const clone=source.clone(true);\n   window.FHAssets?.mirror(source,clone);\n   clone.position.y+=floorElev[f];')
   .replace(engineSuccessBefore,engineSuccessAfter).replace(engineFailBefore,engineFailAfter).replace(loadFailBefore,loadFailAfter)
-  .replace('</head>',localThree+coverageScript+lightsModule+surfaceScript+decorationScript+ruleScript+bridge+sleepStrings+sleepModule+pcAssemblyModule+computerStrings+computerModule+deliveryStrings+deliveryModule+styleCore+styleRender+parkingScript+'</head>');
+  .replace('</head>',localThree+coverageScript+lightsModule+surfaceScript+decorationScript+ruleScript+bridge+sleepStrings+sleepModule+pcAssemblyModule+computerStrings+computerModule+visitorStrings+visitorModule+deliveryStrings+deliveryModule+styleCore+styleRender+parkingScript+'</head>');
 }
 function start3DPreview(){
  if(preview3DActive)return;
