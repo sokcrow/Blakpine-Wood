@@ -45,4 +45,6 @@ La llegada de un pedido Hamazon llama a `knockAt` y produce tres golpes separado
 
 Ejecutar: `node --test juego/assets/fh-live-text.test.js`
 
-**Pendiente de comprobar en navegador real:** aspecto final en móviles, audio permitido o bloqueado, sincronía visual en distintas resoluciones y conversaciones del repartidor que usan su propia interfaz de decisiones.
+**Integración del repartidor:** las conversaciones de mirilla, pago y entrega conservan sus botones de decisión, ahora con nombre de NPC, cuadro redondeado y el Typewriter compartido. Los botones se habilitan al terminar la frase; pulsar E, espacio, Intro o flecha abajo completa la escritura y después E enfoca la primera opción.
+
+**Pendiente de comprobar en navegador real:** apariencia final en móviles, audio permitido o bloqueado y sincronía visual en distintas resoluciones. Los controles avanzados del editor para emociones siguen pendientes.
