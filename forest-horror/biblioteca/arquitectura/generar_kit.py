@@ -1,4 +1,4 @@
-"""Generador reproducible: cinco GLB estructurales de bajo polígonaje.
+"""Generador reproducible de cinco GLB básicos; incluye hotfix de perillas simétricas.
 Unidades GLB: metros; puerta 1 tile (1.524 m) de ancho y 7 ft (2.1336 m) hoja.
 Ventana: 1 tile x 1 tile (1.524 m x 1.524 m), origen en su antepecho.
 """
@@ -51,7 +51,6 @@ def texture(name,kind):
         for ix in range(8):
             xx=(ix*19+13)%54+5;yy=(ix*23+17)%87+4
             d.line((xx,yy,xx+3,yy),fill=blend(p['base'],p['dark'],.35))
-        d.rectangle((49,47,54,52),fill=p['metal'],outline=p['dark'])
         if name=='puerta_mirilla':
             d.ellipse((27,18,35,26),fill=p['metal'],outline=p['dark'],width=1)
             d.ellipse((30,21,32,23),fill='#171d20')
@@ -121,7 +120,12 @@ def make(name,kind):
         frame.box(WIDTH/2,2.217,0,WIDTH,.072,.14,trim=(64,0,95,95),faces=(64,0,95,95))
         leaf=Build(); leaf_w=WIDTH-.16
         leaf.box(WIDTH/2,DOOR_H/2,0,leaf_w,DOOR_H,.060)
-        leaf.box(WIDTH-.245,1.025,.07,.052,.080,.049,faces=(96,0,127,95),trim=(96,0,127,95))
+        # Perillas en ambas caras, centradas en las mismas coordenadas X/Y.
+        for side in (-1, 1):
+            leaf.box(WIDTH-.245,1.025,side*.035,.105,.145,.018,
+                     faces=(96,0,127,95),trim=(96,0,127,95))
+            leaf.box(WIDTH-.245,1.025,side*.075,.058,.084,.055,
+                     faces=(96,0,127,95),trim=(96,0,127,95))
         sc.add_geometry(frame.geom('MARCO_FIJO',opaque),node_name='MARCO_FIJO',geom_name='MARCO_FIJO')
         sc.add_geometry(leaf.geom('HOJA_PIVOTE',opaque),node_name='HOJA_PIVOTE',geom_name='HOJA_PIVOTE')
     else:
