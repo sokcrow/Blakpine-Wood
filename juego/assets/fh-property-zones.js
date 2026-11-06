@@ -67,6 +67,23 @@
   if(typeof id!=='string'||!id)return {ok:false,reason:'ID de parcela inválido.'};
   return {ok:true,zone:{id,floorId,source:'zone',name:'Parcela',claimable:true,ownerId:'',polygon:polygon(rect)}};
  }
+ function locations(map,floorId){
+  return (map.locationZones||[]).filter(z=>z.floorId===floorId&&['exterior','common'].includes(z.kind)&&Array.isArray(z.polygon));
+ }
+ function locationAt(map,floorId,point){
+  const matches=locations(map,floorId).filter(z=>inside(point,z.polygon));
+  return matches.length===1?matches[0]:null;
+ }
+ function createLocation(map,floorId,a,b,columns,rows,id,kind){
+  if(!['exterior','common'].includes(kind))return {ok:false,reason:'Tipo de zona inválido.'};
+  const rect=rectangle(a,b,columns,rows);
+  if(!rect)return {ok:false,reason:'Dibuja un área de al menos ¼ de casilla de ancho y alto.'};
+  if(!id||typeof id!=='string')return {ok:false,reason:'ID de zona inválido.'};
+  if(locations(map,floorId).some(z=>z.kind===kind&&intersectionArea(z.polygon,rect)>EPS)){
+   return {ok:false,reason:'Esa zona se superpone con otra zona del mismo tipo.'};
+  }
+  return {ok:true,zone:{id,floorId,kind,name:kind==='exterior'?'Exterior':'Zona común',polygon:polygon(rect)}};
+ }
  function counts(floor,prop){
   const items=floor?.items||[],wallTypes=new Set(['wall','red_wall','half_wall','fence','property_wall']);
   let walls=0,areas=0,objects=0,doors=0;
@@ -87,5 +104,5 @@
   }
   return {walls,areas,objects,doors};
  }
- return Object.freeze({rectangle,polygon,inside,intersectionArea,conflicts,at,doorAt,create,counts});
+ return Object.freeze({rectangle,polygon,inside,intersectionArea,conflicts,at,doorAt,create,counts,locations,locationAt,createLocation});
 });
