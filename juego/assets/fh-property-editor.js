@@ -28,11 +28,13 @@
   const color=Z().colorOf(zone),polys=Z().pieces(zone);
   c.save();
   c.fillStyle=color;c.globalAlpha=.16;
+  c.beginPath();
   for(const poly of polys){
-   c.beginPath();
    poly.forEach((pt,i)=>{const p=toPixel(pt);i?c.lineTo(p.x,p.y):c.moveTo(p.x,p.y)});
-   c.closePath();c.fill();
+   c.closePath();
   }
+  // Un solo fill: las intersecciones entre tramos no se oscurecen.
+  c.fill();
   c.globalAlpha=1;c.strokeStyle=color;c.lineWidth=2.4/cam.scale;c.setLineDash([8/cam.scale,4/cam.scale]);
   c.beginPath();
   for(const edge of Z().boundarySegments(zone)){
