@@ -1,0 +1,28 @@
+name: Forest Horror — regresión puertas dobles
+
+on:
+  pull_request:
+    paths:
+      - juego/assets/fh-architecture-skins.js
+      - juego/assets/fh-architecture-skins.test.js
+      - .github/workflows/doors-double-frame.yml
+  push:
+    branches: [main]
+    paths:
+      - juego/assets/fh-architecture-skins.js
+      - juego/assets/fh-architecture-skins.test.js
+      - .github/workflows/doors-double-frame.yml
+
+permissions:
+  contents: read
+
+jobs:
+  doors:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Probar marco exterior, encuentro central y apertura
+        run: node --test juego/assets/fh-architecture-skins.test.js

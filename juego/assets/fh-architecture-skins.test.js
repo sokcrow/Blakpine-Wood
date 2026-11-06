@@ -88,7 +88,7 @@ test('puerta doble: dos hojas individuales que se tocan y SIN poste en medio',as
  const leftEnd=animated[0].group.position.x+edge*animated[0].group.children[1].scale.x;
  const rightEnd=animated[1].group.position.x-edge*animated[1].group.children[1].scale.x;
  assert.ok(Math.abs(leftEnd-rightEnd)<1e-9,'Las hojas se tocan en el centro del vano');
- assert.equal(leftEnd,1.524);
+ assert.ok(Math.abs(leftEnd-1.524)<1e-9,'El contacto coincide con el centro nominal del vano');
  assert.equal(animated[1].base-animated[0].base,Math.PI);
  assert.equal(door.open,true);assert.equal(door.angle,1.2);assert.equal(door.target,1.2);assert.equal(door.passable,true);
 });
