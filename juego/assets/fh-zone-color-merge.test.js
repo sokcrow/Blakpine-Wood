@@ -172,4 +172,41 @@ test('Dos triángulos importados con lado diagonal compartido eliminan la costur
   Math.abs(e.b.x+e.b.y-4)<1e-6&&
   Math.hypot(e.a.x-e.b.x,e.a.y-e.b.y)>1),false);
 });
+test('Orientación mixta importada no cancela el relleno de un tramo solapado',()=>{
+ const reverseTriangle=[{x:0,y:4},{x:4,y:0},{x:0,y:0}];
+ const rect=Z.polygon({x:0,y:1,w:2,h:2});
+ const zone={id:'mix',floorId:'p1',kind:'exterior',
+  name:'Callejón',polygons:[reverseTriangle,rect],polygon:reverseTriangle};
+ const untouched=JSON.stringify(zone.polygons);
+ const area2=poly=>poly.reduce((sum,a,i)=>{
+  const b=poly[(i+1)%poly.length];return sum+a.x*b.y-b.x*a.y;
+ },0);
+ const windingAt=(poly,pt)=>{
+  let winding=0;
+  for(let i=0;i<poly.length;i++){
+   const a=poly[i],b=poly[(i+1)%poly.length];
+   const cross=(b.x-a.x)*(pt.y-a.y)-(b.y-a.y)*(pt.x-a.x);
+   if(a.y<=pt.y&&b.y>pt.y&&cross>0)winding++;
+   if(a.y>pt.y&&b.y<=pt.y&&cross<0)winding--;
+  }
+  return winding;
+ };
+ const point={x:0.5,y:1.5};
+ assert.equal(zone.polygons.reduce((n,p)=>n+windingAt(p,point),0),0,
+  'Este caso debe reproducir la cancelación previa del Canvas no-zero winding');
+ const oriented=Z.orientedPieces(zone);
+ assert(oriented.every(poly=>area2(poly)>0));
+ assert.notEqual(oriented.reduce((n,p)=>n+windingAt(p,point),0),0);
+ assert.equal(JSON.stringify(zone.polygons),untouched,'No debe modificar los datos del mapa');
+ assert.equal(Z.zoneContains(zone,point),true);
+});
+test('Normalización preserva la geometría y el orden almacenado del polígono legado',()=>{
+ const imported=[{x:0,y:4},{x:4,y:0},{x:0,y:0}];
+ const zone={polygon:imported};
+ const oriented=Z.orientedPieces(zone);
+ assert.equal(oriented.length,1);
+ assert.deepEqual(oriented[0],[...imported].reverse());
+ assert.notStrictEqual(oriented[0],imported);
+ assert.deepEqual(zone.polygon,imported);
+});
 console.log(passed+' pruebas correctas');
