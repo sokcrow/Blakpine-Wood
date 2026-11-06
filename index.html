@@ -2724,8 +2724,8 @@ function addLiveTextToEngine(doc){
   if(occurrences!==1)throw Error('Hook texto vivo incompatible: '+before.slice(0,85)+' ('+occurrences+')');
   doc=doc.replace(before,after);
  }
- const str='<script src="'+new URL('./juego/assets/fh-live-text-strings.js?v=20261105-live1',document.baseURI).href+'"></'+'script>';
- const ui='<script src="'+new URL('./juego/assets/fh-live-text.js?v=20261105-live1',document.baseURI).href+'"></'+'script>';
+ const str='<script src="'+new URL('./juego/assets/fh-live-text-strings.js?v=20261106-live-courier',document.baseURI).href+'"></'+'script>';
+ const ui='<script src="'+new URL('./juego/assets/fh-live-text.js?v=20261106-live-courier',document.baseURI).href+'"></'+'script>';
  return doc.replace('</head>',str+ui+'</head>');
 }
 
@@ -2747,8 +2747,8 @@ function prepareGLBEngineDoc(source){
  const sleepModule='<script src="'+new URL('./juego/assets/fh-sleep.js',document.baseURI).href+'"></'+'script>';
  const coverageScript='<script src="'+new URL('./juego/assets/fh-light-coverage.js?v=20261105-light-ui2',document.baseURI).href+'"></'+'script>';
  const lightsModule='<script src="'+new URL('./juego/assets/fh-lights.js?v=20261105-light-ui2',document.baseURI).href+'"></'+'script>';
- const deliveryStrings='<script src="'+new URL('./juego/assets/fh-delivery-strings.js?v=20261105-peephole',document.baseURI).href+'"></'+'script>';
- const deliveryModule='<script src="'+new URL('./juego/assets/fh-delivery.js?v=20261105-peephole',document.baseURI).href+'"></'+'script>';
+ const deliveryStrings='<script src="'+new URL('./juego/assets/fh-delivery-strings.js?v=20261106-live-courier',document.baseURI).href+'"></'+'script>';
+ const deliveryModule='<script src="'+new URL('./juego/assets/fh-delivery.js?v=20261106-live-courier',document.baseURI).href+'"></'+'script>';
  const pcAssemblyModule='<script src="'+new URL('./juego/assets/fh-pc-assembly.js',document.baseURI).href+'"></'+'script>';
  const computerModule='<script src="'+new URL('./juego/assets/fh-computer.js',document.baseURI).href+'"></'+'script>';
  const computerStrings='<script src="'+new URL('./juego/assets/fh-computer-strings.js',document.baseURI).href+'"></'+'script>';
