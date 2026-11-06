@@ -44,7 +44,7 @@
   const areas=(floor.items||[]).filter(it=>inArea(point,it));
   const find=(types)=>areas.find(it=>types.includes(it.type));
   const room=find(['room']),hall=find(['hall']),buildingArea=find(['building']);
-  const outsideArea=find(['outside','grass','dirt','parking','pavement','asphalt','alley','sidewalk','concrete','gravel','cobblestone']);
+  const outsideArea=find(['outside']); // Los materiales de suelo no son nombres de zonas.
   const regions=(map.locationZones||[]).filter(z=>z.floorId===floorId&&inPolygon(point,z.polygon));
   const common=regions.find(z=>z.kind==='common');
   const exterior=regions.find(z=>z.kind==='exterior');
