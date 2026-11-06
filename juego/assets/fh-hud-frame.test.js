@@ -39,8 +39,10 @@ test('montaje SVG idempotente sin alterar etiquetas existentes',()=>{
       };
     }
   };
+  const classes=new Set();
   const node={
     children:[],
+    classList:{add(name){classes.add(name);}},
     getBoundingClientRect(){return {width:350,height:76};},
     insertBefore(child){child.parentNode=this;this.children.unshift(child);}
   };
@@ -49,12 +51,17 @@ test('montaje SVG idempotente sin alterar etiquetas existentes',()=>{
     assert.equal(frame.mount(node,'test'),true);
     assert.equal(frame.mount(node,'test'),true);
     assert.equal(node.children.length,1);
+    assert.equal(classes.has('fh-hud-framed'),true);
     const svg=node.children[0];
     assert.equal(svg.tagName,'svg');
     assert.equal(svg.attributes['viewBox'],'0 0 350 76');
     assert.equal(svg.children.length,3); // defs + contorno exterior + interior
     assert.equal(svg.children[1].tagName,'path');
     assert.equal(svg.children[2].tagName,'path');
+    // Simula replaceChildren() del HUD contextual.
+    node.children=[];svg.parentNode=null;
+    assert.equal(frame.mount(node,'test'),true);
+    assert.equal(node.children[0],svg);
   }finally{
     if(prior===undefined)delete global.document;
     else global.document=prior;
