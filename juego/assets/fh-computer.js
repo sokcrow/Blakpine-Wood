@@ -91,7 +91,7 @@
   let frame=null,active=null,activeKey='',opened=false;
   const floorItems=f=>options.floorItems?.(f)||[];
   const say=(value,ms=2900)=>options.notice?.(value,ms);
-  const stationKey=(session,floor)=>String(floor)+':'+(session.stationId||'pc-sin-id');
+  const stationKey=(session,floor)=>String(floor)+':'+(session.stationId||session.id||('pc_'+(session.modelId||'estacion')+'_'+(session.x??0)+'_'+(session.y??0)));
   function isStation(item,floor=options.currentFloor?.()||0){
    return isPc(item,floorItems(floor),options.feetPerCell||5,assembly);
   }
