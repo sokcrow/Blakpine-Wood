@@ -3,38 +3,38 @@
     {
       "id": "puerta_madera",
       "tipo": "door",
-      "triangulos": 60,
+      "triangulos": 96,
       "mallas": 2,
       "materiales": 1,
       "nodos": [
         "HOJA_PIVOTE",
         "MARCO_FIJO"
       ],
-      "bytes": 6484
+      "bytes": 8324
     },
     {
       "id": "puerta_metal",
       "tipo": "door",
-      "triangulos": 60,
+      "triangulos": 96,
       "mallas": 2,
       "materiales": 1,
       "nodos": [
         "HOJA_PIVOTE",
         "MARCO_FIJO"
       ],
-      "bytes": 6488
+      "bytes": 8324
     },
     {
       "id": "puerta_mirilla",
       "tipo": "door",
-      "triangulos": 60,
+      "triangulos": 96,
       "mallas": 2,
       "materiales": 1,
       "nodos": [
         "HOJA_PIVOTE",
         "MARCO_FIJO"
       ],
-      "bytes": 6584
+      "bytes": 8436
     },
     {
       "id": "ventana_clasica",
