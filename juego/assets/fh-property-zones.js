@@ -67,22 +67,132 @@
   if(typeof id!=='string'||!id)return {ok:false,reason:'ID de parcela inválido.'};
   return {ok:true,zone:{id,floorId,source:'zone',name:'Parcela',claimable:true,ownerId:'',polygon:polygon(rect)}};
  }
+ const ZONE_COLORS=Object.freeze(['#82C9AE','#8BBCF0','#D8AC74','#BCA0E1','#E39499','#8AB9BF','#D0C16D','#9DBE88','#D89BC0','#8499D6','#E1A875','#8BCDBF']);
+ const HEX=/^#[0-9a-fA-F]{6}$/;
+ const colorOf=zone=>HEX.test(zone?.color||'')?zone.color.toUpperCase():(zone?.kind==='common'?'#8BBCF0':'#82C9AE');
+ function nextColor(map,floorId){
+  const used=new Set(locations(map,floorId).map(colorOf));
+  const available=ZONE_COLORS.find(c=>!used.has(c));
+  if(available)return available;
+  for(let i=0;i<360;i++){
+   const h=(i*137.508)%360,k=Math.round(h/60)%6,t=60;
+   const hues=[[208,132,132],[208,170,132],[208,208,132],[132,208,132],[132,171,208],[168,132,208]];
+   const rgb=hues[k],c='#'+rgb.map(n=>n.toString(16).padStart(2,'0')).join('').toUpperCase();
+   if(!used.has(c))return c;
+  }
+  return '#82C9AE';
+ }
+ function pieces(zone){
+  if(Array.isArray(zone?.polygons)&&zone.polygons.length)return zone.polygons;
+  return Array.isArray(zone?.polygon)?[zone.polygon]:[];
+ }
+ function zoneContains(zone,p){return pieces(zone).some(poly=>inside(p,poly));}
  function locations(map,floorId){
-  return (map.locationZones||[]).filter(z=>z.floorId===floorId&&['exterior','common'].includes(z.kind)&&Array.isArray(z.polygon));
+  return (map.locationZones||[]).filter(z=>z.floorId===floorId&&['exterior','common'].includes(z.kind)&&pieces(z).length>0);
  }
  function locationAt(map,floorId,point){
-  const matches=locations(map,floorId).filter(z=>inside(point,z.polygon));
+  const matches=locations(map,floorId).filter(z=>zoneContains(z,point));
   return matches.length===1?matches[0]:null;
  }
- function createLocation(map,floorId,a,b,columns,rows,id,kind){
+ // Rectángulos dibujados con la herramienta Zonas. Los tramos de un mismo ID
+ // permanecen separados en el JSON pero forman una única ubicación lógica.
+ function rectFor(poly){
+  if(!Array.isArray(poly)||!poly.length)return null;
+  const xs=poly.map(p=>Number(p.x)),ys=poly.map(p=>Number(p.y));
+  if(xs.some(v=>!Number.isFinite(v))||ys.some(v=>!Number.isFinite(v)))return null;
+  return {x:Math.min(...xs),y:Math.min(...ys),w:Math.max(...xs)-Math.min(...xs),h:Math.max(...ys)-Math.min(...ys)};
+ }
+ function touchingRect(a,b){
+  const r=rectFor(a);if(!r)return false;
+  const xOverlap=Math.min(r.x+r.w,b.x+b.w)-Math.max(r.x,b.x);
+  const yOverlap=Math.min(r.y+r.h,b.y+b.h)-Math.max(r.y,b.y);
+  return (xOverlap>EPS&&yOverlap>=-EPS)||(yOverlap>EPS&&xOverlap>=-EPS);
+ }
+ function overlaps(zone,rect){return pieces(zone).some(poly=>intersectionArea(poly,rect)>EPS);}
+ function touches(zone,rect){return pieces(zone).some(poly=>touchingRect(poly,rect));}
+ function tooManyParts(parts){return parts.length>128;}
+ function createLocation(map,floorId,a,b,columns,rows,id,kind,color=undefined,extendId=''){
   if(!['exterior','common'].includes(kind))return {ok:false,reason:'Tipo de zona inválido.'};
   const rect=rectangle(a,b,columns,rows);
   if(!rect)return {ok:false,reason:'Dibuja un área de al menos ¼ de casilla de ancho y alto.'};
   if(!id||typeof id!=='string')return {ok:false,reason:'ID de zona inválido.'};
-  if(locations(map,floorId).some(z=>z.kind===kind&&intersectionArea(z.polygon,rect)>EPS)){
-   return {ok:false,reason:'Esa zona se superpone con otra zona del mismo tipo.'};
+  const normalizedColor=color===undefined?nextColor(map,floorId):String(color).toUpperCase();
+  if(!HEX.test(normalizedColor))return {ok:false,reason:'Color de zona inválido.'};
+  const current=locations(map,floorId);
+  // Nada puede solaparse con otra zona, ni siquiera si una es exterior y la otra común.
+  // Solo aceptamos la superposición al añadir un tramo al MISMO nombre/color/tipo.
+  const blocked=current.find(z=>overlaps(z,rect)&&(z.kind!==kind||colorOf(z)!==normalizedColor));
+  if(blocked)return {ok:false,reason:'El área se superpone con «'+(blocked.name||'Zona')+'». Usa la misma zona o dibuja fuera de sus límites.'};
+  const merge=current.filter(z=>z.kind===kind&&colorOf(z)===normalizedColor&&touches(z,rect));
+  const target=extendId?current.find(z=>z.id===extendId):merge[0];
+  if(extendId&&(!target||target.kind!==kind||colorOf(target)!==normalizedColor))
+   return {ok:false,reason:'La zona que intentas ampliar ya no existe o cambió de color.'};
+  if(extendId&&!merge.includes(target))
+   return {ok:false,reason:'Para ampliar una zona, el nuevo tramo debe tocar el anterior (no solo una esquina).'};
+  if(!target){
+   const poly=polygon(rect);
+   return {ok:true,created:true,zone:{id,floorId,kind,color:normalizedColor,name:kind==='exterior'?'Exterior':'Zona común',polygon:poly},removeIds:[]};
   }
-  return {ok:true,zone:{id,floorId,kind,name:kind==='exterior'?'Exterior':'Zona común',polygon:polygon(rect)}};
+  const members=[target,...merge.filter(z=>z.id!==target.id)];
+  const polygons=members.flatMap(pieces).concat([polygon(rect)]);
+  if(tooManyParts(polygons))return {ok:false,reason:'La zona llegó al límite de 128 tramos.'};
+  const updated={...target,color:normalizedColor,polygon:polygons[0],polygons};
+  return {ok:true,created:false,zone:updated,removeIds:members.slice(1).map(z=>z.id),merged:members.length>1};
+ }
+ function recolorLocation(map,zone,options){
+  const existing=locations(map,zone.floorId).filter(z=>z.id!==zone.id);
+  const kind=options.kind,color=String(options.color||'').toUpperCase();
+  if(!['common','exterior'].includes(kind)||!HEX.test(color))return {ok:false,reason:'Tipo o color inválido.'};
+  const other=existing.find(z=>pieces(zone).some(poly=>{
+   const r=rectFor(poly);
+   return r&&overlaps(z,r);
+  }));
+  if(other)return {ok:false,reason:'No se puede modificar esta zona: se superpone con «'+(other.name||'Zona')+'».'};
+  let list=[{...zone,kind,color,name:String(options.name||'').trim().slice(0,80)}],merged=[];
+  // Color y categoría iguales + contacto por un borde: una sola zona.
+  for(let changed=true;changed;){
+   changed=false;
+   for(const otherZone of existing){
+    if(merged.includes(otherZone.id)||otherZone.kind!==kind||colorOf(otherZone)!==color)continue;
+    if(!pieces(otherZone).some(poly=>list.some(base=>pieces(base).some(q=>touchingRect(q,rectFor(poly))))))continue;
+    list.push(otherZone);merged.push(otherZone.id);changed=true;
+   }
+  }
+  const all=list.flatMap(pieces);
+  if(tooManyParts(all))return {ok:false,reason:'La zona llegaría al límite de 128 tramos.'};
+  const updated={...list[0],polygons:all,polygon:all[0]};
+  return {ok:true,zone:updated,removeIds:merged};
+ }
+ // Bordes exteriores únicamente: oculta las costuras entre tramos unidos.
+ function boundarySegments(zone){
+  const rects=pieces(zone).map(rectFor).filter(Boolean),edges=[];
+  const contains=(x,y)=>rects.some(r=>x>r.x+EPS&&x<r.x+r.w-EPS&&y>r.y+EPS&&y<r.y+r.h-EPS);
+  for(const r of rects){
+   for(const side of ['top','right','bottom','left']){
+    const vertical=side==='left'||side==='right';
+    const fixed=vertical?(side==='left'?r.x:r.x+r.w):(side==='top'?r.y:r.y+r.h);
+    const lo=vertical?r.y:r.x,hi=vertical?r.y+r.h:r.x+r.w;
+    const cut=[lo,hi];
+    for(const other of rects){
+     const oLo=vertical?other.y:other.x,oHi=vertical?other.y+other.h:other.x+other.w;
+     if(oLo>lo+EPS&&oLo<hi-EPS)cut.push(oLo);
+     if(oHi>lo+EPS&&oHi<hi-EPS)cut.push(oHi);
+    }
+    cut.sort((a,b)=>a-b);
+    for(let i=1;i<cut.length;i++){
+     const one=cut[i-1],two=cut[i],mid=(one+two)/2;
+     if(two-one<=EPS)continue;
+     // Solo ocultar el borde si el exterior de este tramo está cubierto por otro.
+     const n=.00005;
+     const x=vertical?fixed+(side==='left'?-n:n):mid;
+     const y=vertical?mid:fixed+(side==='top'?-n:n);
+     if(contains(x,y))continue;
+     edges.push(vertical?{a:{x:fixed,y:one},b:{x:fixed,y:two}}:
+      {a:{x:one,y:fixed},b:{x:two,y:fixed}});
+    }
+   }
+  }
+  return edges;
  }
  function counts(floor,prop){
   const items=floor?.items||[],wallTypes=new Set(['wall','red_wall','half_wall','fence','property_wall']);
@@ -104,5 +214,5 @@
   }
   return {walls,areas,objects,doors};
  }
- return Object.freeze({rectangle,polygon,inside,intersectionArea,conflicts,at,doorAt,create,counts,locations,locationAt,createLocation});
+ return Object.freeze({rectangle,polygon,inside,intersectionArea,conflicts,at,doorAt,create,counts,locations,locationAt,createLocation,recolorLocation,pieces,zoneContains,colorOf,nextColor,boundarySegments,ZONE_COLORS});
 });
