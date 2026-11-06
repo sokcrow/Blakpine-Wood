@@ -73,11 +73,11 @@ test('Crear zona exterior sin alterar propiedades ni paredes',()=>{
  assert.equal(result.ok,true);assert.equal(map.properties.length,oldCount);
  assert.equal(map.floors[2].items.length,oldItems);
 });
-test('Rechazar zonas exteriores solapadas, permitir otras categorías',()=>{
+test('Rechazar zonas solapadas aun cuando sean de categorías distintas',()=>{
  const overlapping=Z.createLocation(map,'p1',{x:12,y:2},{x:13,y:3},22,22,'other','exterior');
  assert.equal(overlapping.ok,false);
  const common=Z.createLocation(map,'p1',{x:12,y:2},{x:13,y:3},22,22,'other','common');
- assert.equal(common.ok,true);
+ assert.equal(common.ok,false);
 });
 test('Área Estacionamiento sin zona extra muestra EXTERIOR / ESTACIONAMIENTO',()=>{
  const m={title:'Complejo',floors:[{id:'f1',elevationFt:0,items:[

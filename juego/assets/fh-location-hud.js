@@ -58,7 +58,8 @@
   const outdoorName=()=>label(parkingArea?.label)|| (parkingArea?'ESTACIONAMIENTO':'')||
    (label(outsideArea?.label).toUpperCase()==='EXTERIOR'?'':label(outsideArea?.label))||
    label(namedSurface?.label);
-  const regions=(map.locationZones||[]).filter(z=>z.floorId===floorId&&inPolygon(point,z.polygon));
+  const regionContains=z=>(Array.isArray(z.polygons)&&z.polygons.length?z.polygons:[z.polygon]).some(poly=>inPolygon(point,poly));
+  const regions=(map.locationZones||[]).filter(z=>z.floorId===floorId&&regionContains(z));
   const common=regions.find(z=>z.kind==='common');
   const exterior=regions.find(z=>z.kind==='exterior');
   if(property){
