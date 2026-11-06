@@ -94,6 +94,8 @@
     }
     inventoryUI.right.dataset.empty=visible.length?'false':'true';
     inventoryUI.empty.textContent=filter==='all'?label('inventoryEmpty'):label('emptyCategory');
+    const status=textOf('inventoryStatus').match(/Cantidad:\s*(\d+)/);
+    inventoryUI.quantity.textContent=status?'×'+status[1]:'';
     inventoryUI.filters.querySelectorAll('button').forEach(b=>{
       const chosen=b.dataset.category===filter;
       b.setAttribute('aria-pressed',String(chosen));
@@ -124,7 +126,13 @@
     }
     const empty=node('p','fh-inventory-empty',label('emptyCategory'));
     empty.id='fhInventoryEmpty';empty.setAttribute('role','status');
-    inventoryUI={native,head,summary,slots,selected,left,right,filters,empty};
+    const hint=node('p','fh-inventory-hint',label('chooseItemHint'));
+    hint.id='fhInventoryHint';
+    const quantity=node('span','fh-inventory-quantity');quantity.id='fhInventoryQuantity';
+    el('inventoryNameRow')?.append(quantity);
+    const close=el('inventoryClose');
+    if(close){close.textContent=label('backToGame');close.setAttribute('aria-label',label('closeInventory'));}
+    inventoryUI={native,head,summary,slots,selected,left,right,filters,empty,hint,quantity};
     native.addEventListener('click',event=>{
       // El onclick original cierra la mochila; después salimos del contenedor.
       if(event.target?.closest?.('#inventoryClose')&&open&&isInventoryTab(current))
@@ -146,7 +154,7 @@
       inventoryHome=ui.native.parentNode;
       inventoryNext=ui.native.nextSibling;
     }
-    ui.left.append(ui.filters,ui.summary,ui.slots);
+    ui.left.append(ui.filters,ui.summary,ui.slots,ui.hint);
     ui.right.append(ui.selected,ui.empty);
     ui.native.replaceChildren(ui.head,ui.left,ui.right);
     detail.append(ui.native);
