@@ -323,7 +323,7 @@
 
   // SFX puntuales; se evalúan sólo cuando ocurre un evento, nunca por frame.
   function playSfxAt(spec) {
-    const level = soundLevel(spec);
+    const level = spec?.self === true ? 1 : soundLevel(spec);
     if (!level) return false;
     const presets = {
       door_open: { start: 130, end: 185, duration: .24, volume: .10, wave: 'sawtooth' },
