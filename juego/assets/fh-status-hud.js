@@ -11,9 +11,9 @@
   title:'Estado del personaje',
   pg:'PG',pgFull:'Puntos de golpe',
   sp:'SP',spFull:'Puntos de sanidad',
-  pe:'PE',peFull:'Puntos de energía'
+  pe:'PE',peFull:'Puntos de energía',poison:'Veneno'
  });
- let host=null,panel=null,rows=null,peCells=[];
+ let host=null,panel=null,rows=null,peCells=[],previous={},pendingChanges={};
 
  function reading(resources,key){
   if(!resources||!KEYS.includes(key))return null;
@@ -61,7 +61,7 @@
   if(!hud||!hud.classList?.contains('fh-location-hud'))return false;
   if(hud===host&&panel?.isConnected)return true;
   if(panel)panel.remove();
-  host=hud;peCells=[];
+  host=hud;peCells=[];previous={};pendingChanges={};
   const strings=labels();
   panel=node(doc,'section','fh-status-hud');
   panel.id='fhStatusHUD';
@@ -89,13 +89,51 @@
    track.replaceChildren(fragment);
   }
  }
+ function changeTone(key,delta,kind){
+  if(!KEYS.includes(key)||typeof delta!=='number'||!Number.isFinite(delta)||delta===0)return null;
+  if(kind==='poison'&&key==='pg'&&delta<0)return 'poison';
+  if(delta>0)return key==='pe'?'pe-recover':key+'-heal';
+  return key==='pe'?'pe-use':key+'-damage';
+ }
+ function changeLabel(key,delta,kind){
+  if(!changeTone(key,delta,kind))return '';
+  const amount=key==='pe'?Math.trunc(Math.abs(delta)):Math.round(Math.abs(delta)*10)/10;
+  if(!amount)return '';
+  const poison=kind==='poison'&&key==='pg'&&delta<0?(labels().poison||'Veneno')+' ':'';
+  return poison+(delta>0?'+':'−')+amount+' '+key.toUpperCase();
+ }
+ function showChange(key,delta,kind){
+  const tone=changeTone(key,delta,kind),label=changeLabel(key,delta,kind);
+  if(!tone||!label||!ensure())return false;
+  const row=rows[key].row;
+  row.querySelector('.fh-status-change')?.remove();
+  const notice=node(root.document,'span','fh-status-change fh-status-change--'+tone,label);
+  notice.setAttribute('aria-hidden','true');
+  row.append(notice);
+  root.setTimeout?.(()=>notice.remove(),950);
+  return true;
+ }
+ // El gameplay puede especificar "poison" antes de cambiar PG;
+ // el siguiente update no repetirá el mismo número.
+ function notify(key,delta,kind){
+  if(!showChange(key,delta,kind))return false;
+  pendingChanges[key]={delta,until:Date.now()+2000};
+  return true;
+ }
  function update(resources){
   if(!ensure())return false;
   let visible=false;
   for(const key of KEYS){
    const data=reading(resources,key),refs=rows[key];
    refs.row.hidden=!data;
-   if(!data)continue;
+   if(!data){previous[key]=null;delete pendingChanges[key];continue;}
+   const prior=previous[key];
+   if(prior!==undefined&&prior!==null&&data.current!==prior){
+    const delta=data.current-prior,pending=pendingChanges[key];
+    delete pendingChanges[key];
+    if(!pending||pending.delta!==delta||Date.now()>pending.until)showChange(key,delta);
+   }
+   previous[key]=data.current;
    visible=true;
    refs.value.textContent=data.current+' / '+data.maximum;
    refs.track.setAttribute('aria-valuenow',String(data.current));
@@ -111,5 +149,5 @@
   panel.hidden=!visible;
   return visible;
  }
- return Object.freeze({reading,segmentStates,update});
+ return Object.freeze({reading,segmentStates,changeTone,changeLabel,notify,update});
 });
