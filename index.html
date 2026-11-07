@@ -2793,7 +2793,9 @@ function addLiveTextToEngine(doc){
  const hearing='<script src="'+new URL('./juego/assets/fh-hearing.js?v=20261107-hearing-1',document.baseURI).href+'"></'+'script>';
  const str='<script src="'+new URL('./juego/assets/fh-live-text-strings.js?v=20261106-live-courier',document.baseURI).href+'"></'+'script>';
  const ui='<script src="'+new URL('./juego/assets/fh-live-text.js?v=20261107-hearing-1',document.baseURI).href+'"></'+'script>';
- return window.FHComicActionEngine.patch(doc.replace('</head>',hearing+str+ui+'</head>'));
+ const withLiveText = doc.replace('</head>',hearing+str+ui+'</head>');
+ return typeof window !== 'undefined' && window.FHComicActionEngine?.patch
+   ? window.FHComicActionEngine.patch(withLiveText) : withLiveText;
 }
 
 function prepareGLBEngineDoc(source){
