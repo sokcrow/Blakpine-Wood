@@ -2918,9 +2918,9 @@ function prepareGLBEngineDoc(source){
  const gameUiCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-game-ui.css?v=20261106-common-ui',document.baseURI).href+'">';
  const mobileMenusCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-mobile-menus.css?v=20261107-mobile-ui-75',document.baseURI).href+'">';
  const hudFrameScript='<script src="'+new URL('./juego/assets/fh-hud-frame.js?v=20261106-hud-redesign',document.baseURI).href+'"></'+'script>';
- const statusCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-status-hud.css?v=20261107-compact-2',document.baseURI).href+'">';
- const statusStrings='<script src="'+new URL('./juego/assets/fh-status-strings.js?v=20261107-status-1',document.baseURI).href+'"></'+'script>';
- const statusScript='<script src="'+new URL('./juego/assets/fh-status-hud.js?v=20261107-compact-2',document.baseURI).href+'"></'+'script>';
+ const statusCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-status-hud.css?v=20261107-palette-feedback-1',document.baseURI).href+'">';
+ const statusStrings='<script src="'+new URL('./juego/assets/fh-status-strings.js?v=20261107-palette-feedback-1',document.baseURI).href+'"></'+'script>';
+ const statusScript='<script src="'+new URL('./juego/assets/fh-status-hud.js?v=20261107-palette-feedback-1',document.baseURI).href+'"></'+'script>';
  const locationHudHook='if(now-lastHud>90){lastHud=now;hudUpdate()}';
  const locationHudAfter='if(now-lastHud>90){lastHud=now;hudUpdate();window.FHLocationHUD?.update(DATA,currentFloor,{x:user.x/CELL,y:user.z/CELL});window.FHStatusHUD?.update(window.FHCharacterRuntime?.character?.resources)}';
  if(source.split(locationHudHook).length!==2)throw Error('El HUD original cambió: actualiza el adaptador de ubicación.');
