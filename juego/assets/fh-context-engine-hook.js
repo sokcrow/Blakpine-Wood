@@ -117,8 +117,14 @@ function fhContextRefresh(){
       point=fhContextPoint(target.x,target.z);
      }
      actions.push({id:'primary',label:$('use').textContent||t.interact||'Interactuar',run:toggleDoor});
-     if(selected.kind==='door'&&target.kind==='peephole_door'&&!target.open&&isInsideDoor(target))
-      actions.push({id:'peephole',label:t.peephole||'Mirar por la mirilla',run:peephole});
+     if(selected.kind==='door'){
+      const canLook=target.kind==='peephole_door'&&!target.open&&isInsideDoor(target);
+      // Cuatro sectores constantes; las mecánicas pendientes permanecen deshabilitadas.
+      actions.push({id:'peephole',label:t.peepholeShort||'Mirilla',disabled:!canLook,
+       ...(canLook?{run:peephole}:{})});
+      actions.push({id:'knock',label:t.knock||'Llamar',disabled:true});
+      actions.push({id:'examine',label:t.examine||'Examinar',disabled:true});
+     }
     }
    }
   }
