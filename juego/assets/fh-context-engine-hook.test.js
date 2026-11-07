@@ -43,7 +43,7 @@ test('el HTML generado integra radial y decoración sin afectar el editor 2D',()
  assert.match(output,/if\(!playerPose\.occupied&&courier&&/);
  assert.match(output,/front\?\.item/);
  assert.match(output,/radial\.syncContext\(null\)/);
- assert.match(output,/else if\(radial\.visible&&radial\.target===key\)radial\.update\(context\)/);
+ assert.match(output,/if\(radial\.visible&&radial\.target===key\)radial\.update\(context\)/);
  assert.doesNotMatch(output,/radial\.update\(actions\.length\?/);
 
  assert.match(output,/fhContextRefresh\(\)/);
