@@ -51,7 +51,14 @@ body.fh-player-menu-ready #hud.fh-location-hud.fh-location-exterior::after {left
 #fhStatusHUD {
  --fh-status-pg:#c94d4a;
  --fh-status-sp:#34c8d8;
- --fh-status-pe:#49ad67;
+ --fh-status-pe:#ffe28a;
+ --fh-status-pg-heal:#a8e6a3;
+ --fh-status-sp-heal:#9de8f0;
+ --fh-status-pe-recover:#ffe28a;
+ --fh-status-pg-damage:#ff3434;
+ --fh-status-sp-damage:#ff9292;
+ --fh-status-pe-use:#be9aff;
+ --fh-status-poison:#65ff32;
  position:fixed;
  top:calc(15px + env(safe-area-inset-top,0px));
  left:calc(12px + env(safe-area-inset-left,0px));
@@ -77,7 +84,31 @@ body.fh-player-menu-ready #hud.fh-location-hud.fh-location-exterior::after {left
 body.fh-sleeping #fhStatusHUD {
  display:none!important;
 }
+#fhStatusHUD .fh-status-row {position:relative}
 #fhStatusHUD .fh-status-row+.fh-status-row {margin-top:6px}
+#fhStatusHUD .fh-status-change {
+ position:absolute;
+ top:-5px;
+ right:0;
+ z-index:1;
+ pointer-events:none;
+ white-space:nowrap;
+ font:700 11px/1.1 'Courier New',monospace;
+ text-shadow:1px 1px 0 #080a0b,-1px 1px 0 #080a0b;
+ animation:fh-status-change .95s steps(5,end) both;
+}
+#fhStatusHUD .fh-status-change--pg-heal {color:var(--fh-status-pg-heal)}
+#fhStatusHUD .fh-status-change--sp-heal {color:var(--fh-status-sp-heal)}
+#fhStatusHUD .fh-status-change--pe-recover {color:var(--fh-status-pe-recover)}
+#fhStatusHUD .fh-status-change--pg-damage {color:var(--fh-status-pg-damage)}
+#fhStatusHUD .fh-status-change--sp-damage {color:var(--fh-status-sp-damage)}
+#fhStatusHUD .fh-status-change--pe-use {color:var(--fh-status-pe-use)}
+#fhStatusHUD .fh-status-change--poison {color:var(--fh-status-poison)}
+@keyframes fh-status-change {
+ 0% {opacity:1;transform:translateY(2px)}
+ 75% {opacity:1}
+ 100% {opacity:0;transform:translateY(-10px)}
+}
 #fhStatusHUD .fh-status-heading {
  display:flex;
  justify-content:flex-start;
@@ -135,7 +166,7 @@ body.fh-sleeping #fhStatusHUD {
 }
 #fhStatusHUD .fh-status-pe-cell.is-filled {
  background:var(--fh-status-pe);
- border-color:#82c496;
+ border-color:#ffe9b5;
 }
 /* Entre 651 y 756 px, ajustar solo el ancho: nunca bajar las barras
    del rincón ni dejar que invadan el espacio horizontal del anuncio central. */
@@ -190,6 +221,7 @@ body.fh-sleeping #fhStatusHUD {
  body.fh-player-menu-ready #hud.fh-location-hud::after {left:41px}
 }
 @media(prefers-reduced-motion:reduce) {
+ #fhStatusHUD .fh-status-change {animation:none}
  body.fh-player-menu-ready #hud.fh-location-hud {
   transition:none;
  }
