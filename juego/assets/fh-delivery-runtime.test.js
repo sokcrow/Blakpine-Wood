@@ -18,7 +18,7 @@ const code=fs.readFileSync(path.join(__dirname,'fh-delivery.js'),'utf8');
   state,baseUrl:'https://example.test/juego/assets/fh-delivery.js',cell:1.524,feetPerCell:5,
   save(){},notice(){},hasRuntimeItem(){return false},doorById(){return null},
   replacePackage(item,p,order){return {item:{id:'delivered_'+order.id,modelId:p.id,x:item.x,y:item.y,rotation:item.rotation||0,runtimeDeliveryFurniture:{orderId:order.id,productId:p.id}},floor:0}},
-  restoreFurniture(record,p,order){restored={record,p,order};return true}
+  restoreFurniture(record,p,order){restored={record,p,order};return {id:record.id,x:record.x,y:record.y,rotation:record.rotation,runtimeDeliveryFurniture:{orderId:record.orderId,productId:record.productId}}}
  });
  for(let i=0;i<30&&!runtime.ready;i++)await Promise.resolve();
  assert.equal(runtime.ready,true);
