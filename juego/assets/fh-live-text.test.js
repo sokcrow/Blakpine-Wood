@@ -113,6 +113,37 @@ test('las acciones propias usan el estilo del TOC, se ven en oscuridad y evitan 
   }
 });
 
+test('Zzz cómic es visible sin visibilidad 3D y desaparece por caducidad',()=>{
+  const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
+  let layer,now=100;
+  function node(){
+    return {style:{},children:[],hidden:false,removed:false,classList:{add(){},remove(){}},
+      appendChild(child){this.children.push(child);},
+      remove(){this.removed=true;},
+      querySelector(){return node();},setAttribute(){},addEventListener(){}};
+  }
+  const win={FH_LIVE_TEXT_STRINGS:{},performance:{now:()=>now},addEventListener(){},
+    document:{head:node(),body:{appendChild(el){if(el.id==='fhSpatialLayer')layer=el;}},
+      createElement:node}};
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname,'fh-live-text.js'),'utf8'),{window:win});
+  win.FHLiveText.configure({view:()=>null});
+  assert.equal(win.FHLiveText.soundAt({
+    kind:'sleep',text:'Zzz',x:15,y:3,z:20,floor:0,self:true,
+    screenX:180,screenY:240
+  }),true);
+  assert.equal(layer.children.length,1);
+  const zzz=layer.children[0];
+  assert.equal(zzz.className,'fh-sound fh-sleep-comic');
+  assert.equal(zzz.hidden,false);
+  assert.equal(zzz.style.left,'180px');
+  assert.equal(zzz.style.top,'240px');
+  assert.equal(zzz.textContent,'Zzz');
+  // Las acciones comunes conservan su validación de cámara y visibilidad.
+  assert.equal(win.FHLiveText.soundAt({id:'door_open',text:'CLAC',x:1,y:2,z:3,floor:0}),false);
+  now=2900;
+  win.FHLiveText.tick();
+  assert.equal(zzz.removed,true);
+});
 test('el adaptador cómic encuentra sus puntos de conexión en el motor empaquetado', () => {
   const fs = require('node:fs');
   const path = require('node:path');
