@@ -30,6 +30,16 @@
     root.append(title, wheel);
     global.document.body.append(root);
     global.document.addEventListener?.('keydown', keydown);
+    // Un toque fuera del menú cierra sin capturar gestos de la cámara.
+    global.document.addEventListener?.('pointerdown', event => {
+      if (root.hidden) return;
+      let node = event.target;
+      while (node) {
+        if (node === root) return;
+        node = node.parentElement || node.parentNode || node.parent;
+      }
+      close();
+    });
   }
 
   function hide() {
@@ -46,6 +56,28 @@
     dismissedActions = active;
     hide();
     center.blur?.();
+  }
+
+  // Apertura deliberada: un nuevo clic permite reabrir el mismo objetivo.
+  function open(context) {
+    dismissedKey = '';
+    dismissedActions = [];
+    update(context);
+  }
+
+  // Sin abrir el menú, mantiene vigente únicamente el objetivo alcanzable.
+  // Si cambió el objetivo, E no debe ejecutar una acción antigua.
+  function syncContext(context) {
+    const nextKey = context && Array.isArray(context.actions) && context.actions.length
+      ? String(context.key || 'context') : '';
+    if (!nextKey || (dismissedKey && dismissedKey !== nextKey)) {
+      dismissedKey = '';
+      dismissedActions = [];
+    } else if (dismissedKey === nextKey) {
+      dismissedActions = context.actions.filter(action =>
+        action && (typeof action.run === 'function' || action.disabled === true)).slice(0, 8);
+    }
+    if (root && !root.hidden && currentKey !== nextKey) hide();
   }
 
   function sectorPath(index, count) {
@@ -173,7 +205,7 @@
     return true;
   }
 
-  global.FHInteractionRadial = Object.freeze({ update, hide, close, activatePrimary, keydown,
+  global.FHInteractionRadial = Object.freeze({ update, open, syncContext, hide, close, activatePrimary, keydown,
     get visible() { return !!root && !root.hidden; },
     get target() { return currentKey; }
   });

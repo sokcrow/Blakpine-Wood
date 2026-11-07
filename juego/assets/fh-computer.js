@@ -140,7 +140,7 @@
    const wrap=doc.createElement('div');wrap.id='fhPcOverlay';wrap.setAttribute('aria-hidden','true');
    frame=doc.createElement('iframe');frame.id='fhPcFrame';frame.title='RAVEN/OS';
    frame.setAttribute('allow','fullscreen');
-   frame.src=new URL('fh-terminal.html',options.baseUrl||doc.baseURI).href;
+   frame.src=new URL('fh-terminal.html?v=20261107-half-ui',options.baseUrl||doc.baseURI).href;
    wrap.append(frame);doc.body.append(wrap);
    frame.addEventListener('load',applySession);
    host.addEventListener?.('message',receiveMessage);
