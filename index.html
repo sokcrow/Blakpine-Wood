@@ -2794,7 +2794,7 @@ function addLiveTextToEngine(doc){
  }
  const hearing='<script src="'+new URL('./juego/assets/fh-hearing.js?v=20261107-hearing-1',document.baseURI).href+'"></'+'script>';
  const str='<script src="'+new URL('./juego/assets/fh-live-text-strings.js?v=20261106-live-courier',document.baseURI).href+'"></'+'script>';
- const ui='<script src="'+new URL('./juego/assets/fh-live-text.js?v=20261107-hearing-1',document.baseURI).href+'"></'+'script>';
+ const ui='<script src="'+new URL('./juego/assets/fh-live-text.js?v=20261107-sleep-comic-1',document.baseURI).href+'"></'+'script>';
  const withLiveText = doc.replace('</head>',hearing+str+ui+'</head>');
  return typeof window !== 'undefined' && window.FHComicActionEngine?.patch
    ? window.FHComicActionEngine.patch(withLiveText) : withLiveText;
@@ -2815,8 +2815,8 @@ function prepareGLBEngineDoc(source){
  const bridge='<script src="'+new URL('./juego/assets/fh-glb-bridge.js',document.baseURI).href+'"></'+'script>';
  const localThree='<script src="'+new URL('./juego/assets/vendor/three.min.js',document.baseURI).href+'"></'+'script>';
  const sleepStrings='<script src="'+new URL('./juego/assets/fh-sleep-strings.js',document.baseURI).href+'"></'+'script>';
- const sleepModule='<script src="'+new URL('./juego/assets/fh-sleep.js?v=20261107-sleep-iris-3',document.baseURI).href+'"></'+'script>';
- const sleepCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-sleep.css?v=20261107-sleep-iris-3',document.baseURI).href+'">';
+ const sleepModule='<script src="'+new URL('./juego/assets/fh-sleep.js?v=20261107-sleep-breath-1',document.baseURI).href+'"></'+'script>';
+ const sleepCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-sleep.css?v=20261107-sleep-breath-1',document.baseURI).href+'">';
  const coverageScript='<script src="'+new URL('./juego/assets/fh-light-coverage.js?v=20261105-light-ui2',document.baseURI).href+'"></'+'script>';
  const lightsModule='<script src="'+new URL('./juego/assets/fh-lights.js?v=20261105-light-ui2',document.baseURI).href+'"></'+'script>';
  const npcGoapModule='<script src="'+new URL('./juego/assets/fh-npc-goap.js?v=20261106-goap-1',document.baseURI).href+'"></'+'script>';
@@ -2851,7 +2851,7 @@ function prepareGLBEngineDoc(source){
  const loopBefore=" cameraUpdate(dt);updateCabinIsolation();",loopAfter=" window.FHSleep?.update(dt,playerPose.state.phase,playerPose.state.verb,playerPoseItem?.type,GameEvents);\n cameraUpdate(dt);updateCabinIsolation();";
  const loopCount=source.split(loopBefore).length-1;
  if(loopCount!==1)throw Error('Hook de sueño loop: '+loopCount);
- const maskBefore="function circleMask(){mctx.clearRect(0,0,innerWidth,innerHeight);if(!peeking)return;",maskAfter="function circleMask(){mctx.globalCompositeOperation='source-over';mctx.clearRect(0,0,innerWidth,innerHeight);\n if(!peeking&&window.FHSleep?.viewWeight()>0){\n  const viewRect=$('view').getBoundingClientRect(),maskRect=mist.getBoundingClientRect();\n  const breath=hero.localToWorld(new THREE.Vector3(0,HERO_H*.16,0)).project(cam);\n  const breathX=viewRect.left-maskRect.left+(breath.x+1)*viewRect.width*.5;\n  const breathY=viewRect.top-maskRect.top+(1-breath.y)*viewRect.height*.5;\n  if(window.FHSleep.renderMask(mctx,maskRect.width,maskRect.height,maskRect.width*.5,maskRect.height*.5,breathX,breathY))return;\n }\n if(!peeking)return;";
+ const maskBefore="function circleMask(){mctx.clearRect(0,0,innerWidth,innerHeight);if(!peeking)return;",maskAfter="function circleMask(){mctx.globalCompositeOperation='source-over';mctx.clearRect(0,0,innerWidth,innerHeight);\n if(!peeking&&window.FHSleep?.needsBreath()){\n  // La cabecera se obtiene del sprite reclinado, no del centro de la pantalla.\n  const head=hero.localToWorld(new THREE.Vector3(0,HERO_H*.82,0));\n  window.FHSleep.emitBreath({x:head.x,y:head.y,z:head.z,floor:currentFloor});\n }\n if(!peeking)return;";
  const maskCount=source.split(maskBefore).length-1;
  if(maskCount!==1)throw Error('Hook de sueño mask: '+maskCount);
  const wakeHUDBefore=" if(playerPose.occupied){$('use').textContent=POSTURE_TEXT.stand;return;}",wakeHUDAfter=" if(playerPose.occupied){\n  const stage=window.FHSleep?.status().stage;\n  $('use').textContent=stage==='asleep'?window.FH_SLEEP_TEXT.wake:stage==='waking'?window.FH_SLEEP_TEXT.waking:POSTURE_TEXT.stand;\n  return;\n }";
