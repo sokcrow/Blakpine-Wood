@@ -32,6 +32,9 @@ function normalizeProduct(p,base){
   name:String(p.name||p.id||''),category:String(p.category||''),widthFt:finite(p.widthFt,1),depthFt:finite(p.depthFt,1),heightFt:finite(p.heightFt,1),
   parcelSize:size,unboxMinutes:Math.max(0,finite(p.unboxMinutes,UNBOX_MINUTES[size]||0)),price:p.price==null?null:finite(p.price,0),
   placement:String(p.placement||'floor'),supportSurfaces:Array.isArray(p.supportSurfaces)?clone(p.supportSurfaces):[],blocksMovement:p.blocksMovement!==false,
+  environment:p.environment==='exterior'?'exterior':'interior',
+  shopStatus:p.implemented===false||p.shopStatus==='error'||!p.glb?'error':'checking',
+  glb:p.glb?String(p.glb):'',
   thumbnail:p.thumbnail?new URL(String(p.thumbnail),base).href:''};
 }
 function createOrder(state,product,options={}){
@@ -79,6 +82,26 @@ function createRuntime(options){
   const api=options.computer?.terminalApi();if(!api?.setGameClock)return;
   const clock=formatClock(state);if(!force&&clock===lastTerminalClock)return;api.setGameClock(clock);lastTerminalClock=clock;
  }catch{}}
+ async function verifyCatalogProducts(){
+  // Comprobar el GLB real con el mismo cargador del escenario; no basta con que exista el archivo.
+  // Tres cargas a la vez: los modelos registrados ocupan menos de 1 MB en el catálogo actual.
+  let cursor=0;
+  const jobs=products.filter(p=>p.shopStatus==='checking');
+  async function worker(){
+   while(cursor<jobs.length){
+    const p=jobs[cursor++];
+    try{
+     const valid=await options.validateProduct?.(p);
+     p.shopStatus=valid===true?'available':'error';
+    }catch(error){
+     p.shopStatus='error';
+     console.warn('Hamazon: modelo GLB no disponible',p.modelId,String(error?.message||error));
+    }
+   }
+  }
+  await Promise.all([worker(),worker(),worker()]);
+  syncProductsToTerminal();
+ }
  async function loadCatalogs(){
   try{
    const furnitureUrl=new URL('../../forest-horror/biblioteca/catalogo_muebles.json',base);
@@ -86,9 +109,9 @@ function createRuntime(options){
    const f=await fetch(furnitureUrl).then(r=>r.ok?r.json():Promise.reject(Error(r.status)));
    const d=await fetch(deliveryUrl).then(r=>r.ok?r.json():Promise.reject(Error(r.status))).catch(err=>{console.warn('Hamazon: catálogo de paquetería no disponible',err);return {furniture:[]}});
    const catalogBase=new URL('../../forest-horror/biblioteca/',base);
-   products=(f.furniture||[]).map(p=>normalizeProduct({...p,kind:'furniture'},catalogBase));
+   products=(f.furniture||[]).filter(p=>!p.environment||p.environment==='interior').map(p=>normalizeProduct({...p,kind:'furniture'},catalogBase));
    boxes=(d.furniture||[]).map(p=>({...p,modelId:p.id,parcelSize:p.parcelSize||parcelSize(p)}));
-   ready=true;syncProductsToTerminal();syncOrdersToTerminal();resume();
+   ready=true;syncProductsToTerminal();syncOrdersToTerminal();resume();void verifyCatalogProducts();
   }catch(err){console.warn('Hamazon: catálogo de muebles no disponible',err)}
  }
  function onComputerOpen(item,floor=0){pcItem=item;pcFloor=floor;}
@@ -113,6 +136,11 @@ function createRuntime(options){
  }
  function placeOrder(productId,paymentMethod){
   const p=productById(productId);if(!p){say(TEXT.productMissing||'Producto no disponible.');return null}
+  if(p.environment!=='interior'){say(TEXT.shopOutside||'Los objetos de exterior no están disponibles en Hamazon.');return null}
+  if(p.shopStatus!=='available'){
+   say(p.shopStatus==='checking'?(TEXT.shopLoading||'Modelo en comprobación.'):(TEXT.shopModelError||'El modelo no funciona o sigue en implementación.'),3000);
+   return null;
+  }
   const door=chooseDoor();if(!door){say(TEXT.noDeliveryDoor||'No hay puerta de entrega.',3600);return null}
   const order=createOrder(state,p,{paymentMethod,leadMinutes:leadMinutesFor(p),floor:door.f,doorId:door.id,apartmentId:door.apartmentId||pcItem?.apartmentId||''});
   order.status='scheduled';
