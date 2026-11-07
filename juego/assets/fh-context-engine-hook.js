@@ -140,9 +140,9 @@ function fhContextRefresh(){
   doc=one(doc,"$('pixelBtn').addEventListener('click',()=>{pixelSize=pixelSize===2?3:pixelSize===3?1:2;resize()});",
           "// Pixel 2x fijo en la interfaz del jugador.",'pixel');
   const base=new URL('./juego/assets/',global.document.baseURI).href;
-  const css='<link rel="stylesheet" href="'+base+'fh-interaction-radial.css?v=20261107-door-four">';
-  const strings='<script src="'+base+'fh-interaction-strings.js?v=20261107-door-four"></'+'script>';
-  const renderer='<script src="'+base+'fh-interaction-radial.js?v=20261107-door-four"></'+'script>';
+  const css='<link rel="stylesheet" href="'+base+'fh-interaction-radial.css?v=20261107-compact-radial">';
+  const strings='<script src="'+base+'fh-interaction-strings.js?v=20261107-compact-radial"></'+'script>';
+  const renderer='<script src="'+base+'fh-interaction-radial.js?v=20261107-compact-radial"></'+'script>';
   const hide='<style>#actions,#fhDecorateBtn,#fhDecorStoredBtn{display:none!important}</style>';
   if(!doc.includes('</head>'))throw Error('Falta el cierre de cabecera del motor 3D');
   return doc.replace('</head>',css+strings+renderer+hide+'</head>');
