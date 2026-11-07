@@ -78,7 +78,7 @@
       hide();
       return;
     }
-    const actions = context.actions.filter(action => action && typeof action.run === 'function').slice(0, 8);
+    const actions = context.actions.filter(action => action && (typeof action.run === 'function' || action.disabled === true)).slice(0, 8);
     if (!actions.length) { hide(); return; }
     const key = String(context.key || 'context');
     if (dismissedKey === key) {
@@ -116,7 +116,7 @@
         button.addEventListener('click', event => {
           event.stopPropagation();
           const item = active[Number(button.dataset.index)];
-          if (!item || item.disabled) return;
+          if (!item || item.disabled || typeof item.run !== 'function') return;
           item.run();
         });
         wheel.append(button);
@@ -140,7 +140,7 @@
 
   function activatePrimary() {
     const choices = root && !root.hidden ? active : dismissedKey ? dismissedActions : [];
-    const choice = choices.find(action => !action.disabled);
+    const choice = choices.find(action => !action.disabled && typeof action.run === 'function');
     if (!choice) return false;
     choice.run();
     return true;
