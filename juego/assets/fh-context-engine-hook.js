@@ -144,6 +144,17 @@ function fhContextRefresh(){
  const radial=window.FHInteractionRadial;
  if(radial?.visible)radial.update(fhContextData());
 }
+// El Raycaster de Three.js r128 incluye mallas ocultas por el corte de cámara.
+// La intersección válida más cercana debe ser visible en toda su jerarquía.
+function fhRadialVisibleHit(intersections,root){
+ return intersections.find(hit=>{
+  for(let object=hit.object;object;object=object.parent){
+   if(object.visible===false)return false;
+   if(object===root)return true;
+  }
+  return false;
+ })||null;
+}
 // Solo el objeto 3D pulsado puede autorizar la apertura del radial.
 function fhContextTap(event){
  const radial=window.FHInteractionRadial,context=fhContextData();
@@ -154,10 +165,11 @@ function fhContextTap(event){
  ray.setFromCamera(new THREE.Vector2(
   (event.clientX-rect.left)/rect.width*2-1,
   -(event.clientY-rect.top)/rect.height*2+1),cam);
- const closest=ray.intersectObjects(stories[currentFloor].children,true)[0];
+ const closest=fhRadialVisibleHit(ray.intersectObjects(stories[currentFloor].children,true),stories[currentFloor]);
  if(!closest)return false;
  for(let object=closest.object;object;object=object.parent){
   if(context.hitRoots.includes(object)){
+   const storedButton=$('fhDecorStoredBtn');if(storedButton)storedButton.hidden=true;
    return radial.open({...context,x:event.clientX,y:event.clientY});
   }
   if(object===stories[currentFloor])break;
@@ -166,6 +178,15 @@ function fhContextTap(event){
 }
 `;
   doc=one(doc,'function hudUpdate(){',code+'\nfunction hudUpdate(){','HUD');
+  // El botón ya existe en el motor: conservarlo únicamente para el inventario
+  // de muebles guardados cuando el jugador activa Decorar en su menú.
+  doc=one(doc,'ui.storedButton.hidden=!eligible||!hasStored;',
+    'ui.storedButton.hidden=!fhDecorMode||!eligible||!hasStored||!!window.FHInteractionRadial?.visible;',
+    'entrada a muebles guardados');
+  doc=one(doc,
+    "storedButton.onclick=()=>{fhStoredUiActive=!fhStoredUiActive;storedPanel.hidden=!fhStoredUiActive;if(fhStoredUiActive)fhDecorStoredList()};",
+    "storedButton.onclick=()=>{window.FHInteractionRadial?.hide();fhStoredUiActive=!fhStoredUiActive;storedPanel.hidden=!fhStoredUiActive;if(fhStoredUiActive)fhDecorStoredList()};",
+    'no superponer el panel de muebles guardados');
   // Un tap corto sobre el canvas, no un arrastre ni un pellizco de cámara.
   const viewAnchor="const view=$('view'),cameraTouches=new Map();let pinchDistance=0,wasPinching=false;";
   const viewClick=String.raw`
@@ -196,10 +217,10 @@ view.addEventListener('pointercancel',event=>fhRadialPresses.delete(event.pointe
   doc=one(doc,"$('pixelBtn').addEventListener('click',()=>{pixelSize=pixelSize===2?3:pixelSize===3?1:2;resize()});",
           "// Pixel 2x fijo en la interfaz del jugador.",'pixel');
   const base=new URL('./juego/assets/',global.document.baseURI).href;
-  const css='<link rel="stylesheet" href="'+base+'fh-interaction-radial.css?v=20261107-click-only">';
-  const strings='<script src="'+base+'fh-interaction-strings.js?v=20261107-click-only"></'+'script>';
-  const renderer='<script src="'+base+'fh-interaction-radial.js?v=20261107-click-only"></'+'script>';
-  const hide='<style>#actions,#fhDecorateBtn,#fhDecorStoredBtn{display:none!important}</style>';
+  const css='<link rel="stylesheet" href="'+base+'fh-interaction-radial.css?v=20261107-click-fix-review">';
+  const strings='<script src="'+base+'fh-interaction-strings.js?v=20261107-click-fix-review"></'+'script>';
+  const renderer='<script src="'+base+'fh-interaction-radial.js?v=20261107-click-fix-review"></'+'script>';
+  const hide='<style>#actions,#fhDecorateBtn{display:none!important}</style>';
   if(!doc.includes('</head>'))throw Error('Falta el cierre de cabecera del motor 3D');
   return doc.replace('</head>',css+strings+renderer+hide+'</head>');
  }
