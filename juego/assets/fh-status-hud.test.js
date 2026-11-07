@@ -39,7 +39,7 @@ test('La ubicación se centra y desaparece; el estado va a la esquina sin caja',
  assert.doesNotMatch(css,/top:calc\(83px \+ env\(safe-area-inset-top,0px\)\)/);
  assert.match(css,/--fh-status-pg:#c94d4a/);
  assert.match(css,/--fh-status-sp:#34c8d8/);
- assert.match(css,/--fh-status-pe:#49ad67/);
+ assert.match(css,/--fh-status-pe:#ffe28a/);
  assert.match(css,/body\.fh-sleeping #fhStatusHUD/);
  assert.doesNotMatch(css,/clip-path|filter:blur|border-radius:\d+px/);
 });
@@ -57,4 +57,31 @@ test('Entre 651 y 756 px, PG/SP/PE permanecen a la izquierda del banner',()=>{
   assert.ok(rightResources<=leftBanner-5,
    'Se solapan a '+width+' px: recursos hasta '+rightResources+', banner desde '+leftBanner);
  }
+});
+
+test('Paleta de Heal, DMG, consumo de PE y veneno',()=>{
+ const tones={
+  'pg-heal':'#a8e6a3','sp-heal':'#9de8f0','pe-recover':'#ffe28a',
+  'pg-damage':'#ff3434','sp-damage':'#ff9292',
+  'pe-use':'#be9aff',poison:'#65ff32'
+ };
+ for(const [tone,hex] of Object.entries(tones)){
+  const token=tone.replace(/-/g,'-');
+  assert.ok(css.includes('--fh-status-'+token+':'+hex),'Falta color '+tone);
+  assert.ok(css.includes('.fh-status-change--'+tone),'Falta estilo '+tone);
+ }
+ assert.match(css,/\.fh-status-pe-cell\.is-filled\s*\{[\s\S]*?background:var\(--fh-status-pe\)/);
+ assert.match(css,/@media\(prefers-reduced-motion:reduce\)[\s\S]*?#fhStatusHUD \.fh-status-change \{animation:none\}/);
+ assert.deepEqual([
+  H.changeTone('pg',12),H.changeTone('sp',3),H.changeTone('pe',2),
+  H.changeTone('pg',-5),H.changeTone('sp',-2),H.changeTone('pe',-1),
+  H.changeTone('pg',-5,'poison')
+ ],['pg-heal','sp-heal','pe-recover','pg-damage','sp-damage','pe-use','poison']);
+ assert.equal(H.changeTone('pe',-1,'poison'),'pe-use');
+ assert.equal(H.changeTone('pg',0),null);
+ assert.equal(H.changeTone('fake',-2),null);
+ assert.equal(H.changeLabel('pe',4),'+4 PE');
+ assert.equal(H.changeLabel('pg',-5,'poison'),'Veneno −5 PG');
+ assert.equal(H.changeLabel('sp',-1.25),'−1.3 SP');
+ assert.equal(H.changeLabel('pg',Number.NaN),'');
 });
