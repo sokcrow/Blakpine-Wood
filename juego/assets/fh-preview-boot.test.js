@@ -50,7 +50,7 @@ test('hook del repartidor construye una cámara de puerta válida desde el motor
   vm.runInNewContext(fs.readFileSync(path.join(root,'juego/assets',name),'utf8'),sandbox,{filename:name});
  }
  const motor=Buffer.from(sandbox.window.__FOREST_EMBEDDED_ENGINE__,'base64').toString('utf8');
- const adapter=extract('  function addDeliveryToEngine(doc){','  const engineSuccessBefore=').trim();
+ const adapter=extract('function addDeliveryToEngine(doc){','const engineSuccessBefore=').trim();
  const patch=vm.runInNewContext('('+adapter+')');
  const output=patch(motor);
  assert.match(output,/function fhBeginDoorEvent\(door\)/);
