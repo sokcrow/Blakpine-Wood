@@ -61,12 +61,14 @@ async function setup(method){
  const sandbox={window,document,URL,fetch,console,setTimeout:window.setTimeout,clearTimeout:window.clearTimeout};
  for(const name of ['fh-live-text-strings.js','fh-live-text.js','fh-delivery-strings.js','fh-delivery.js'])
   vm.runInNewContext(read(name),sandbox,{filename:name});
- const state={clock:{minutes:480}},door={id:'door1',f:0,cx:2,cz:3,norm:{x:1,z:0},apartmentId:'a1'};
- const effects={knocks:0,opened:0,created:[],freezes:[]};let runtime;
+ const state={clock:{minutes:480}},door={id:'door1',f:0,cx:2,cz:3,norm:{x:1,z:0},apartmentId:'apto_4okzw_a4qn2l'};
+ const effects={knocks:0,opened:0,created:[],freezes:[],ended:0};let runtime;
  runtime=window.FHDelivery.createRuntime({
   state,baseUrl:document.baseURI,cell:1.524,feetPerCell:5,deliveryLeadMinutes:0,
   validateProduct:async product=>product.id==='mesa',
   findDoor:()=>door,doorById:()=>door,notice(){},save(){},showNpc(){},hideNpc(){},
+  resolveDoorAddress:()=>({id:'parcel_test',name:'Apartamento 5 A'}),
+  propertyNameById:id=>id==='parcel_test'?'Apartamento 5 A':'',endDoorEvent(){effects.ended++;},
   knock(){effects.knocks++;return true},freeze:v=>effects.freezes.push(v),
   openDoor(){effects.opened++;runtime.onDoorOpened(door)},
   packagePlacement:()=>({floor:0,x:3,z:5}),spawnRuntimeItem:item=>effects.created.push(item)
@@ -90,31 +92,58 @@ async function setup(method){
  return {runtime,order,door,document,effects,press,clickChoice};
 }
 for(const payment of ['cash','card','prepaid']){
- test('repartidor: mirilla, texto y entrega ('+payment+')',async()=>{
-  const env=await setup(payment),{runtime,order,door,document,effects,clickChoice}=env;
+ test('repartidor: diálogo de puerta y entrega ('+payment+')',async()=>{
+  const env=await setup(payment),{runtime,order,door,document,effects,clickChoice,press}=env;
   assert.equal(order.status,'waiting');
+  assert.equal(order.propertyId,'parcel_test');
   assert.equal(effects.knocks,1);
   assert.equal(runtime.onPeephole(door),true);
   assert.equal(runtime.talkThroughPeephole(),true);
-  const root=document.getElementById('fhDeliveryDialog');
+  const root=document.getElementById('fhDeliveryDialog'),body=document.getElementById('fhDeliveryText');
   assert.equal(root.classList.contains('open'),true);
   assert.equal(document.getElementById('fhDeliveryName').textContent,'Repartidor de paquetería');
-  assert.ok(document.getElementById('fhDeliveryText').querySelector('.fh-measure'));
-  assert.ok(document.getElementById('fhDeliveryText').querySelector('.fh-reveal'));
-  clickChoice(0); // ¿Qué trae?
-  assert.match(document.getElementById('fhDeliveryText').textContent,/paquete/i);
-  clickChoice(0); // Abrir la puerta
+  assert.ok(body.querySelector('.fh-measure'));
+  assert.ok(body.querySelector('.fh-reveal'));
+  press('e'); // Mostrar saludo completo antes de preguntar.
+  assert.match(body.textContent,/Apartamento 5 A/);
+  assert.doesNotMatch(body.textContent,/apto_4okzw_a4qn2l/);
+  clickChoice(0); // ¿Quién es?
+  assert.match(body.textContent,/repartidor de Hamazon/i);
+  clickChoice(0); // Volver a preguntar.
+  clickChoice(1); // ¿Qué trae?
+  assert.match(body.textContent,/paquete/i);
+  clickChoice(0); // Volver a preguntar.
+  clickChoice(2); // ¿Para qué apartamento?
+  assert.match(body.textContent,/Apartamento 5 A/);
+  assert.equal(effects.ended,0,'ninguna pregunta debe terminar el evento');
+  clickChoice(0); // Volver a preguntar.
+  clickChoice(4); // Abrir la puerta.
   assert.equal(effects.opened,1);
+  assert.equal(root.classList.contains('peephole'),false);
+  assert.equal(runtime.dialogOpen,true,'abrir la puerta conserva el diálogo');
+  assert.equal(effects.ended,0,'abrir la puerta no termina el evento');
+  clickChoice(4); // Continuar con la entrega.
   if(payment==='prepaid')assert.equal(order.status,'delivering');
   else{
    assert.equal(order.status,'payment');
-   clickChoice(0); // Entregar efectivo / Pagar con tarjeta
+   clickChoice(0); // Entregar efectivo / Pagar con tarjeta.
    assert.equal(order.status,'delivering');
   }
-  clickChoice(0); // Recibir paquete
+  clickChoice(0); // Recibir paquete.
   assert.equal(order.status,'delivered');
   assert.equal(effects.created.length,1);
   assert.equal(root.classList.contains('open'),false);
+  assert.equal(effects.ended,1,'la vista de puerta termina al recibir el paquete');
   assert.equal(effects.freezes.at(-1),false);
  });
 }
+test('un ataque interrumpe el diálogo sin completar el pedido',async()=>{
+ const {runtime,order,door,effects}=await setup('prepaid');
+ runtime.onPeephole(door);
+ runtime.talkThroughPeephole();
+ assert.equal(runtime.interruptDialogue(),true);
+ assert.equal(runtime.dialogOpen,false);
+ assert.equal(effects.ended,1);
+ assert.equal(order.status,'waiting');
+ assert.equal(effects.created.length,0);
+});
