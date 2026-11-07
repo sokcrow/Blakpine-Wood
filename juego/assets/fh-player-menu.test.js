@@ -142,8 +142,8 @@ const example={
 test('Estado lee nombre, origen, siete atributos y PG/SP/PE actuales de la partida',()=>{
   const profile={current:structuredClone(example)};
   const {tabs,detail}=scene(profile);
-  assert.equal(tabs.children.length,5);
-  tabs.children[3].click();
+  assert.equal(tabs.children.length,4);
+  tabs.children[2].click();
   assert.match(detail.textContent,/Elena Flores/);
   assert.match(detail.textContent,/Residente/);
   assert.equal(detail.querySelectorAll('.fh-stat-row').length,7);
@@ -161,14 +161,14 @@ test('Estado lee nombre, origen, siete atributos y PG/SP/PE actuales de la parti
     assert.ok(bar.getAttribute('aria-valuenow')!==undefined);
   }
   profile.current.resources.pg=4;
-  tabs.children[4].click();
   tabs.children[3].click();
+  tabs.children[2].click();
   assert.match(detail.textContent,/4 \/ 36/);
 });
 
 test('Estado no genera estadísticas cuando falta el personaje',()=>{
   const {tabs,detail}=scene({current:null});
-  tabs.children[3].click();
+  tabs.children[2].click();
   assert.match(detail.textContent,/No hay datos de un personaje activo/);
   assert.equal(detail.querySelectorAll('.fh-stat-row').length,7);
   for(const value of detail.querySelectorAll('.fh-resource-number'))
@@ -177,7 +177,7 @@ test('Estado no genera estadísticas cuando falta el personaje',()=>{
 
 test('Opciones ofrece Decorar en lugar de Pixel y separa la salida al editor',()=>{
   const {tabs,detail,global,clicks}=scene({current:structuredClone(example)});
-  tabs.children[4].click();
+  tabs.children[3].click();
   const controls=detail.querySelectorAll('[data-fh-setting]');
   assert.equal(controls.length,2);
   assert.doesNotMatch(detail.textContent,/Cuadrícula/);

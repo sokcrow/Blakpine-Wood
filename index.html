@@ -2921,6 +2921,9 @@ function prepareGLBEngineDoc(source){
  const statusCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-status-hud.css?v=20261107-palette-feedback-1',document.baseURI).href+'">';
  const statusStrings='<script src="'+new URL('./juego/assets/fh-status-strings.js?v=20261107-palette-feedback-1',document.baseURI).href+'"></'+'script>';
  const statusScript='<script src="'+new URL('./juego/assets/fh-status-hud.js?v=20261107-palette-feedback-1',document.baseURI).href+'"></'+'script>';
+ const phoneCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-phone.css?v=20261107-phone-1',document.baseURI).href+'">';
+ const phoneStrings='<script src="'+new URL('./juego/assets/fh-phone-strings.js?v=20261107-phone-1',document.baseURI).href+'"></'+'script>';
+ const phoneScript='<script src="'+new URL('./juego/assets/fh-phone.js?v=20261107-phone-1',document.baseURI).href+'"></'+'script>';
  const locationHudHook='if(now-lastHud>90){lastHud=now;hudUpdate()}';
  const locationHudAfter='if(now-lastHud>90){lastHud=now;hudUpdate();window.FHLocationHUD?.update(DATA,currentFloor,{x:user.x/CELL,y:user.z/CELL});window.FHStatusHUD?.update(window.FHCharacterRuntime?.character?.resources)}';
  if(source.split(locationHudHook).length!==2)throw Error('El HUD original cambió: actualiza el adaptador de ubicación.');
@@ -2959,7 +2962,7 @@ function prepareGLBEngineDoc(source){
 
  function addDeliveryToEngine(doc){
   const stateAnchor="stats:initial.stats&&typeof initial.stats==='object'?{...initial.stats}:null};";
-  const stateAfter="stats:initial.stats&&typeof initial.stats==='object'?{...initial.stats}:null,clock:initial.clock&&typeof initial.clock==='object'?{...initial.clock}:null,delivery:initial.delivery&&typeof initial.delivery==='object'?JSON.parse(JSON.stringify(initial.delivery)):null,decoration:initial.decoration&&typeof initial.decoration==='object'?JSON.parse(JSON.stringify(initial.decoration)):null};";
+  const stateAfter="stats:initial.stats&&typeof initial.stats==='object'?{...initial.stats}:null,clock:initial.clock&&typeof initial.clock==='object'?{...initial.clock}:null,delivery:initial.delivery&&typeof initial.delivery==='object'?JSON.parse(JSON.stringify(initial.delivery)):null,decoration:initial.decoration&&typeof initial.decoration==='object'?JSON.parse(JSON.stringify(initial.decoration)):null,phone:initial.phone&&typeof initial.phone==='object'?JSON.parse(JSON.stringify(initial.phone)):null,commerce:initial.commerce&&typeof initial.commerce==='object'?JSON.parse(JSON.stringify(initial.commerce)):null};";
   const interactBefore="const interactableItems=DATA.floors.map(f=>(f.items||[]).filter(it=>it.interact||it.type==='light_switch'||it.type==='breaker_panel'||ForestShared.PROP_ACTIONS[it.type])\n .map(it=>it.interact?it:{...it,interact:ForestShared.PROP_ACTIONS[it.type]?\n  {...ForestShared.interactionPreset(it.type==='bed'?'bed_lie':it.type==='tv'?'tv_watch':it.type),id:'pose_'+it.id}:\n  {id:'power_'+it.id,verb:'use',label:it.type==='breaker_panel'?LIGHTING_TEXT.breakerAction:LIGHTING_TEXT.switchAction,effects:[]}}));";
   const interactAfter="const interactableItems=DATA.floors.map(f=>(f.items||[]).filter(it=>it.interact||it.type==='light_switch'||it.type==='breaker_panel'||ForestShared.PROP_ACTIONS[it.type]||it.pcTerminal===true||it.modelId==='escritorio_pc'||window.FHComputer?.isPc(it,f.items,Number(DATA.units.feetPerCell)||5))\n .map(it=>(it.pcTerminal===true||it.modelId==='escritorio_pc'||window.FHComputer?.isPc(it,f.items,Number(DATA.units.feetPerCell)||5))?{...it,interact:{id:'pc_'+it.id,verb:'use',label:window.FH_COMPUTER_TEXT?.pcAction||'Usar PC',effects:[]}}:it.interact?it:{...it,interact:ForestShared.PROP_ACTIONS[it.type]?\n  {...ForestShared.interactionPreset(it.type==='bed'?'bed_lie':it.type==='tv'?'tv_watch':it.type),id:'pose_'+it.id}:\n  {id:'power_'+it.id,verb:'use',label:it.type==='breaker_panel'?LIGHTING_TEXT.breakerAction:LIGHTING_TEXT.switchAction,effects:[]}}));";
   const buildAnchor="DATA.floors.forEach((_,i)=>buildFloor(i));";
@@ -3479,7 +3482,7 @@ window.FHComputerRuntime=window.FHComputer?.createRuntime({
  freeze:on=>{fhDeliveryUiActive=!!on;user.vx=user.vz=0;clearStick();},
  onOpen:(item,floor)=>window.FHDeliveryRuntime?.onComputerOpen(item,floor),
  onClose:()=>window.FHDeliveryRuntime?.onComputerClose(),
- onTerminalReady:()=>window.FHDeliveryRuntime?.syncTerminal()
+ onTerminalReady:()=>{window.FHDeliveryRuntime?.syncTerminal();window.FHPhoneRuntime?.syncCartToTerminal?.()}
 });
 window.FHDeliveryRuntime=window.FHDelivery?.createRuntime({
  computer:window.FHComputerRuntime,
@@ -3502,7 +3505,15 @@ window.FHDeliveryRuntime=window.FHDelivery?.createRuntime({
  packagePlacement:(door)=>({floor:door.f,x:door.cx-door.norm.x*1.15,z:door.cz-door.norm.z*1.15}),
  spawnRuntimeItem:fhSpawnRuntimeItem,hasRuntimeItem:(id,f)=>!!fhRuntimeItemById(id,f),replacePackage:fhReplacePackage,restoreFurniture:fhRestoreDeliveredFurniture,
  showNpc:fhShowDeliveryNpc,hideNpc:fhHideDeliveryNpc,spriteUrl:fhDeliverySpriteUrl
-});`;
+});
+window.FHPhoneRuntime=window.FHPhone?.createRuntime({
+ state:GameState,save:saveProgress,strings:window.FH_PHONE_TEXT,
+ itemDefs,markNoteRead:id=>{ForestShared.markNoteRead(GameState,id,itemDefs);saveProgress();},
+ delivery:()=>window.FHDeliveryRuntime,addresses:()=>fhDeliveryAddresses(),
+ toggleTorch:()=>toggleFlashlight(),torchState:()=>({...lighting.state}),
+ onCartChange:cart=>window.FHComputerRuntime?.terminalApi()?.setHamazonCart?.(cart)
+});
+window.FHPhoneRuntime?.syncCartToTerminal?.();`;
   const furnitureBefore="function useFurniture(item,selectedSeat=null){\n if(['sit','lie'].includes(item.interact?.verb)){";
   const npcAddon=String.raw`// GOAP: la entidad usa la misma fuente de colisión que el personaje jugable.
 // Los permisos de propiedad no cambian durante la partida; los bloqueos sí.
@@ -3641,7 +3652,7 @@ function fhStartNpcRoute(order,door){
   const peekExitBefore="function stopPeek(){peeking=false;peekDoor=null;$('peekOverlay').classList.remove('active');document.body.classList.remove('peeking');visibilityDirty=true}";
   const peekExitAfter="function stopPeek(force=false){if(!force&&window.FHDeliveryRuntime?.dialogOpen)return;window.FHDeliveryRuntime?.onPeepholeExit();fhDoorConversationView=false;peeking=false;peekDoor=null;$('peekOverlay').classList.remove('active');document.body.classList.remove('peeking');$('peekText').hidden=false;visibilityDirty=true}";
   const frameBefore=" moveUpdate(dt);";
-  const frameAfter=" window.FHDeliveryRuntime?.update(dt);fhDecorationTick();if(!fhDeliveryUiActive&&!fhDecorationActive)moveUpdate(dt);else{user.vx=user.vz=0;}fhDeliveryNpcTick(dt);";
+  const frameAfter=" window.FHDeliveryRuntime?.update(dt);window.FHPhoneRuntime?.update(dt);fhDecorationTick();if(!fhDeliveryUiActive&&!fhDecorationActive)moveUpdate(dt);else{user.vx=user.vz=0;}fhDeliveryNpcTick(dt);";
   const apiBefore="get watchingTV(){return watchingTvId},watchTV:useTVFromSeat,breakers:";
   const apiAfter="get watchingTV(){return watchingTvId},watchTV:useTVFromSeat,delivery:window.FHDeliveryRuntime,computer:window.FHComputerRuntime,breakers:";
   const watchHudBefore=" const combo=currentTVCombo();\n $('watchTv').hidden=!combo;\n if(combo)$('watchTv').textContent=watchingTvId===combo.tvId?POSTURE_TEXT.stopWatching:POSTURE_TEXT.watch;";
@@ -3776,7 +3787,7 @@ function fhRefreshActorVisibility(){
   .replace(attachBefore,' window.FHAssets?.attach(g,a);\n'+attachBefore)
   .replace(cloneBefore,'const clone=source.clone(true);\n   window.FHAssets?.mirror(source,clone);\n   clone.position.y+=floorElev[f];')
   .replace(engineSuccessBefore,engineSuccessAfter).replace(engineFailBefore,engineFailAfter).replace(loadFailBefore,loadFailAfter)
-  .replace('</head>',localThree+coverageScript+lightsModule+surfaceScript+decorationScript+ruleScript+bridge+sleepCss+sleepStrings+sleepModule+pcAssemblyModule+computerStrings+computerModule+npcGoapModule+npcCourierModule+deliveryStrings+deliveryModule+styleCore+styleRender+parkingScript+playerMenuCss+playerMenuStrings+skillsModule+skillsStrings+helpCss+helpStrings+helpScript+playerMenuScript+locationCss+locationStrings+locationScript+hudRedesignCss+gameUiCss+hudFrameScript+mobileMenusCss+statusCss+statusStrings+statusScript+'</head>'))));
+  .replace('</head>',localThree+coverageScript+lightsModule+surfaceScript+decorationScript+ruleScript+bridge+sleepCss+sleepStrings+sleepModule+pcAssemblyModule+computerStrings+computerModule+npcGoapModule+npcCourierModule+deliveryStrings+deliveryModule+styleCore+styleRender+parkingScript+playerMenuCss+playerMenuStrings+skillsModule+skillsStrings+helpCss+helpStrings+helpScript+playerMenuScript+locationCss+locationStrings+locationScript+hudRedesignCss+gameUiCss+hudFrameScript+mobileMenusCss+statusCss+statusStrings+statusScript+phoneCss+phoneStrings+phoneScript+'</head>'))));
 }
 let fhCharacterLaunchPending=false;
 async function start3DPreview(){

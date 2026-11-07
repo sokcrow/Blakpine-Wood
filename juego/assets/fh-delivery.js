@@ -472,6 +472,18 @@ function createRuntime(options){
    const order=placeOrder(detail?.productId,detail?.paymentMethod,detail?.quantity,detail?.destinationId);
    frame.contentWindow?.postMessage({type:'FOREST_TERMINAL_RESPONSE',name:'hamazon-order-result',detail:{ok:!!order}},'*');
   }
+  if(name==='hamazon-cart-add'||name==='hamazon-cart-remove'||name==='hamazon-cart-checkout'){
+   const phone=global.FHPhoneRuntime;
+   let ok=false,result=null;
+   if(name==='hamazon-cart-add')ok=!!phone?.addToCart(detail?.productId,detail?.quantity,detail?.destinationId,detail?.paymentMethod);
+   if(name==='hamazon-cart-remove')ok=!!phone?.removeFromCart(detail?.id);
+   if(name==='hamazon-cart-checkout'){
+    result=phone?.checkoutCart?.()||{accepted:0,failed:0};
+    ok=result.failed===0&&result.accepted>0;
+   }
+   frame.contentWindow?.postMessage({type:'FOREST_TERMINAL_RESPONSE',name:'hamazon-cart-result',
+    detail:{ok,result}},'*');
+  }
   if(name==='zoom'&&detail?.on===false)closePc();
  }
  global.addEventListener('message',onMessage);
