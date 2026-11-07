@@ -290,6 +290,13 @@ function createRuntime(options){
    {label:TEXT.closeTalk||'Terminar conversación',run:closeDialog}
   ]);return true;
  }
+ function talkToCourier(door){
+  const order=activeOrderForDoor(state,door?.id);
+  if(!order||!['waiting','payment','delivering'].includes(order.status))return false;
+  npcOrder=order;
+  talkMenu(order,door,true);
+  return true;
+ }
  function onDoorOpened(door){
   const order=activeOrderForDoor(state,door?.id);if(!order)return false;
   options.showNpc?.(order,door,'greeting');talkMenu(order,door,true);return true;
@@ -433,7 +440,7 @@ function createRuntime(options){
  }
  global.addEventListener('message',onMessage);
  loadCatalogs();
- return {isPc,isPackage,isDeliveredFurniture,updateRuntimeItem,storedFurniture,setFurnitureStored,retrieveStoredFurniture,actionLabel,openPc,closePc,onComputerOpen,onComputerClose,syncTerminal,onPeephole,onPeepholeExit,talkThroughPeephole,onDoorOpened,onNpcArrived,onNpcRouteBlocked,interruptDialogue,openPackage,placeOrder,advanceTime,formatClock,update,resume,activateNext,
+ return {isPc,isPackage,isDeliveredFurniture,updateRuntimeItem,storedFurniture,setFurnitureStored,retrieveStoredFurniture,actionLabel,openPc,closePc,onComputerOpen,onComputerClose,syncTerminal,onPeephole,onPeepholeExit,talkThroughPeephole,talkToCourier,onDoorOpened,onNpcArrived,onNpcRouteBlocked,interruptDialogue,openPackage,placeOrder,advanceTime,formatClock,update,resume,activateNext,
   get dialogOpen(){return !!dialog?.classList.contains('open')},get products(){return products.map(clone)},get orders(){return delivery.orders.map(clone)},get ready(){return ready}};
 }
 global.FHDelivery=Object.freeze({ensureState,parcelSize,normalizeProduct,createOrder,activeOrderForDoor,advanceTime,tickClock,formatMinutes,formatClock,nextDueOrder,createRuntime});

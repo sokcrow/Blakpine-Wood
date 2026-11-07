@@ -3552,7 +3552,7 @@ for(const pair of [[elevatorPortalsBefore,elevatorPortalsAfter],[elevatorWalkBef
  source=source.replace(pair[0],pair[1]);
 }
 const cameraLightAfter=" const lightDistance=camDistance+(window.FHLights?.cameraBonus(roomLampEntries,lighting,currentFloor,user.x,user.z)||0);\n const ahead=lighting.state.enabled?0.80:0;target.x+=flashDir.x*ahead;target.z+=flashDir.z*ahead;\n const desired=new THREE.Vector3(user.x+behind.x*lightDistance,y+.88+lightDistance*Math.tan(Math.PI/6),user.z+behind.z*lightDistance);";
- return addLiveTextToEngine(addDeliveryToEngine(addParkingToEngine(addStylesToEngine(addLightToEngine(source)))).replace(furnitureVisibilityHook,furnitureRenderHook).replace(cameraBefore,cameraAfter).replace(cameraBefore,cameraLightAfter).replace(loopBefore,loopAfter)
+ return (window.FHContextEngine?.patch||((doc)=>doc))(addLiveTextToEngine(addDeliveryToEngine(addParkingToEngine(addStylesToEngine(addLightToEngine(source)))).replace(furnitureVisibilityHook,furnitureRenderHook).replace(cameraBefore,cameraAfter).replace(cameraBefore,cameraLightAfter).replace(loopBefore,loopAfter)
   .replace(maskBefore,maskAfter).replace(wakeHUDBefore,wakeHUDAfter).replace(locationHudHook,locationHudAfter)
   .split(wakeBefore).join(wakeAfter)
   .replace(chairSelection," const poseReachable=(item,anchor)=>canWalk(user.x,user.z)&&safePoseRoute(item,{x:user.x,z:user.z},anchor);\n const stockSeat=selectSeatInteractable(visible,user,yaw,CELL,poseReachable);\n const glbChair=window.FHFurnitureRules?.findReachableChair(visible,user,yaw,CELL,poseReachable,ForestShared);\n const sitting=glbChair&&(!stockSeat||glbChair.score<stockSeat.score)?glbChair:stockSeat;")
@@ -3571,7 +3571,7 @@ const cameraLightAfter=" const lightDistance=camDistance+(window.FHLights?.camer
   .replace(attachBefore,' window.FHAssets?.attach(g,a);\n'+attachBefore)
   .replace(cloneBefore,'const clone=source.clone(true);\n   window.FHAssets?.mirror(source,clone);\n   clone.position.y+=floorElev[f];')
   .replace(engineSuccessBefore,engineSuccessAfter).replace(engineFailBefore,engineFailAfter).replace(loadFailBefore,loadFailAfter)
-  .replace('</head>',localThree+coverageScript+lightsModule+surfaceScript+decorationScript+ruleScript+bridge+sleepStrings+sleepModule+pcAssemblyModule+computerStrings+computerModule+npcGoapModule+npcCourierModule+deliveryStrings+deliveryModule+styleCore+styleRender+parkingScript+playerMenuCss+playerMenuStrings+playerMenuScript+locationCss+locationStrings+locationScript+hudRedesignCss+gameUiCss+hudFrameScript+'</head>'));
+  .replace('</head>',localThree+coverageScript+lightsModule+surfaceScript+decorationScript+ruleScript+bridge+sleepStrings+sleepModule+pcAssemblyModule+computerStrings+computerModule+npcGoapModule+npcCourierModule+deliveryStrings+deliveryModule+styleCore+styleRender+parkingScript+playerMenuCss+playerMenuStrings+playerMenuScript+locationCss+locationStrings+locationScript+hudRedesignCss+gameUiCss+hudFrameScript+'</head>')));
 }
 let fhCharacterLaunchPending=false;
 async function start3DPreview(){
@@ -3692,5 +3692,6 @@ init();
 <script src="./juego/assets/fh-architecture-strings.js"></script>
 <script src="./juego/assets/fh-architecture-skins.js?v=20261106-window-tiles"></script>
 <script src="./juego/assets/fh-architecture-editor-catalog.js?v=20261105-visual-models"></script>
+<script src="./juego/assets/fh-context-engine-hook.js?v=20261106-radial"></script>
 </body>
 </html>

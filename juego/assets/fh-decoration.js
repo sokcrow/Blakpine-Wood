@@ -39,8 +39,8 @@
       y:round(step?Math.round(finite(y)/step)*step:finite(y))};
   }
   // Los muebles del mapa son editables; arquitectura, controles fijos y accesos no lo son.
-  const FIXED_TYPES=new Set(['wall','red_wall','half_wall','fence','window','door','peephole_door','room','hall','outside','building','pavement','parking','grass','dirt','opening','spawn','stairs','elevator','light_switch','light_fixture','breaker_panel','battery_pickup','camera','security_camera']);
-  const FURNITURE_TYPES=new Set(['chair','sofa','bed','tv','table','dining','kitchen','bath','toilet','desk','cabinet','shelf','plant','furniture','misc']);
+  const FIXED_TYPES=new Set(['wall','red_wall','half_wall','fence','window','door','peephole_door','room','hall','outside','building','pavement','parking','grass','dirt','opening','spawn','stairs','elevator','light_switch','light_fixture','breaker_panel','battery_pickup','camera','security_camera','property_wall','npc_portal','electronic_door','electronic_lock','pinpad','card_reader','keypad','access_reader','terminal']);
+  const FURNITURE_TYPES=new Set(['chair','sofa','bed','tv','table','dining','kitchen','bath','toilet','desk','cabinet','shelf','plant','furniture','misc','wardrobe','dresser','nightstand','armchair','stool','bookshelf','counter','fridge','stove','sink','mirror','rug','lamp','decoration','appliance']);
   function isMovable(item){
     if(!item||typeof item.id!=='string'||!item.id||item.decoratable===false||FIXED_TYPES.has(item.type))return false;
     if(item.runtimeDecoratable===true)return true;

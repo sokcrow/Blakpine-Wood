@@ -1,0 +1,11 @@
+/* Un solo radial por objetivo; el área vacía no bloquea joystick ni cámara. */
+#fhContextRadial{position:fixed;z-index:56;width:0;height:0;pointer-events:none;transform:translate(-50%,-50%);color:#eee9df;font-family:'Spectral',Georgia,serif}
+#fhContextRadial[hidden]{display:none!important}
+#fhContextRadial .fh-radial-target{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:grid;place-items:center;text-align:center;width:88px;min-height:54px;padding:8px 5px;background:#0b0c0bed;border:1px solid #cecbc2;outline:1px solid #62615d;outline-offset:3px;color:#f5f0e6;font:600 11px/1.3 'Cinzel',Georgia,serif;overflow-wrap:anywhere;box-shadow:0 4px 18px #000b}
+#fhContextRadial .fh-radial-action{position:absolute;left:50%;top:50%;transform:translate(calc(-50% + var(--radial-x)),calc(-50% + var(--radial-y)));pointer-events:auto;min-width:78px;max-width:106px;min-height:44px;padding:7px 8px;border:1px solid #9a9991;border-radius:0;background:#171918ef;color:#f3f0e9;font:600 11px/1.26 'Cinzel',Georgia,serif;box-shadow:0 4px 10px #0009;cursor:pointer;touch-action:manipulation;overflow-wrap:anywhere}
+#fhContextRadial .fh-radial-action:hover,#fhContextRadial .fh-radial-action:focus-visible{background:#333730;border-color:#f2ede3;outline:2px solid #ebe7de;outline-offset:2px}
+#fhContextRadial .fh-radial-action:disabled{opacity:.45;cursor:not-allowed}
+body.breaker-active #fhContextRadial,body.peeking #fhContextRadial{visibility:hidden}
+@media(max-width:620px){#fhContextRadial .fh-radial-action{font-size:10px;min-width:73px;max-width:89px}#fhContextRadial .fh-radial-target{width:80px;font-size:10px}}
+@media(max-height:400px){#fhContextRadial{scale:.8;transform-origin:center}}
+@media(prefers-reduced-motion:reduce){#fhContextRadial *,#fhContextRadial{transition:none!important;animation:none!important}}

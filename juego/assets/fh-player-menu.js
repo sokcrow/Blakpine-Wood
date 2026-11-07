@@ -150,7 +150,7 @@
     const area=node('section','fh-settings-area');
     area.append(node('h4','fh-status-column-heading',label('settingsPresentation')));
     for(const [id,name,help] of [
-      ['pixelBtn','pixels','pixelsHelp'],
+      ['fhDecorModeBtn','decorate','decorateHelp'],
       ['fullscreenBtn','fullscreen','fullscreenHelp']
     ]){
       const row=node('div','fh-setting-row');

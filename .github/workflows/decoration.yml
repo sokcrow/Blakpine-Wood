@@ -30,4 +30,4 @@ jobs:
           node-version: '22'
       - name: Pruebas del modo decorar y de la entrega
         run: |
-          node --test juego/assets/fh-decoration.test.js juego/assets/fh-decoration-ui.test.js juego/assets/fh-delivery.test.js juego/assets/fh-delivery-runtime.test.js juego/assets/fh-delivery-integration.test.js juego/assets/fh-hamazon-availability.test.js juego/assets/fh-glb-bridge.test.js juego/assets/fh-player-menu.test.js
+          node --test juego/assets/fh-decoration.test.js juego/assets/fh-decoration-ui.test.js juego/assets/fh-delivery.test.js juego/assets/fh-delivery-runtime.test.js juego/assets/fh-delivery-integration.test.js juego/assets/fh-hamazon-availability.test.js juego/assets/fh-glb-bridge.test.js juego/assets/fh-player-menu.test.js juego/assets/fh-context-engine-hook.test.js juego/assets/fh-interaction-radial.test.js
