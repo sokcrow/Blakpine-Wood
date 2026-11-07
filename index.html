@@ -3105,6 +3105,7 @@ function fhDecorationPointer(event){
 }
 function fhDecorStoredList(){
  const ui=fhEnsureDecorationUi(),text=window.FH_DELIVERY_TEXT||{},stored=window.FHDeliveryRuntime?.storedFurniture()||[];
+ ui.storedPanel.querySelector('#fhDecorStoredTitle').textContent=text.decorateStored||'MUEBLES GUARDADOS';
  ui.storedList.replaceChildren();
  if(!stored.length){
   const empty=document.createElement('div');empty.textContent=text.decorateStoredEmpty||'No hay muebles guardados.';
@@ -3162,7 +3163,7 @@ function fhEnsureDecorationUi(){
  ui.store.textContent=t.decorateStore||'Guardar mueble';
  storedPanel.querySelector('#fhDecorStoredTitle').textContent=t.decorateStored||'MUEBLES GUARDADOS';
  storedPanel.querySelector('#fhDecorStoredClose').textContent=t.decorateMenuClose||'Cerrar';
- button.onclick=()=>{const target=fhDecorationNearest();if(target)fhStartDecoration(target.item,target.floor)};
+ button.onclick=()=>fhDecorChooseNearby();
  storedButton.onclick=()=>{fhStoredUiActive=!fhStoredUiActive;storedPanel.hidden=!fhStoredUiActive;if(fhStoredUiActive)fhDecorStoredList()};
  storedPanel.querySelector('#fhDecorStoredClose').onclick=()=>{fhStoredUiActive=false;storedPanel.hidden=true};
  panel.querySelector('#fhDecorRotateFine').onclick=()=>fhRotateDecoration(15);
@@ -3184,8 +3185,8 @@ function fhEnsureDecorationUi(){
  },true);
  return ui;
 }
-function fhDecorationNearest(){
- let best=null,dist=1.65;
+function fhDecorationCandidates(){
+ const result=[];
  for(const item of DATA.floors[currentFloor]?.items||[]){
   if(!window.FHDecoration?.isMovable(item))continue;
   const dx=user.x/CELL-item.x,dy=user.z/CELL-item.y,r=(Number(item.rotation)||0)*Math.PI/180,c=Math.cos(r),s=Math.sin(r);
@@ -3193,9 +3194,26 @@ function fhDecorationNearest(){
   const outsideX=Math.max(0,Math.abs(lx)-Math.max(.15,Number(item.w)||1)/2);
   const outsideY=Math.max(0,Math.abs(ly)-Math.max(.15,Number(item.h)||1)/2);
   const d=Math.hypot(outsideX,outsideY)*CELL;
-  if(d<dist){dist=d;best={item,floor:currentFloor}}
+  if(d<1.65)result.push({item,floor:currentFloor,d});
  }
- return best;
+ return result.sort((a,b)=>a.d-b.d);
+}
+function fhDecorationNearest(){return fhDecorationCandidates()[0]||null}
+function fhDecorChooseNearby(){
+ const choices=fhDecorationCandidates();
+ if(!choices.length){notice(window.FH_DELIVERY_TEXT?.decorateNoSelection||'Acércate a un mueble para decorarlo.');return}
+ if(choices.length===1){fhStartDecoration(choices[0].item,choices[0].floor);return}
+ const ui=fhEnsureDecorationUi(),t=window.FH_DELIVERY_TEXT||{};
+ ui.storedPanel.querySelector('#fhDecorStoredTitle').textContent=t.decorateSelect||'SELECCIONAR MUEBLE';
+ ui.storedList.replaceChildren();
+ for(const entry of choices){
+  const row=document.createElement('div');row.className='fh-decor-stored-row';
+  const name=document.createElement('span');name.textContent=entry.item.label||entry.item.modelId||entry.item.type;
+  const action=document.createElement('button');action.type='button';action.textContent=t.decorateAction||'Mover / decorar';
+  action.onclick=()=>fhStartDecoration(entry.item,entry.floor);
+  row.append(name,action);ui.storedList.append(row);
+ }
+ fhStoredUiActive=true;ui.storedPanel.hidden=false;
 }
 function fhStartDecoration(item,f=currentFloor,opts={}){
  if(!window.FHDecoration?.isMovable(item)||fhDecorationActive||fhDeliveryUiActive||peeking||playerPose.occupied)return false;
