@@ -85,7 +85,7 @@
     upX:-Math.sin(a),upZ:-Math.cos(a)};
   }
   function needsBreath(){
-   return stage==='asleep' && asleepTime>=nextBreath;
+   return stage==='asleep' && asleepTime+1e-6>=nextBreath;
   }
   function emitBreath(point){
    if(!needsBreath()||!point||!Number.isFinite(point.x)||!Number.isFinite(point.y)||!Number.isFinite(point.z))return false;
