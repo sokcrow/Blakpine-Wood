@@ -61,6 +61,10 @@
   }
   let viewProvider = null, onFreeze = null, current = null, queue = [], timer = 0, noticeTimer = 0, elements = null, pendingNotice = null;
   const spatialItems = [];
+  const recentActions = new Map();
+  function actionWord(id) {
+    return typeof id === 'string' ? String(T.actionWords?.[id] || '') : '';
+  }
   function styleText() {
     return [
       '#toast{top:30%;max-width:min(86vw,660px);padding:0;background:none;border:0;border-radius:0;box-shadow:none;color:#f1efe9;font:normal clamp(17px,2.5vw,23px)/1.48 Georgia,serif;text-shadow:0 2px 4px #000,0 0 13px #000d;}',
@@ -271,9 +275,27 @@
     ensure();
     if (spatialItems.length >= 8) { const old = spatialItems.shift();old.el.remove(); }
     const el = global.document.createElement('div');el.className='fh-sound';el.textContent=word;elements.layer.appendChild(el);
-    const entry = { el, x:spec.x,z:spec.z,y:spec.y,floor:spec.floor, expires:global.performance.now()+580,nextSight:0,shown:false };
+    const entry = { el, x:spec.x,z:spec.z,y:spec.y,floor:spec.floor,self:spec.self===true, expires:global.performance.now()+580,nextSight:0,shown:false };
     spatialItems.push(entry);tick();return true;
   }
+  // Comparte tipografía, animación, capa y proyección con el texto «¡TOC!».
+  // El evento puede indicar self cuando lo provoca el jugador: el texto sigue
+  // visible aunque apagar una luz deje el objeto a oscuras.
+  function actionAt(spec) {
+    const word = actionWord(spec?.id);
+    if (!word) return false;
+    const key = String(spec?.key ?? (spec?.floor + ':' + spec?.x + ':' + spec?.z));
+    const now = global.performance.now();
+    const previous = recentActions.get(key);
+    if (previous != null && now - previous < 260) return false;
+    const shown = soundAt({ ...spec, text: word, level: spec?.self === true ? 1 : spec?.level });
+    if (!shown) return false;
+    if (recentActions.has(key)) recentActions.delete(key);
+    if (recentActions.size >= 128) recentActions.delete(recentActions.keys().next().value);
+    recentActions.set(key, now);
+    return true;
+  }
+
   let audio = null;
   function knockSound(level = 1) {
     try {
@@ -311,6 +333,7 @@
     };
     const preset = presets[spec?.id];
     if (!preset) return false;
+    actionAt({ ...spec, level });
     try {
       const Audio = global.AudioContext || global.webkitAudioContext;
       if (!Audio) return true;
@@ -337,7 +360,7 @@
       if (now>=p.expires) { p.el.remove();spatialItems.splice(i,1);continue; }
       if (now>=p.nextSight) {
         p.nextSight=now+100;
-        p.shown=p.floor===view.floor && typeof view.visible==='function' && view.visible(p.x,p.z,p.floor);
+        p.shown=p.floor===view.floor && (p.self || (typeof view.visible==='function' && view.visible(p.x,p.z,p.floor)));
       }
       if (!p.shown || !view.camera || !view.canvas || !global.THREE) {p.el.hidden=true;continue;}
       const ndc = new global.THREE.Vector3(p.x,p.y,p.z).project(view.camera);
@@ -348,5 +371,5 @@
       p.el.style.transform = 'translate(-50%,-50%)';
     }
   }
-  global.FHLiveText = Object.freeze({ configure,showDialogue,typeInto,advance,isDialogOpen,notice,flushNotice,soundAt,soundLevel,playSfxAt,knockAt,tick,delayAfter,audible,normalizePages,PAUSE });
+  global.FHLiveText = Object.freeze({ configure,showDialogue,typeInto,advance,isDialogOpen,notice,flushNotice,soundAt,soundLevel,actionAt,actionWord,playSfxAt,knockAt,tick,delayAfter,audible,normalizePages,PAUSE });
 })(typeof window !== 'undefined' ? window : globalThis);
