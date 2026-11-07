@@ -3362,12 +3362,12 @@ function fhDeliveryAddresses(pc,pcFloor){
    const door=candidates.slice().sort((a,b)=>score(a)-score(b))[0];
    const propertyName=String(parcel.name||window.FH_DELIVERY_TEXT?.unnamedProperty||'Propiedad sin nombre').trim();
    const base={propertyId:parcel.id,propertyName,doorId:door.id,floor:f,floorName:floor.name||''};
-   result.push({...base,id:'property:'+parcel.id,label:propertyName+' · '+(floor.name||'')});
+   result.push({...base,id:'property:'+parcel.id,label:(window.FH_DELIVERY_TEXT?.shopParcelAddress||((name,floor)=>name+' · '+floor))(propertyName,floor.name||'')});
    for(const room of floor.items||[]){
     if(room.type!=='room'||!room.id||!String(room.label||'').trim()||!P?.roomInProperty?.(room,parcel))continue;
     result.push({...base,id:'room:'+floor.id+':'+room.id,roomId:room.roomId||room.id,
      roomName:String(room.label).trim(),
-     label:propertyName+' · '+String(room.label).trim()+' · '+(floor.name||'')});
+     label:(window.FH_DELIVERY_TEXT?.shopRoomAddress||((name,room,floor)=>name+' · '+room+' · '+floor))(propertyName,String(room.label).trim(),floor.name||'')});
    }
   }
  }
