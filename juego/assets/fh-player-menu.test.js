@@ -9,6 +9,10 @@ const path=require('node:path');
 const menuSource=fs.readFileSync(path.join(__dirname,'fh-player-menu.js'),'utf8');
 const stringsSource=fs.readFileSync(path.join(__dirname,'fh-player-menu-strings.js'),'utf8');
 const css=fs.readFileSync(path.join(__dirname,'fh-player-menu.css'),'utf8');
+const skillSource=fs.readFileSync(path.join(__dirname,'fh-skills.js'),'utf8');
+const skillTextSource=fs.readFileSync(path.join(__dirname,'fh-skill-strings.js'),'utf8');
+const helpTextSource=fs.readFileSync(path.join(__dirname,'fh-character-help-strings.js'),'utf8');
+const helpModuleSource=fs.readFileSync(path.join(__dirname,'fh-character-help.js'),'utf8');
 
 function scene(profile){
   let focus=null;
@@ -46,6 +50,9 @@ function scene(profile){
       if(key==='tabindex')this.tabIndex=Number(value);
     }
     getAttribute(key){return this.attributes[key];}
+    removeAttribute(key){delete this.attributes[key];}
+    remove(){if(this.parentNode){const siblings=this.parentNode.children;siblings.splice(siblings.indexOf(this),1);this.parentNode=null;}}
+    getBoundingClientRect(){return {left:12,right:46,top:42,bottom:76,width:300,height:220};}
     addEventListener(key,handler){(this.handlers[key]??=[]).push(handler);}
     focus(){focus=this;}
     click(){
@@ -114,6 +121,10 @@ function scene(profile){
   };
   global.parent=global;
   new Function('window',stringsSource)(global);
+  new Function('window','module',skillSource)(global,{exports:{}});
+  new Function('window',skillTextSource)(global);
+  new Function('window',helpTextSource)(global);
+  new Function('window',helpModuleSource)(global);
   new Function('window',menuSource)(global);
   const menu=document.getElementById('fhMenuToggle');
   const tabs=document.getElementById('fhPlayerMenuNav');
@@ -136,6 +147,12 @@ test('Estado lee nombre, origen, siete atributos y PG/SP/PE actuales de la parti
   assert.match(detail.textContent,/Elena Flores/);
   assert.match(detail.textContent,/Residente/);
   assert.equal(detail.querySelectorAll('.fh-stat-row').length,7);
+  assert.equal(detail.querySelectorAll('.fh-skill-row').length,32);
+  assert.equal(detail.querySelectorAll('.fh-help-trigger').length,42);
+  const help=detail.querySelectorAll('.fh-help-trigger')[0];
+  assert.equal(help.getAttribute('data-fh-help-id'),'FOR');
+  help.click();
+  assert.equal(help.getAttribute('aria-expanded'),'true');
   assert.match(detail.textContent,/20 \/ 36/);
   assert.match(detail.textContent,/14 \/ 24/);
   assert.match(detail.textContent,/7 \/ 15/);

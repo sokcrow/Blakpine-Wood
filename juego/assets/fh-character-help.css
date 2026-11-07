@@ -16,7 +16,7 @@
  overflow-y:auto;overscroll-behavior:contain;padding:16px 18px;
  color:#f0ece5;background:#141718;border:1px solid #c5beb1;
  box-shadow:0 12px 34px #000b;
- border-radius:0;text-align:left;pointer-events:none;
+ border-radius:0;text-align:left;pointer-events:auto;touch-action:pan-y;
  font:400 14px/1.45 Georgia,serif;
 }
 .fh-help-tooltip .fh-help-title {

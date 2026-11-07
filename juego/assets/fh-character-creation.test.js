@@ -21,6 +21,8 @@ for(const pattern of [
 const src=fs.readFileSync(path.join(__dirname,'fh-character-core.js'),'utf8');
 const strings=fs.readFileSync(path.join(__dirname,'fh-character-strings.js'),'utf8');
 const ui=fs.readFileSync(path.join(__dirname,'fh-character-creation.js'),'utf8');
+const helpTexts=fs.readFileSync(path.join(__dirname,'fh-character-help-strings.js'),'utf8');
+const helpUI=fs.readFileSync(path.join(__dirname,'fh-character-help.js'),'utf8');
 class Node {
  constructor(tag,document){this.tag=tag;this.document=document;this.children=[];this.listeners={};this.className='';this.attrs={};this.textContent='';this.isConnected=true;this.disabled=false;this.value=''}
  append(...nodes){this.children.push(...nodes);for(const n of nodes)n.parent=this}
@@ -37,7 +39,7 @@ const values=new Map();
 const window={document:doc,localStorage:{getItem:k=>values.get(k)||null,setItem:(k,v)=>values.set(k,v)},
  crypto:{randomUUID:()=> 'first-id'},addEventListener(){},removeEventListener(){}};
 const context={window,Date,Math,JSON,Object,Set,Error,Number,String,Array};
-for(const [filename,code] of [['strings',strings],['core',src],['creation',ui]])vm.runInNewContext(code,context,{filename});
+for(const [filename,code] of [['helpTexts',helpTexts],['helpUI',helpUI],['strings',strings],['core',src],['creation',ui]])vm.runInNewContext(code,context,{filename});
 const P=window.FHCharacterCreation,T=window.FH_CHARACTER_TEXT;
 function panel(){return doc.body.children[0].children[0]}
 function content(){return panel().children[4]}
@@ -58,13 +60,23 @@ function pick(title){
  fields[0].children[1].value='María';fields[0].children[1].listeners.input[0]();
  fields[1].children[1].value='Lucía';fields[1].children[1].listeners.input[0]();
  fields[2].children[1].value='hermana';fields[2].children[1].onchange();next();
+ assert.equal(content().children.find(n=>n.className==='fhcc-choices').children.filter(n=>n.className==='fhcc-score-choice').length,7);
+ const choiceHelp=content().children.find(n=>n.className==='fhcc-choices').children[0].children[1];
+ assert.equal(choiceHelp.className,'fh-help-trigger');
+ assert.equal(choiceHelp.attrs['data-fh-help-type'],'score');
+ choiceHelp.listeners.click[0]({stopPropagation(){}});
+ assert.equal(window.FHCharacterHelp.isOpen(),true);
+ window.FHCharacterHelp.close();
  pick('Fortaleza');pick('Agilidad');next();
  pick('Voluntad');pick('Prudencia');next();
  for(const key of ['FOR','AGI','ING','SOC']){
   const row=content().children.find(n=>n.className==='fhcc-score-row'&&n.children[1].attrs['data-score']===key);
   assert.ok(row,key);row.children[3].onclick();
  }
- assert.equal(nav().children[2].disabled,false);next();next();
+ assert.equal(nav().children[2].disabled,false);next();
+ const helpCount=content().querySelectorAll('button').filter(n=>n.className==='fh-help-trigger').length;
+ assert.equal(helpCount,10);
+ next();
  const created=await pending;
  assert.equal(created.scores.FOR,6);assert.equal(created.scores.AGI,6);
  assert.equal(P.current().name,'María');assert.equal(doc.body.children.length,0);
