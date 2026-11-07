@@ -3688,7 +3688,7 @@ function fhRefreshActorVisibility(){
     actorRegistry+"function drawSight(){const at=eyeLocation();const ts=performance.now();"],
    [" q.restore();sightTexture.needsUpdate=true;",
     " q.restore();sightTexture.needsUpdate=true;\n fhActorSightSnapshot={at,opaque,params};"],
-   [" drawSight();\n  if(peeking){"," drawSight();\n  fhRefreshActorVisibility();\n  if(peeking){"],
+   [" drawSight();\n if(peeking){"," drawSight();\n fhRefreshActorVisibility();\n if(peeking){"],
    ["function fhDisposeDeliveryNpc(){\n if(!fhDeliveryNpc)return;const mat=fhDeliveryNpc.material;mat?.map?.dispose?.();mat?.dispose?.();fhDeliveryNpc.parent?.remove(fhDeliveryNpc);fhDeliveryNpc=null;\n}",
     "function fhDisposeDeliveryNpc(){\n if(!fhDeliveryNpc)return;fhUnregisterVisibleActor(fhDeliveryNpc);\n const mat=fhDeliveryNpc.material;mat?.dispose?.();fhDeliveryNpc.parent?.remove(fhDeliveryNpc);fhDeliveryNpc=null;\n fhNpcDisplayedPose='';fhNpcRequestedPose='idle';fhNpcWalkCycle.reset();\n}"],
    [oldPose,newPose],
