@@ -2793,7 +2793,7 @@ function addLiveTextToEngine(doc){
  const hearing='<script src="'+new URL('./juego/assets/fh-hearing.js?v=20261107-hearing-1',document.baseURI).href+'"></'+'script>';
  const str='<script src="'+new URL('./juego/assets/fh-live-text-strings.js?v=20261106-live-courier',document.baseURI).href+'"></'+'script>';
  const ui='<script src="'+new URL('./juego/assets/fh-live-text.js?v=20261107-hearing-1',document.baseURI).href+'"></'+'script>';
- return doc.replace('</head>',hearing+str+ui+'</head>');
+ return window.FHComicActionEngine.patch(doc.replace('</head>',hearing+str+ui+'</head>'));
 }
 
 function prepareGLBEngineDoc(source){
@@ -3875,6 +3875,7 @@ init();
 <script src="./juego/assets/fh-architecture-strings.js"></script>
 <script src="./juego/assets/fh-architecture-skins.js?v=20261106-window-tiles"></script>
 <script src="./juego/assets/fh-architecture-editor-catalog.js?v=20261105-visual-models"></script>
+<script src="./juego/assets/fh-comic-action-engine-hook.js?v=20261107-comic-actions-1"></script>
 <script src="./juego/assets/fh-context-engine-hook.js?v=20261107-safe-lock-2"></script>
 </body>
 </html>
