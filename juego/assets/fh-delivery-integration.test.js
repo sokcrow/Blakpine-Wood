@@ -95,7 +95,8 @@ test('Abrir la caja conserva la posición y entra a decoración del mueble',()=>
  assert.match(index,/return \{item:next,floor:f\}/);
  assert.match(index,/fhRefreshDecorationPreview\(/);
  assert.match(index,/function fhStoreDecoration\(/);
- assert.match(index,/decorateRequired/);
+ assert.match(index,/shouldStore=a\.fresh/);
+ assert.match(index,/fhRemoveRuntimeItem\(a\.item,a\.floor\)/);
 });
 
 test('La economía sigue desacoplada',()=>{
