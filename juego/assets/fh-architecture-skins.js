@@ -177,8 +177,8 @@ function decorateDoor(d,it,THREE,sightMask){
  }).catch(error=>reportFailure(model,error));
 }
 function decorateWindow(args){
- const {it,container,built,a,b,angle,sightMask}=args||{};
- if(!it||!container||!Array.isArray(built)||!a)return;
+ const {it,container,built,a,b,angle,sightMask,floor}=args||{};
+ if(!it||!container||!Array.isArray(built)||!a||global.FHStructureHealthRuntime?.isDestroyed?.(floor,it.id))return;
  // El antepecho y el dintel originales mantienen su colisión y visibilidad.
  const originalPaneAndSideFrames=built.slice(2);
  if(originalPaneAndSideFrames.length!==3)return;
@@ -189,7 +189,7 @@ function decorateWindow(args){
  const stepZ=plan?(b?(b.z-a.z)/plan.length:plan.uy*1.524):0;
  const model=chooseWindow(it);
  load(model).then(scene=>{
-  if(!container.parent)return;
+  if(!container.parent||global.FHStructureHealthRuntime?.isDestroyed?.(floor,it.id))return;
   const windows=[];
   for(let i=0;i<count;i++){
    const node=scene.clone(true);
@@ -198,7 +198,7 @@ function decorateWindow(args){
    applyFOW(node,sightMask);
    windows.push(node);
   }
-  for(const node of windows)container.add(node);
+  for(const node of windows){container.add(node);global.FHStructureHealthRuntime?.registerWindowVisual?.(floor,it.id,node);}
   for(const visual of originalPaneAndSideFrames)hideLegacyVisual(visual,true);
  }).catch(error=>reportFailure(model,error));
 }
@@ -220,7 +220,7 @@ function patchEngineDoc(doc){
  if(begin<0||end<0)throw Error('No se encontró windowModel o doorTarget');
  const part=out.slice(begin,end),last=part.lastIndexOf('\n}');
  if(last<0)throw Error('No se encontró cierre de windowModel');
- const hook="\n window.FHArchitectureSkins?.decorateWindow({it,THREE,container:stories[f],built:stories[f].children.slice(fhWinVisualStart),a,b,angle,sightMask:installVisibility});";
+ const hook="\n window.FHArchitectureSkins?.decorateWindow({it,THREE,container:stories[f],built:stories[f].children.slice(fhWinVisualStart),a,b,angle,floor:f,sightMask:installVisibility});";
  out=out.slice(0,begin)+part.slice(0,last)+hook+part.slice(last)+out.slice(end);
  const script='<script src="'+scriptUrl.href+'"></scr'+'ipt>';
  const headEnd=out.indexOf('</head>');
