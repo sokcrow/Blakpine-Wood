@@ -149,3 +149,30 @@ test('hook 3D compone contra el motor Base64 y el adaptador de GLB real',()=>{
  const body=patched.slice(patched.indexOf('<script>')+8,patched.indexOf('</script>',patched.indexOf('<script>')));
  assert.doesNotThrow(()=>new vm.Script(body), 'el motor parcheado compila');
 });
+
+test('colisión real compartida: puerta abierta por destrucción y ventanal sin antepecho',()=>{
+ const start=index.indexOf('const ForestShared=(()=>{'),end=index.indexOf('\n})();',start);
+ assert.ok(start>=0&&end>start);
+ const scope={};vm.runInNewContext(index.slice(start,end+6)+'\nthis.shared=ForestShared;',scope);
+ const solidAt=scope.shared.solidAt;
+ const barrier={x1:2,z1:0,x2:2,z2:4};
+ const position={width:10,height:10,radius:.2,walls:[],doors:[{block:barrier,open:false,passable:false}]};
+ assert.equal(solidAt(2,2,position),true);
+ position.doors[0].destroyed=true;
+ assert.equal(solidAt(2,2,position),false);
+ const H=api(),w=win(),map={floors:[{id:'f1',items:[w]}]},walls=[[barrier]];
+ const rt=H.createRuntime({data:map,state:{},doorList:[[]],blockers:walls});
+ rt.registerWindow(0,w,[barrier],[]);
+ assert.equal(solidAt(2,2,{...position,doors:[],walls:walls[0]}),true);
+ rt.takeDamage({floorId:'f1',id:'w1',amount:2.5});
+ assert.equal(solidAt(2,2,{...position,doors:[],walls:walls[0]}),false);
+});
+test('IDs de mapas arbitrarios siguen siendo claves JSON, nunca prototipos',()=>{
+ const H=api(),it=door('wood',{id:'__proto__'}),registry={};
+ const result=H.damage(registry,'__proto__',it,1);
+ assert.equal(result.pg,9);
+ assert.equal(Object.hasOwn(registry,'__proto__'),true);
+ assert.equal(Object.hasOwn(registry['__proto__'],'__proto__'),true);
+ assert.equal(Object.getPrototypeOf(registry),Object.prototype);
+ assert.equal(JSON.parse(JSON.stringify(registry))['__proto__']['__proto__'].structure.pg,9);
+});
