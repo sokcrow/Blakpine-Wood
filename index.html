@@ -2744,6 +2744,8 @@ function addLiveTextToEngine(doc){
   " freeze:on=>{user.vx=user.vz=0;clearStick();for(const k of Object.keys(keys))keys[k]=false;},",
   " view:()=>({",
   "  listener:{x:user.x,z:user.z,y:floorElev[currentFloor]+1.5},floor:currentFloor,",
+  "  hearingRadius:LOOK_RADIUS,",
+  "  hearingObstacles:()=>window.FHHearing?.buildObstacles(DATA.floors[currentFloor]?.items||[],doorList[currentFloor]||[],CELL)||[],",
   "  camera:peeking?eye:cam,canvas:$('view'),",
   "  visible:(x,z,f)=>{",
   "   if(f!==currentFloor)return false;",
@@ -2764,7 +2766,25 @@ function addLiveTextToEngine(doc){
   ["GameEvents.on('say',({text})=>{if(text)notice(text,2700)});",
    "GameEvents.on('say',({text,speaker,kind,mood,segments})=>{if(text&&!(window.FHLiveText?.showDialogue({text,speaker,kind,mood,segments})))notice(text,2700)});"],
   ["GameEvents.on('sound:play',({id})=>playInteractionSound(id));",
-   "GameEvents.on('sound:play',({id,item})=>{playInteractionSound(id);if(item){const a=interactionAnchor(item);window.FHLiveText?.soundAt({id,x:a.x*CELL,z:a.y*CELL,y:floorElev[currentFloor]+1.15,floor:currentFloor});}});"],
+   "GameEvents.on('sound:play',({id,item})=>{if(!item)return playInteractionSound(id);const a=interactionAnchor(item),at={id,x:a.x*CELL,z:a.y*CELL,y:floorElev[currentFloor]+1.15,floor:currentFloor};const level=window.FHLiveText?.soundLevel(at)??1;if(level>0){playInteractionSound(id,level);window.FHLiveText?.soundAt({...at,level});}});"],
+  ["function playInteractionSound(id){","function playInteractionSound(id,level=1){if(!(level>0))return;"],
+  ["const audio=new Audio(file);audio.volume=.45;","const audio=new Audio(file);audio.volume=.45*level;"],
+  ["gain.gain.value=.30;source.start();","gain.gain.value=.30*level;source.start();"],
+  ["door.locked=false;door.open=!door.open;door.target=doorTarget(door);visibilityDirty=true;rememberDoor(door);",
+   "door.locked=false;door.open=!door.open;door.target=doorTarget(door);visibilityDirty=true;rememberDoor(door);window.FHLiveText?.playSfxAt({id:door.open?'door_open':'door_close',x:door.cx,z:door.cz,y:floorElev[door.f]+1.1,floor:door.f});"],
+  [" notice(d.open?'Abres la puerta.':'Cierras la puerta.',1800);",
+   " window.FHLiveText?.playSfxAt({id:d.open?'door_open':'door_close',x:d.cx,z:d.cz,y:floorElev[d.f]+1.1,floor:d.f});"],
+  ["  door.open=true;door.target=doorTarget(door);visibilityDirty=true;roomLightsDirty=true;rememberDoor(door);",
+   "  door.open=true;door.target=doorTarget(door);visibilityDirty=true;roomLightsDirty=true;rememberDoor(door);window.FHLiveText?.playSfxAt({id:'door_open',x:door.cx,z:door.cz,y:floorElev[door.f]+1.1,floor:door.f});"],
+  ["  const result=lighting.toggleRoom(currentFloor,r?.roomId||r?.id||item.roomId);",
+   "  const result=lighting.toggleRoom(currentFloor,r?.roomId||r?.id||item.roomId);if(result.ok)window.FHLiveText?.playSfxAt({id:'lamp_click',x:item.x*CELL,z:item.y*CELL,y:floorElev[currentFloor]+1.2,floor:currentFloor});"],
+  ["  else notice(!lighting.powered(currentFloor,r?.zoneId||item.zoneId||'')?LIGHTING_TEXT.noPower:result.value?LIGHTING_TEXT.switchOn:LIGHTING_TEXT.switchOff);",
+   "  else if(!lighting.powered(currentFloor,r?.zoneId||item.zoneId||''))notice(LIGHTING_TEXT.noPower);"],
+  [" onOpen:(item,floor)=>window.FHDeliveryRuntime?.onComputerOpen(item,floor),",
+   " onPowerChange:(key,entry)=>{if(entry.mode!=='booting')return;const split=key.indexOf(':'),f=Number(key.slice(0,split)),id=key.slice(split+1),item=(DATA.floors[f]?.items||[]).find(it=>it.id===id);if(!item)return;const a=interactionAnchor(item);window.FHLiveText?.playSfxAt({id:'computer_start',x:a.x*CELL,z:a.y*CELL,y:floorElev[f]+1.1,floor:f});},\n onOpen:(item,floor)=>window.FHDeliveryRuntime?.onComputerOpen(item,floor),"],
+  ["function walk(dx,dz){const n=", "function walk(dx,dz){if(window.FHLiveText?.isDialogOpen()||window.FHPlayerMenu?.isOpen())return 0;const n="],
+  [" cameraUpdate(dt);updateCabinIsolation();"," cameraUpdate(dt);window.FHLiveText?.tick();updateCabinIsolation();"]
+ ];
   ["function walk(dx,dz){const n=", "function walk(dx,dz){if(window.FHLiveText?.isDialogOpen()||window.FHPlayerMenu?.isOpen())return 0;const n="],
   [" cameraUpdate(dt);updateCabinIsolation();"," cameraUpdate(dt);window.FHLiveText?.tick();updateCabinIsolation();"]
  ];
@@ -2773,9 +2793,10 @@ function addLiveTextToEngine(doc){
   if(occurrences!==1)throw Error('Hook texto vivo incompatible: '+before.slice(0,85)+' ('+occurrences+')');
   doc=doc.replace(before,after);
  }
+ const hearing='<script src="'+new URL('./juego/assets/fh-hearing.js?v=20261107-hearing-1',document.baseURI).href+'"></'+'script>';
  const str='<script src="'+new URL('./juego/assets/fh-live-text-strings.js?v=20261106-live-courier',document.baseURI).href+'"></'+'script>';
- const ui='<script src="'+new URL('./juego/assets/fh-live-text.js?v=20261106-live-courier',document.baseURI).href+'"></'+'script>';
- return doc.replace('</head>',str+ui+'</head>');
+ const ui='<script src="'+new URL('./juego/assets/fh-live-text.js?v=20261107-hearing-1',document.baseURI).href+'"></'+'script>';
+ return doc.replace('</head>',hearing+str+ui+'</head>');
 }
 
 function prepareGLBEngineDoc(source){
