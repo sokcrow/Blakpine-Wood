@@ -36,6 +36,7 @@ window.FH_DELIVERY_TEXT=Object.freeze({
  decorateAction:'Mover / decorar',
  decorateTitle:'DECORAR',
  decorateNearby:'DECORAR',
+ decorateSelect:'SELECCIONAR MUEBLE',
  decorateStored:'MUEBLES GUARDADOS',
  decorateStore:'Guardar mueble',
  decorateStoredNotice:'Mueble guardado. Puedes colocarlo después.',
