@@ -56,3 +56,13 @@ test('Ruta imposible no crea un repartidor en la puerta',async()=>{
  assert.equal(w.counters.shown,0);
  assert.equal(w.runtime.onNpcArrived(w.order.id),false);
 });
+
+test('La ruta bloqueada durante el trayecto no deja el pedido como en camino',async()=>{
+ const w=await setup(true);
+ w.runtime.activateNext();
+ assert.equal(w.order.status,'en_route');
+ assert.equal(w.runtime.onNpcRouteBlocked(w.order.id),true);
+ assert.equal(w.order.status,'route_blocked');
+ assert.equal(w.runtime.onNpcArrived(w.order.id),false);
+ assert.equal(w.counters.rings,0);
+});
