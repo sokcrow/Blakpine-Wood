@@ -31,4 +31,20 @@ assert.match(index,/function fhRetrieveStoredFurniture\(id\)/);
 assert.match(index,/fhDecorationSave\(a\.item,a\.floor\)/);
 assert.match(strings,/decorateStored:'MUEBLES GUARDADOS'/);
 assert.match(strings,/decorateDragHelp:'Arrastra el mueble/);
+// Comprobar el verdadero punto de integración del motor embebido, no solo patrones de texto.
+const engineContext={window:{}};
+for(let i=0;i<=12;i++){
+ const file=path.join(__dirname,'engine-'+String(i).padStart(2,'0')+'.js');
+ vm.runInNewContext(fs.readFileSync(file,'utf8'),engineContext,{filename:file,timeout:5000});
+}
+const engine=Buffer.from(engineContext.window.__FOREST_EMBEDDED_ENGINE__,'base64').toString('utf8');
+const funcStart=index.indexOf(' function addDeliveryToEngine(doc){');
+const funcEnd=index.indexOf(' const engineSuccessBefore=',funcStart);
+assert.ok(funcStart>=0&&funcEnd>funcStart,'la integración delivery debe conservarse');
+const patchDelivery=vm.runInNewContext(index.slice(funcStart,funcEnd)+'\naddDeliveryToEngine',{}, {timeout:5000});
+const patchedEngine=patchDelivery(engine); // Lanzaría error si cambió un ancla del motor.
+assert.match(patchedEngine,/function fhStartDecoration\(/);
+assert.match(patchedEngine,/function fhDecorChooseNearby\(/);
+assert.match(patchedEngine,/GameState\.decoration=fhSavedDecor/);
+
 console.log('PASS — decoración: integración y sintaxis');
