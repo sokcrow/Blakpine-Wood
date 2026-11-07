@@ -52,7 +52,15 @@
    let next=spec.kind==='boolean'?input.checked:
     spec.kind==='seconds'?(input.value.trim()===''?NaN:Number(input.value)):input.value;
    try{
-    if(config.setField(it,key,next))record();
+    const had=Object.prototype.hasOwnProperty.call(it,key),previous=it[key];
+    if(config.setField(it,key,next)){
+     const problems=global.FHStructureHealth?.validateItem(it)||[];
+     if(problems.length){
+      if(had)it[key]=previous;else delete it[key];
+      throw Error(problems.map(x=>x.message).join(' · '));
+     }
+     record();
+    }
     openInspector();
    }catch(error){
     toast(T.configInvalid+' '+error.message);
