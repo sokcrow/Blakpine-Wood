@@ -65,6 +65,21 @@
     update(context);
   }
 
+  // Sin abrir el menú, mantiene vigente únicamente el objetivo alcanzable.
+  // Si cambió el objetivo, E no debe ejecutar una acción antigua.
+  function syncContext(context) {
+    const nextKey = context && Array.isArray(context.actions) && context.actions.length
+      ? String(context.key || 'context') : '';
+    if (!nextKey || (dismissedKey && dismissedKey !== nextKey)) {
+      dismissedKey = '';
+      dismissedActions = [];
+    } else if (dismissedKey === nextKey) {
+      dismissedActions = context.actions.filter(action =>
+        action && (typeof action.run === 'function' || action.disabled === true)).slice(0, 8);
+    }
+    if (root && !root.hidden && currentKey !== nextKey) hide();
+  }
+
   function sectorPath(index, count) {
     if (count === 1) return 'circle(50% at 50% 50%)';
     const from = -90 - 180 / count + index * 360 / count;
@@ -190,7 +205,7 @@
     return true;
   }
 
-  global.FHInteractionRadial = Object.freeze({ update, open, hide, close, activatePrimary, keydown,
+  global.FHInteractionRadial = Object.freeze({ update, open, syncContext, hide, close, activatePrimary, keydown,
     get visible() { return !!root && !root.hidden; },
     get target() { return currentKey; }
   });
