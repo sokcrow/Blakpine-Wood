@@ -284,31 +284,6 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
  #message{bottom:46px}
 }
 
-/* Teléfonos: menús del sistema RAVEN/OS al 75%.
-   Las ventanas siguen siendo desplazables y los botones conservan sus handlers. */
-@media (pointer: coarse) and (max-width: 767px),
-       (pointer: coarse) and (orientation: landscape) and (max-width: 1100px) and (max-height: 500px) {
-  #startMenu.start-menu {
-    transform: scale(.75);
-    transform-origin: left bottom;
-  }
-  #desktopIcons {
-    transform: scale(.75);
-    transform-origin: top left;
-  }
-  #windowsLayer .window,
-  #windowsLayer .window.maximized {
-    left: 12.5% !important;
-    top: 12.5% !important;
-    width: 100% !important;
-    height: 100% !important;
-    max-width: none !important;
-    max-height: none !important;
-    transform: scale(.75) !important;
-    transform-origin: top left !important;
-  }
-}
-
 /* RAVEN/OS: proporción de monitor 16:10 y ventanas independientes en móviles. */
 #focus .focus-frame{flex:none;box-sizing:border-box;aspect-ratio:16 / 10;max-width:100%;max-height:100%;margin:auto}
 #windowsLayer{position:absolute;inset:0;z-index:3;pointer-events:none;--fh-desktop-topbar:31px}
@@ -329,6 +304,19 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 }
 #windowsLayer .window.maximized .window-resize{display:none}
 @media(pointer:coarse){#windowsLayer .window-resize{width:36px;height:36px}}
+
+/* Vista táctil horizontal: RAVEN/OS utiliza todo el espacio útil. */
+#orientationNotice{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px;padding:32px;background:#0b1114;color:#d6cfb5;text-align:center;font:700 clamp(13px,3vw,19px)/1.5 'IBM Plex Mono',monospace}
+#orientationNotice .rotate-symbol{font-size:48px;line-height:1;color:#9fc8af}
+@media (pointer:coarse) and (orientation:portrait) and (max-width:1100px){
+ #orientationNotice{display:flex}
+}
+@media (pointer:coarse) and (orientation:landscape) and (max-width:1100px) and (max-height:600px){
+ #focus{gap:0;padding:max(2px,env(safe-area-inset-top)) max(2px,env(safe-area-inset-right)) max(2px,env(safe-area-inset-bottom)) max(2px,env(safe-area-inset-left))}
+ #focus .focus-top{display:none}
+ #focus .focus-frame{aspect-ratio:auto;flex:1;max-width:none;max-height:none;margin:0;border:2px solid #535d52;outline:0}
+ #focus .focus-frame::after{box-shadow:inset 0 0 20px #0006}
+}
 
 </style>
 </head>
@@ -358,6 +346,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
   <div id="message" role="status" aria-live="polite"></div>
  </div></div>
 </div>
+<div id="orientationNotice" role="status" aria-live="polite"><span class="rotate-symbol" aria-hidden="true">↻</span><strong id="orientationText"></strong></div>
 <script src="fh-delivery-strings.js?v=20261106-goap-1"></script>
 <script src="fh-computer-strings.js"></script>
 <script>
@@ -367,6 +356,7 @@ const $ = id => document.getElementById(id);
 const LABELS = {mail:'CORREOS',map:'MAPA',cams:'CÁMARAS',files:'ARCHIVOS',hamazon:'HAMAZON'};
 const APPS = ['mail','map','cams','files','hamazon'];
 const COMPUTER_TEXT=window.FH_COMPUTER_TEXT||{};
+$('orientationText').textContent=COMPUTER_TEXT.rotateLandscape||'Gira el dispositivo para usar RAVEN/OS.';
 let sessionApps=APPS.slice(),sessionStationId='',sessionUserId='GUARDIA_03';
 const DATA = {
  mails:[
@@ -477,13 +467,21 @@ function refreshStartMenu(){
 }
 function initStart(){const menu=$('startMenu');refreshStartMenu();$('startButton').addEventListener('click',()=>{const open=menu.classList.toggle('open');$('startButton').setAttribute('aria-expanded',String(open))});document.addEventListener('pointerdown',ev=>{if(!menu.contains(ev.target)&&ev.target!==$('startButton'))closeStart()})}
 function makeIcons(){let layer=$('desktopIcons');clear(layer);let icons={mail:['✉','symbol-mail'],map:['▧','symbol-map'],cams:['◉','symbol-cams'],files:['▣','symbol-files'],hamazon:['H','symbol-hamazon']};for(const app of sessionApps){const b=labelButton('', 'desktop-icon',()=>openWindow(app));b.setAttribute('aria-label','Abrir '+LABELS[app]);const icon=node('span','pixel-symbol '+icons[app][1],icons[app][0]);b.append(icon,node('span','',LABELS[app]));layer.append(b)}}
-// RAVEN/OS: proporción física 16:10 del área del monitor.
+// El monitor físico conserva 16:10; en teléfono horizontal la interfaz usa el área disponible.
+function isCompactLandscape(){
+ return window.matchMedia('(pointer: coarse) and (orientation: landscape) and (max-width: 1100px) and (max-height: 600px)').matches;
+}
 function fitFocusFrame(){
  const focus=$('focus');if(!focus.classList.contains('open'))return;
  const frame=focus.querySelector('.focus-frame'),top=focus.querySelector('.focus-top');
  const css=getComputedStyle(focus),n=v=>parseFloat(v)||0;
  const availableHeight=Math.max(80,focus.clientHeight-n(css.paddingTop)-n(css.paddingBottom)-top.offsetHeight-n(css.gap)-2);
  const availableWidth=Math.max(80,focus.clientWidth-n(css.paddingLeft)-n(css.paddingRight));
+ if(isCompactLandscape()){
+  frame.style.width=Math.floor(availableWidth)+'px';
+  frame.style.height=Math.floor(availableHeight)+'px';
+  return;
+ }
  const width=Math.max(80,Math.min(1450,availableWidth,availableHeight*1.6));
  frame.style.width=Math.floor(width)+'px';frame.style.height=Math.floor(width/1.6)+'px';
 }
@@ -556,18 +554,20 @@ function createWindow(app){
  const height=Math.min(targetHeight,Math.max(165,Math.floor((bounds.height-bounds.top)*.8)));
  setWindowBox(win,boundedWindowBox({left:Math.floor((bounds.width-width)/2)+idx*23,
   top:bounds.top+9+idx*18,width,height},bounds));
+ const mobileMaximized=isCompactLandscape();
+ if(mobileMaximized)win.classList.add('maximized');
  const title=node('div','window-title');
  title.append(node('span','window-name','▣ '+LABELS[app]),node('span','window-type','RAVEN / LOCAL'));
  const mini=labelButton('–','wm',()=>{win.style.display='none';win.dataset.minimized='yes';activateLastVisibleWindow()});
  mini.setAttribute('aria-label','Minimizar '+LABELS[app]);
- const maxi=labelButton('□','wm',()=>{
+ const maxi=labelButton(mobileMaximized?'▢':'□','wm',()=>{
   win.classList.toggle('maximized');
   const full=win.classList.contains('maximized');
   maxi.textContent=full?'▢':'□';
   maxi.setAttribute('aria-label',(full?(COMPUTER_TEXT.wmRestore||'Restaurar'):(COMPUTER_TEXT.wmMaximize||'Maximizar'))+' '+LABELS[app]);
   bringFront(app);
  });
- maxi.setAttribute('aria-label',(COMPUTER_TEXT.wmMaximize||'Maximizar')+' '+LABELS[app]);
+ maxi.setAttribute('aria-label',(mobileMaximized?(COMPUTER_TEXT.wmRestore||'Restaurar'):(COMPUTER_TEXT.wmMaximize||'Maximizar'))+' '+LABELS[app]);
  const close=labelButton('×','wm',()=>closeWindow(app));close.setAttribute('aria-label','Cerrar '+LABELS[app]);
  title.append(mini,maxi,close);
  const content=node('div','window-content');content.id='body-'+app;
