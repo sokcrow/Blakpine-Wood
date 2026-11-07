@@ -61,7 +61,7 @@ function fhContextRefresh(){
  const radial=window.FHInteractionRadial,t=window.FH_INTERACTION_STRINGS||{};
  if(!radial)return;
  if(peeking||breakerPanelItem||stairTravel||fhDeliveryUiActive||window.FHComputerRuntime?.isOpen||fhStoredUiActive){
-  fhContextTap=null;radial.hide();return;
+  fhContextTap=null;radial.syncContext(null);radial.hide();return;
  }
  let key='',title='',point={x:innerWidth*.5,y:innerHeight*.53},actions=[];
  let fhTapRoots=[];
@@ -148,8 +148,9 @@ function fhContextRefresh(){
   }
  }
  const tap=fhContextTap;fhContextTap=null;
- if(!actions.length){radial.hide();return;}
+ if(!actions.length){radial.syncContext(null);radial.hide();return;}
  const context={key,title,actions,x:point.x,y:point.y};
+ radial.syncContext(context);
  let clicked=false;
  if(tap){
   const reach=Math.max(22,Math.min(48,Math.min(innerWidth,innerHeight)*.11));
