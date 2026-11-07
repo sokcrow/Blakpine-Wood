@@ -32,4 +32,4 @@ jobs:
       - name: Comprobar marco y ubicación
         run: |
           node juego/assets/fh-player-menu.js
-          node --test juego/assets/fh-player-menu.test.js juego/assets/fh-hud-frame.test.js juego/assets/fh-game-ui.test.js juego/assets/fh-location-hud.test.js
+          node --test juego/assets/fh-player-menu.test.js juego/assets/fh-hud-frame.test.js juego/assets/fh-game-ui.test.js juego/assets/fh-location-hud.test.js juego/assets/fh-status-hud.test.js
