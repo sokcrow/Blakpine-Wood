@@ -98,6 +98,7 @@
       wheel.style.setProperty('--fh-radial-step', (360 / count) + 'deg');
       wheel.style.setProperty('--fh-radial-start', (-180 / count) + 'deg');
       wheel.classList.toggle('fh-radial-single', count === 1);
+      wheel.classList.toggle('fh-radial-four', count === 4);
       wheel.classList.toggle('fh-radial-dense', count >= 6);
       actions.forEach((entry, index) => {
         const button = global.document.createElement('button');
@@ -128,13 +129,15 @@
       currentKey = key;
     }
     const w = global.innerWidth || 800, h = global.innerHeight || 600;
-    const size = Math.min(272, Math.max(128, w - 20), Math.max(128, h - 100));
+    // Compacto en móvil: evita cubrir la mayor parte del escenario.
+    const preferred = w <= 620 ? 164 : h <= 480 ? 176 : 208;
+    const size = Math.max(112, Math.min(preferred, w - 24, h - 106));
     root.style.setProperty('--fh-radial-size', size + 'px');
     const x = Number.isFinite(context.x) ? context.x : w / 2;
     const y = Number.isFinite(context.y) ? context.y : h * 0.52;
     const clamp = (v, low, high) => Math.max(low, Math.min(high, v));
     root.style.left = Math.round(clamp(x, size / 2 + 8, Math.max(size / 2 + 8, w - size / 2 - 8))) + 'px';
-    root.style.top = Math.round(clamp(y, size / 2 + 58, Math.max(size / 2 + 58, h - size / 2 - 8))) + 'px';
+    root.style.top = Math.round(clamp(y, size / 2 + 46, Math.max(size / 2 + 46, h - size / 2 - 8))) + 'px';
     root.hidden = false;
   }
 
