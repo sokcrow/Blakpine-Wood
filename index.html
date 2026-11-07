@@ -2785,9 +2785,6 @@ function addLiveTextToEngine(doc){
   ["function walk(dx,dz){const n=", "function walk(dx,dz){if(window.FHLiveText?.isDialogOpen()||window.FHPlayerMenu?.isOpen())return 0;const n="],
   [" cameraUpdate(dt);updateCabinIsolation();"," cameraUpdate(dt);window.FHLiveText?.tick();updateCabinIsolation();"]
  ];
-  ["function walk(dx,dz){const n=", "function walk(dx,dz){if(window.FHLiveText?.isDialogOpen()||window.FHPlayerMenu?.isOpen())return 0;const n="],
-  [" cameraUpdate(dt);updateCabinIsolation();"," cameraUpdate(dt);window.FHLiveText?.tick();updateCabinIsolation();"]
- ];
  for(const [before,after] of changes){
   const occurrences=doc.split(before).length-1;
   if(occurrences!==1)throw Error('Hook texto vivo incompatible: '+before.slice(0,85)+' ('+occurrences+')');
