@@ -19,3 +19,11 @@ body.fh-sleeping #fhContextRadial {
   visibility: visible !important;
   pointer-events: auto !important;
 }
+
+/* El velo de sueño debe quedar SOBRE el mundo, pero DEBAJO de Despertar. */
+body.fh-sleep-masking #mist {
+  z-index: 6 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: none !important;
+}

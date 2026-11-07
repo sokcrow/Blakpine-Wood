@@ -29,6 +29,7 @@
     if(phase==='standing'){elapsed=0;holdAwake=false;depth=0;stage='awake';}
    }
    asleepTime=stage==='asleep'?asleepTime+step:0;
+   global.document?.body?.classList?.toggle('fh-sleep-masking',depth>=.003);
    if(stage!==previous){
     global.document?.body?.classList?.toggle('fh-sleeping',stage==='asleep');
     if(bus?.emit)bus.emit('player:sleepState',status());
@@ -46,6 +47,13 @@
    holdAwake=true;return action();
   }
   function viewWeight(){return depth;}
+  // Cámara cenital estricta: "up" horizontal evita la singularidad de lookAt
+  // cuando el visor está exactamente encima del personaje.
+  function cameraPose(x,z,ground,facing){
+   const a=Number(facing)||0,base=Number(ground)||0;
+   return {x:Number(x)||0,z:Number(z)||0,eyeY:base+6.5,focusY:base+.45,
+    upX:-Math.sin(a),upZ:-Math.cos(a)};
+  }
   function drawBreathing(ctx,x,y){
    if(stage!=='asleep'||asleepTime<CONFIG.breathDelay||!Number.isFinite(x)||!Number.isFinite(y))return;
    const t=((asleepTime-CONFIG.breathDelay)%CONFIG.breathCycle)/CONFIG.breathCycle;
@@ -69,22 +77,27 @@
   function renderMask(ctx,width,height,x,y,breathX=x,breathY=y){
    if(depth<.003)return false;
    const w=Math.max(1,Number(width)||1),h=Math.max(1,Number(height)||1);
-   const t=ease(clamp(depth)),radius=Math.hypot(w,h)*1.1*Math.pow(1-t,1.1);
+   const radius=Math.hypot(w,h)*1.25*(1-ease(clamp(depth)));
    ctx.save();
-   ctx.fillStyle='#000';ctx.fillRect(0,0,w,h);
-   if(radius>1){
-    const feather=Math.min(90,Math.max(12,radius*.14));
-    const gradient=ctx.createRadialGradient(x,y,Math.max(0,radius-feather),x,y,radius+feather);
-    gradient.addColorStop(0,'rgba(0,0,0,1)');gradient.addColorStop(1,'rgba(0,0,0,0)');
-    ctx.globalCompositeOperation='destination-out';
-    ctx.fillStyle=gradient;ctx.fillRect(0,0,w,h);
-    ctx.globalCompositeOperation='source-over';
+   ctx.globalCompositeOperation='source-over';
+   ctx.clearRect(0,0,w,h);
+   if(radius<=1){
+    ctx.fillStyle='#000';
+   }else{
+    // Dibujar negro directamente: no depender de destination-out ni de la
+    // transparencia acumulada del canvas del visor de mirilla.
+    const inner=radius*.72;
+    const gradient=ctx.createRadialGradient(x,y,inner,x,y,radius);
+    gradient.addColorStop(0,'rgba(0,0,0,0)');
+    gradient.addColorStop(1,'rgba(0,0,0,1)');
+    ctx.fillStyle=gradient;
    }
+   ctx.fillRect(0,0,w,h);
    drawBreathing(ctx,breathX,breathY);
    ctx.restore();
    return true;
   }
-  return Object.freeze({status,update,requestWake,viewWeight,renderMask});
+  return Object.freeze({status,update,requestWake,viewWeight,cameraPose,renderMask});
  }
  global.FHSleep=global.FHSleep||createController();
  global.FHCreateSleepController=createController;
