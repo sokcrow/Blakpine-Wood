@@ -38,6 +38,13 @@ test('el HTML generado integra radial y decoración sin afectar el editor 2D',()
  assert.match(output,/capture:true,suppressClick:true/);
  assert.match(output,/fh-interaction-radial\.js\?v=20261107-hold-gate/);
  assert.match(output,/fh-safe-lock\.js\?v=20261107-safe-lock-2/);
+ assert.match(output,/fh-mobile-camera\.js\?v=20261107-phone30/);
+ assert.ok(output.includes("const fhPhoneCameraPointer=window.matchMedia?.('(pointer: coarse)');"));
+ assert.ok(output.includes("const initialCameraDistance=window.FHMobileCamera?.distance(camDistance,innerWidth,innerHeight,!!fhPhoneCameraPointer?.matches)??camDistance;"));
+ assert.ok(output.includes("const fhCameraDistance=window.FHMobileCamera?.distance(lightDistance,innerWidth,innerHeight,!!fhPhoneCameraPointer?.matches)??lightDistance;"));
+ assert.match(output,/function updateCameraCutaway\(dt\)/);
+ assert.match(output,/occlusionRay\.intersectObjects\(roots,true\)/);
+ assert.ok(output.includes('const p=window.FHSleep.cameraPose(user.x,user.z,floorElev[currentFloor],playerPoseFacing);'));
  assert.match(output,/if\(gesture\.kind==='hold'\)\{radial\.open\(context,'hold'\);return;\}/);
  assert.match(output,/gesture\?\.source==='canvas'&&gesture\.kind==='hold'\)window\.FHLocationHUD\?\.peek\?\.\(\)/);
  assert.match(output,/gesture\?\.source==='canvas'&&gesture\.kind==='hold'&&!hit\)window\.FHLocationHUD\?\.peek\?\.\(\)/);
