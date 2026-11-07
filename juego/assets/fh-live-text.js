@@ -270,15 +270,20 @@
   }
   function sourceInRange(spec, view) { return soundLevel(spec, view) > 0; }
   function soundAt(spec) {
+    const screenSleep=spec?.kind==='sleep'&&Number.isFinite(spec?.screenX)&&Number.isFinite(spec?.screenY);
     const view = getView(), info = SOUND[spec?.id] || {};
-    if (!view || !(Number.isFinite(spec?.level) ? spec.level : soundLevel({ ...spec, range: spec?.range || info.range },view))) return false;
+    // El Zzz no depende de iluminación, visión, ni siquiera de una cámara 3D
+    // válida: ya llega proyectado al mismo plano que los demás textos cómic.
+    if (!screenSleep && (!view || !(Number.isFinite(spec?.level) ? spec.level : soundLevel({ ...spec, range: spec?.range || info.range },view)))) return false;
     const word = String(spec?.text || T.soundWords?.[info.word] || '');
     if (!word) return true;
     ensure();
     if (spatialItems.length >= 8) { const old = spatialItems.shift();old.el.remove(); }
     const sleep=spec?.kind==='sleep';
     const el = global.document.createElement('div');el.className=sleep?'fh-sound fh-sleep-comic':'fh-sound';el.textContent=word;elements.layer.appendChild(el);
-    const entry = { el,kind:sleep?'sleep':'normal',x:spec.x,z:spec.z,y:spec.y,floor:spec.floor,self:spec.self===true, expires:global.performance.now()+(sleep?2600:580),nextSight:0,shown:false };
+    const entry = { el,kind:sleep?'sleep':'normal',x:spec.x,z:spec.z,y:spec.y,floor:spec.floor,
+      screenX:screenSleep?spec.screenX:null,screenY:screenSleep?spec.screenY:null,
+      self:spec.self===true, expires:global.performance.now()+(sleep?2600:580),nextSight:0,shown:false };
     spatialItems.push(entry);tick();return true;
   }
   // Comparte tipografía, animación, capa y proyección con el texto «¡TOC!».
@@ -363,11 +368,19 @@
   }
   function tick() {
     if (!spatialItems.length || !elements) return;
-    const view = getView();if (!view) return;
+    const view = getView();
     const now = global.performance.now();
     for (let i=spatialItems.length-1;i>=0;i--) {
       const p=spatialItems[i];
       if (now>=p.expires) { p.el.remove();spatialItems.splice(i,1);continue; }
+      if (p.kind==='sleep' && Number.isFinite(p.screenX) && Number.isFinite(p.screenY)) {
+        p.el.hidden=false;
+        p.el.style.left=p.screenX+'px';
+        p.el.style.top=p.screenY+'px';
+        p.el.style.transform='translate(-50%,-50%)';
+        continue;
+      }
+      if (!view){p.el.hidden=true;continue;}
       if (now>=p.nextSight) {
         p.nextSight=now+100;
         p.shown=p.floor===view.floor && (p.self || (typeof view.visible==='function' && view.visible(p.x,p.z,p.floor)));
