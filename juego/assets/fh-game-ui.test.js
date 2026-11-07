@@ -13,7 +13,7 @@ const rules=css.replace(/\/\*[\s\S]*?\*\//g,'');
 test('la misma hoja se carga en el creador (página) y en el juego 3D',()=>{
  assert.match(html,/<link rel="stylesheet" href="\.\/juego\/assets\/fh-game-ui\.css\?v=/);
  assert.match(html,/const gameUiCss='<link rel="stylesheet"/);
- assert.match(html,/locationScript\+hudRedesignCss\+gameUiCss\+hudFrameScript\+mobileMenusCss\+statusCss\+statusStrings\+statusScript\+'<\/head>'/);
+ assert.match(html,/locationScript\+hudRedesignCss\+gameUiCss\+hudFrameScript\+mobileMenusCss\+statusCss\+statusStrings\+statusScript\+phoneCss\+phoneStrings\+phoneScript\+'<\/head>'/);
 });
 
 test('identidad visual común: fuentes existentes y variables de color',()=>{
