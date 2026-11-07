@@ -68,7 +68,9 @@ function validateMap(map){
 }
 function stateFor(registry,floorId,it,part='structure'){
  if(!supports(it,part))return null;
- const max=maxPG(it,part),record=registry?.[floorId]?.[it.id]?.[part];
+ const max=maxPG(it,part),floor=registry&&Object.hasOwn(registry,floorId)?registry[floorId]:null,
+  item=floor&&Object.hasOwn(floor,it.id)?floor[it.id]:null,
+  record=item&&Object.hasOwn(item,part)?item[part]:null;
  const amount=isFiniteNumber(record?.pg)?record.pg:initialPG(it,part);
  const pg=clamp(amount,0,max);
  return {pg,maxPG:max,destroyed:pg===0,part,floorId,id:it.id,
@@ -85,8 +87,12 @@ function damage(registry,floorId,it,amount,kind='physical',part='structure'){
  const applied=amount*(vulnerable?2:1);
  const pg=clamp(before.pg-applied,0,before.maxPG);
  if(pg===before.pg)return {ok:true,changed:false,damage:0,wasDestroyed:before.destroyed,...before};
- if(!Object.hasOwn(registry,floorId))registry[floorId]={};
- if(!Object.hasOwn(registry[floorId],it.id))registry[floorId][it.id]={};
+ // defineProperty conserva IDs arbitrarios, incluso "__proto__", como claves JSON,
+ // sin alterar la cadena de prototipos del registro de partida.
+ if(!Object.hasOwn(registry,floorId))
+  Object.defineProperty(registry,floorId,{value:{},enumerable:true,writable:true,configurable:true});
+ if(!Object.hasOwn(registry[floorId],it.id))
+  Object.defineProperty(registry[floorId],it.id,{value:{},enumerable:true,writable:true,configurable:true});
  registry[floorId][it.id][part]={pg,destroyed:pg===0};
  return {ok:true,changed:true,damage:before.pg-pg,rawDamage:amount,
   vulnerabilityApplied:vulnerable,wasDestroyed:before.destroyed,
