@@ -123,6 +123,12 @@ function createRuntime({data,state,doorList,blockers,save,refresh,events}){
   d.readerDestroyed=true;
   for(const node of d.accessVisuals||[])removeRoot(node);
  }
+ function registerWindowVisual(f,id,node){
+  const entry=windows.get(floorKey(f,id));
+  if(!entry)return;
+  entry.roots.push(node);
+  if(entry.destroyed)removeRoot(node);
+ }
  function registerDoor(d,it){
   if(!d||!it?.id)return;
   doors.set(floorKey(d.f,it.id),d);
@@ -169,7 +175,7 @@ function createRuntime({data,state,doorList,blockers,save,refresh,events}){
   }
   return best;
  }
- return Object.freeze({getState,isDestroyed,takeDamage,registerDoor,registerWindow,nearest});
+ return Object.freeze({getState,isDestroyed,takeDamage,registerDoor,registerWindow,registerWindowVisual,nearest});
 }
 global.FHStructureHealth=Object.freeze({MATERIAL,DAMAGE_KINDS,isElectronic,material,
  supports,maxPG,initialPG,validateItem,validateMap,stateFor,damage,createRuntime});
