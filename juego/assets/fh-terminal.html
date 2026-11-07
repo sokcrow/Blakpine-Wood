@@ -308,6 +308,28 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
     transform-origin: top left !important;
   }
 }
+
+/* RAVEN/OS: proporción de monitor 16:10 y ventanas independientes en móviles. */
+#focus .focus-frame{flex:none;box-sizing:border-box;aspect-ratio:16 / 10;max-width:100%;max-height:100%;margin:auto}
+#windowsLayer{position:absolute;inset:0;z-index:3;pointer-events:none;--fh-desktop-topbar:31px}
+#windowsLayer .window{box-sizing:border-box;min-width:0!important;min-height:0!important;max-width:none!important;max-height:none!important;transform:none!important;pointer-events:auto}
+#windowsLayer .window:not(.maximized){
+ left:var(--fh-x,6px)!important;top:var(--fh-y,34px)!important;
+ width:var(--fh-w,400px)!important;height:var(--fh-h,300px)!important;
+}
+#windowsLayer .window.maximized{
+ left:0!important;top:var(--fh-desktop-topbar,31px)!important;width:100%!important;
+ height:calc(100% - var(--fh-desktop-topbar,31px))!important;
+}
+#windowsLayer .window-title{touch-action:none}
+#windowsLayer .window-resize{
+ position:absolute;bottom:0;right:0;z-index:2;width:27px;height:27px;
+ touch-action:none;cursor:nwse-resize;
+ background:linear-gradient(135deg,transparent 45%,#65716a 45%,#65716a 54%,transparent 54%,transparent 64%,#65716a 64%,#65716a 73%,transparent 73%);
+}
+#windowsLayer .window.maximized .window-resize{display:none}
+@media(pointer:coarse){#windowsLayer .window-resize{width:36px;height:36px}}
+
 </style>
 </head>
 <body>
@@ -429,11 +451,12 @@ function setPower(on){
 function toggleZoom(on){
  on=typeof on==='boolean'?on:!state.zoom;if(on===state.zoom)return;
  state.zoom=on;closeStart();$('focus').classList.toggle('open',on);
+ if(on){fitFocusFrame();fitWindowsToDesktop();}
  if(on)$('startButton').focus({preventScroll:true});else $('zoomBtn').focus({preventScroll:true});
  emit('zoom',{on});previewPaint();
 }
 function bringFront(app){let win=winEls.get(app);if(!win)return;win.style.display='flex';win.dataset.minimized='';state.front=app;state.topZ++;win.style.zIndex=String(state.topZ);for(const [key,el] of winEls)el.classList.toggle('active',key===app);drawTasks();previewPaint()}
-function closeWindow(app){let win=winEls.get(app);if(!win)return;win.remove();winEls.delete(app);state.windows=state.windows.filter(v=>v!==app);state.front=state.windows.at(-1)||null;drawTasks();previewPaint();emit('ventana',{app,open:false})}
+function closeWindow(app){let win=winEls.get(app);if(!win)return;win.remove();winEls.delete(app);state.windows=state.windows.filter(v=>v!==app);activateLastVisibleWindow();emit('ventana',{app,open:false})}
 function drawTasks(){const task=$('taskItems');clear(task);state.windows.forEach(app=>{let b=labelButton(LABELS[app],'task-app'+(state.front===app?' selected':''),()=>bringFront(app));task.append(b)})}
 function closeStart(){ $('startMenu').classList.remove('open'); $('startButton').setAttribute('aria-expanded','false'); }
 function requestControl(action){
@@ -454,30 +477,132 @@ function refreshStartMenu(){
 }
 function initStart(){const menu=$('startMenu');refreshStartMenu();$('startButton').addEventListener('click',()=>{const open=menu.classList.toggle('open');$('startButton').setAttribute('aria-expanded',String(open))});document.addEventListener('pointerdown',ev=>{if(!menu.contains(ev.target)&&ev.target!==$('startButton'))closeStart()})}
 function makeIcons(){let layer=$('desktopIcons');clear(layer);let icons={mail:['✉','symbol-mail'],map:['▧','symbol-map'],cams:['◉','symbol-cams'],files:['▣','symbol-files'],hamazon:['H','symbol-hamazon']};for(const app of sessionApps){const b=labelButton('', 'desktop-icon',()=>openWindow(app));b.setAttribute('aria-label','Abrir '+LABELS[app]);const icon=node('span','pixel-symbol '+icons[app][1],icons[app][0]);b.append(icon,node('span','',LABELS[app]));layer.append(b)}}
-// Las ventanas se miden respecto al escritorio del iframe, no respecto al navegador exterior.
+// RAVEN/OS: proporción física 16:10 del área del monitor.
+function fitFocusFrame(){
+ const focus=$('focus');if(!focus.classList.contains('open'))return;
+ const frame=focus.querySelector('.focus-frame'),top=focus.querySelector('.focus-top');
+ const css=getComputedStyle(focus),n=v=>parseFloat(v)||0;
+ const availableHeight=Math.max(80,focus.clientHeight-n(css.paddingTop)-n(css.paddingBottom)-top.offsetHeight-n(css.gap)-2);
+ const availableWidth=Math.max(80,focus.clientWidth-n(css.paddingLeft)-n(css.paddingRight));
+ const width=Math.max(80,Math.min(1450,availableWidth,availableHeight*1.6));
+ frame.style.width=Math.floor(width)+'px';frame.style.height=Math.floor(width/1.6)+'px';
+}
+const clampWindow=(v,lo,hi)=>Math.max(lo,Math.min(v,hi));
+function desktopMetrics(){
+ const layer=$('windowsLayer'),top=$('desktop').querySelector('.os-topbar').offsetHeight||31;
+ layer.style.setProperty('--fh-desktop-topbar',top+'px');
+ return {width:layer.clientWidth,height:layer.clientHeight,top};
+}
+function windowBox(win){
+ const get=(key,fallback)=>{const v=parseFloat(win.style.getPropertyValue(key));return Number.isFinite(v)?v:fallback};
+ return {left:get('--fh-x',6),top:get('--fh-y',34),width:get('--fh-w',400),height:get('--fh-h',300)};
+}
+function setWindowBox(win,rect){
+ for(const [key,value] of Object.entries({'--fh-x':rect.left,'--fh-y':rect.top,'--fh-w':rect.width,'--fh-h':rect.height}))
+  win.style.setProperty(key,Math.round(value)+'px');
+}
+function boundedWindowBox(rect,metrics=desktopMetrics()){
+ const widthLimit=Math.max(120,metrics.width-8),heightLimit=Math.max(100,metrics.height-metrics.top-3);
+ const width=clampWindow(rect.width,Math.min(220,widthLimit),widthLimit);
+ const height=clampWindow(rect.height,Math.min(155,heightLimit),heightLimit);
+ return {left:clampWindow(rect.left,4,Math.max(4,metrics.width-width-4)),
+  top:clampWindow(rect.top,metrics.top,Math.max(metrics.top,metrics.height-height-3)),width,height};
+}
 function fitWindowsToDesktop(){
- const desk=$('desktop'),w=desk.clientWidth,h=desk.clientHeight;
- if(!w||!h)return;
+ const bounds=desktopMetrics();if(!bounds.width||!bounds.height)return;
+ for(const win of winEls.values())setWindowBox(win,boundedWindowBox(windowBox(win),bounds));
+}
+window.addEventListener('resize',()=>{fitFocusFrame();fitWindowsToDesktop()});
+function activateLastVisibleWindow(){
+ let candidate=null;
  for(const [app,win] of winEls){
-  const wantedWidth=app==='hamazon'?760:app==='map'?620:app==='cams'?610:590;
-  const wantedHeight=app==='hamazon'?470:app==='mail'?420:400;
-  win.style.width=Math.max(0,Math.min(wantedWidth,w-12))+'px';
-  win.style.height=Math.max(0,Math.min(wantedHeight,h-68))+'px';
-  const width=win.offsetWidth||Number.parseFloat(win.style.width),height=win.offsetHeight||Number.parseFloat(win.style.height);
-  const left=Number.parseFloat(win.style.left),top=Number.parseFloat(win.style.top);
-  win.style.left=Math.max(6,Math.min(Number.isFinite(left)?left:6,Math.max(6,w-width-6)))+'px';
-  win.style.top=Math.max(32,Math.min(Number.isFinite(top)?top:32,Math.max(32,h-height-34)))+'px';
+  if(win.style.display==='none')continue;
+  if(!candidate||Number(win.style.zIndex)>Number(candidate[1].style.zIndex))candidate=[app,win];
  }
+ if(candidate)bringFront(candidate[0]);
+ else{state.front=null;for(const win of winEls.values())win.classList.remove('active');drawTasks();previewPaint()}
 }
-window.addEventListener('resize',fitWindowsToDesktop);
-function createWindow(app){const win=node('section','window win-'+app);win.dataset.app=app;win.setAttribute('aria-label',LABELS[app]);win.style.width=(app==='hamazon'?'760px':app==='map'?'620px':app==='cams'?'610px':'590px');win.style.height=(app==='hamazon'?'470px':app==='mail'?'420px':'400px');let idx=APPS.indexOf(app);win.style.left=(Math.max(110,(innerWidth-720)/2)+idx*21)+'px';win.style.top=(Math.max(34,(innerHeight-460)/2)+idx*16)+'px';
- const title=node('div','window-title');title.style.touchAction='none';title.append(node('span','window-name','▣ '+LABELS[app]),node('span','window-type','RAVEN / LOCAL'));
- const mini=labelButton('–','wm',()=>{win.style.display='none';win.dataset.minimized='yes';state.front=null;drawTasks();previewPaint()});mini.setAttribute('aria-label','Minimizar '+LABELS[app]);const maxi=labelButton('□','wm',()=>{win.classList.toggle('maximized');bringFront(app)});maxi.setAttribute('aria-label','Maximizar '+LABELS[app]);const close=labelButton('×','wm',()=>closeWindow(app));close.setAttribute('aria-label','Cerrar '+LABELS[app]);title.append(mini,maxi,close);
- const content=node('div','window-content');content.id='body-'+app;const status=node('div','window-status');status.innerHTML='<span>UNIDAD C: / SOLO LECTURA</span><span>RAVEN/OS 1.9</span>';win.append(title,content,status);
- title.addEventListener('pointerdown',ev=>{if(ev.target.closest('button')||innerWidth<730||innerHeight<=600||win.classList.contains('maximized'))return;if(ev.button!==0)return;bringFront(app);let x=ev.clientX,y=ev.clientY,left=parseFloat(win.style.left),top=parseFloat(win.style.top);const move=e=>{const container=$('desktop').getBoundingClientRect();const bounds=win.getBoundingClientRect();win.style.left=Math.max(0,Math.min(container.width-bounds.width,left+e.clientX-x))+'px';win.style.top=Math.max(30,Math.min(Math.max(30,container.height-bounds.height-34),top+e.clientY-y))+'px'};const stop=()=>{window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',stop);previewPaint()};window.addEventListener('pointermove',move);window.addEventListener('pointerup',stop,{once:true})});win.addEventListener('pointerdown',()=>bringFront(app));
- return win;
+function beginWindowPointer(ev,app,mode){
+ const win=winEls.get(app),handle=ev.currentTarget;
+ if(!win||win.classList.contains('maximized')||ev.button!==0||ev.isPrimary===false)return;
+ if(mode==='move'&&ev.target.closest('button'))return;
+ ev.preventDefault();ev.stopPropagation();bringFront(app);
+ const initial=windowBox(win),x=ev.clientX,y=ev.clientY,id=ev.pointerId;
+ handle.setPointerCapture?.(id);
+ const move=e=>{
+  if(e.pointerId!==id)return;
+  const dx=e.clientX-x,dy=e.clientY-y;
+  const next=mode==='resize'?{...initial,width:initial.width+dx,height:initial.height+dy}:{...initial,left:initial.left+dx,top:initial.top+dy};
+  setWindowBox(win,boundedWindowBox(next));
+ };
+ const stop=e=>{
+  if(e.pointerId!==id)return;
+  handle.removeEventListener('pointermove',move);
+  handle.removeEventListener('pointerup',stop);
+  handle.removeEventListener('pointercancel',stop);
+  if(handle.hasPointerCapture?.(id))handle.releasePointerCapture(id);
+  previewPaint();
+ };
+ handle.addEventListener('pointermove',move);
+ handle.addEventListener('pointerup',stop);
+ handle.addEventListener('pointercancel',stop);
 }
-function openWindow(app){if(!APPS.includes(app))return;if(!sessionApps.includes(app)){say(COMPUTER_TEXT.appUnavailable||'Esta aplicación no está instalada.');return}if(!state.power){say(COMPUTER_TEXT.turnOnFirst||'Enciende la computadora primero.');return}if(state.boot)return;let win=winEls.get(app);if(!win){win=createWindow(app);winEls.set(app,win);state.windows.push(app);$('windowsLayer').append(win);fitWindowsToDesktop();renderWindow(app);emit('ventana',{app,open:true})}win.style.display='flex';win.dataset.minimized='';fitWindowsToDesktop();bringFront(app)}
+function createWindow(app){
+ const win=node('section','window win-'+app);win.dataset.app=app;win.setAttribute('aria-label',LABELS[app]);
+ const bounds=desktopMetrics(),idx=APPS.indexOf(app);
+ const targetWidth=app==='hamazon'?760:app==='map'?620:app==='cams'?610:590;
+ const targetHeight=app==='hamazon'?470:app==='mail'?420:400;
+ const width=Math.min(targetWidth,Math.max(210,Math.floor(bounds.width*.78)));
+ const height=Math.min(targetHeight,Math.max(165,Math.floor((bounds.height-bounds.top)*.8)));
+ setWindowBox(win,boundedWindowBox({left:Math.floor((bounds.width-width)/2)+idx*23,
+  top:bounds.top+9+idx*18,width,height},bounds));
+ const title=node('div','window-title');
+ title.append(node('span','window-name','▣ '+LABELS[app]),node('span','window-type','RAVEN / LOCAL'));
+ const mini=labelButton('–','wm',()=>{win.style.display='none';win.dataset.minimized='yes';activateLastVisibleWindow()});
+ mini.setAttribute('aria-label','Minimizar '+LABELS[app]);
+ const maxi=labelButton('□','wm',()=>{
+  win.classList.toggle('maximized');
+  const full=win.classList.contains('maximized');
+  maxi.textContent=full?'▢':'□';
+  maxi.setAttribute('aria-label',(full?(COMPUTER_TEXT.wmRestore||'Restaurar'):(COMPUTER_TEXT.wmMaximize||'Maximizar'))+' '+LABELS[app]);
+  bringFront(app);
+ });
+ maxi.setAttribute('aria-label',(COMPUTER_TEXT.wmMaximize||'Maximizar')+' '+LABELS[app]);
+ const close=labelButton('×','wm',()=>closeWindow(app));close.setAttribute('aria-label','Cerrar '+LABELS[app]);
+ title.append(mini,maxi,close);
+ const content=node('div','window-content');content.id='body-'+app;
+ const status=node('div','window-status');status.innerHTML='<span>UNIDAD C: / SOLO LECTURA</span><span>RAVEN/OS 1.9</span>';
+ const resize=node('div','window-resize');
+ resize.setAttribute('role','separator');resize.setAttribute('tabindex','0');
+ resize.setAttribute('aria-label',(COMPUTER_TEXT.wmResize||'Redimensionar')+' '+LABELS[app]);
+ resize.addEventListener('pointerdown',ev=>beginWindowPointer(ev,app,'resize'));
+ resize.addEventListener('keydown',ev=>{
+  const step=ev.shiftKey?32:16,box=windowBox(win);
+  if(ev.key==='ArrowRight')box.width+=step;
+  else if(ev.key==='ArrowLeft')box.width-=step;
+  else if(ev.key==='ArrowDown')box.height+=step;
+  else if(ev.key==='ArrowUp')box.height-=step;
+  else return;
+  ev.preventDefault();bringFront(app);setWindowBox(win,boundedWindowBox(box));
+ });
+ title.addEventListener('pointerdown',ev=>beginWindowPointer(ev,app,'move'));
+ title.addEventListener('dblclick',ev=>{if(!ev.target.closest('button'))maxi.click()});
+ win.addEventListener('pointerdown',()=>bringFront(app));
+ win.append(title,content,status,resize);return win;
+}
+function openWindow(app){
+ if(!APPS.includes(app))return;
+ if(!sessionApps.includes(app)){say(COMPUTER_TEXT.appUnavailable||'Esta aplicación no está instalada.');return}
+ if(!state.power){say(COMPUTER_TEXT.turnOnFirst||'Enciende la computadora primero.');return}
+ if(state.boot)return;
+ let win=winEls.get(app);
+ if(!win){
+  win=createWindow(app);winEls.set(app,win);state.windows.push(app);
+  $('windowsLayer').append(win);fitWindowsToDesktop();renderWindow(app);emit('ventana',{app,open:true});
+ }
+ win.style.display='flex';win.dataset.minimized='';
+ fitWindowsToDesktop();bringFront(app);
+}
 function renderWindow(app){const body=$('body-'+app);if(!body)return;let preservedScroll=body.scrollTop;clear(body);if(app==='mail')renderMail(body);if(app==='map')renderMap(body);if(app==='cams')renderCams(body);if(app==='files')renderFiles(body);if(app==='hamazon')renderHamazon(body);body.scrollTop=preservedScroll;}
 function renderMail(body){let layout=node('div','mail-layout');let list=node('div','mail-list');let reading=node('article','mail-reading');layout.append(list,reading);body.append(layout);
  DATA.mails.forEach((m,i)=>{let b=labelButton('', 'mail-choice'+(state.mail===i?' selected':''),()=>{state.mail=i;renderWindow('mail');emit('correo',{id:m.id})});b.append(node('span','',m.date+' • '+m.from),node('strong','',m.subject));list.append(b)});

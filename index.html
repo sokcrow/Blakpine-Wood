@@ -2819,7 +2819,7 @@ function prepareGLBEngineDoc(source){
  const deliveryStrings='<script src="'+new URL('./juego/assets/fh-delivery-strings.js?v=20261106-hamazon-2',document.baseURI).href+'"></'+'script>';
  const deliveryModule='<script src="'+new URL('./juego/assets/fh-delivery.js?v=20261106-hamazon-2',document.baseURI).href+'"></'+'script>';
  const pcAssemblyModule='<script src="'+new URL('./juego/assets/fh-pc-assembly.js',document.baseURI).href+'"></'+'script>';
- const computerModule='<script src="'+new URL('./juego/assets/fh-computer.js?v=20261107-half-ui-fix2',document.baseURI).href+'"></'+'script>';
+ const computerModule='<script src="'+new URL('./juego/assets/fh-computer.js?v=20261107-raven-16x10',document.baseURI).href+'"></'+'script>';
  const computerStrings='<script src="'+new URL('./juego/assets/fh-computer-strings.js',document.baseURI).href+'"></'+'script>';
  const cameraBefore=" const desired=new THREE.Vector3(user.x+behind.x*camDistance,y+.88+camDistance*Math.tan(Math.PI/6),user.z+behind.z*camDistance);",cameraAfter=" const desired=new THREE.Vector3(user.x+behind.x*camDistance,y+.88+camDistance*Math.tan(Math.PI/6),user.z+behind.z*camDistance);\n const sleepFocus=window.FHSleep?.viewWeight()||0;\n if(sleepFocus>0){const weight=sleepFocus*sleepFocus*(3-2*sleepFocus);\n  target.lerp(new THREE.Vector3(user.x,y+.55,user.z),weight);\n  desired.lerp(new THREE.Vector3(user.x+.12,y+6.1,user.z+.42),weight);\n }";
  const cameraCount=source.split(cameraBefore).length-1;

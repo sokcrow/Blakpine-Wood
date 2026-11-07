@@ -109,6 +109,7 @@
   function close(){
    if(!frame||!opened)return;
    frame.parentElement.classList.remove('open');
+   frame.ownerDocument?.body?.classList.remove('fh-pc-in-use');
    frame.parentElement.setAttribute('aria-hidden','true');
    opened=false;active=null;activeKey='';
    options.freeze?.(false);options.onClose?.();
@@ -134,13 +135,16 @@
    const doc=options.document||root.document;
    if(!doc)return null;
    const style=doc.createElement('style');
-   style.textContent='#fhPcOverlay{position:fixed;inset:0;inset:0 env(safe-area-inset-right) 0 env(safe-area-inset-left);z-index:60;background:#070b0d;display:none}'+
-    '#fhPcOverlay.open{display:block}#fhPcFrame{width:100%;height:100%;border:0;display:block}';
+   style.textContent='#fhPcOverlay{position:fixed;inset:0;inset:0 env(safe-area-inset-right) 0 env(safe-area-inset-left);z-index:160;background:#070b0d;display:none}'+
+    '#fhPcOverlay.open{display:block}#fhPcFrame{width:100%;height:100%;border:0;display:block}'+
+    'body.fh-pc-in-use #fhMenuToggle,body.fh-pc-in-use #fhPlayerMenuLayer,body.fh-pc-in-use #hud,'+
+    'body.fh-pc-in-use #actions,body.fh-pc-in-use #stick,body.fh-pc-in-use #inventoryPanel,'+
+    'body.fh-pc-in-use #fhContextRadial,body.fh-pc-in-use #fhPeekTalk{visibility:hidden!important;pointer-events:none!important}';
    doc.head.append(style);
    const wrap=doc.createElement('div');wrap.id='fhPcOverlay';wrap.setAttribute('aria-hidden','true');
    frame=doc.createElement('iframe');frame.id='fhPcFrame';frame.title='RAVEN/OS';
    frame.setAttribute('allow','fullscreen');
-   frame.src=new URL('fh-terminal.html?v=20261107-half-ui',options.baseUrl||doc.baseURI).href;
+   frame.src=new URL('fh-terminal.html?v=20261107-raven-16x10',options.baseUrl||doc.baseURI).href;
    wrap.append(frame);doc.body.append(wrap);
    frame.addEventListener('load',applySession);
    host.addEventListener?.('message',receiveMessage);
@@ -165,6 +169,7 @@
    powerStore.start(activeKey);
    opened=true;
    view.parentElement.classList.add('open');view.parentElement.setAttribute('aria-hidden','false');
+   view.ownerDocument?.body?.classList.add('fh-pc-in-use');
    options.freeze?.(true);options.onOpen?.(item,floor,session);
    // La carga del iframe puede terminar después; el reloj de la PC no se pausa.
    if(terminalApi())applySession();
