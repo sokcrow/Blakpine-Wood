@@ -29,9 +29,9 @@ function mount(){
 test('el radial no aparece sin objetivo y dispara la acción del objeto activo',()=>{
  const {doc,api}=mount();const calls=[];
  api.update(null);
- api.update({key:'puerta1',title:'Puerta',x:330,y:240,actions:[
+ api.open({key:'puerta1',title:'Puerta',x:330,y:240,actions:[
   {id:'abrir',label:'Abrir',run:()=>calls.push('primera')}
- ]});
+ ]},'hold');
  const root=doc.getElementById('fhContextRadial');
  assert.equal(root.hidden,false);
  assert.match(root.textContent,/Puerta/);
@@ -51,7 +51,7 @@ test('el radial no aparece sin objetivo y dispara la acción del objeto activo',
 
 test('el radial no ejecuta acciones bloqueadas ni aparece encima de diálogos',()=>{
  const {doc,api,win}=mount();let called=0;
- api.update({key:'p',title:'Puerta',actions:[{id:'cerrada',label:'Bloqueada',disabled:true,run:()=>called++}]});
+ api.open({key:'p',title:'Puerta',actions:[{id:'cerrada',label:'Bloqueada',disabled:true,run:()=>called++}]},'hold');
  assert.equal(api.activatePrimary(),false);
  assert.equal(called,0);
  win.FHPlayerMenu={isOpen:()=>true};
@@ -63,7 +63,7 @@ test('el radial no ejecuta acciones bloqueadas ni aparece encima de diálogos',(
 test('la mano central cierra el menú sin reabrirlo mientras apunta al mismo objeto',()=>{
  const {doc,api}=mount();let calls=0;
  const context={key:'puerta',title:'Puerta',actions:[{id:'abrir',label:'Abrir',run:()=>calls++}]};
- api.update(context);
+ api.open(context,'hold');
  const center=doc.getElementById('fhRadialCenter');
  assert.equal(center.tagName,'BUTTON');
  assert.equal(center.attributes['aria-label'],'Cerrar menú radial');
@@ -75,12 +75,14 @@ test('la mano central cierra el menú sin reabrirlo mientras apunta al mismo obj
  assert.equal(calls,1);
  api.update(null);
  api.update(context);
+ assert.equal(api.visible,false,'update legado no puede abrir un menú');
+ api.open(context,'hold');
  assert.equal(api.visible,true);
 });
 
 test('las cuatro etiquetas se sitúan arriba, derecha, abajo e izquierda',()=>{
  const {doc,api}=mount();
- api.update({key:'door',title:'Puerta 204',actions:['Abrir','Mirilla','Llamar','Examinar'].map(id=>({id,label:id,run:()=>{}}))});
+ api.open({key:'door',title:'Puerta 204',actions:['Abrir','Mirilla','Llamar','Examinar'].map(id=>({id,label:id,run:()=>{}}))},'hold');
  const wheel=doc.getElementById('fhRadialWheel');
  const items=wheel.children.filter(child=>child.dataset.index!==undefined);
  assert.equal(items.length,4);
@@ -94,10 +96,10 @@ test('las cuatro etiquetas se sitúan arriba, derecha, abajo e izquierda',()=>{
 
 test('navegación con teclado solo mientras el radial tiene foco',()=>{
  const {doc,api}=mount();let calls=0;
- api.update({key:'puerta',title:'Puerta',actions:[
+ api.open({key:'puerta',title:'Puerta',actions:[
   {id:'abrir',label:'Abrir',run:()=>calls++},
   {id:'mirilla',label:'Mirilla',run:()=>calls++}
- ]});
+ ]},'hold');
  const items=doc.getElementById('fhRadialWheel').children.filter(child=>child.dataset.index!==undefined);
  const event=key=>({key,preventDefault(){this.prevented=true},stopPropagation(){}});
  assert.equal(api.keydown(event('ArrowRight')),false);
@@ -116,12 +118,12 @@ test('navegación con teclado solo mientras el radial tiene foco',()=>{
 test('la puerta mantiene cuatro sectores aunque haya acciones pendientes',()=>{
  const {doc,api}=mount();
  let opened=0;
- api.update({key:'door:204',title:'Puerta 204',actions:[
+ api.open({key:'door:204',title:'Puerta 204',actions:[
   {id:'primary',label:'Abrir',run:()=>opened++},
   {id:'peephole',label:'Mirilla',disabled:true},
   {id:'knock',label:'Llamar',disabled:true},
   {id:'examine',label:'Examinar',disabled:true}
- ]});
+ ]},'hold');
  const wheel=doc.getElementById('fhRadialWheel');
  const buttons=wheel.children.filter(child=>child.dataset.index!==undefined);
  assert.equal(buttons.length,4);
@@ -138,13 +140,13 @@ test('la puerta mantiene cuatro sectores aunque haya acciones pendientes',()=>{
 test('clic fuera cierra; clic explícito permite reabrir el mismo objeto',()=>{
  const {api,doc}=mount();
  const context={key:'door:1',title:'Puerta',actions:[{id:'open',label:'Abrir',run:()=>{}}]};
- api.open(context);
+ api.open(context,'hold');
  assert.equal(api.visible,true);
  doc.events.pointerdown[0]({target:{id:'view'}});
  assert.equal(api.visible,false);
  api.update(context);
  assert.equal(api.visible,false);
- api.open(context);
+ api.open(context,'hold');
  assert.equal(api.visible,true);
 });
 
@@ -156,14 +158,14 @@ test('cerrar repartidor y cambiar a puerta elimina el callback anterior',()=>{
  const doorContext={key:'door:204',title:'Puerta',actions:[
   {id:'primary',label:'Abrir',run:()=>door++}
  ]};
- api.open(courierContext);
+ api.open(courierContext,'hold');
  api.close();
  assert.equal(api.visible,false);
  api.syncContext(doorContext);
  assert.equal(api.visible,false,'sin abrirse por proximidad');
  assert.equal(api.activatePrimary(),false,'no ejecuta el callback del repartidor');
  assert.equal(courier,0);
- api.open(doorContext);
+ api.open(doorContext,'hold');
  assert.equal(api.activatePrimary(),true);
  assert.equal(door,1);
 });
@@ -171,7 +173,7 @@ test('cerrar repartidor y cambiar a puerta elimina el callback anterior',()=>{
 test('al desaparecer el objetivo se descartan acciones cerradas y el mismo objetivo sigue actualizado',()=>{
  const {api}=mount();let previous=0,latest=0;
  const context={key:'door:1',title:'Puerta',actions:[{id:'primary',label:'Abrir',run:()=>previous++}]};
- api.open(context);
+ api.open(context,'hold');
  api.close();
  api.syncContext({...context,actions:[{id:'primary',label:'Cerrar',run:()=>latest++}]});
  assert.equal(api.visible,false);
@@ -181,4 +183,20 @@ test('al desaparecer el objetivo se descartan acciones cerradas y el mismo objet
  api.syncContext(null);
  assert.equal(api.activatePrimary(),false);
  assert.equal(latest,1);
+});
+
+test('la actualización legacy y open sin Hold nunca revelan el radial',()=>{
+ const {doc,api}=mount();
+ const context={key:'chair:1',title:'Silla',actions:[{id:'sit',label:'Sentarse',run:()=>{}}]};
+ api.update(context);
+ assert.equal(api.visible,false);
+ api.open(context);
+ assert.equal(api.visible,false);
+ api.open(context,'tap');
+ assert.equal(api.visible,false);
+ assert.equal(api.open(context,'hold'),true);
+ assert.equal(doc.getElementById('fhContextRadial').hidden,false);
+ api.hide();
+ api.update(context);
+ assert.equal(api.visible,false);
 });
