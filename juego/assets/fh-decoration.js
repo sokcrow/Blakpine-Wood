@@ -31,6 +31,24 @@
     }
     return out;
   }
+  // Los muebles del mapa son editables; arquitectura, controles fijos y accesos no lo son.
+  const FIXED_TYPES=new Set(['wall','red_wall','half_wall','fence','window','door','peephole_door','room','hall','outside','building','pavement','parking','grass','dirt','opening','spawn','stairs','elevator','light_switch','light_fixture','breaker_panel','battery_pickup','camera','security_camera']);
+  const FURNITURE_TYPES=new Set(['chair','sofa','bed','tv','table','dining','kitchen','bath','toilet','desk','cabinet','shelf','plant','furniture','misc']);
+  function isMovable(item){
+    if(!item||typeof item.id!=='string'||!item.id||item.decoratable===false||FIXED_TYPES.has(item.type))return false;
+    if(item.runtimeDecoratable===true)return true;
+    if(item.modelId&&/^(puerta_|pinpad|lector_|cerradura_|camara_seguridad|panel_electrico)/i.test(item.modelId))return false;
+    return FURNITURE_TYPES.has(item.type)||!!item.modelId;
+  }
+  // Un bloqueo invalida la confirmación, no el arrastre visual.
+  function preview(item,items,options={}){
+    const result=candidate(item,items,options);
+    const requested={...item,x:finite(options.x,item?.x),y:finite(options.y,item?.y),
+      rotation:normalizeDegrees(options.rotation??item?.rotation)};
+    delete requested.support;delete requested.wallId;
+    const pose=snapshot(result.ok?result.item:requested);
+    return {ok:result.ok,reason:result.reason||'',pose,result};
+  }
   function candidate(item,items,options={}){
     if(!item)return {ok:false,reason:'invalid-item'};
     const next={...item,x:finite(options.x,item.x),y:finite(options.y,item.y),rotation:normalizeDegrees(options.rotation??item.rotation)};
@@ -54,5 +72,5 @@
     if(typeof options.floorFits==='function'&&!options.floorFits(next))return {ok:false,reason:'blocked'};
     return {ok:true,item:next,supported:false};
   }
-  return {normalizeDegrees,snapshot,applyPose,footprintPoints,candidate};
+  return {normalizeDegrees,snapshot,applyPose,footprintPoints,candidate,preview,isMovable};
 });
