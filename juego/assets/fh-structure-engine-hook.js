@@ -56,7 +56,7 @@ fhInspectButton.type='button';fhInspectButton.id='fhStructureHealthInspect';
 fhInspectButton.textContent=fhStructureText.button;
 fhInspectButton.title=fhStructureText.buttonTitle;
 fhInspectButton.setAttribute('aria-label',fhStructureText.buttonTitle);
-fhInspectButton.style.cssText='position:fixed;right:10px;top:78px;z-index:25;min-width:42px;min-height:34px;padding:6px 9px;border:2px solid #798c85;border-radius:3px;background:#142027e8;color:#e6e2d4;font:bold 12px monospace;image-rendering:pixelated;cursor:pointer';
+fhInspectButton.style.cssText='position:fixed;right:10px;top:78px;z-index:25;min-width:44px;min-height:44px;padding:6px 9px;border:2px solid #798c85;border-radius:3px;background:#142027e8;color:#e6e2d4;font:bold 12px monospace;image-rendering:pixelated;cursor:pointer';
 fhInspectButton.addEventListener('click',fhInspectStructure);
 document.body.append(fhInspectButton);
 window.addEventListener('keydown',e=>{
