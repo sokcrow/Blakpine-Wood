@@ -79,6 +79,27 @@
   return plan({presente:false,enSalida:false,enPuerta:false,esperando:false,entregado:false,paquete:true,...beliefs},
    {entregado:true,presente:false},courierActions,options);
  }
+ /* GOAP de puertas: reutilizable por cualquier entidad.
+  * Los permisos los calcula el motor a partir del mapa y del estado real.
+  * Una puerta de parcela, apartamento, mirilla, garaje o cerradura activa no se fuerza.
+  */
+ const doorActions=Object.freeze([
+  {id:'abrir_puerta',pre:{cerrada:true,autorizada:true},effects:{cerrada:false,transitable:true},cost:1}
+ ]);
+ function canOpenDoor(door,rights={}){
+  if(!door||door.kind!=='door'||door.locked===true||door.open===true||door.passable===true)return false;
+  if(door.family==='garage'||door.electronic===true||rights.propertyAccess===true||rights.blockedFlag===true)return false;
+  const meta=rights.meta||{};
+  if(door.apartmentId||door.role==='entrance'||door.doorRole==='entrance')return false;
+  if(meta.apartmentId||meta.doorRole==='entrance'||meta.propertyDoorRole||meta.propertyId)return false;
+  if(meta.electronic===true||meta.pinpadId||meta.cardReaderId||meta.requiresCard||meta.requiresCode)return false;
+  return true;
+ }
+ function planDoor(door,rights={}){
+  if(door?.open===true&&door.passable!==false)return [];
+  if(!canOpenDoor(door,rights))return null;
+  return plan({cerrada:true,autorizada:true,transitable:false},{transitable:true},doorActions);
+ }
  /* A* 2.5D: canWalk suministrado por el mismo motor que mueve al jugador. */
  function route(start,end,{canWalk,step=0.5,maxVisited=12000,transitions=[]}={}){
   if(typeof canWalk!=='function'||!start||!end||!Number.isFinite(step)||step<=0)return null;
@@ -140,5 +161,5 @@
   }
   return null;
  }
- return Object.freeze({plan,chooseGoal,createAgent,planCourier,courierActions,route});
+ return Object.freeze({plan,chooseGoal,createAgent,planCourier,courierActions,doorActions,canOpenDoor,planDoor,route});
 });
