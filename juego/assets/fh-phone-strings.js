@@ -2,13 +2,11 @@
 (function(root){
  'use strict';
  root.FH_PHONE_TEXT=Object.freeze({
-  phone:'CELULAR',openPhone:'Abrir celular',back:'Volver',gameTime:'HORA DEL JUEGO',
+  phone:'Celular',openPhone:'Abrir celular',closePhone:'Cerrar celular',back:'Volver',torchBattery:'Batería de la linterna',gameTime:'HORA DEL JUEGO',
   app_home:'INICIO',app_directory:'Directorio',app_messages:'Mensajes',
   app_conversation:'Conversación',app_notes:'Notas',app_editNote:'Editar nota',app_document:'Documento',
   collectedNotes:'Documentos recogidos',
   app_flashlight:'Linterna',app_store:'Tienda de apps',app_hamazon:'Hamazon',
-  icon_directory:'▤',icon_messages:'✉',icon_notes:'≡',icon_flashlight:'⌁',
-  icon_store:'▦',icon_hamazon:'H',
   all:'Todos',people:'Personas',businesses:'Negocios',services:'Servicios',
   players:'Jugadores',person:'Persona',business:'Negocio',service:'Servicio',player:'Jugador',
   noContacts:'Sin contactos registrados.',noMessages:'No hay mensajes.',
