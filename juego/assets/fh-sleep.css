@@ -33,11 +33,9 @@ body.fh-sleeping #fhContextRadial {
   background:transparent;
 }
 body.fh-sleep-masking #fhSleepVeil {visibility:visible!important;opacity:1!important;}
-/* El canvas original queda por encima para dibujar la respiración Zzz. */
-body.fh-sleep-masking #mist {
-  z-index:81 !important;
-  visibility:visible !important;
-  opacity:1 !important;
+/* El iris queda sobre el juego; los Zzz comparten la capa cómic habitual. */
+body.fh-sleep-masking #fhSpatialLayer {
+  z-index:82 !important;
   pointer-events:none !important;
 }
 body.fh-sleep-masking #actions {z-index:90 !important;}
