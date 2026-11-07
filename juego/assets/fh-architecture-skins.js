@@ -8,7 +8,8 @@ const scriptUrl=document.currentScript?.src
  ?new URL(document.currentScript.src,document.baseURI)
  :new URL('./fh-architecture-skins.js',document.baseURI);
 const libraryBase=new URL('../../forest-horror/biblioteca/arquitectura/',scriptUrl);
-const safeModel=/^(puerta_madera|puerta_metal|puerta_mirilla|puerta_cristal_simple|puerta_cristal_antipanico|puerta_cristal_tintada|ventana_clasica|ventana_dividida)$/;
+const safeModel=/^(puerta_madera|puerta_metal|puerta_mirilla|puerta_cristal_simple|puerta_cristal_antipanico|puerta_cristal_tintada|puerta_electronica_opaca|puerta_electronica_reja|teclado_pin|lector_tarjeta|ventana_clasica|ventana_dividida)$/;
+const electronicDoors=new Set(['puerta_electronica_opaca','puerta_electronica_reja']);
 const loaded=new Map();
 let loaderPromise=null;
 
@@ -16,6 +17,11 @@ function chooseDoor(d,it){
  if(!d||!['single','double'].includes(d.family)||!it)return null;
  if(it.type==='peephole_door')return d.family==='single'&&!d.transparent?'puerta_mirilla':null;
  if(it.type!=='door')return null;
+ if(electronicDoors.has(it.architectureSkin)){
+  if(d.family!=='single')return null; // Solo los nuevos modelos: una hoja. No alterar puertas dobles.
+  if(it.architectureSkin==='puerta_electronica_reja')return d.transparent?it.architectureSkin:null;
+  return !d.transparent&&d.variant==='metal'?it.architectureSkin:null;
+ }
  if(d.transparent){
   if(it.architectureSkin)return ['puerta_cristal_simple','puerta_cristal_antipanico','puerta_cristal_tintada'].includes(it.architectureSkin)?it.architectureSkin:null;
   return 'puerta_cristal_simple';
@@ -96,6 +102,35 @@ function hideLegacyVisual(node,detach=false){
  // siguen guardando sus datos y sus referencias originales.
  if(detach&&node.parent)node.parent.remove(node);
 }
+function accessDeviceId(it){
+ return it?.accessDevice==='pin'?'teclado_pin':it?.accessDevice==='card'?'lector_tarjeta':null;
+}
+function mountAccessDevice(fixed,it,THREE,sightMask){
+ const id=accessDeviceId(it);
+ if(!id||!fixed?.parent)return;
+ // El lector está sujeto al MARCO_FIJO, nunca a la hoja que gira.
+ const sides=it.accessSide==='both'?[1,-1]:[it.accessSide==='back'?-1:1];
+ function place(scene,sign){
+  if(!fixed.parent)return;
+  const node=scene.clone(true);
+  node.position.set(.045,1.12,sign*.1);
+  if(sign<0)node.rotation.y=Math.PI;
+  applyFOW(node,sightMask);
+  fixed.add(node);
+ }
+ load(id).then(scene=>{for(const sign of sides)place(scene,sign);}).catch(error=>{
+  reportFailure(id,error);
+  if(typeof THREE.BoxGeometry!=='function'||typeof THREE.Mesh!=='function'||typeof THREE.MeshBasicMaterial!=='function')return;
+  // Reserva geométrica pequeña sólo cuando el GLB está realmente indisponible.
+  for(const sign of sides){
+   const marker=new THREE.Mesh(new THREE.BoxGeometry(.13,.24,.045),
+    new THREE.MeshBasicMaterial({color:0x617c76}));
+   marker.position.set(.045,1.24,sign*.105);
+   applyFOW(marker,sightMask);
+   if(fixed.parent)fixed.add(marker);
+  }
+ });
+}
 function decorateDoor(d,it,THREE,sightMask){
  const model=chooseDoor(d,it);if(!model)return;
  const double=d.family==='double',count=double?2:1;
@@ -132,6 +167,7 @@ function decorateDoor(d,it,THREE,sightMask){
   const originalFrame=double?[]:d.frame.children.slice();
   parts.forEach((part,i)=>part.group.add(leaves[i]));
   for(const fixed of frames)d.frame.add(fixed);
+  if(!double&&electronicDoors.has(model)&&frames[0])mountAccessDevice(frames[0],it,THREE,sightMask);
   for(const original of originalLeaves)for(const visual of original)hideLegacyVisual(visual);
   // Con una 'T' o pared divisoria se dibujan dos puertas independientes:
   // cada puerta simple conserva su marco completo.
@@ -192,5 +228,5 @@ function patchEngineDoc(doc){
  // el primer cierre HTML real, sin exigir exclusividad global del texto.
  return out.slice(0,headEnd)+script+out.slice(headEnd);
 }
-global.FHArchitectureSkins=Object.freeze({chooseDoor,chooseWindow,splitWindow,decorateDoor,decorateWindow,patchEngineDoc,load});
+global.FHArchitectureSkins=Object.freeze({chooseDoor,chooseWindow,splitWindow,accessDeviceId,decorateDoor,decorateWindow,patchEngineDoc,load});
 })(window);
