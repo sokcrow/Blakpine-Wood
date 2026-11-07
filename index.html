@@ -3418,6 +3418,88 @@ window.FHDeliveryRuntime=window.FHDelivery?.createRuntime({
  spawnRuntimeItem:fhSpawnRuntimeItem,hasRuntimeItem:(id,f)=>!!fhRuntimeItemById(id,f),replacePackage:fhReplacePackage,restoreFurniture:fhRestoreDeliveredFurniture,
  showNpc:fhShowDeliveryNpc,hideNpc:fhHideDeliveryNpc,spriteUrl:fhDeliverySpriteUrl
 });`;
+  const npcAddon=String.raw`// GOAP: la entidad usa la misma fuente de colisión que el personaje jugable.
+function fhNpcCanWalk(f,x,z){
+ if(!DATA.floors[f])return false;
+ const liftDoors=(elevatorPortals[f]||[]).map(portal=>{
+  const c=portal.shaftId?elevatorSystem.get(portal.shaftId)?.cabin:null;
+  return {open:c?.floor===f&&c?.phase==='open',block:portal.block};
+ });
+ return !ForestShared.solidAt(x,z,{
+  width:MAX_X,height:MAX_Z,radius:PLAYER_RADIUS,
+  walls:blockers[f],wallThickness:WALL_THICK,
+  doors:doorList[f].concat(liftDoors),doorPad:.038,
+  objects:furnitureColliders[f],objectMode:'box',
+  surfaceAllowed:f>0&&SLABS[f].enabled?(xx,zz)=>onStructuralSlab(xx,zz,f):null
+ });
+}
+function fhNpcPortals(){
+ return DATA.floors.flatMap((floor,f)=>(floor.items||[])
+  .filter(it=>it.type==='npc_portal'&&it.blocksMovement!==true&&Number.isFinite(it.x)&&Number.isFinite(it.y))
+  .map(it=>({id:it.id,floor:f,x:it.x*CELL,z:it.y*CELL})));
+}
+function fhNpcStairTransitions(){
+ const links=[];
+ for(let f=0;f<DATA.floors.length;f++)for(const item of DATA.floors[f].items||[]){
+  if(item.type!=='stairs'||item.autoLanding)continue;
+  const target=DATA.floors.findIndex(fl=>fl.id===item.targetFloorId);
+  if(target<0||target===f||Math.abs(target-f)!==1)continue;
+  const pos=ForestShared.stairPointAt(item,0,0,CELL);
+  if(ForestShared.stairAccessBlocked({item,x:pos.x,z:pos.y},doorList[f],GameState.flags,CELL))continue;
+  links.push({from:{floor:f,x:pos.x,z:pos.y},to:{floor:target,x:pos.x,z:pos.y}});
+ }
+ return links;
+}
+function fhStartNpcRoute(order,door){
+ if(!window.FHNPCCourier||!window.FHNPCGOAP)return null;
+ if(!fhNpcCourier){
+  fhNpcCourier=window.FHNPCCourier.createRuntime({
+   step:CELL/2,speed:1.65,canWalk:fhNpcCanWalk,
+   portals:fhNpcPortals,transitions:fhNpcStairTransitions,
+   spawn:point=>{
+    fhDeliveryNpcMotion=null;fhDisposeDeliveryNpc();
+    const mat=new THREE.SpriteMaterial({transparent:true,depthWrite:false});
+    fhDeliveryNpc=new THREE.Sprite(mat);fhDeliveryNpc.scale.set(1.12,1.68,1);
+    stories[point.floor].add(fhDeliveryNpc);
+    fhSetDeliveryNpcPose('walk');
+   },
+   position:point=>{
+    if(!fhDeliveryNpc)return;
+    if(fhDeliveryNpc.parent!==stories[point.floor])stories[point.floor].add(fhDeliveryNpc);
+    fhDeliveryNpc.position.set(point.x,1.05,point.z);visibilityDirty=true;
+   },
+   pose:fhSetDeliveryNpcPose,
+   arrived:id=>window.FHDeliveryRuntime?.onNpcArrived(id),
+   exited:()=>{fhDeliveryNpcMotion=null;fhDisposeDeliveryNpc();window.FHDeliveryRuntime?.update(0);},
+   blocked:()=>notice(window.FH_DELIVERY_TEXT?.noNpcRoute||'Ruta del repartidor bloqueada.',3000)
+  });
+ }
+ return fhNpcCourier.start(order.id,{
+  floor:door.f,x:door.cx+door.norm.x*.92,z:door.cz+door.norm.z*.92
+ });
+}
+`;
+  let runtimeWithNpc=runtimeBlock;
+  const npcAnchor='function fhRuntimeItemById(id,f)';
+  if(runtimeWithNpc.split(npcAnchor).length!==2)throw Error('No se encontró el ancla del controlador NPC');
+  runtimeWithNpc=runtimeWithNpc.replace(npcAnchor,npcAddon+'\n'+npcAnchor);
+  function npcRuntimeChange(before,after){
+   if(runtimeWithNpc.split(before).length!==2)throw Error('Hook NPC incompatible: '+before.slice(0,80));
+   runtimeWithNpc=runtimeWithNpc.replace(before,after);
+  }
+  npcRuntimeChange("let fhCharacterDeathNotified=false;","let fhNpcCourier=null;\n let fhCharacterDeathNotified=false;");
+  npcRuntimeChange("texture.magFilter=THREE.NearestFilter;texture.minFilter=THREE.LinearFilter;material.map=texture;",
+   "texture.encoding=THREE.sRGBEncoding;texture.magFilter=texture.minFilter=THREE.NearestFilter;material.map=texture;");
+  npcRuntimeChange("function fhShowDeliveryNpc(order,door,pose='idle'){\n",
+   "function fhShowDeliveryNpc(order,door,pose='idle'){\n if(fhNpcCourier?.active&&fhNpcCourier.orderId===order?.id){fhSetDeliveryNpcPose(pose==='idle'?'door_idle':pose);return;}\n");
+  npcRuntimeChange("const outside=.72,start=arriving?2.4:.72,baseY=floorElev[door.f]+1.05;",
+   "const outside=.72,start=arriving?2.4:.72,baseY=1.05;");
+  npcRuntimeChange("function fhDeliveryNpcTick(dt){\n",
+   "function fhDeliveryNpcTick(dt){\n fhNpcCourier?.tick(dt);\n");
+  npcRuntimeChange("function fhHideDeliveryNpc(){\n",
+   "function fhHideDeliveryNpc(order){\n if(fhNpcCourier?.active&&fhNpcCourier.delivered(order?.id))return;\n");
+  npcRuntimeChange("showNpc:fhShowDeliveryNpc,hideNpc:fhHideDeliveryNpc,spriteUrl:fhDeliverySpriteUrl",
+   "npcBusy:()=>!!fhNpcCourier?.active,startNpcRoute:fhStartNpcRoute,\n  showNpc:fhShowDeliveryNpc,hideNpc:fhHideDeliveryNpc,spriteUrl:fhDeliverySpriteUrl");
   const furnitureBefore="function useFurniture(item,selectedSeat=null){\n if(['sit','lie'].includes(item.interact?.verb)){";
   const furnitureAfter="let fhSeatFrontCache=null,fhSeatFrontCacheAt=0,fhSeatFrontCacheSeat=null,fhSeatFrontCacheFloor=-1;\nfunction fhSeatFrontTarget(){\n if(playerPose.state.phase!=='sitting'||!playerPoseItem)return null;\n const now=performance.now();\n if(fhSeatFrontCacheSeat===playerPoseItem&&fhSeatFrontCacheFloor===currentFloor&&now-fhSeatFrontCacheAt<250)return fhSeatFrontCache;\n const target=window.FHPcAssembly?.frontTarget(playerPoseItem,interactableItems[currentFloor],{\n  cell:CELL,isPc:item=>window.FHComputerRuntime?.isPc(item),\n  isClear:(from,to,seat,item)=>ForestShared.poseRouteClear(from,to,(x,z)=>ForestShared.solidAt(x,z,{\n   width:MAX_X,height:MAX_Z,radius:.025,\n   walls:blockers[currentFloor].filter(w=>w.ownerItemId!==seat.id&&w.ownerItemId!==item.id),wallThickness:WALL_THICK,\n   doors:doorList[currentFloor],doorPad:.02,\n   objects:furnitureColliders[currentFloor].filter(o=>o.id!==seat.id&&o.id!==item.id),objectMode:'box'\n  }),.12)\n })||null;\n fhSeatFrontCache=target;fhSeatFrontCacheAt=now;fhSeatFrontCacheSeat=playerPoseItem;fhSeatFrontCacheFloor=currentFloor;\n return target;\n}\nfunction fhUseFrontFromSeat(){\n const target=fhSeatFrontTarget();\n return target?useFurniture(target.item):useTVFromSeat();\n}\nfunction useFurniture(item,selectedSeat=null){\n if(fhDecorationActive)return {ok:false,reason:'decorating'};\n if(window.FHComputerRuntime?.isPc(item))return {ok:!!window.FHComputerRuntime.open(item,currentFloor)};\n if(window.FHDeliveryRuntime?.isPackage(item))return {ok:!!window.FHDeliveryRuntime.openPackage(item)};\n if(['sit','lie'].includes(item.interact?.verb)){";
   const doorBefore=" notice(d.open?'Abres la puerta.':'Cierras la puerta.',1800);\n}";
@@ -3447,7 +3529,7 @@ window.FHDeliveryRuntime=window.FHDelivery?.createRuntime({
   const markerExclusion="'opening','spawn'].includes(it.type)";
   if(doc.split(markerExclusion).length!==2)throw Error('Hook marcador NPC incompatible');
   doc=doc.replace(markerExclusion,"'opening','spawn','npc_portal'].includes(it.type)");
-  const changes=[[stateAnchor,stateAfter],[interactBefore,interactAfter],[buildAnchor,runtimeBlock],[furnitureBefore,furnitureAfter],[watchHudBefore,watchHudAfter],[watchListenerBefore,watchListenerAfter],[watchKeyBefore,watchKeyAfter],[doorBefore,doorAfter],[peekBefore,peekAfter],[peekExitBefore,peekExitAfter],[frameBefore,frameAfter],[apiBefore,apiAfter]];
+  const changes=[[stateAnchor,stateAfter],[interactBefore,interactAfter],[buildAnchor,runtimeWithNpc],[furnitureBefore,furnitureAfter],[watchHudBefore,watchHudAfter],[watchListenerBefore,watchListenerAfter],[watchKeyBefore,watchKeyAfter],[doorBefore,doorAfter],[peekBefore,peekAfter],[peekExitBefore,peekExitAfter],[frameBefore,frameAfter],[apiBefore,apiAfter]];
   for(const [a,b] of changes){const n=doc.split(a).length-1;if(n!==1)throw Error('Hook delivery incompatible: '+a.slice(0,90)+' ('+n+')');doc=doc.replace(a,b);}
   return doc;
  }
