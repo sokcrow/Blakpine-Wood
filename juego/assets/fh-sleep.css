@@ -25,6 +25,7 @@ body.fh-sleeping #fhContextRadial {
   position:fixed;
   inset:0;
   width:100vw;
+  height:100vh;
   height:100dvh;
   z-index:80;
   pointer-events:none;
@@ -39,5 +40,5 @@ body.fh-sleep-masking #mist {
   opacity:1 !important;
   pointer-events:none !important;
 }
-body.fh-sleeping #actions {z-index:90 !important;}
-body.fh-sleeping #fhContextRadial {z-index:91 !important;}
+body.fh-sleep-masking #actions {z-index:90 !important;}
+body.fh-sleep-masking #fhContextRadial {z-index:91 !important;}
