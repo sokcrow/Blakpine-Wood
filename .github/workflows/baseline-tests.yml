@@ -9,6 +9,7 @@ on:
       - 'juego/assets/fh-npc-goap.test.js'
       - 'juego/assets/fh-npc-courier.js'
       - 'juego/assets/fh-npc-courier.test.js'
+      - 'juego/assets/fh-npc-doors-integration.test.js'
       - 'juego/assets/fh-npc-delivery-bridge.test.js'
       - 'juego/assets/fh-npc-preview-contract.test.js'
       - 'juego/assets/fh-terminal.html'
