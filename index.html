@@ -165,6 +165,7 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
 <script src="./juego/assets/fh-parking-strings.js"></script>
 <script src="./juego/assets/fh-parking-editor.js"></script>
 <script src="./juego/assets/fh-area-merge.js"></script>
+<script src="./juego/assets/fh-access-config.js?v=20261107-map-v1"></script>
 <script>// /shared + /editor. Motor empaquetado y aislado en iframe.
 const ForestShared=(()=>{
 // shared/geometry.js
@@ -2585,12 +2586,13 @@ function escapeAttr(v){return String(v).replaceAll('&','&amp;').replaceAll('"','
 function exportProject(includeImages){syncStairLinks();recalcAllSpaces();const out=clone(project);out.buildingSlabs=clone(buildingSlabs());out.slabsByLevel=project.floors.slice(1).map((_,i)=>clone(buildingSlabs(i)));out.exportedAt=new Date().toISOString();out.floors.forEach((f,i)=>{f.architectureGraph=buildArchitectureGraph(f.items.filter(it=>STRUCTURAL_TYPES.has(it.type)));f.grid={columns:out.units.columns,rows:out.units.rows,fitToImage:out.units.fitGridToImage,cellWidthPx:rounded(out.units.fitGridToImage?(f.reference.width-out.units.originPx.x)/out.units.columns:out.units.gridPx,5),cellHeightPx:rounded(out.units.fitGridToImage?(f.reference.height-out.units.originPx.y)/out.units.rows:out.units.gridPx,5),feetPerCell:out.units.feetPerCell};if(!includeImages){delete f.reference.data;f.reference.imageIncluded=false}else{f.reference.imageIncluded=true}for(const it of f.items){if(it.type==='peephole_door'){const dx=it.b.x-it.a.x,dy=it.b.y-it.a.y,len=Math.hypot(dx,dy)||1,sign=it.peekSide||1;it.peekTo={x:rounded(-dy/len*sign,5),y:rounded(dx/len*sign,5)};it.peekFrom={x:-it.peekTo.x,y:-it.peekTo.y}}}});return out}
 function downloadBlob(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000)}
 function fileBase(){return(project.title||'ForestHorror').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\w-]+/g,'_').slice(0,40)||'ForestHorror'}
-function exportJSON(withImages){const doc=exportProject(withImages);window.FHStyleProperty?.validateMap(doc);window.FHParking?.validateProject(doc);const warnings=[...ForestShared.interactionReferenceWarnings(doc),...ForestShared.progressionReferenceWarnings(doc)];
+function exportJSON(withImages){const doc=exportProject(withImages);try{window.FHAccessConfig?.validateMap(doc)}catch(error){toast(error.message);return}window.FHStyleProperty?.validateMap(doc);window.FHParking?.validateProject(doc);const warnings=[...ForestShared.interactionReferenceWarnings(doc),...ForestShared.progressionReferenceWarnings(doc)];
  const finish=()=>{const s=JSON.stringify(doc,null,2);downloadBlob(new Blob([s],{type:'application/json;charset=utf-8'}),`${fileBase()}_${withImages?'COMPLETO':'COORDENADAS'}.json`);toast(withImages?'JSON completo exportado':'JSON de coordenadas exportado')};
  if(warnings.length){modal(`<h2>Referencias por revisar</h2><p>Hay ${warnings.length} aviso(s) en las interacciones. Puedes exportar de todos modos.</p><div style="max-height:38vh;overflow:auto">${warnings.map(w=>`<p><small>${escapeAttr(w.path)}: ${escapeAttr(w.message)}</small></p>`).join('')}</div><div class="actions"><button id="exportAnyway" class="primary">Exportar de todos modos</button><button id="cancelExport">Cancelar</button></div>`,()=>{$('#exportAnyway').onclick=()=>{closeModal();finish()};$('#cancelExport').onclick=closeModal});return}
  finish();}
 function exportPNG(){const ref=current().reference;if(ref.width*ref.height>28000000){toast('Imagen demasiado grande para exportar en este celular');return}const temp=document.createElement('canvas');temp.width=ref.width;temp.height=ref.height;const c=temp.getContext('2d');renderOn(c,ref.width,ref.height,{tx:0,ty:0,scale:1},{dpr:1,clean:true});temp.toBlob(blob=>{if(blob){downloadBlob(blob,`${fileBase()}_${current().id}.png`);toast('Vista PNG exportada')}else toast('No se pudo exportar PNG')},'image/png')}
 function importProject(obj){
+ window.FHAccessConfig?.validateMap(obj);
  window.FHStyleProperty?.validateMap(obj);window.FHParking?.validateProject(obj);const next=ForestShared.loadProject(obj);
  for(let i=0;i<next.floors.length;i++){
   if(!next.floors[i].reference)next.floors[i].reference=clone(project.floors[i]?.reference||floorDefault(next.floors[i].id,next.floors[i].name,next.floors[i].elevationFt,i).reference);
@@ -2618,7 +2620,7 @@ function wire(){canvas.addEventListener('pointerdown',pointerDown);canvas.addEve
  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();e.shiftKey?redo():undo()}if(e.key==='Escape'){closeModal();anchor=null;preview=null;closeInspector();render()}if((e.key==='Backspace'||e.key==='Delete')&&selection){e.preventDefault();$('#deleteBtn').click()}})}
 function init(){
  const raw=readStorage(key());let error=null;
- if(raw){try{project=ForestShared.loadProject(JSON.parse(raw));status('✓ Borrador restaurado')}catch(err){error=err;project=newProject();status('⚠ Borrador incompatible; mapa nuevo')}}
+ if(raw){try{const draft=JSON.parse(raw);window.FHAccessConfig?.validateMap(draft);project=ForestShared.loadProject(draft);status('✓ Borrador restaurado')}catch(err){error=err;project=newProject();status('⚠ Borrador incompatible; mapa nuevo')}}
  else status('Nuevo borrador');
  ensureGridConfig(!!raw);window.FHStyleEditor?.install({project:()=>project,current,record,modal,closeModal,toast});window.FHParkingEditor?.install({project:()=>project,current,record,modal,closeModal,toast,newId:numId,canEditAt:item=>{const p=window.FHStyleEditor;if(!p?.hasActor())return true;const a=Number(item.rotation||0)*Math.PI/180,points=[[0,0],[-.5,-.5],[.5,-.5],[-.5,.5],[.5,.5]];return points.every(([u,v])=>p.canEditAt({x:item.x+Math.cos(a)*item.w*u-Math.sin(a)*item.h*v,y:item.y+Math.sin(a)*item.w*u+Math.cos(a)*item.h*v}));},canEditItem:item=>window.FHStyleEditor?.canEditItem(item)!==false});wire();refreshFloorTabs();setCategory('structure');loadedImgs=project.floors.map(()=>null);
  project.floors.forEach((_,i)=>setupImage(i));
@@ -3877,6 +3879,7 @@ init();
 <script src="./juego/assets/fh-architecture-strings.js"></script>
 <script src="./juego/assets/fh-architecture-skins.js?v=20261106-window-tiles"></script>
 <script src="./juego/assets/fh-architecture-editor-catalog.js?v=20261105-visual-models"></script>
+<script src="./juego/assets/fh-access-editor.js?v=20261107-map-v1"></script>
 <script src="./juego/assets/fh-comic-action-engine-hook.js?v=20261107-comic-actions-1"></script>
 <script src="./juego/assets/fh-context-engine-hook.js?v=20261107-safe-lock-2"></script>
 </body>
