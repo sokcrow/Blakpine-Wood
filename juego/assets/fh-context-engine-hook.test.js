@@ -32,6 +32,11 @@ function generateEngine(){
 test('el HTML generado integra radial y decoración sin afectar el editor 2D',()=>{
  const output=generateEngine();
  assert.match(output,/function fhContextRefresh\(\)/);
+ assert.match(output,/fhContextCanvas\.addEventListener\('pointerup'/);
+ assert.match(output,/if\(clicked\)radial\.open\(context\)/);
+ assert.match(output,/else if\(radial\.visible&&radial\.target===key\)radial\.update\(context\)/);
+ assert.doesNotMatch(output,/radial\.update\(actions\.length\?/);
+
  assert.match(output,/fhContextRefresh\(\)/);
  assert.match(output,/fh-interaction-radial\.js/);
  assert.match(output,/fh-interaction-strings\.js/);
