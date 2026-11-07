@@ -47,3 +47,31 @@ test('Un NPC puede elegir metas según prioridad y factibilidad',()=>{
  const choice=goap.chooseGoal({hayPaquete:true,enCasa:true},[{id:'entrega',priority:10,desired:{entregado:true}},{id:'seguridad',priority:20,desired:{seguro:true}}],actions);
  assert.equal(choice.id,'seguridad');
 });
+
+test('Una puerta normal cerrada y sin llave se convierte en acción GOAP abrir_puerta',()=>{
+ const door={kind:'door',family:'single',open:false,locked:false,passable:false};
+ assert.deepEqual(goap.planDoor(door),['abrir_puerta']);
+ assert.equal(goap.canOpenDoor(door),true);
+ assert.deepEqual(goap.planDoor({...door,open:true,passable:true}),[]);
+});
+test('GOAP prohíbe abrir cerraduras, mirillas, puertas de parcela y electrónicas',()=>{
+ const ordinary={kind:'door',family:'single',open:false,locked:false,passable:false};
+ const cases=[
+  [{...ordinary,locked:true},{}],
+  [{...ordinary,kind:'peephole_door'},{}],
+  [{...ordinary,apartmentId:'apt-4'},{}],
+  [{...ordinary,role:'entrance'},{}],
+  [{...ordinary,stairBlockFlag:'lock_stairs'},{blockedFlag:true}],
+  [{...ordinary,family:'garage'},{}],
+  [{...ordinary,electronic:true},{}],
+  [ordinary,{propertyAccess:true}],
+  [ordinary,{meta:{propertyDoorRole:'main'}}],
+  [ordinary,{meta:{apartmentId:'apt-2'}}],
+  [ordinary,{meta:{requiresCard:true}}],
+  [ordinary,{meta:{doorRole:'entrance'}}]
+ ];
+ for(const [door,rights] of cases){
+  assert.equal(goap.canOpenDoor(door,rights),false,JSON.stringify([door,rights]));
+  assert.equal(goap.planDoor(door,rights),null,JSON.stringify([door,rights]));
+ }
+});
