@@ -138,7 +138,8 @@ function fhContextRefresh(){
   const strings='<script src="'+base+'fh-interaction-strings.js?v=20261106-radial"></'+'script>';
   const renderer='<script src="'+base+'fh-interaction-radial.js?v=20261106-radial"></'+'script>';
   const hide='<style>#actions,#fhDecorateBtn,#fhDecorStoredBtn{display:none!important}</style>';
-  return one(doc,'</head>',css+strings+renderer+hide+'</head>','recursos');
+  if(!doc.includes('</head>'))throw Error('Falta el cierre de cabecera del motor 3D');
+  return doc.replace('</head>',css+strings+renderer+hide+'</head>');
  }
  global.FHContextEngine=Object.freeze({patch});
 })(typeof window!=='undefined'?window:globalThis);
