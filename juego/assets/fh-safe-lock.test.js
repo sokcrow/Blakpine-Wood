@@ -66,3 +66,27 @@ test('el comportamiento es igual al conectar el control Usar o el canvas',()=>{
   assert.deepEqual(calls,[name+':primary',name+':radial']);
  }
 });
+
+test('click sintético tras toque o Hold no ejecuta también el listener legacy',()=>{
+ const {win,element,fire,tick}=mount();const calls=[];
+ win.FHSafeLock.bind(element,{onTap:()=>calls.push('primary'),onHold:()=>calls.push('radial')},{suppressClick:true});
+ element.addEventListener('click',()=>calls.push('legacy'));
+ const click=(detail,pointerType)=>{const event={
+  detail,pointerType,stopped:false,preventDefault(){this.defaultPrevented=true;},
+  stopImmediatePropagation(){this.stopped=true;}
+ };
+ for(const handler of element.events.click||[]){if(event.stopped)break;handler(event)}
+ return event;
+ };
+ fire('pointerdown');tick(20);fire('pointerup');
+ assert.equal(click(1,'mouse').defaultPrevented,true);
+ assert.deepEqual(calls,['primary']);
+ fire('pointerdown');tick(350);fire('pointerup');
+ assert.equal(click(1,'touch').stopped,true);
+ assert.deepEqual(calls,['primary','radial']);
+ // Clic genuino de teclado y fallback de navegador legacy.
+ assert.equal(click(0,'').stopped,false);
+ tick(800);
+ assert.equal(click(1,'mouse').stopped,false);
+ assert.deepEqual(calls,['primary','radial','legacy','legacy']);
+});
