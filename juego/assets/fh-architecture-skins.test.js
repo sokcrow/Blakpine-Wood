@@ -24,12 +24,16 @@ function sceneEnvironment({leafFarEdge=1.444}={}){
  vm.runInNewContext(code,{window:win,document:doc,URL,Promise,console});
  return {api:win.FHArchitectureSkins,THREE:win.THREE,Group,loads:()=>loads,masks:()=>masks,mask(){masks++}};
 }
-test('catálogo estructural: ocho modelos individuales, sin puertas dobles prefabricadas',()=>{
+test('catálogo estructural: modelos previos preservados y Kit 03 sin puertas dobles',()=>{
  assert.equal(catalog.schema,'forest-horror-architecture-catalog-v1');
- assert.equal(catalog.architecture.length,8);
- assert.deepEqual(catalog.architecture.map(x=>x.type),['door','door','peephole_door','window','window','door','door','door']);
- assert.ok(catalog.architecture.every(x=>x.widthTiles===1));
+ assert.equal(catalog.architecture.length,12);
+ assert.deepEqual(catalog.architecture.slice(0,8).map(x=>x.type),['door','door','peephole_door','window','window','door','door','door']);
+ assert.deepEqual(catalog.architecture.slice(8).map(x=>x.id),[
+  'puerta_electronica_reja','puerta_electronica_opaca','teclado_pin','lector_tarjeta']);
+ assert.ok(catalog.architecture.filter(x=>x.type==='door').every(x=>x.widthTiles===1));
  assert.ok(catalog.architecture.every(x=>x.glb.startsWith('modelos_glb/')));
+ assert.ok(catalog.architecture.slice(8,10).every(x=>x.mounting==='single'));
+ assert.ok(catalog.architecture.slice(10).every(x=>x.placement==='door_frame'));
 });
 test('elige puertas sencillas y dobles con los mismos modelos de una hoja',()=>{
  const {api}=sceneEnvironment();
@@ -270,4 +274,50 @@ test('el editor nunca oculta un fallo de integración de arquitectura',()=>{
  assert.match(index,/FH_ARCHITECTURE_TEXT\.loadFailure/);
  assert.match(index,/fh-architecture-strings\.js/);
  assert.match(index,/if\(preview3DArchitectureError\)show3DStatus/);
+});
+
+test('puertas electrónicas: una hoja, opacidad correcta y rechazo de dobles',()=>{
+ const {api}=sceneEnvironment();
+ assert.equal(api.chooseDoor({family:'single',variant:'metal',transparent:false},
+  {type:'door',architectureSkin:'puerta_electronica_opaca'}),'puerta_electronica_opaca');
+ assert.equal(api.chooseDoor({family:'single',variant:'glass',transparent:true},
+  {type:'door',architectureSkin:'puerta_electronica_reja'}),'puerta_electronica_reja');
+ assert.equal(api.chooseDoor({family:'double',variant:'metal',transparent:false},
+  {type:'door',architectureSkin:'puerta_electronica_opaca'}),null);
+ assert.equal(api.chooseDoor({family:'double',variant:'glass',transparent:true},
+  {type:'door',architectureSkin:'puerta_electronica_reja'}),null);
+ assert.equal(api.chooseDoor({family:'single',variant:'metal',transparent:false},
+  {type:'door',architectureSkin:'puerta_electronica_reja'}),null);
+ assert.equal(api.accessDeviceId({accessDevice:'none'}),null);
+ assert.equal(api.accessDeviceId({accessDevice:'pin'}),'teclado_pin');
+ assert.equal(api.accessDeviceId({accessDevice:'card'}),'lector_tarjeta');
+ assert.equal(api.accessDeviceId({accessDevice:'unexpected'}),null);
+});
+test('el lector visual se monta sólo en el marco fijo, no en la hoja',async()=>{
+ const env=sceneEnvironment(),{api,THREE,Group}=env;
+ const group=new Group();group.parent={};group.add({visible:true});
+ const frame=new Group();frame.parent={};frame.add({visible:true});
+ const door={family:'single',variant:'metal',transparent:false,frame,hinge:{parent:{}},
+  animated:[{group,base:0}]};
+ api.decorateDoor(door,{type:'door',architectureSkin:'puerta_electronica_opaca',
+  accessDevice:'pin',accessSide:'both'},THREE,()=>env.mask());
+ await new Promise(setImmediate);
+ assert.equal(door.skinId,'puerta_electronica_opaca');
+ assert.equal(group.children.length,2,'Sólo una hoja visual nueva');
+ assert.equal(frame.children.length,2,'Un marco nuevo, sin postes adicionales');
+ const fixed=frame.children[1];
+ assert.equal(fixed.children.length,3,'Marco fijo y un lector por cada cara');
+ assert.ok(fixed.children.slice(1).every(x=>x.name==='modelo_glb'));
+ assert.equal(fixed.children[1].position.z,.1);
+ assert.equal(fixed.children[2].position.z,-.1);
+ assert.equal(env.masks(),4);
+});
+test('editor: selección de lectores solo junto a la puerta electrónica',()=>{
+ const fs=require('node:fs'),path=require('node:path');
+ const editor=fs.readFileSync(path.join(__dirname,'fh-architecture-editor-catalog.js'),'utf8');
+ assert.match(editor,/m\.type==='accessory'/);
+ assert.match(editor,/ForestShared\.doorSpec\(it\)\.family==='single'/);
+ assert.match(editor,/setItemField\(it\.id,'accessDevice'/);
+ assert.match(editor,/if\(!isElectronic\(model\.id\)\)\{delete it\.accessDevice/);
+ assert.doesNotMatch(editor,/setCategory\('furniture'\)/);
 });

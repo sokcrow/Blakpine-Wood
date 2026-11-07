@@ -4,7 +4,8 @@
  const T=window.FH_ARCHITECTURE_TEXT;
  const scriptUrl=new URL(document.currentScript?.src||'./juego/assets/fh-architecture-editor-catalog.js',document.baseURI);
  const base=new URL('../../forest-horror/biblioteca/arquitectura/',scriptUrl);
- const allowed=/^(puerta_madera|puerta_metal|puerta_mirilla|puerta_cristal_simple|puerta_cristal_antipanico|puerta_cristal_tintada|ventana_clasica|ventana_dividida)$/;
+ const allowed=/^(puerta_madera|puerta_metal|puerta_mirilla|puerta_cristal_simple|puerta_cristal_antipanico|puerta_cristal_tintada|puerta_electronica_opaca|puerta_electronica_reja|teclado_pin|lector_tarjeta|ventana_clasica|ventana_dividida)$/;
+ const isElectronic=id=>id==='puerta_electronica_opaca'||id==='puerta_electronica_reja';
  let catalogPromise=null,models=[],openingTool='door',opener=null,lastDoorModel='puerta_madera';
  const active={door:'puerta_madera',peephole_door:'puerta_mirilla',window:'ventana_clasica'};
  const css=document.createElement('style');
@@ -24,7 +25,7 @@
    .then(r=>{if(!r.ok)throw Error('HTTP '+r.status);return r.json();})
    .then(doc=>{
     if(doc.schema!=='forest-horror-architecture-catalog-v1'||!Array.isArray(doc.architecture))throw Error('Catálogo inválido');
-    models=doc.architecture.filter(m=>allowed.test(m.id)&&m.thumbnail==='miniaturas/'+m.id+'.png'&&['door','peephole_door','window'].includes(m.type));
+    models=doc.architecture.filter(m=>allowed.test(m.id)&&m.thumbnail==='miniaturas/'+m.id+'.png'&&['door','peephole_door','window','accessory'].includes(m.type));
     return models;
    }).catch(error=>{catalogPromise=null;throw error;});
   return catalogPromise;
@@ -33,7 +34,7 @@
  function currentModel(it){
   if(it.type==='window')return it.windowSkin==='dividida'?'ventana_dividida':'ventana_clasica';
   if(it.type==='peephole_door')return 'puerta_mirilla';
-  if(it.architectureSkin&&it.variant==='glass'&&allowed.test(it.architectureSkin))return it.architectureSkin;
+  if(it.architectureSkin&&allowed.test(it.architectureSkin))return it.architectureSkin;
   return it.variant==='metal'?'puerta_metal':it.variant==='glass'?'puerta_cristal_simple':'puerta_madera';
  }
  function modelCard(model,selected,onClick){
@@ -89,8 +90,9 @@
   if(it.type==='peephole_door'){it.variant='wood';delete it.architectureSkin;return;}
   if(it.type==='door'){
    it.variant=model.variant;
-   if(model.variant==='glass')it.architectureSkin=model.architectureSkin||model.id;
+   if(model.variant==='glass'||isElectronic(model.id))it.architectureSkin=model.architectureSkin||model.id;
    else delete it.architectureSkin;
+   if(!isElectronic(model.id)){delete it.accessDevice;delete it.accessSide;}
   }
  }
  function changeModel(it,model){
@@ -119,12 +121,40 @@
    const gallery=el('section');gallery.className='fhArchInspector';
    const caption=el('strong',it.type==='window'?T.windowModels:T.doorModels);
    const tiles=el('div');tiles.className='fhArchList';
-   const choices=models.filter(m=>m.type===it.type);
+   const choices=models.filter(m=>m.type===it.type&&(!isElectronic(m.id)||ForestShared.doorSpec(it).family==='single'));
    tiles.append(...choices.map(m=>modelCard(m,currentModel(it),selected=>{
     if(selected.id!==currentModel(it))changeModel(it,selected);
    })));
    gallery.append(caption,tiles);
    anchor.replaceWith(gallery);
+   if(it.type==='door'&&isElectronic(currentModel(it))&&ForestShared.doorSpec(it).family==='single'){
+    const control=el('section');control.className='fhArchInspector';
+    const heading=el('strong',T.accessDevice);
+    const choices=el('div');choices.className='fhArchList';
+    const chosen=it.accessDevice==='pin'?'pin':it.accessDevice==='card'?'card':'none';
+    const none=el('button',T.accessNone);none.type='button';none.className='fhArchCard';
+    none.setAttribute('aria-pressed',String(chosen==='none'));
+    none.onclick=()=>{setItemField(it.id,'accessDevice','none');openInspector();};
+    choices.append(none);
+    for(const model of models.filter(m=>m.type==='accessory')){
+     const value=model.id==='teclado_pin'?'pin':'card';
+     choices.append(modelCard(model,chosen==='none'?'':chosen==='pin'?'teclado_pin':'lector_tarjeta',()=>{
+      setItemField(it.id,'accessDevice',value);openInspector();
+     }));
+    }
+    control.append(heading,choices);
+    if(chosen!=='none'){
+     const label=el('label',T.accessSide);
+     const select=el('select');
+     for(const [value,name] of [['front',T.front],['back',T.back],['both',T.both]]){
+      const option=el('option',name);option.value=value;select.append(option);
+     }
+     select.value=['front','back','both'].includes(it.accessSide)?it.accessSide:'front';
+     select.onchange=()=>setItemField(it.id,'accessSide',select.value);
+     label.append(select);control.append(label);
+    }
+    gallery.after(control);
+   }
    if(it.type==='door'){
     const glassLabel=labels.find(label=>label.textContent.startsWith(T.glassDesign));
     glassLabel?.remove();
@@ -137,7 +167,12 @@
   const item=oldCreateSegment(type,a,b);
   if(item&&active[type]){
    const model=models.find(m=>m.id===active[type]);
-   if(model)applyModel(item,model);
+   if(model){
+    if(type==='door'&&isElectronic(model.id)&&ForestShared.doorSpec(item).family!=='single'){
+     // Una puerta arrastrada a doble ancho conserva el modelo normal del motor.
+     item.variant=model.variant;delete item.architectureSkin;
+    }else applyModel(item,model);
+   }
    else if(type==='window')item.windowSkin='clasica';
    else if(type==='door')item.variant='wood';
    else if(type==='peephole_door')item.variant='wood';
