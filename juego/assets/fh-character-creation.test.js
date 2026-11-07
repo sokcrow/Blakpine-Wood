@@ -28,6 +28,8 @@ class Node {
  append(...nodes){this.children.push(...nodes);for(const n of nodes)n.parent=this}
  replaceChildren(...nodes){this.children=nodes;for(const n of nodes)n.parent=this}
  setAttribute(k,v){this.attrs[k]=v}
+ getAttribute(k){return this.attrs[k]}
+ removeAttribute(k){delete this.attrs[k]}
  addEventListener(k,fn){(this.listeners[k]??=[]).push(fn)}
  focus(){this.document.activeElement=this}
  remove(){this.parent.children=this.parent.children.filter(n=>n!==this);this.isConnected=false}
