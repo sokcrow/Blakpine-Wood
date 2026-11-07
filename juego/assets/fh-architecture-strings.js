@@ -17,5 +17,11 @@ window.FH_ARCHITECTURE_TEXT=Object.freeze({
  imageUnavailable:'Miniatura no disponible',
  catalogError:'No se pudo cargar el catálogo de puertas y ventanas.',
  useOriginalTool:'Continuar con la herramienta básica',
+ accessDevice:'Dispositivo en el marco',
+ accessNone:'Sin lector',
+ accessSide:'Cara del marco',
+ front:'Frente',
+ back:'Dorso',
+ both:'Ambas caras',
  notAllowed:'No puedes modificar este elemento fuera de tu propiedad.'
 });
