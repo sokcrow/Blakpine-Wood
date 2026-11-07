@@ -308,6 +308,28 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
     transform-origin: top left !important;
   }
 }
+
+/* RAVEN/OS: proporción de monitor 16:10 y ventanas independientes en móviles. */
+#focus .focus-frame{flex:none;box-sizing:border-box;aspect-ratio:16 / 10;max-width:100%;max-height:100%;margin:auto}
+#windowsLayer{position:absolute;inset:0;z-index:3;pointer-events:none;--fh-desktop-topbar:31px}
+#windowsLayer .window{box-sizing:border-box;min-width:0!important;min-height:0!important;max-width:none!important;max-height:none!important;transform:none!important;pointer-events:auto}
+#windowsLayer .window:not(.maximized){
+ left:var(--fh-x,6px)!important;top:var(--fh-y,34px)!important;
+ width:var(--fh-w,400px)!important;height:var(--fh-h,300px)!important;
+}
+#windowsLayer .window.maximized{
+ left:0!important;top:var(--fh-desktop-topbar,31px)!important;width:100%!important;
+ height:calc(100% - var(--fh-desktop-topbar,31px))!important;
+}
+#windowsLayer .window-title{touch-action:none}
+#windowsLayer .window-resize{
+ position:absolute;bottom:0;right:0;z-index:2;width:27px;height:27px;
+ touch-action:none;cursor:nwse-resize;
+ background:linear-gradient(135deg,transparent 45%,#65716a 45%,#65716a 54%,transparent 54%,transparent 64%,#65716a 64%,#65716a 73%,transparent 73%);
+}
+#windowsLayer .window.maximized .window-resize{display:none}
+@media(pointer:coarse){#windowsLayer .window-resize{width:36px;height:36px}}
+
 </style>
 </head>
 <body>
