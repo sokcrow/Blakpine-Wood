@@ -3473,6 +3473,10 @@ function fhNpcOpenDoor(action){
  if(!door)return false;
  // La apertura usa el mismo objeto y estado persistente que el jugador.
  door.open=true;door.target=doorTarget(door);
+ // Las puertas solo se animan en el piso activo: fuera de él hay que
+ // sincronizar la pose para que la entidad no espere indefinidamente.
+ if(f!==currentFloor){door.angle=door.target;applyDoorPose(door);}
+ else door.passable=true; // Apertura ordinaria; la hoja se anima durante los frames siguientes.
  visibilityDirty=true;roomLightsDirty=true;rememberDoor(door);
  return true;
 }
