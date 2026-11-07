@@ -3472,7 +3472,7 @@ function fhStartNpcRoute(order,door){
    pose:fhSetDeliveryNpcPose,
    arrived:id=>window.FHDeliveryRuntime?.onNpcArrived(id),
    exited:()=>{fhDeliveryNpcMotion=null;fhDisposeDeliveryNpc();window.FHDeliveryRuntime?.update(0);},
-   blocked:()=>notice(window.FH_DELIVERY_TEXT?.noNpcRoute||'Ruta del repartidor bloqueada.',3000)
+   blocked:id=>{window.FHDeliveryRuntime?.onNpcRouteBlocked(id);notice(window.FH_DELIVERY_TEXT?.noNpcRoute||'Ruta del repartidor bloqueada.',3000)}
   });
  }
  return fhNpcCourier.start(order.id,{
