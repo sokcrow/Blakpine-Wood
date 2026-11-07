@@ -30,6 +30,8 @@ window.FHStructureHealthRuntime=fhHealthRuntime;`);
   "function windowModel(f,it){const fhWinVisualStart=stories[f].children.length;const fhHealthBlockStart=blockers[f].length,fhHealthVisualStart=stories[f].children.length;");
  doc=one(doc,"}\nfunction doorTarget(d){",
   " window.FHStructureHealthRuntime?.registerWindow(f,it,blockers[f].slice(fhHealthBlockStart),stories[f].children.slice(fhHealthVisualStart));\n}\nfunction doorTarget(d){");
+ doc=one(doc,"exteriorProxies.push({source,clone,f,item:it});",
+  "exteriorProxies.push({source,clone,f,item:it});window.FHStructureHealthRuntime?.registerExteriorProxy(f,it,clone);");
  doc=one(doc,"window.FHArchitectureSkins?.decorateDoor(d,it,THREE,installVisibility);return d;",
   "window.FHStructureHealthRuntime?.registerDoor(d,it);window.FHArchitectureSkins?.decorateDoor(d,it,THREE,installVisibility);return d;");
  doc=one(doc," d.passable=!!d.open&&(d.family!=='garage'||d.angle>=.85);\n}\n\nfunction debugGrid",
