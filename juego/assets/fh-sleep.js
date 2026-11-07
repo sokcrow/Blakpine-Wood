@@ -91,7 +91,8 @@
    if(!needsBreath()||!point||!Number.isFinite(point.x)||!Number.isFinite(point.y)||!Number.isFinite(point.z))return false;
    const emitted=global.FHLiveText?.soundAt?.({
     kind:'sleep',text:String(global.FH_SLEEP_TEXT?.breath||'Zzz'),
-    x:point.x,y:point.y,z:point.z,floor:point.floor,self:true,level:1
+    x:point.x,y:point.y,z:point.z,floor:point.floor,self:true,level:1,
+    screenX:point.screenX,screenY:point.screenY
    })===true;
    if(emitted)nextBreath=asleepTime+CONFIG.breathCycle;
    return emitted;
