@@ -5,6 +5,16 @@ on:
     paths:
       - 'juego/assets/fh-peephole.test.js'
       - 'juego/assets/fh-preview-boot.test.js'
+      - 'juego/assets/fh-npc-goap.js'
+      - 'juego/assets/fh-npc-goap.test.js'
+      - 'juego/assets/fh-npc-courier.js'
+      - 'juego/assets/fh-npc-courier.test.js'
+      - 'juego/assets/fh-npc-delivery-bridge.test.js'
+      - 'juego/assets/fh-npc-preview-contract.test.js'
+      - 'juego/assets/fh-terminal.html'
+      - 'juego/assets/fh-delivery.js'
+      - 'juego/assets/fh-delivery-strings.js'
+      - 'index.html'
       - '.github/workflows/baseline-tests.yml'
 
 permissions:

@@ -122,17 +122,39 @@ function createRuntime(options){
   function chooseDoor(){
   const door=options.findDoor?.(pcItem,pcFloor);return door||null;
  }
+ function announceDoorArrival(order,door){
+  if(typeof options.knock==='function'){
+   const ring=()=>{if(delivery.npc.activeOrderId===order.id&&order.status==='waiting')options.knock(door,order)};
+   const delay=Math.max(0,finite(options.knockDelayMs,0));
+   if(delay)setTimeout(ring,delay);else ring();
+  }else say(TEXT.orderWaiting||'Llaman a la puerta.',2600);
+ }
+ function onNpcArrived(orderId){
+  const order=orderById(state,orderId),door=order&&options.doorById?.(order.doorId,order.floor);
+  if(!order||!door||order.status!=='en_route'||delivery.npc.activeOrderId!==orderId)return false;
+  order.status='waiting';delivery.npc.state='waiting_at_door';delivery.npc.pose='door_idle';
+  options.showNpc?.(order,door,'door_idle');announceDoorArrival(order,door);
+  save();syncOrdersToTerminal();return true;
+ }
+ function onNpcRouteBlocked(orderId){
+  const order=orderById(state,orderId);
+  if(!order||order.status!=='en_route'||delivery.npc.activeOrderId!==orderId)return false;
+  order.status='route_blocked';delivery.npc.state='route_blocked';delivery.npc.pose='thinking';
+  save();syncOrdersToTerminal();return true;
+ }
  function activateNext(){
-  if(delivery.orders.some(o=>['waiting','payment','delivering'].includes(o.status)))return null;
+  if(delivery.orders.some(o=>['en_route','waiting','payment','delivering'].includes(o.status))||options.npcBusy?.())return null;
   const next=nextDueOrder(state);if(!next)return null;
   const door=options.doorById?.(next.doorId,next.floor);if(!door)return null;
-  next.status='waiting';delivery.npc={activeOrderId:next.id,doorId:door.id,state:'waiting_at_door',pose:'idle'};
-  npcOrder=next;options.showNpc?.(next,door,'idle');
-   if(typeof options.knock==='function'){
-    const ring=()=>{if(delivery.npc.activeOrderId===next.id&&next.status==='waiting')options.knock(door,next)};
-    const delay=Math.max(0,finite(options.knockDelayMs,0));if(delay)setTimeout(ring,delay);else ring();
-   }else say(TEXT.orderWaiting||'Llaman a la puerta.',2600);
-   save();syncOrdersToTerminal();return next;
+  const travel=options.startNpcRoute?.(next,door);
+  if(travel===false){
+   next.status='route_blocked';say(TEXT.noNpcRoute||'El repartidor no encuentra una ruta segura.',3200);
+   save();syncOrdersToTerminal();return null;
+  }
+  delivery.npc={activeOrderId:next.id,doorId:door.id,state:travel===true?'traveling':'waiting_at_door',pose:travel===true?'walk':'idle'};
+  npcOrder=next;next.status=travel===true?'en_route':'waiting';
+  if(travel!==true){options.showNpc?.(next,door,'idle');announceDoorArrival(next,door)}
+  save();syncOrdersToTerminal();return next;
  }
  function placeOrder(productId,paymentMethod){
   const p=productById(productId);if(!p){say(TEXT.productMissing||'Producto no disponible.');return null}
@@ -384,9 +406,16 @@ function createRuntime(options){
    if(!order||order.status!=='unboxed'||!product||options.hasRuntimeItem?.(record.id,record.floor))continue;
    options.restoreFurniture?.(record,product,order);
   }
+  const traveling=delivery.orders.find(o=>o.status==='en_route');
+  if(traveling&&!options.npcBusy?.()){
+   const door=options.doorById?.(traveling.doorId,traveling.floor);
+   const outcome=door?options.startNpcRoute?.(traveling,door):false;
+   if(outcome===false){traveling.status='route_blocked';save();syncOrdersToTerminal();}
+   else if(outcome==null){traveling.status='scheduled';activateNext();}
+  }
   const waiting=delivery.orders.find(o=>['waiting','payment','delivering'].includes(o.status));
   if(waiting){const door=options.doorById?.(waiting.doorId,waiting.floor);if(door)options.showNpc?.(waiting,door,waiting.status==='payment'?(waiting.paymentMethod==='card'?'card':'cash'):waiting.status==='delivering'?'clipboard':'idle')}
-  else update(0);
+  else if(!traveling)update(0);
   return true;
  }
  function isPc(item,floor=options.currentFloor?.()??pcFloor){return options.computer?.isPc(item,floor)??
@@ -404,7 +433,7 @@ function createRuntime(options){
  }
  global.addEventListener('message',onMessage);
  loadCatalogs();
- return {isPc,isPackage,isDeliveredFurniture,updateRuntimeItem,storedFurniture,setFurnitureStored,retrieveStoredFurniture,actionLabel,openPc,closePc,onComputerOpen,onComputerClose,syncTerminal,onPeephole,onPeepholeExit,talkThroughPeephole,onDoorOpened,interruptDialogue,openPackage,placeOrder,advanceTime,formatClock,update,resume,activateNext,
+ return {isPc,isPackage,isDeliveredFurniture,updateRuntimeItem,storedFurniture,setFurnitureStored,retrieveStoredFurniture,actionLabel,openPc,closePc,onComputerOpen,onComputerClose,syncTerminal,onPeephole,onPeepholeExit,talkThroughPeephole,onDoorOpened,onNpcArrived,onNpcRouteBlocked,interruptDialogue,openPackage,placeOrder,advanceTime,formatClock,update,resume,activateNext,
   get dialogOpen(){return !!dialog?.classList.contains('open')},get products(){return products.map(clone)},get orders(){return delivery.orders.map(clone)},get ready(){return ready}};
 }
 global.FHDelivery=Object.freeze({ensureState,parcelSize,normalizeProduct,createOrder,activeOrderForDoor,advanceTime,tickClock,formatMinutes,formatClock,nextDueOrder,createRuntime});

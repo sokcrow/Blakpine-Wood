@@ -1053,7 +1053,7 @@ function rayThroughExteriorOpening(eye,target,openings,cell,baseElevation,roofEl
 const MAP_SCHEMA='forest-horror-map-v1';
 const CURRENT_VERSION=2;
 const SEGMENT_TYPES=new Set(['red_wall','wall','property_wall','half_wall','fence','door','peephole_door','window','opening']);
-const XY_TYPES=new Set(['spawn','stairs','elevator','light_switch','breaker_panel','light_fixture','battery_pickup','bed','sofa','tv','dining','table','chair','kitchen','bath','toilet','plant','car','misc','room','hall','outside','building','pavement','parking','grass','dirt','asphalt','alley','sidewalk','concrete','gravel','cobblestone','tile_floor','carpet','wood_floor','parking_decal']);
+const XY_TYPES=new Set(['spawn','npc_portal','stairs','elevator','light_switch','breaker_panel','light_fixture','battery_pickup','bed','sofa','tv','dining','table','chair','kitchen','bath','toilet','plant','car','misc','room','hall','outside','building','pavement','parking','grass','dirt','asphalt','alley','sidewalk','concrete','gravel','cobblestone','tile_floor','carpet','wood_floor','parking_decal']);
 class MapValidationError extends Error{
  constructor(errors){super('Mapa inválido:\n'+errors.map(e=>`${e.path}: ${e.message}`).join('\n'));this.name='MapValidationError';this.errors=errors}
 }
@@ -1545,12 +1545,12 @@ return {DOOR_VARIANTS,DOOR_LENGTH_TOLERANCE,doorSpan,doorWidthClass,doorSpec,doo
 'use strict';
 
 const SCHEMA=ForestShared.MAP_SCHEMA;
-const COLORS={red_wall:'#ef5656',property_wall:'#E6BD43',wall:'#64bdf9',half_wall:'#82c4ff',fence:'#97d8c3',door:'#ffbc66',peephole_door:'#ce92ff',window:'#70ecd6',opening:'#b7d184',room:'#ffad79',room_fill:'#ffad79',hall:'#8ab1ff',outside:'#7de39c',building:'#a7b2c4',pavement:'#8b96a9',parking:'#b8c0cf',asphalt:'#55575a',alley:'#65655b',sidewalk:'#a1a09c',concrete:'#a8a29a',gravel:'#ada69a',cobblestone:'#aaa396',tile_floor:'#d1bab3',carpet:'#b7a0a9',wood_floor:'#b3967b',parking_stall:'#f6ecb4',parking_arrow:'#f6ecb4',parking_crosswalk:'#f6ecb4',parking_double_yellow:'#e4be47',parking_dashed_yellow:'#e4be47',parking_speed_bump:'#e4be47',parking_curb:'#beb3a3',parking_decal:'#f4d985',grass:'#6ecb7d',dirt:'#b58c63',stairs:'#edb676',spawn:'#f5df71',elevator:'#8b99ff',light_switch:'#d3c06d',breaker_panel:'#bc8b68',battery_pickup:'#dfc56b',light_fixture:'#fff0aa',zone_assign:'#d6a55c',bed:'#da9ac0',sofa:'#81a9c8',tv:'#8ea1e1',dining:'#d8b47f',table:'#bfa478',chair:'#71b1cd',kitchen:'#b2b8c2',bath:'#75cde6',toilet:'#a8cce5',plant:'#83d28f',misc:'#c0c5d2',car:'#a88dd5'};
+const COLORS={red_wall:'#ef5656',property_wall:'#E6BD43',wall:'#64bdf9',half_wall:'#82c4ff',fence:'#97d8c3',door:'#ffbc66',peephole_door:'#ce92ff',window:'#70ecd6',opening:'#b7d184',room:'#ffad79',room_fill:'#ffad79',hall:'#8ab1ff',outside:'#7de39c',building:'#a7b2c4',pavement:'#8b96a9',parking:'#b8c0cf',asphalt:'#55575a',alley:'#65655b',sidewalk:'#a1a09c',concrete:'#a8a29a',gravel:'#ada69a',cobblestone:'#aaa396',tile_floor:'#d1bab3',carpet:'#b7a0a9',wood_floor:'#b3967b',parking_stall:'#f6ecb4',parking_arrow:'#f6ecb4',parking_crosswalk:'#f6ecb4',parking_double_yellow:'#e4be47',parking_dashed_yellow:'#e4be47',parking_speed_bump:'#e4be47',parking_curb:'#beb3a3',parking_decal:'#f4d985',grass:'#6ecb7d',dirt:'#b58c63',stairs:'#edb676',spawn:'#f5df71',npc_portal:'#77d7ba',elevator:'#8b99ff',light_switch:'#d3c06d',breaker_panel:'#bc8b68',battery_pickup:'#dfc56b',light_fixture:'#fff0aa',zone_assign:'#d6a55c',bed:'#da9ac0',sofa:'#81a9c8',tv:'#8ea1e1',dining:'#d8b47f',table:'#bfa478',chair:'#71b1cd',kitchen:'#b2b8c2',bath:'#75cde6',toilet:'#a8cce5',plant:'#83d28f',misc:'#c0c5d2',car:'#a88dd5'};
 const TOOL_GROUPS={
  structure:[['select','Seleccionar','☞'],['pan','Mover mapa','✋'],['wall','Pared','▰'],['red_wall','Pared roja · losa','▰'],['paint_wall','Pintar cara','▨'],['half_wall','Pared media','▱'],['fence','Reja','⛶'],['door','Puerta','🚪'],['elevator','Ascensor ⇅','⇅'],['peephole_door','Con mirilla','◉'],['window','Ventana','▤'],['opening','Hueco libre','⟷'],['erase','Borrar','⌫']],
  furniture:[['select','Seleccionar','☞'],['bed','Cama compacta','🛏'],['sofa','Sofá compacto','▰'],['tv','Tele compacta','▭'],['dining','Comedor','◫'],['table','Mesa','▦'],['chair','Silla','▣'],['kitchen','Cocina','▤'],['bath','Ducha / tina','▥'],['toilet','Baño / WC','◉'],['plant','Planta','♧'],['car','Coche','▰'],['misc','Mueble libre','□'],['battery_pickup','Batería de linterna','▰']],
  lighting:[['select','Seleccionar circuito','☞'],['pan','Mover mapa','✋'],['zone_assign','Conectar zona','◈'],['light_fixture','Foco de techo','✦'],['light_strip','Tubo largo','▰'],['light_panel','Panel de techo','▤'],['light_wall','Aplique de pared','◖'],['light_flood','Reflector de pared','◁'],['light_switch','Interruptor','◉'],['breaker_panel','Breaker','▤']],
- areas:[['room_fill','Revisar recinto','⌂'],['room','Zona manual','▣'],['hall','Pasillo','═'],['outside','Exterior','♧'],['building','Edificio','▥'],['pavement','Banqueta / piso','▦'],['parking','Estacionamiento','▤'],['asphalt','Asfalto','▦'],['alley','Callejón manchado','▦'],['sidewalk','Banqueta','▤'],['concrete','Concreto','▦'],['gravel','Grava','░'],['cobblestone','Adoquín','▣'],['tile_floor','Baldosa','▦'],['carpet','Alfombra','▧'],['wood_floor','Madera','▤'],['grass','Pasto','❋'],['dirt','Tierra','░'],['elevator','Ascensor ⇅','⇅'],['stairs','Escaleras ½ cuadro','≋'],['spawn','Jugador','✦'],['select','Seleccionar','☞'],['pan','Mover mapa','✋']],
+ areas:[['room_fill','Revisar recinto','⌂'],['room','Zona manual','▣'],['hall','Pasillo','═'],['outside','Exterior','♧'],['building','Edificio','▥'],['pavement','Banqueta / piso','▦'],['parking','Estacionamiento','▤'],['asphalt','Asfalto','▦'],['alley','Callejón manchado','▦'],['sidewalk','Banqueta','▤'],['concrete','Concreto','▦'],['gravel','Grava','░'],['cobblestone','Adoquín','▣'],['tile_floor','Baldosa','▦'],['carpet','Alfombra','▧'],['wood_floor','Madera','▤'],['grass','Pasto','❋'],['dirt','Tierra','░'],['elevator','Ascensor ⇅','⇅'],['stairs','Escaleras ½ cuadro','≋'],['spawn','Jugador','✦'],['npc_portal','Entrada / salida NPC','⇥'],['select','Seleccionar','☞'],['pan','Mover mapa','✋']],
  parking_marks:[['select','Seleccionar','☞'],['parking_stall','Cajones N','▱'],['parking_arrow','Flecha','➜'],['parking_crosswalk','Cebra','▥'],['parking_double_yellow','Doble amarilla','═'],['parking_dashed_yellow','Discontinua','┄'],['parking_speed_bump','Reductor','▰'],['parking_curb','Guarnición','▤'],['pan','Mover mapa','✋'],['erase','Borrar','⌫']],
  navigate:[['select','Seleccionar','☞'],['pan','Mover mapa','✋'],['erase','Borrar','⌫'],['wall','Pared','▰'],['red_wall','Pared roja','▰'],['paint_wall','Pintar cara','▨'],['half_wall','Pared media','▱'],['fence','Reja','⛶'],['door','Puerta','🚪'],['peephole_door','Mirilla','◉'],['window','Ventana','▤']]
 };
@@ -1558,10 +1558,10 @@ const LIGHTING_TYPES=new Set(['light_switch','breaker_panel','light_fixture']);
 const CIRCUIT_COLORS=ForestShared.CIRCUIT_PALETTE;
 const SEGMENT_TYPES=new Set(['red_wall','wall','property_wall','half_wall','fence','door','peephole_door','window','opening']);
 const AREA_TYPES=new Set(['room','hall','outside','building','pavement','parking','grass','dirt','asphalt','alley','sidewalk','concrete','gravel','cobblestone','tile_floor','carpet','wood_floor']);
-const POINT_TYPES=new Set(['spawn']);
+const POINT_TYPES=new Set(['spawn','npc_portal']);
 const LEGACY_OBJECT_SIZES={bed:[1,2],sofa:[2,1],tv:[2,1],dining:[2,2],table:[1.35,1],chair:[.65,.65],kitchen:[2,1],bath:[1,2],toilet:[.65,.75],plant:[.7,.7],car:[1.8,3.2],misc:[1,1],stairs:[2,2.4],elevator:[1.8,1.8],light_switch:[.40,.28],breaker_panel:[.75,.40],battery_pickup:[.5,.5],light_fixture:[.4,.4],spawn:[.4,.4]};
-const OBJECT_SIZES={bed:[.75,1.5],sofa:[1.5,.75],tv:[1,.5],dining:[1.5,1.5],table:[1,.75],chair:[.5,.5],kitchen:[1.5,.75],bath:[.75,1.5],toilet:[.5,.5],plant:[.5,.5],car:[1.2,3],misc:[.75,.75],stairs:[.5,3.5],elevator:[1.5,1.5],light_switch:[.40,.28],breaker_panel:[.75,.40],battery_pickup:[.5,.5],light_fixture:[.4,.4],spawn:[.4,.4]};
-const SHORT={red_wall:'Pared roja estructural',property_wall:'Pared amarilla · propiedad',paint_wall:'Pintar cara de pared',wall:'Pared',half_wall:'Pared media',fence:'Reja',door:'Puerta',peephole_door:'Puerta con mirilla',window:'Ventana',opening:'Abertura',room:'Habitación',room_fill:'Auto-habitación',hall:'Pasillo',outside:'Exterior',building:'Edificio',pavement:'Banqueta / piso',parking:'Estacionamiento',asphalt:'Asfalto',alley:'Callejón manchado',sidewalk:'Banqueta',concrete:'Concreto',gravel:'Grava',cobblestone:'Adoquín',tile_floor:'Baldosa',carpet:'Alfombra',wood_floor:'Madera',parking_decal:'Marca de estacionamiento',grass:'Pasto',dirt:'Tierra',stairs:'Escaleras',elevator:'Ascensor',light_switch:'Interruptor de luz',breaker_panel:'Panel de breakers',battery_pickup:'Batería de linterna',light_fixture:'Lámpara',zone_assign:'Conectar habitación o lámpara',spawn:'Jugador',bed:'Cama',sofa:'Sofá',tv:'Tele',dining:'Comedor',table:'Mesa',chair:'Silla',kitchen:'Cocina',bath:'Ducha / tina',toilet:'WC',plant:'Planta',car:'Coche',misc:'Mueble libre'};const ORIENTABLE_TYPES=ForestShared.FACING_OBJECT_TYPES;
+const OBJECT_SIZES={bed:[.75,1.5],sofa:[1.5,.75],tv:[1,.5],dining:[1.5,1.5],table:[1,.75],chair:[.5,.5],kitchen:[1.5,.75],bath:[.75,1.5],toilet:[.5,.5],plant:[.5,.5],car:[1.2,3],misc:[.75,.75],stairs:[.5,3.5],elevator:[1.5,1.5],light_switch:[.40,.28],breaker_panel:[.75,.40],battery_pickup:[.5,.5],light_fixture:[.4,.4],spawn:[.4,.4],npc_portal:[.4,.4]};
+const SHORT={red_wall:'Pared roja estructural',property_wall:'Pared amarilla · propiedad',paint_wall:'Pintar cara de pared',wall:'Pared',half_wall:'Pared media',fence:'Reja',door:'Puerta',peephole_door:'Puerta con mirilla',window:'Ventana',opening:'Abertura',room:'Habitación',room_fill:'Auto-habitación',hall:'Pasillo',outside:'Exterior',building:'Edificio',pavement:'Banqueta / piso',parking:'Estacionamiento',asphalt:'Asfalto',alley:'Callejón manchado',sidewalk:'Banqueta',concrete:'Concreto',gravel:'Grava',cobblestone:'Adoquín',tile_floor:'Baldosa',carpet:'Alfombra',wood_floor:'Madera',parking_decal:'Marca de estacionamiento',grass:'Pasto',dirt:'Tierra',stairs:'Escaleras',elevator:'Ascensor',light_switch:'Interruptor de luz',breaker_panel:'Panel de breakers',battery_pickup:'Batería de linterna',light_fixture:'Lámpara',zone_assign:'Conectar habitación o lámpara',spawn:'Jugador',npc_portal:'Entrada / salida NPC',bed:'Cama',sofa:'Sofá',tv:'Tele',dining:'Comedor',table:'Mesa',chair:'Silla',kitchen:'Cocina',bath:'Ducha / tina',toilet:'WC',plant:'Planta',car:'Coche',misc:'Mueble libre'};const ORIENTABLE_TYPES=ForestShared.FACING_OBJECT_TYPES;
 function normalizeFurnitureFootprints(){const eps=.001,types=Object.keys(OBJECT_SIZES);let changed=0;for(const fl of project.floors||[]){for(const it of fl.items||[]){if(!types.includes(it.type)||!('x' in it)||it.type==='spawn'||it.type==='car')continue;const old=LEGACY_OBJECT_SIZES[it.type],neu=OBJECT_SIZES[it.type];if(!old||!neu)continue;const w=Number(it.w),h=Number(it.h);if(Math.abs(w-old[0])<eps&&Math.abs(h-old[1])<eps){it.w=neu[0];it.h=neu[1];changed++;}}}return changed;}
 const $=s=>document.querySelector(s), $$=s=>Array.from(document.querySelectorAll(s));
 const clone=x=>JSON.parse(JSON.stringify(x));
@@ -1672,7 +1672,7 @@ function drawBox(c,it,z,selected){let p=toPixel({x:it.x,y:it.y}),w=(it.w||1)*gri
   c.save();c.translate(0,h/2+15/z);c.fillStyle='#b9ffdd';c.strokeStyle='#102333';c.lineWidth=2.3/z;
   c.font=`bold ${10/z}px system-ui`;c.textAlign='center';c.strokeText('INICIO BAJADA',0,0,Math.max(w*2,110/z));c.fillText('INICIO BAJADA',0,0,Math.max(w*2,110/z));c.restore();
  }
-}if(it.type==='elevator'){c.save();c.strokeStyle='#d9e0ff';c.lineWidth=2.3/z;c.strokeRect(-w*.43,-h*.42,w*.86,h*.78);c.beginPath();c.moveTo(0,-h*.4);c.lineTo(0,h*.36);c.moveTo(-w*.42,h*.43);c.lineTo(w*.42,h*.43);c.stroke();c.fillStyle=it.enabled===false?'#ff8b72':'#9ef1cc';c.fillRect(w*.29,h*.27,w*.09,h*.1);c.restore()}if(it.type==='spawn'){drawTriangle(c,0,0,-Math.PI/2,'#f5df71',Math.min(w,h)*.38)}if(ORIENTABLE_TYPES.has(it.type)){const arrowY=h/2+10/z;c.save();c.strokeStyle='#fff7b2';c.fillStyle='#fff0a8';c.lineWidth=2/z;c.beginPath();c.moveTo(0,0);c.lineTo(0,arrowY);c.stroke();drawTriangle(c,0,arrowY,Math.PI/2,'#fff0a8',7/z);c.font=`bold ${10/z}px system-ui`;c.textAlign='center';c.textBaseline='top';c.fillStyle='#fff6d8';c.strokeStyle='#142235';c.lineWidth=2.5/z;c.strokeText('frente',0,arrowY+9/z);c.fillText('frente',0,arrowY+9/z);c.restore()}c.rotate(-((it.rotation||0)*Math.PI/180));c.font=`bold ${Math.max(9/z,Math.min(14/z,Math.min(w,h)*.36))}px system-ui`;c.textAlign='center';c.textBaseline='middle';c.lineWidth=3/z;c.strokeStyle='#122033';let caption=it.label||SHORT[it.type]||it.type;c.strokeText(caption,0,0,Math.max(40/z,w*1.3));c.fillStyle='#fff';c.fillText(caption,0,0,Math.max(40/z,w*1.3));c.restore()}
+}if(it.type==='elevator'){c.save();c.strokeStyle='#d9e0ff';c.lineWidth=2.3/z;c.strokeRect(-w*.43,-h*.42,w*.86,h*.78);c.beginPath();c.moveTo(0,-h*.4);c.lineTo(0,h*.36);c.moveTo(-w*.42,h*.43);c.lineTo(w*.42,h*.43);c.stroke();c.fillStyle=it.enabled===false?'#ff8b72':'#9ef1cc';c.fillRect(w*.29,h*.27,w*.09,h*.1);c.restore()}if(it.type==='npc_portal'){drawTriangle(c,0,0,-Math.PI/2,'#77d7ba',Math.min(w,h)*.42)}if(it.type==='spawn'){drawTriangle(c,0,0,-Math.PI/2,'#f5df71',Math.min(w,h)*.38)}if(ORIENTABLE_TYPES.has(it.type)){const arrowY=h/2+10/z;c.save();c.strokeStyle='#fff7b2';c.fillStyle='#fff0a8';c.lineWidth=2/z;c.beginPath();c.moveTo(0,0);c.lineTo(0,arrowY);c.stroke();drawTriangle(c,0,arrowY,Math.PI/2,'#fff0a8',7/z);c.font=`bold ${10/z}px system-ui`;c.textAlign='center';c.textBaseline='top';c.fillStyle='#fff6d8';c.strokeStyle='#142235';c.lineWidth=2.5/z;c.strokeText('frente',0,arrowY+9/z);c.fillText('frente',0,arrowY+9/z);c.restore()}c.rotate(-((it.rotation||0)*Math.PI/180));c.font=`bold ${Math.max(9/z,Math.min(14/z,Math.min(w,h)*.36))}px system-ui`;c.textAlign='center';c.textBaseline='middle';c.lineWidth=3/z;c.strokeStyle='#122033';let caption=it.label||SHORT[it.type]||it.type;c.strokeText(caption,0,0,Math.max(40/z,w*1.3));c.fillStyle='#fff';c.fillText(caption,0,0,Math.max(40/z,w*1.3));c.restore()}
 function drawArea(c,it,z,selected){const fill=(COLORS[it.type]||'#7ba4d9')+'27',stroke=selected?'#fff':(COLORS[it.type]||'#7ba4d9');c.save();c.fillStyle=fill;c.strokeStyle=stroke;c.lineWidth=(selected?3:2)/z;c.setLineDash([11/z,5/z]);if(it.spans?.length){for(const sp of it.spans){const p=toPixel(sp);c.fillRect(p.x,p.y,sp.w*gridX(),sp.h*gridY());if(selected)c.strokeRect(p.x,p.y,sp.w*gridX(),sp.h*gridY())}}else if(it.cells?.length){for(const cell of it.cells){let p=toPixel({x:cell.x,y:cell.y}),w=gridX(),h=gridY();c.fillRect(p.x,p.y,w,h);c.strokeRect(p.x,p.y,w,h)}let box=toPixel({x:it.x,y:it.y}),bw=it.w*gridX(),bh=it.h*gridY();c.setLineDash(selected?[14/z,6/z]:[7/z,5/z]);c.strokeRect(box.x,box.y,bw,bh)}else{let p=toPixel({x:it.x,y:it.y}),w=it.w*gridX(),h=it.h*gridY();c.fillRect(p.x,p.y,w,h);c.strokeRect(p.x,p.y,w,h)}c.setLineDash([]);const center=toPixel(it.spans?.length?roomShapeCenter(it):areaCenter(it));c.font=`700 ${13/z}px system-ui`;c.textAlign='center';c.textBaseline='middle';c.fillStyle='#f8faff';c.strokeStyle='#1b283c';c.lineWidth=3/z;const title=it.label||SHORT[it.type];c.strokeText(title,center.x,center.y,Math.max(90/z,it.w*gridX()-6));c.fillText(title,center.x,center.y,Math.max(90/z,it.w*gridX()-6));c.restore()}
 function drawPropAnchorMarkers(c,item,z){
  const meters=Number(project.units.metersPerCell)||1.524,anchors=ForestShared.propAnchors(item);
@@ -1713,7 +1713,7 @@ c.restore()}
 function render(){const r=canvas.getBoundingClientRect();let d=canvas.width/Math.max(1,r.width);if(d&&r.width)renderOn(ctx,r.width,r.height,view,{dpr:d});$('#zoomLabel').textContent=`${Math.round(view.scale*100)}%`;$('#floorElevation').textContent=Number(current().elevationFt)?`Altura: ${current().elevationFt} pies`:'';$('#stageBadge').textContent=`● ${current().name} · ${project.units.columns} × ${project.units.rows} · ${(spaceCache[floorIndex]?.rooms||[]).length} hab. · ${(spaceCache[floorIndex]?.pending||[]).length} sell. · ${(graphCache[floorIndex]?.nodes||[]).filter(n=>n.degree===1).length} puntas`;syncQuickGrid();syncSnapUi();$('#undoBtn').disabled=historyIndex<=0;$('#redoBtn').disabled=historyIndex>=history.length-1}
 function zoomAt(mult,cx=canvas.clientWidth/2,cy=canvas.clientHeight/2){let s=Math.max(.1,Math.min(7,view.scale*mult));let world=toWorld({x:cx,y:cy});view.scale=s;view.tx=cx-world.x*s;view.ty=cy-world.y*s;render()}
 function layerForCategory(cat){return cat==='lighting'?'lighting':cat==='furniture'?'furniture':'architecture'}
-function layerForItem(it){return LIGHTING_TYPES.has(it.type)?'lighting':SEGMENT_TYPES.has(it.type)||AREA_TYPES.has(it.type)||it.type==='parking_decal'||['stairs','elevator','spawn'].includes(it.type)?'architecture':'furniture'}
+function layerForItem(it){return LIGHTING_TYPES.has(it.type)?'lighting':SEGMENT_TYPES.has(it.type)||AREA_TYPES.has(it.type)||it.type==='parking_decal'||['stairs','elevator','spawn','npc_portal'].includes(it.type)?'architecture':'furniture'}
 function availableCircuits(){return ForestShared.editorCircuits(current())}
 function selectedCircuit(){return $('#circuitChooser')?.value||''}
 function circuitInfo(zone){return availableCircuits().find(c=>c.zoneId===zone)}
@@ -1787,7 +1787,7 @@ function createObject(type,p){
  const fixtureKind=window.FHLights?.kindForTool(type);
  if(fixtureKind)type='light_fixture';
  if(type==='light_switch'&&!ForestShared.switchWallMount(current().items,p)){toast('El interruptor sólo se puede colocar sobre una pared.');return null;}
- let wh=type==='car'?[6/(Number(project.units.feetPerCell)||5),15/(Number(project.units.feetPerCell)||5)]:OBJECT_SIZES[type]||[1,1];let room=current().items.find(it=>it.type==='room'&&roomHasPosition(it,p));let it={id:numId(),type,x:p.x,y:p.y,w:wh[0],h:wh[1],rotation:0,label:'',heightFt:2,roomId:room?.roomId||'',apartmentId:room?.apartmentId||'',blocksMovement:type!=='spawn'&&type!=='plant'};if(type==='spawn'){it.heightFt=0;it.blocksMovement=false}if(type==='stairs'){const next=project.floors[floorIndex+1];const prev=project.floors[floorIndex-1];it.targetFloorId=(next||prev||current()).id;it.heightFt=Math.abs((next||prev||current()).elevationFt-current().elevationFt)||12;it.label=it.label||'Escalera'}if(type==='elevator'){it.enabled=true;it.doorsOpen=false;it.requiresPower=false;it.powerFlag='breaker_on';it.label='Ascensor'}
+ let wh=type==='car'?[6/(Number(project.units.feetPerCell)||5),15/(Number(project.units.feetPerCell)||5)]:OBJECT_SIZES[type]||[1,1];let room=current().items.find(it=>it.type==='room'&&roomHasPosition(it,p));let it={id:numId(),type,x:p.x,y:p.y,w:wh[0],h:wh[1],rotation:0,label:'',heightFt:2,roomId:room?.roomId||'',apartmentId:room?.apartmentId||'',blocksMovement:type!=='spawn'&&type!=='npc_portal'&&type!=='plant'};if(type==='spawn'){it.heightFt=0;it.blocksMovement=false}if(type==='npc_portal'){it.heightFt=0;it.blocksMovement=false;it.label='Entrada / salida NPC'}if(type==='stairs'){const next=project.floors[floorIndex+1];const prev=project.floors[floorIndex-1];it.targetFloorId=(next||prev||current()).id;it.heightFt=Math.abs((next||prev||current()).elevationFt-current().elevationFt)||12;it.label=it.label||'Escalera'}if(type==='elevator'){it.enabled=true;it.doorsOpen=false;it.requiresPower=false;it.powerFlag='breaker_on';it.label='Ascensor'}
 if(type==='light_fixture'){
  const kind=fixtureKind||'bulb';
  if(!window.FHLights?.isWall(kind)&&!room){toast(window.FH_LIGHT_TEXT.outside);return null;}
@@ -2240,7 +2240,7 @@ if(activeTool==='pan'){action.originalView={...view}}
 if(SEGMENT_TYPES.has(activeTool)||AREA_TYPES.has(activeTool)){action.start=anchor||pos;action.end=pos}
 }
 function pointerMove(e){if(middlePan){if(middlePan.id===e.pointerId){view.tx=middlePan.tx+e.clientX-middlePan.x;view.ty=middlePan.ty+e.clientY-middlePan.y;render()}return}let pt=toLocal(e);if(pointerStates.has(e.pointerId))pointerStates.set(e.pointerId,pt);let p=getPoint(pt);if(SEGMENT_TYPES.has(activeTool))p=architecturalSnap(p);cursorGridPoint=p;$('#coords').textContent=`Casilla ${p.x.toFixed(2)}, ${p.y.toFixed(2)} · ${rounded(p.x*5,1)} / ${rounded(p.y*5,1)} pies`;if(pointerStates.size>=2&&gesture){let q=[...pointerStates.values()].slice(0,2),d=Math.hypot(q[0].x-q[1].x,q[0].y-q[1].y)||1,c={x:(q[0].x+q[1].x)/2,y:(q[0].y+q[1].y)/2};let newScale=Math.max(.1,Math.min(7,gesture.scale*d/gesture.dist));let wx=(gesture.center.x-gesture.tx)/gesture.scale,wy=(gesture.center.y-gesture.ty)/gesture.scale;view.scale=newScale;view.tx=c.x-wx*newScale;view.ty=c.y-wy*newScale;render();return}if(!action){if(pointerStates.size===1)render();return}let moved=Math.hypot(pt.x-action.startScreen.x,pt.y-action.startScreen.y);if(moved>7)action.moved=true;action.lastScreen=pt;if(activeTool==='pan'){view.tx=action.originalView.tx+pt.x-action.startScreen.x;view.ty=action.originalView.ty+pt.y-action.startScreen.y;render()}else if(activeTool==='select'&&action.original&&action.moved){let it=current().items.find(v=>v.id===action.hit);if(it&&current().items.some(s=>s.type==='light_switch'&&s.wallId===it.id))return;if(it&&!it.autoGenerated){let a=toGrid(toWorld(action.startScreen)),b=toGrid(toWorld(pt));moveItem(it,{x:b.x-a.x,y:b.y-a.y},action.original);render()}}else if((SEGMENT_TYPES.has(activeTool)||AREA_TYPES.has(activeTool))&&(action.moved||anchor)){let end=SEGMENT_TYPES.has(activeTool)?constrain(action.start,p):p;preview=SEGMENT_TYPES.has(activeTool)?createSegment(activeTool,action.start,end):createArea(activeTool,action.start,end);render()}else if(activeTool==='elevator'&&action.moved){preview=createObject('elevator',p);render()}}
-function pointerUp(e){if(middlePan){if(middlePan.id===e.pointerId){middlePan=null;canvas.style.cursor='';render()}return}let pt=toLocal(e),wasMulti=pointerStates.size>=2;pointerStates.delete(e.pointerId);if(wasMulti){if(pointerStates.size<2){gesture=null;action=null;preview=null;render()}return}if(!action)return;let tool=action.tool,pos=getPoint(pt);if(tool==='spawn'){const q=toGrid(toWorld(pt));pos={x:Math.floor(q.x)+.5,y:Math.floor(q.y)+.5}}if(tool==='elevator')preview=null;if(SEGMENT_TYPES.has(tool))pos=architecturalSnap(pos);const dist=Math.hypot(pt.x-action.startScreen.x,pt.y-action.startScreen.y),doDrag=dist>7;let a=action;action=null;
+function pointerUp(e){if(middlePan){if(middlePan.id===e.pointerId){middlePan=null;canvas.style.cursor='';render()}return}let pt=toLocal(e),wasMulti=pointerStates.size>=2;pointerStates.delete(e.pointerId);if(wasMulti){if(pointerStates.size<2){gesture=null;action=null;preview=null;render()}return}if(!action)return;let tool=action.tool,pos=getPoint(pt);if(POINT_TYPES.has(tool)){const q=toGrid(toWorld(pt));pos={x:Math.floor(q.x)+.5,y:Math.floor(q.y)+.5}}if(tool==='elevator')preview=null;if(SEGMENT_TYPES.has(tool))pos=architecturalSnap(pos);const dist=Math.hypot(pt.x-action.startScreen.x,pt.y-action.startScreen.y),doDrag=dist>7;let a=action;action=null;
 if(window.FHParkingEditor?.isTool(tool)){if(!doDrag)window.FHParkingEditor.place(tool,pos);return;}
 if(tool==='paint_wall'){if(doDrag)return;const hit=hitTest(pt);if(!hit||!['wall','red_wall','property_wall','half_wall'].includes(hit.type)){toast('Toca una pared para pintar su cara');return}const side=window.FHStyleProperty?.sideAt(hit,toGrid(toWorld(pt)))||'A';window.FHStyleEditor?.paintWall(hit,side);return;}
 if(SEGMENT_TYPES.has(tool)||AREA_TYPES.has(tool)){
@@ -2267,9 +2267,9 @@ if(tool==='select'){if(a.hit&&doDrag){const it=current().items.find(v=>v.id===a.
 }record();openInspector()}return}
 if(tool==='pan')return;
 if(tool==='room_fill'){const area=current().items.find(it=>it.type==='room'&&roomHasPosition(it,pos));if(area){selection=area.id;openInspector();render();toast('Habitación reconocida automáticamente')}else{const result=detectFloorRegions(floorIndex),i=Math.floor(pos.y*result.micro)*result.W+Math.floor(pos.x*result.micro);const pending=result.pending.some(r=>r.cells.includes(i));toast(pending?'Recinto sellado: pon una puerta para convertirlo en habitación':'Aún no hay un contorno cerrado aquí')}return}
-if(doDrag&&activeTool!=='spawn'&&activeTool!=='elevator')return;
+if(doDrag&&!POINT_TYPES.has(activeTool)&&activeTool!=='elevator')return;
 if(tool==='light_switch'||tool==='misc'&&['surface','floor_or_surface'].includes(window.FHEditorCatalog?.selectedPlacement?.()))pos=toGrid(toWorld(pt));
-if(POINT_TYPES.has(tool)){current().items=current().items.filter(it=>it.type!=='spawn');}
+if(tool==='spawn'){current().items=current().items.filter(it=>it.type!=='spawn');}
 addItem(createObject(tool,pos));}
 function setItemField(id,key,val){const it=current().items.find(v=>v.id===id);if(!it)return;if(window.FHStyleEditor&&!window.FHStyleEditor.canEditItem(it)){toast('No tienes permiso para modificar este objeto');return;}
  if(['ax','ay','bx','by'].includes(key)&&current().items.some(s=>s.type==='light_switch'&&s.wallId===id)){toast('Mueve primero el interruptor anclado a esta pared.');openInspector();return}
@@ -2482,7 +2482,7 @@ if(it.type==='peephole_door'){put('La mirilla apunta hacia','peekSide',it.peekSi
  const note=document.createElement('div');note.className='tip';note.style.gridColumn='1/-1';note.textContent=window.FH_LIGHT_TEXT.note;fields.append(note);
 }if(it.type==='light_switch'){let note=document.createElement('div');note.className='tip';note.style.gridColumn='1/-1';note.textContent='Anclado a pared. La flecha indica la habitación controlada y el lado visible. «Girar» cambia al lado opuesto.';fields.append(note);if(it.wallId){const info=document.createElement('div');info.className='tip';info.style.gridColumn='1/-1';info.textContent='Controla: '+(current().items.find(r=>r.type==='room'&&(r.roomId||r.id)===it.roomId)?.label||'Ninguna habitación en este lado; gira el interruptor');fields.append(info);}else put('ID habitación (mapa anterior)','roomId',it.roomId||'');}
 if(it.type==='breaker_panel')renderBreakerCircuits(it,fields);if(it.type==='light_switch'||it.type==='light_fixture')put('Conectado al circuito','zoneId',it.zoneId||'main','select',circuitSelectOptions(it.zoneId));
-if(it.type==='parking_decal')window.FHParkingEditor?.attachInspector(it,fields);if(it.type==='elevator'){let info=document.createElement('div');info.className='tip';info.style.gridColumn='1/-1';info.textContent='Entrada: lado de la flecha amarilla. Para conectar pisos, coloca otra parada en la misma posición y usa el mismo ID de hueco. Si no defines un ID, se agrupan por coordenadas. No dejes una pared ni una puerta normal delante de la entrada: ambas taparían físicamente el ascensor.';fields.append(info);put('Habilitado','enabled',it.enabled,'checkbox');put('ID de hueco compartido','shaftId',it.shaftId||'');put('Puertas abiertas inicialmente','doorsOpen',!!it.doorsOpen,'checkbox');put('Necesita energía','requiresPower',!!it.requiresPower,'checkbox');put('Flag del interruptor','powerFlag',it.powerFlag||'breaker_on');put('Zona eléctrica (opcional)','zoneId',it.zoneId||'main');}else if(it.type!=='spawn'&&it.type!=='light_switch'&&it.type!=='breaker_panel'&&it.type!=='parking_decal')put('Bloquea movimiento','blocksMovement',it.blocksMovement,'checkbox')}}
+if(it.type==='parking_decal')window.FHParkingEditor?.attachInspector(it,fields);if(it.type==='elevator'){let info=document.createElement('div');info.className='tip';info.style.gridColumn='1/-1';info.textContent='Entrada: lado de la flecha amarilla. Para conectar pisos, coloca otra parada en la misma posición y usa el mismo ID de hueco. Si no defines un ID, se agrupan por coordenadas. No dejes una pared ni una puerta normal delante de la entrada: ambas taparían físicamente el ascensor.';fields.append(info);put('Habilitado','enabled',it.enabled,'checkbox');put('ID de hueco compartido','shaftId',it.shaftId||'');put('Puertas abiertas inicialmente','doorsOpen',!!it.doorsOpen,'checkbox');put('Necesita energía','requiresPower',!!it.requiresPower,'checkbox');put('Flag del interruptor','powerFlag',it.powerFlag||'breaker_on');put('Zona eléctrica (opcional)','zoneId',it.zoneId||'main');}else if(it.type!=='spawn'&&it.type!=='npc_portal'&&it.type!=='light_switch'&&it.type!=='breaker_panel'&&it.type!=='parking_decal')put('Bloquea movimiento','blocksMovement',it.blocksMovement,'checkbox')}}
 if(it.autoLanding){const hint=document.createElement('div');hint.className='tip';hint.style.gridColumn='1/-1';hint.textContent='Bajada: solo media longitud de la escalera inferior. La línea verde marca el punto donde comienza la transición. Modifícala desde el piso anterior.';fields.append(hint);fields.querySelectorAll('input,select').forEach(el=>el.disabled=true)}window.FHStyleEditor?.attachInspector(it,fields);renderAnchorInspector(it,fields);renderInteractionInspector(it,fields);$('#rotateBtn').textContent=it.type==='light_switch'?'↻ Cambiar lado 180°':'⟳ Girar 90°';$('#rotateBtn').style.display=SEGMENT_TYPES.has(it.type)||AREA_TYPES.has(it.type)||it.autoLanding?'none':'';$('#duplicateBtn').style.display=it.autoGenerated||it.autoLanding?'none':'';$('#deleteBtn').style.display=it.autoGenerated||it.autoLanding?'none':'';
 }
 function closeInspector(){$('#inspector').classList.remove('open')}
@@ -2795,7 +2795,9 @@ function prepareGLBEngineDoc(source){
  const sleepModule='<script src="'+new URL('./juego/assets/fh-sleep.js',document.baseURI).href+'"></'+'script>';
  const coverageScript='<script src="'+new URL('./juego/assets/fh-light-coverage.js?v=20261105-light-ui2',document.baseURI).href+'"></'+'script>';
  const lightsModule='<script src="'+new URL('./juego/assets/fh-lights.js?v=20261105-light-ui2',document.baseURI).href+'"></'+'script>';
- const deliveryStrings='<script src="'+new URL('./juego/assets/fh-delivery-strings.js?v=20261106-interiores-1',document.baseURI).href+'"></'+'script>';
+ const npcGoapModule='<script src="'+new URL('./juego/assets/fh-npc-goap.js?v=20261106-goap-1',document.baseURI).href+'"></'+'script>';
+ const npcCourierModule='<script src="'+new URL('./juego/assets/fh-npc-courier.js?v=20261106-goap-1',document.baseURI).href+'"></'+'script>';
+ const deliveryStrings='<script src="'+new URL('./juego/assets/fh-delivery-strings.js?v=20261106-goap-1',document.baseURI).href+'"></'+'script>';
  const deliveryModule='<script src="'+new URL('./juego/assets/fh-delivery.js?v=20261106-interiores-1',document.baseURI).href+'"></'+'script>';
  const pcAssemblyModule='<script src="'+new URL('./juego/assets/fh-pc-assembly.js',document.baseURI).href+'"></'+'script>';
  const computerModule='<script src="'+new URL('./juego/assets/fh-computer.js',document.baseURI).href+'"></'+'script>';
@@ -3417,6 +3419,88 @@ window.FHDeliveryRuntime=window.FHDelivery?.createRuntime({
  showNpc:fhShowDeliveryNpc,hideNpc:fhHideDeliveryNpc,spriteUrl:fhDeliverySpriteUrl
 });`;
   const furnitureBefore="function useFurniture(item,selectedSeat=null){\n if(['sit','lie'].includes(item.interact?.verb)){";
+  const npcAddon=String.raw`// GOAP: la entidad usa la misma fuente de colisión que el personaje jugable.
+function fhNpcCanWalk(f,x,z){
+ if(!DATA.floors[f])return false;
+ const liftDoors=(elevatorPortals[f]||[]).map(portal=>{
+  const c=portal.shaftId?elevatorSystem.get(portal.shaftId)?.cabin:null;
+  return {open:c?.floor===f&&c?.phase==='open',block:portal.block};
+ });
+ return !ForestShared.solidAt(x,z,{
+  width:MAX_X,height:MAX_Z,radius:PLAYER_RADIUS,
+  walls:blockers[f],wallThickness:WALL_THICK,
+  doors:doorList[f].concat(liftDoors),doorPad:.038,
+  objects:furnitureColliders[f],objectMode:'box',
+  surfaceAllowed:f>0&&SLABS[f].enabled?(xx,zz)=>onStructuralSlab(xx,zz,f):null
+ });
+}
+function fhNpcPortals(){
+ return DATA.floors.flatMap((floor,f)=>(floor.items||[])
+  .filter(it=>it.type==='npc_portal'&&it.blocksMovement!==true&&Number.isFinite(it.x)&&Number.isFinite(it.y))
+  .map(it=>({id:it.id,floor:f,x:it.x*CELL,z:it.y*CELL})));
+}
+function fhNpcStairTransitions(){
+ const links=[];
+ for(let f=0;f<DATA.floors.length;f++)for(const item of DATA.floors[f].items||[]){
+  if(item.type!=='stairs'||item.autoLanding)continue;
+  const target=DATA.floors.findIndex(fl=>fl.id===item.targetFloorId);
+  if(target<0||target===f||Math.abs(target-f)!==1)continue;
+  const pos=ForestShared.stairPointAt(item,0,0,CELL);
+  if(ForestShared.stairAccessBlocked({item,x:pos.x,z:pos.y},doorList[f],GameState.flags,CELL))continue;
+  links.push({from:{floor:f,x:pos.x,z:pos.y},to:{floor:target,x:pos.x,z:pos.y}});
+ }
+ return links;
+}
+function fhStartNpcRoute(order,door){
+ if(!window.FHNPCCourier||!window.FHNPCGOAP)return null;
+ if(!fhNpcCourier){
+  fhNpcCourier=window.FHNPCCourier.createRuntime({
+   step:CELL/2,speed:1.65,canWalk:fhNpcCanWalk,
+   portals:fhNpcPortals,transitions:fhNpcStairTransitions,
+   spawn:point=>{
+    fhDeliveryNpcMotion=null;fhDisposeDeliveryNpc();
+    const mat=new THREE.SpriteMaterial({transparent:true,depthWrite:false});
+    fhDeliveryNpc=new THREE.Sprite(mat);fhDeliveryNpc.scale.set(1.12,1.68,1);
+    stories[point.floor].add(fhDeliveryNpc);
+    fhSetDeliveryNpcPose('walk');
+   },
+   position:point=>{
+    if(!fhDeliveryNpc)return;
+    if(fhDeliveryNpc.parent!==stories[point.floor])stories[point.floor].add(fhDeliveryNpc);
+    fhDeliveryNpc.position.set(point.x,1.05,point.z);visibilityDirty=true;
+   },
+   pose:fhSetDeliveryNpcPose,
+   arrived:id=>window.FHDeliveryRuntime?.onNpcArrived(id),
+   exited:()=>{fhDeliveryNpcMotion=null;fhDisposeDeliveryNpc();window.FHDeliveryRuntime?.update(0);},
+   blocked:id=>{window.FHDeliveryRuntime?.onNpcRouteBlocked(id);notice(window.FH_DELIVERY_TEXT?.noNpcRoute||'Ruta del repartidor bloqueada.',3000)}
+  });
+ }
+ return fhNpcCourier.start(order.id,{
+  floor:door.f,x:door.cx+door.norm.x*.92,z:door.cz+door.norm.z*.92
+ });
+}
+`;
+  let runtimeWithNpc=runtimeBlock;
+  const npcAnchor='function fhRuntimeItemById(id,f)';
+  if(runtimeWithNpc.split(npcAnchor).length!==2)throw Error('No se encontró el ancla del controlador NPC');
+  runtimeWithNpc=runtimeWithNpc.replace(npcAnchor,npcAddon+'\n'+npcAnchor);
+  function npcRuntimeChange(before,after){
+   if(runtimeWithNpc.split(before).length!==2)throw Error('Hook NPC incompatible: '+before.slice(0,80));
+   runtimeWithNpc=runtimeWithNpc.replace(before,after);
+  }
+  npcRuntimeChange("let fhCharacterDeathNotified=false;","let fhNpcCourier=null;\n let fhCharacterDeathNotified=false;");
+  npcRuntimeChange("texture.magFilter=THREE.NearestFilter;texture.minFilter=THREE.LinearFilter;material.map=texture;",
+   "texture.encoding=THREE.sRGBEncoding;texture.magFilter=texture.minFilter=THREE.NearestFilter;material.map=texture;");
+  npcRuntimeChange("function fhShowDeliveryNpc(order,door,pose='idle'){\n",
+   "function fhShowDeliveryNpc(order,door,pose='idle'){\n if(fhNpcCourier?.active&&fhNpcCourier.orderId===order?.id){fhSetDeliveryNpcPose(pose==='idle'?'door_idle':pose);return;}\n");
+  npcRuntimeChange("const outside=.72,start=arriving?2.4:.72,baseY=floorElev[door.f]+1.05;",
+   "const outside=.72,start=arriving?2.4:.72,baseY=1.05;");
+  npcRuntimeChange("function fhDeliveryNpcTick(dt){\n",
+   "function fhDeliveryNpcTick(dt){\n fhNpcCourier?.tick(dt);\n");
+  npcRuntimeChange("function fhHideDeliveryNpc(){\n",
+   "function fhHideDeliveryNpc(order){\n if(fhNpcCourier?.active&&fhNpcCourier.delivered(order?.id))return;\n");
+  npcRuntimeChange("showNpc:fhShowDeliveryNpc,hideNpc:fhHideDeliveryNpc,spriteUrl:fhDeliverySpriteUrl",
+   "npcBusy:()=>!!fhNpcCourier?.active,startNpcRoute:fhStartNpcRoute,\n  showNpc:fhShowDeliveryNpc,hideNpc:fhHideDeliveryNpc,spriteUrl:fhDeliverySpriteUrl");
   const furnitureAfter="let fhSeatFrontCache=null,fhSeatFrontCacheAt=0,fhSeatFrontCacheSeat=null,fhSeatFrontCacheFloor=-1;\nfunction fhSeatFrontTarget(){\n if(playerPose.state.phase!=='sitting'||!playerPoseItem)return null;\n const now=performance.now();\n if(fhSeatFrontCacheSeat===playerPoseItem&&fhSeatFrontCacheFloor===currentFloor&&now-fhSeatFrontCacheAt<250)return fhSeatFrontCache;\n const target=window.FHPcAssembly?.frontTarget(playerPoseItem,interactableItems[currentFloor],{\n  cell:CELL,isPc:item=>window.FHComputerRuntime?.isPc(item),\n  isClear:(from,to,seat,item)=>ForestShared.poseRouteClear(from,to,(x,z)=>ForestShared.solidAt(x,z,{\n   width:MAX_X,height:MAX_Z,radius:.025,\n   walls:blockers[currentFloor].filter(w=>w.ownerItemId!==seat.id&&w.ownerItemId!==item.id),wallThickness:WALL_THICK,\n   doors:doorList[currentFloor],doorPad:.02,\n   objects:furnitureColliders[currentFloor].filter(o=>o.id!==seat.id&&o.id!==item.id),objectMode:'box'\n  }),.12)\n })||null;\n fhSeatFrontCache=target;fhSeatFrontCacheAt=now;fhSeatFrontCacheSeat=playerPoseItem;fhSeatFrontCacheFloor=currentFloor;\n return target;\n}\nfunction fhUseFrontFromSeat(){\n const target=fhSeatFrontTarget();\n return target?useFurniture(target.item):useTVFromSeat();\n}\nfunction useFurniture(item,selectedSeat=null){\n if(fhDecorationActive)return {ok:false,reason:'decorating'};\n if(window.FHComputerRuntime?.isPc(item))return {ok:!!window.FHComputerRuntime.open(item,currentFloor)};\n if(window.FHDeliveryRuntime?.isPackage(item))return {ok:!!window.FHDeliveryRuntime.openPackage(item)};\n if(['sit','lie'].includes(item.interact?.verb)){";
   const doorBefore=" notice(d.open?'Abres la puerta.':'Cierras la puerta.',1800);\n}";
   const doorAfter=" notice(d.open?'Abres la puerta.':'Cierras la puerta.',1800);\n if(d.open&&isInsideDoor(d)&&window.FHDeliveryRuntime?.onDoorOpened(d))fhBeginDoorEvent(d);\n}";
@@ -3442,7 +3526,10 @@ window.FHDeliveryRuntime=window.FHDelivery?.createRuntime({
    ["function peephole(){if(breakerPanelItem)return;","function peephole(){if(breakerPanelItem||fhDeliveryUiActive)return;"]
   ];
   for(const [before,after] of cameraChanges){const count=doc.split(before).length-1;if(count!==1)throw Error('Hook cámara de puerta incompatible: '+before.slice(0,70)+' ('+count+')');doc=doc.replace(before,after)}
-  const changes=[[stateAnchor,stateAfter],[interactBefore,interactAfter],[buildAnchor,runtimeBlock],[furnitureBefore,furnitureAfter],[watchHudBefore,watchHudAfter],[watchListenerBefore,watchListenerAfter],[watchKeyBefore,watchKeyAfter],[doorBefore,doorAfter],[peekBefore,peekAfter],[peekExitBefore,peekExitAfter],[frameBefore,frameAfter],[apiBefore,apiAfter]];
+  const markerExclusion="'opening','spawn'].includes(it.type)";
+  if(doc.split(markerExclusion).length!==2)throw Error('Hook marcador NPC incompatible');
+  doc=doc.replace(markerExclusion,"'opening','spawn','npc_portal'].includes(it.type)");
+  const changes=[[stateAnchor,stateAfter],[interactBefore,interactAfter],[buildAnchor,runtimeWithNpc],[furnitureBefore,furnitureAfter],[watchHudBefore,watchHudAfter],[watchListenerBefore,watchListenerAfter],[watchKeyBefore,watchKeyAfter],[doorBefore,doorAfter],[peekBefore,peekAfter],[peekExitBefore,peekExitAfter],[frameBefore,frameAfter],[apiBefore,apiAfter]];
   for(const [a,b] of changes){const n=doc.split(a).length-1;if(n!==1)throw Error('Hook delivery incompatible: '+a.slice(0,90)+' ('+n+')');doc=doc.replace(a,b);}
   return doc;
  }
@@ -3484,7 +3571,7 @@ const cameraLightAfter=" const lightDistance=camDistance+(window.FHLights?.camer
   .replace(attachBefore,' window.FHAssets?.attach(g,a);\n'+attachBefore)
   .replace(cloneBefore,'const clone=source.clone(true);\n   window.FHAssets?.mirror(source,clone);\n   clone.position.y+=floorElev[f];')
   .replace(engineSuccessBefore,engineSuccessAfter).replace(engineFailBefore,engineFailAfter).replace(loadFailBefore,loadFailAfter)
-  .replace('</head>',localThree+coverageScript+lightsModule+surfaceScript+decorationScript+ruleScript+bridge+sleepStrings+sleepModule+pcAssemblyModule+computerStrings+computerModule+deliveryStrings+deliveryModule+styleCore+styleRender+parkingScript+playerMenuCss+playerMenuStrings+playerMenuScript+locationCss+locationStrings+locationScript+hudRedesignCss+gameUiCss+hudFrameScript+'</head>'));
+  .replace('</head>',localThree+coverageScript+lightsModule+surfaceScript+decorationScript+ruleScript+bridge+sleepStrings+sleepModule+pcAssemblyModule+computerStrings+computerModule+npcGoapModule+npcCourierModule+deliveryStrings+deliveryModule+styleCore+styleRender+parkingScript+playerMenuCss+playerMenuStrings+playerMenuScript+locationCss+locationStrings+locationScript+hudRedesignCss+gameUiCss+hudFrameScript+'</head>'));
 }
 let fhCharacterLaunchPending=false;
 async function start3DPreview(){
