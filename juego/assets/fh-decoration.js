@@ -31,6 +31,13 @@
     }
     return out;
   }
+  const SNAP_MODES=Object.freeze({corner:1,half:.5,quarter:.25,free:0});
+  function snapStep(mode='half'){return Object.prototype.hasOwnProperty.call(SNAP_MODES,mode)?SNAP_MODES[mode]:SNAP_MODES.half}
+  function snapPoint(x,y,mode='half'){
+    const step=snapStep(mode),round=v=>Math.round(v*1000)/1000;
+    return {x:round(step?Math.round(finite(x)/step)*step:finite(x)),
+      y:round(step?Math.round(finite(y)/step)*step:finite(y))};
+  }
   // Los muebles del mapa son editables; arquitectura, controles fijos y accesos no lo son.
   const FIXED_TYPES=new Set(['wall','red_wall','half_wall','fence','window','door','peephole_door','room','hall','outside','building','pavement','parking','grass','dirt','opening','spawn','stairs','elevator','light_switch','light_fixture','breaker_panel','battery_pickup','camera','security_camera']);
   const FURNITURE_TYPES=new Set(['chair','sofa','bed','tv','table','dining','kitchen','bath','toilet','desk','cabinet','shelf','plant','furniture','misc']);
@@ -72,5 +79,5 @@
     if(typeof options.floorFits==='function'&&!options.floorFits(next))return {ok:false,reason:'blocked'};
     return {ok:true,item:next,supported:false};
   }
-  return {normalizeDegrees,snapshot,applyPose,footprintPoints,candidate,preview,isMovable};
+  return {normalizeDegrees,snapshot,applyPose,footprintPoints,candidate,preview,isMovable,snapPoint,snapStep};
 });

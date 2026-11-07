@@ -2775,7 +2775,7 @@ function prepareGLBEngineDoc(source){
  if(!source.includes(attachBefore)||!source.includes(cloneBefore)||!source.includes(surfacePositionBefore)||!source.includes(surfaceRotationBefore)||!source.includes('</head>'))
   throw new Error('No coincide la estructura del motor 3D con los puntos de integración GLB');
  const surfaceScript='<script src="'+new URL('./juego/assets/fh-surface-placement.js',document.baseURI).href+'"></'+'script>';
- const decorationScript='<script src="'+new URL('./juego/assets/fh-decoration.js?v=20261106-decor-1',document.baseURI).href+'"></'+'script>';
+ const decorationScript='<script src="'+new URL('./juego/assets/fh-decoration.js?v=20261106-interiores-1',document.baseURI).href+'"></'+'script>';
  const ruleScript='<script src="'+new URL('./juego/assets/fh-furniture-rules.js',document.baseURI).href+'"></'+'script>';
  const bridge='<script src="'+new URL('./juego/assets/fh-glb-bridge.js',document.baseURI).href+'"></'+'script>';
  const localThree='<script src="'+new URL('./juego/assets/vendor/three.min.js',document.baseURI).href+'"></'+'script>';
@@ -2783,8 +2783,8 @@ function prepareGLBEngineDoc(source){
  const sleepModule='<script src="'+new URL('./juego/assets/fh-sleep.js',document.baseURI).href+'"></'+'script>';
  const coverageScript='<script src="'+new URL('./juego/assets/fh-light-coverage.js?v=20261105-light-ui2',document.baseURI).href+'"></'+'script>';
  const lightsModule='<script src="'+new URL('./juego/assets/fh-lights.js?v=20261105-light-ui2',document.baseURI).href+'"></'+'script>';
- const deliveryStrings='<script src="'+new URL('./juego/assets/fh-delivery-strings.js?v=20261106-decor-1',document.baseURI).href+'"></'+'script>';
- const deliveryModule='<script src="'+new URL('./juego/assets/fh-delivery.js?v=20261106-decor-1',document.baseURI).href+'"></'+'script>';
+ const deliveryStrings='<script src="'+new URL('./juego/assets/fh-delivery-strings.js?v=20261106-interiores-1',document.baseURI).href+'"></'+'script>';
+ const deliveryModule='<script src="'+new URL('./juego/assets/fh-delivery.js?v=20261106-interiores-1',document.baseURI).href+'"></'+'script>';
  const pcAssemblyModule='<script src="'+new URL('./juego/assets/fh-pc-assembly.js',document.baseURI).href+'"></'+'script>';
  const computerModule='<script src="'+new URL('./juego/assets/fh-computer.js',document.baseURI).href+'"></'+'script>';
  const computerStrings='<script src="'+new URL('./juego/assets/fh-computer-strings.js',document.baseURI).href+'"></'+'script>';
@@ -2912,6 +2912,21 @@ for(let f=0;f<DATA.floors.length;f++){
 }
 DATA.floors.forEach((_,i)=>buildFloor(i));
 let fhDeliveryUiActive=false,fhDeliveryNpc=null,fhDeliveryNpcMotion=null,fhDeliveryNpcGreetingOrderId=null,fhDecorationActive=null,fhDecorationUi=null;
+let fhDecorSnap='half';
+function fhDecorSyncGrid(active){
+ grids.forEach(group=>{group.visible=!!active});
+ const manual=$('gridBtn');if(manual)manual.style.display='none';
+}
+fhDecorSyncGrid(false);
+function fhSetDecorationSnap(mode){
+ fhDecorSnap=['corner','half','quarter','free'].includes(mode)?mode:'half';
+ const buttons=fhDecorationUi?.panel?.querySelectorAll('[data-fh-snap]')||[];
+ for(const btn of buttons){
+  const active=btn.dataset.fhSnap===fhDecorSnap;
+  btn.classList.toggle('active',active);btn.setAttribute('aria-pressed',active?'true':'false');
+ }
+ if(fhDecorationActive)fhRefreshDecorationPreview(fhDecorationActive.preview.x,fhDecorationActive.preview.y,fhDecorationActive.preview.rotation);
+}
 let fhCharacterDeathNotified=false;
 function fhNotifyCharacterDeath(){
  if(!GameState.characterId||fhCharacterDeathNotified)return false;
@@ -3060,9 +3075,10 @@ function fhDecorationPreviewHeight(item,f,pose){
  return (window.FHSurfacePlacement?.worldPose(items,candidate,Number(DATA.units.feetPerCell)||5,
   (parent,feet)=>window.FHFurnitureRules?.supportSurfacesFor(parent,feet))?.heightFt||0)*.3048;
 }
-function fhRefreshDecorationPreview(x,y,rotation){
+function fhRefreshDecorationPreview(x,y,rotation,preservePosition=false){
  const a=fhDecorationActive;if(!a)return;
- const result=fhDecorationCandidate(a.item,a.floor,x,y,rotation);
+ const point=preservePosition?{x,y}:window.FHDecoration.snapPoint(x,y,fhDecorSnap);
+ const result=fhDecorationCandidate(a.item,a.floor,point.x,point.y,rotation);
  a.preview=result.pose;a.valid=result.ok;a.reason=result.reason;
  const height=fhDecorationPreviewHeight(a.item,a.floor,result.pose);
  for(const entry of a.roots){
@@ -3146,6 +3162,10 @@ function fhEnsureDecorationUi(){
   '#fhDecorTitle{margin-bottom:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'+
   '#fhDecorHelp{font-size:11px;color:#cbbda6;margin:0 0 10px}'+
   '#fhDecorValidity{margin:0 0 9px;font-size:11px;color:#88e3a8}#fhDecorValidity[data-valid=no]{color:#ff9c91}'+
+  '#fhDecorSnapModes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin-top:6px}'+
+  '#fhDecorSnapModes button{min-width:0;min-height:42px;padding:6px 3px;border:1px solid #75644f;background:#29323a;color:#f7e6c5;font:800 10px monospace;touch-action:manipulation}'+
+  '#fhDecorSnapModes button.active{background:#746039;color:#fff2d6;border-color:#d1ad68}'+
+  '#fhDecorSnapLabel{font-size:11px;margin-top:7px;color:#cbbda6}'+
   '#fhDecorRotateGroup,#fhDecorActions{display:flex;gap:7px;margin-top:8px}'+
   '#fhDecorRotateGroup button,#fhDecorActions button,#fhDecorStoredPanel button{flex:1;min-height:44px;border:1px solid #75644f;background:#29323a;color:#f7e6c5;font:800 12px monospace;touch-action:manipulation}'+
   '#fhDecorActions button:disabled{opacity:.42}#fhDecorPlace{background:#786039!important}'+
@@ -3155,13 +3175,20 @@ function fhEnsureDecorationUi(){
  const button=document.createElement('button');button.id='fhDecorateBtn';button.type='button';button.textContent=t.decorateNearby||'DECORAR';button.hidden=true;
  const storedButton=document.createElement('button');storedButton.id='fhDecorStoredBtn';storedButton.type='button';storedButton.textContent=t.decorateStored||'MUEBLES GUARDADOS';storedButton.hidden=true;
  const panel=document.createElement('div');panel.id='fhDecorControls';panel.hidden=true;
- panel.innerHTML='<div id="fhDecorTitle"></div><p id="fhDecorHelp"></p><p id="fhDecorValidity" aria-live="polite"></p><div id="fhDecorRotateGroup"><button id="fhDecorRotateFine" type="button"></button><button id="fhDecorRotate" type="button"></button></div><div id="fhDecorActions"><button id="fhDecorPlace" type="button"></button><button id="fhDecorCancel" type="button"></button><button id="fhDecorStore" type="button"></button></div>';
+ panel.innerHTML='<div id="fhDecorTitle"></div><p id="fhDecorHelp"></p><p id="fhDecorValidity" aria-live="polite"></p><div id="fhDecorSnapLabel"></div><div id="fhDecorSnapModes"><button data-fh-snap="corner" type="button"></button><button data-fh-snap="half" type="button"></button><button data-fh-snap="quarter" type="button"></button><button data-fh-snap="free" type="button"></button></div><div id="fhDecorRotateGroup"><button id="fhDecorRotateFine" type="button"></button><button id="fhDecorRotate" type="button"></button></div><div id="fhDecorActions"><button id="fhDecorPlace" type="button"></button><button id="fhDecorCancel" type="button"></button><button id="fhDecorStore" type="button"></button></div>';
  const storedPanel=document.createElement('div');storedPanel.id='fhDecorStoredPanel';storedPanel.hidden=true;
  storedPanel.innerHTML='<div id="fhDecorStoredTitle"></div><div id="fhDecorStoredList"></div><button id="fhDecorStoredClose" type="button"></button>';
  document.body.append(button,storedButton,panel,storedPanel);
  const ui=fhDecorationUi={button,storedButton,panel,storedPanel,storedList:storedPanel.querySelector('#fhDecorStoredList'),
   valid:panel.querySelector('#fhDecorValidity'),place:panel.querySelector('#fhDecorPlace'),store:panel.querySelector('#fhDecorStore')};
  panel.querySelector('#fhDecorHelp').textContent=t.decorateDragHelp||'Arrastra el mueble con el dedo o el ratón.';
+ panel.querySelector('#fhDecorSnapLabel').textContent=t.decorateSnapLabel||'Ajuste de posición';
+ const snapLabels={corner:t.decorateSnapCorner||'Esquinas',half:t.decorateSnapHalf||'½ casilla',
+  quarter:t.decorateSnapQuarter||'¼ casilla',free:t.decorateSnapFree||'Sin imán'};
+ panel.querySelectorAll('[data-fh-snap]').forEach(btn=>{
+  btn.textContent=snapLabels[btn.dataset.fhSnap];btn.onclick=()=>fhSetDecorationSnap(btn.dataset.fhSnap);
+ });
+ fhSetDecorationSnap('half');
  panel.querySelector('#fhDecorRotateFine').textContent=t.decorateFineRotate||'Girar 15°';
  panel.querySelector('#fhDecorRotate').textContent=t.decorateRotate||'Girar 90°';
  ui.place.textContent=t.decoratePlace||'Colocar';
@@ -3233,12 +3260,14 @@ function fhStartDecoration(item,f=currentFloor,opts={}){
  fhStoredUiActive=false;ui.storedPanel.hidden=true;ui.button.hidden=true;ui.storedButton.hidden=true;ui.panel.hidden=false;
  ui.panel.querySelector('#fhDecorTitle').textContent=(window.FH_DELIVERY_TEXT?.decorateTitle||'DECORAR')+' · '+(item.label||item.id);
  ui.store.hidden=!item.runtimeDeliveryFurniture;
- user.vx=user.vz=0;clearStick();fhRefreshDecorationPreview(item.x,item.y,item.rotation);
+ user.vx=user.vz=0;clearStick();
+ fhSetDecorationSnap('half');fhDecorSyncGrid(true);
+ fhRefreshDecorationPreview(item.x,item.y,item.rotation,true);
  return true;
 }
 function fhMoveDecoration(side,forward){
  const a=fhDecorationActive;if(!a)return;
- const step=.10,fx=-Math.sin(yaw),fz=-Math.cos(yaw),rx=Math.cos(yaw),rz=-Math.sin(yaw);
+ const step=window.FHDecoration.snapStep(fhDecorSnap)||.10,fx=-Math.sin(yaw),fz=-Math.cos(yaw),rx=Math.cos(yaw),rz=-Math.sin(yaw);
  const x=a.preview.x+(rx*side+fx*forward)*step,y=a.preview.y+(rz*side+fz*forward)*step;
  fhRefreshDecorationPreview(x,y,a.preview.rotation);
 }
@@ -3249,7 +3278,7 @@ function fhCloseDecoration(){
  const a=fhDecorationActive;if(!a)return;
  for(const entry of a.roots){entry.root.position.copy(entry.position);entry.root.rotation.y=entry.rotation}
  a.ghost.parent?.remove(a.ghost);a.ghost.geometry.dispose();a.ghost.material.dispose();
- fhDecorationActive=null;a.ui.panel.hidden=true;visibilityDirty=true;
+ fhDecorationActive=null;a.ui.panel.hidden=true;fhDecorSyncGrid(false);visibilityDirty=true;
 }
 function fhStoreDecoration(){
  const a=fhDecorationActive;if(!a||!a.item.runtimeDeliveryFurniture)return false;
@@ -3316,6 +3345,11 @@ window.FHComputerRuntime=window.FHComputer?.createRuntime({
 window.FHDeliveryRuntime=window.FHDelivery?.createRuntime({
  computer:window.FHComputerRuntime,
  state:GameState,save:saveProgress,notice,CELL:CELL,cell:CELL,feetPerCell:Number(DATA.units.feetPerCell)||5,
+ validateProduct:async product=>{
+  if(!product?.modelId||!window.FHAssets?.load)return false;
+  const result=await window.FHAssets.load(product.modelId);
+  return !!result?.gltf?.scene&&result.entry?.id===product.modelId;
+ },
  knock:(door)=>window.FHLiveText?.knockAt({x:door.cx,z:door.cz,y:floorElev[door.f]+1.35,floor:door.f,range:11})??false,
  floorItems:f=>DATA.floors[f]?.items||[],currentFloor:()=>currentFloor,
  clockMinutesPerSecond:1,deliveryLeadMinutes:60,knockDelayMs:1400,

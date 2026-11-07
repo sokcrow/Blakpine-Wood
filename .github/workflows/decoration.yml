@@ -6,10 +6,16 @@ on:
       - 'index.html'
       - 'juego/assets/fh-decoration*'
       - 'juego/assets/fh-delivery*'
+      - 'juego/assets/fh-hamazon*'
+      - 'juego/assets/fh-terminal.html'
+      - 'juego/assets/fh-glb-bridge*'
+      - 'juego/assets/fh-player-menu*'
+      - 'forest-horror/biblioteca/catalogo_*.json'
       - '.github/workflows/decoration.yml'
   push:
     branches:
       - fix/player-decoration-touch-2026-11-06
+      - feat/decoration-interiors-shop-validation-2026-11-06
 
 permissions:
   contents: read
@@ -24,4 +30,4 @@ jobs:
           node-version: '22'
       - name: Pruebas del modo decorar y de la entrega
         run: |
-          node --test juego/assets/fh-decoration.test.js juego/assets/fh-decoration-ui.test.js juego/assets/fh-delivery-runtime.test.js juego/assets/fh-delivery-integration.test.js
+          node --test juego/assets/fh-decoration.test.js juego/assets/fh-decoration-ui.test.js juego/assets/fh-delivery.test.js juego/assets/fh-delivery-runtime.test.js juego/assets/fh-delivery-integration.test.js juego/assets/fh-hamazon-availability.test.js juego/assets/fh-glb-bridge.test.js juego/assets/fh-player-menu.test.js

@@ -151,7 +151,6 @@
     area.append(node('h4','fh-status-column-heading',label('settingsPresentation')));
     for(const [id,name,help] of [
       ['pixelBtn','pixels','pixelsHelp'],
-      ['gridBtn','grid','gridHelp'],
       ['fullscreenBtn','fullscreen','fullscreenHelp']
     ]){
       const row=node('div','fh-setting-row');

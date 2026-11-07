@@ -41,4 +41,12 @@ assert.deepEqual([floor.x,floor.y,floor.rotation],[2,3,0]); // No muta el mueble
 const allowedPreview=D.preview(floor,[],{x:1,y:1,rotation:90,floorFits:()=>true});
 assert.equal(allowedPreview.ok,true);
 assert.deepEqual([allowedPreview.pose.x,allowedPreview.pose.y,allowedPreview.pose.rotation],[1,1,90]);
+assert.equal(D.snapStep(),.5);
+assert.equal(D.snapStep('corner'),1);
+assert.equal(D.snapStep('quarter'),.25);
+assert.equal(D.snapStep('free'),0);
+assert.deepEqual(D.snapPoint(2.23,3.27),{x:2,y:3.5});
+assert.deepEqual(D.snapPoint(2.23,3.27,'corner'),{x:2,y:3});
+assert.deepEqual(D.snapPoint(2.23,3.27,'quarter'),{x:2.25,y:3.25});
+assert.deepEqual(D.snapPoint(2.23,3.27,'free'),{x:2.23,y:3.27});
 console.log('PASS fh-decoration');
