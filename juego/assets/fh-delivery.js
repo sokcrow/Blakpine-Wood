@@ -277,17 +277,6 @@ function createRuntime(options){
   closeDialog();return true;
  }
  function paymentText(order){return order.paymentMethod==='cash'?(TEXT.cash||'Pago en efectivo.'):order.paymentMethod==='card'?(TEXT.card||'Pago con tarjeta.'):(TEXT.prepaid||'Pedido pagado.')}
- function onDoorOpened(door){
-  const order=activeOrderForDoor(state,door?.id);if(!order)return false;
-  if(order.payment?.required&&order.payment.status!=='paid'){
-   order.status='payment';delivery.npc.state='payment';delivery.npc.pose=order.paymentMethod==='card'?'card':'cash';options.showNpc?.(order,door,delivery.npc.pose);save();syncOrdersToTerminal();
-   setDialog(order,delivery.npc.pose,TEXT.paymentPending||paymentText(order),[
-    {label:order.paymentMethod==='card'?(TEXT.cardConfirm||'Pagar con tarjeta'):(TEXT.cashConfirm||'Entregar efectivo'),run:()=>confirmPayment(order,door)},
-    {label:TEXT.closeTalk||'Ahora no',run:closeDialog}
-   ]);return true;
-  }
-  deliver(order,door);return true;
- }
  function confirmPayment(order,door){order.payment.status='paid';say(TEXT.paymentConfirmed||'Pago confirmado.',1400);save();deliver(order,door)}
  function makePackageItem(order,box,place,packageId='package_'+order.id){return {id:packageId,type:'misc',modelId:box.id,label:box.name||'Paquete Hamazon',x:place.x/options.cell,y:place.z/options.cell,
    w:finite(box.widthFt,2.5)/options.feetPerCell,h:finite(box.depthFt,2.5)/options.feetPerCell,heightFt:finite(box.heightFt,2.5),
