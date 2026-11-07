@@ -5,6 +5,6 @@
   title:'Estado del personaje',
   pg:'PG',pgFull:'Puntos de golpe',
   sp:'SP',spFull:'Puntos de sanidad',
-  pe:'PE',peFull:'Puntos de energía'
+  pe:'PE',peFull:'Puntos de energía',poison:'Veneno'
  });
 })(typeof window!=='undefined'?window:globalThis);
