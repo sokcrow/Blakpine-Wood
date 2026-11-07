@@ -32,7 +32,11 @@ test('La ubicación se centra y desaparece; el estado va a la esquina sin caja',
  assert.match(css,/fh-location-hidden\s*\{\s*opacity:0/);
  assert.match(css,/#fhStatusHUD\s*\{[\s\S]*?width:min\(210px,calc\(100vw - 24px\)\)/);
  assert.match(css,/#fhStatusHUD\s*\{[\s\S]*?background:none;\s*border:0/);
- assert.match(css,/top:calc\(83px \+ env\(safe-area-inset-top,0px\)\)/);
+ assert.match(css,/z-index:41; \/\* El anuncio temporal/);
+ assert.match(css,/#fhStatusHUD\s*\{[\s\S]*?position:fixed;\s*top:calc\(15px \+ env\(safe-area-inset-top,0px\)\)/);
+ assert.match(css,/@media\s*\(min-width:651px\) and \(max-width:756px\)\s*\{\s*#fhStatusHUD\s*\{width:min\(210px,calc\(50vw - 168px\)\);\}/);
+ assert.match(css,/@media\(max-width:650px\)[\s\S]*?#fhStatusHUD\s*\{\s*width:min\(150px,calc\(100vw - 24px\)\);\s*\}/);
+ assert.doesNotMatch(css,/top:calc\(83px \+ env\(safe-area-inset-top,0px\)\)/);
  assert.match(css,/--fh-status-pg:#c94d4a/);
  assert.match(css,/--fh-status-sp:#34c8d8/);
  assert.match(css,/--fh-status-pe:#49ad67/);
@@ -43,4 +47,14 @@ test('Los recursos no se posicionan a partir del panel de ubicación',()=>{
  const moduleText=fs.readFileSync(path.join(directory,'fh-status-hud.js'),'utf8');
  assert.doesNotMatch(moduleText,/function place\(|host\.getBoundingClientRect\(\)/);
  assert.match(moduleText,/panel\.append\(rows\[key\]\.row\)/);
+});
+
+test('Entre 651 y 756 px, PG/SP/PE permanecen a la izquierda del banner',()=>{
+ for(const width of [651,675,700,743,756]){
+  const leftBanner=(width-300)/2;
+  const resourceWidth=Math.min(210,width/2-168);
+  const rightResources=12+resourceWidth;
+  assert.ok(rightResources<=leftBanner-5,
+   'Se solapan a '+width+' px: recursos hasta '+rightResources+', banner desde '+leftBanner);
+ }
 });
