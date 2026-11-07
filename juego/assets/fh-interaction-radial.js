@@ -4,7 +4,7 @@
   const T = global.FH_INTERACTION_STRINGS || {};
   let root = null, title = null, wheel = null, center = null;
   let buttons = [], active = [], signature = '', currentKey = '';
-  let dismissedKey = '', dismissedActions = [];
+  let requestedKey = '', outsidePointerId = null;
   const byId = id => global.document.getElementById(id);
 
   function ensure() {
@@ -30,6 +30,18 @@
     root.append(title, wheel);
     global.document.body.append(root);
     global.document.addEventListener?.('keydown', keydown);
+    // Cualquier pulsación externa cierra el único radial; su pointerup no debe reabrirlo.
+    global.document.addEventListener?.('pointerdown', event => {
+      if (root.hidden || root.contains(event.target)) return;
+      outsidePointerId = event.pointerId;
+      close();
+    }, true);
+    global.document.addEventListener?.('pointerup', event => {
+      if (outsidePointerId === event.pointerId) outsidePointerId = null;
+    });
+    global.document.addEventListener?.('pointercancel', event => {
+      if (outsidePointerId === event.pointerId) outsidePointerId = null;
+    });
   }
 
   function hide() {
@@ -38,14 +50,26 @@
     signature = '';
     active = [];
     currentKey = '';
+    requestedKey = '';
   }
 
   function close() {
-    if (!root || root.hidden) return;
-    dismissedKey = currentKey;
-    dismissedActions = active;
     hide();
-    center.blur?.();
+    center?.blur?.();
+  }
+
+  function consumeOutsidePress(pointerId) {
+    if (outsidePointerId !== pointerId) return false;
+    outsidePointerId = null;
+    return true;
+  }
+
+  function open(context) {
+    ensure();
+    if (!context || !context.key || !Array.isArray(context.actions)) return false;
+    requestedKey = String(context.key);
+    update(context);
+    return !!root && !root.hidden;
   }
 
   function sectorPath(index, count) {
@@ -62,9 +86,8 @@
 
   function update(context) {
     ensure();
-    if (!root || !context || !Array.isArray(context.actions) || !context.actions.length) {
-      dismissedKey = '';
-      dismissedActions = [];
+    if (!root || !requestedKey) return;
+    if (!context || String(context.key) !== requestedKey || !Array.isArray(context.actions) || !context.actions.length) {
       hide();
       return;
     }
@@ -73,21 +96,13 @@
       || byId('inventoryPanel')?.classList.contains('open')
       || byId('noteOverlay')?.classList.contains('open')
       || byId('fhBreakerOverlay')?.getAttribute('aria-hidden') === 'false') {
-      dismissedKey = '';
-      dismissedActions = [];
       hide();
       return;
     }
     const actions = context.actions.filter(action => action && (typeof action.run === 'function' || action.disabled === true)).slice(0, 8);
     if (!actions.length) { hide(); return; }
     const key = String(context.key || 'context');
-    if (dismissedKey === key) {
-      dismissedActions = actions;
-      root.hidden = true;
-      return;
-    }
-    dismissedKey = '';
-    dismissedActions = [];
+    if (key !== requestedKey) { hide(); return; }
     const nextSignature = key + ':' + actions.map(a => String(a.id) + ':' + (a.disabled ? '0' : '1') + ':' + a.label).join('|');
     active = actions;
     title.textContent = String(context.title || T.menuLabel || 'Interacción').slice(0, 72);
@@ -118,6 +133,7 @@
           event.stopPropagation();
           const item = active[Number(button.dataset.index)];
           if (!item || item.disabled || typeof item.run !== 'function') return;
+          close();
           item.run();
         });
         wheel.append(button);
@@ -142,9 +158,10 @@
   }
 
   function activatePrimary() {
-    const choices = root && !root.hidden ? active : dismissedKey ? dismissedActions : [];
-    const choice = choices.find(action => !action.disabled && typeof action.run === 'function');
+    if (!root || root.hidden) return false;
+    const choice = active.find(action => !action.disabled && typeof action.run === 'function');
     if (!choice) return false;
+    close();
     choice.run();
     return true;
   }
@@ -176,7 +193,7 @@
     return true;
   }
 
-  global.FHInteractionRadial = Object.freeze({ update, hide, close, activatePrimary, keydown,
+  global.FHInteractionRadial = Object.freeze({ open, update, hide, close, consumeOutsidePress, activatePrimary, keydown,
     get visible() { return !!root && !root.hidden; },
     get target() { return currentKey; }
   });
