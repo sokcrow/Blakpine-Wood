@@ -92,6 +92,7 @@ test('El estado de compra se libera solo después de validar el GLB, no si falla
  assert.equal(state.delivery.orders.length,1);
  assert.equal(result.modelId,'silla_madera');
  assert.equal(result.status,'scheduled');
+ for(let i=0;i<40&&!terminalProducts.some(batch=>batch[0]?.status==='available');i++)await Promise.resolve();
  assert.ok(terminalProducts.some(batch=>batch[0]?.status==='available'),'El terminal recibe el estado validado');
  assert.ok(notices.length>=3);
 });
