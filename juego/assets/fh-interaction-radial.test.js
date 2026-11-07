@@ -7,11 +7,11 @@ const path=require('node:path');
 
 function mount(){
  class Element{
-  constructor(tag){this.tagName=tag.toUpperCase();this.id='';this.children=[];this.parent=null;this.hidden=false;this.disabled=false;this.events={};this.attributes={};this.dataset={};this._text='';this._style={};this.style={setProperty:(name,value)=>this._style[name]=value};}
+  constructor(tag){this.tagName=tag.toUpperCase();this.id='';this.children=[];this.parent=null;this.hidden=false;this.disabled=false;this.events={};this.attributes={};this.dataset={};this._text='';this._style={};this.style={setProperty:(name,value)=>this._style[name]=value};this.classList={toggle:()=>{},contains:()=>false};}
   get textContent(){return this._text+this.children.map(child=>child.textContent).join('');}
   set textContent(value){this._text=String(value);this.children=[];}
-  append(...children){for(const child of children){this.children.push(child);child.parent=this;}}
-  replaceChildren(...children){this.children=[];this._text='';this.append(...children);}
+  append(...children){for(const child of children){if(child.parent)child.parent.children=child.parent.children.filter(node=>node!==child);this.children.push(child);child.parent=this;}}
+  replaceChildren(...children){this.children.forEach(child=>child.parent=null);this.children=[];this._text='';this.append(...children);}
   setAttribute(key,value){this.attributes[key]=String(value);}
   addEventListener(type,listener){(this.events[type]||=[]).push(listener);}
   click(){if(this.disabled)return;for(const handler of this.events.click||[])handler({stopPropagation(){}})}
@@ -41,7 +41,7 @@ test('el radial no aparece sin objetivo y dispara la acción del objeto activo',
  api.update({key:'puerta1',title:'Puerta',x:345,y:260,actions:[
   {id:'abrir',label:'Abrir',run:()=>calls.push('segunda')}
  ]});
- doc.getElementById('fhRadialWheel').children[0].click();
+ doc.getElementById('fhRadialWheel').children.find(child=>child.dataset.index==='0').click();
  assert.deepEqual(calls,['primera','segunda']);
  api.update(null);
  assert.equal(root.hidden,true);
@@ -56,4 +56,57 @@ test('el radial no ejecuta acciones bloqueadas ni aparece encima de diálogos',(
  win.FHPlayerMenu={isOpen:()=>true};
  api.update({key:'p',title:'Puerta',actions:[{id:'abrir',label:'Abrir',run:()=>called++}]});
  assert.equal(doc.getElementById('fhContextRadial').hidden,true);
+});
+
+
+test('la mano central cierra el menú sin reabrirlo mientras apunta al mismo objeto',()=>{
+ const {doc,api}=mount();let calls=0;
+ const context={key:'puerta',title:'Puerta',actions:[{id:'abrir',label:'Abrir',run:()=>calls++}]};
+ api.update(context);
+ const center=doc.getElementById('fhRadialCenter');
+ assert.equal(center.tagName,'BUTTON');
+ assert.equal(center.attributes['aria-label'],'Cerrar menú radial');
+ center.click();
+ assert.equal(api.visible,false);
+ api.update(context);
+ assert.equal(api.visible,false);
+ assert.equal(api.activatePrimary(),true);
+ assert.equal(calls,1);
+ api.update(null);
+ api.update(context);
+ assert.equal(api.visible,true);
+});
+
+test('las cuatro etiquetas se sitúan arriba, derecha, abajo e izquierda',()=>{
+ const {doc,api}=mount();
+ api.update({key:'door',title:'Puerta 204',actions:['Abrir','Mirilla','Llamar','Examinar'].map(id=>({id,label:id,run:()=>{}}))});
+ const wheel=doc.getElementById('fhRadialWheel');
+ const items=wheel.children.filter(child=>child.dataset.index!==undefined);
+ assert.equal(items.length,4);
+ assert.equal(wheel._style['--fh-radial-step'],'90deg');
+ const coords=items.map(item=>[Number(item._style['--fh-label-x'].replace('%','')),Number(item._style['--fh-label-y'].replace('%',''))]);
+ assert.ok(coords[0][1]<50);
+ assert.ok(coords[1][0]>50);
+ assert.ok(coords[2][1]>50);
+ assert.ok(coords[3][0]<50);
+});
+
+test('navegación con teclado solo mientras el radial tiene foco',()=>{
+ const {doc,api}=mount();let calls=0;
+ api.update({key:'puerta',title:'Puerta',actions:[
+  {id:'abrir',label:'Abrir',run:()=>calls++},
+  {id:'mirilla',label:'Mirilla',run:()=>calls++}
+ ]});
+ const items=doc.getElementById('fhRadialWheel').children.filter(child=>child.dataset.index!==undefined);
+ const event=key=>({key,preventDefault(){this.prevented=true},stopPropagation(){}});
+ assert.equal(api.keydown(event('ArrowRight')),false);
+ items[0].focus();
+ const e=event('ArrowRight');
+ assert.equal(api.keydown(e),true);
+ assert.equal(e.prevented,true);
+ assert.equal(doc.activeElement,items[1]);
+ assert.equal(api.keydown(event('Enter')),true);
+ assert.equal(calls,1);
+ assert.equal(api.keydown(event('Escape')),true);
+ assert.equal(api.visible,false);
 });
