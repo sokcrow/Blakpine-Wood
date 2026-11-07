@@ -29,6 +29,8 @@ window.FH_DELIVERY_TEXT=Object.freeze({
  shopBack:'Volver al catálogo',
  shopQuantity:'Cantidad',
  shopAddress:'Dirección de entrega',
+ shopParcelAddress:(name,floor)=>'Parcela: '+name+' · '+floor,
+ shopRoomAddress:(name,room,floor)=>'Habitación: '+room+' · '+name+' · '+floor,
  shopAddressUnknown:'Dirección no especificada',
  shopNoAddresses:'No hay entradas con mirilla disponibles para recibir pedidos.',
  shopCatalogMissing:'Catálogo no disponible.',
