@@ -3634,7 +3634,80 @@ for(const pair of [[elevatorPortalsBefore,elevatorPortalsAfter],[elevatorWalkBef
  source=source.replace(pair[0],pair[1]);
 }
 const cameraLightAfter=" const lightDistance=camDistance+(window.FHLights?.cameraBonus(roomLampEntries,lighting,currentFloor,user.x,user.z)||0);\n const ahead=lighting.state.enabled?0.80:0;target.x+=flashDir.x*ahead;target.z+=flashDir.z*ahead;\n const desired=new THREE.Vector3(user.x+behind.x*lightDistance,y+.88+lightDistance*Math.tan(Math.PI/6),user.z+behind.z*lightDistance);";
- return (window.FHContextEngine?.patch||((doc)=>doc))(addLiveTextToEngine(addDeliveryToEngine(addParkingToEngine(addStylesToEngine(addLightToEngine(source)))).replace(furnitureVisibilityHook,furnitureRenderHook).replace(cameraBefore,cameraAfter).replace(cameraBefore,cameraLightAfter).replace(loopBefore,loopAfter)
+ function addActorPresentationToEngine(doc){
+  const oldPose="function fhSetDeliveryNpcPose(pose){\n if(!fhDeliveryNpc)return;const material=fhDeliveryNpc.material,loader=new THREE.TextureLoader();\n material.map?.dispose?.();const texture=loader.load(fhDeliverySpriteUrl(pose),()=>{visibilityDirty=true},undefined,()=>{material.map=fhDeliveryNpcTexture(pose);material.needsUpdate=true;visibilityDirty=true});\n texture.encoding=THREE.sRGBEncoding;texture.magFilter=texture.minFilter=THREE.NearestFilter;material.map=texture;material.needsUpdate=true;\n}";
+  const newPose=String.raw`const fhNpcWalkCycle=window.FHActorPresentation.createCycle();
+const fhNpcTextures=new Map(),fhNpcTextureLoader=new THREE.TextureLoader();
+let fhNpcRequestedPose='idle',fhNpcDisplayedPose='';
+function fhApplyDeliveryNpcPose(pose){
+ if(!fhDeliveryNpc||fhNpcDisplayedPose===pose)return;
+ let texture=fhNpcTextures.get(pose);
+ if(!texture){
+  texture=fhNpcTextureLoader.load(fhDeliverySpriteUrl(pose),()=>{visibilityDirty=true},undefined,()=>{
+   const fallback=fhDeliveryNpcTexture(pose);
+   fallback.encoding=THREE.sRGBEncoding;fallback.magFilter=fallback.minFilter=THREE.NearestFilter;
+   fhNpcTextures.set(pose,fallback);
+   if(fhDeliveryNpc&&fhNpcDisplayedPose===pose){fhDeliveryNpc.material.map=fallback;fhDeliveryNpc.material.needsUpdate=true}
+   visibilityDirty=true;
+  });
+  texture.encoding=THREE.sRGBEncoding;texture.magFilter=texture.minFilter=THREE.NearestFilter;
+  fhNpcTextures.set(pose,texture);
+ }
+ fhNpcDisplayedPose=pose;fhDeliveryNpc.material.map=texture;fhDeliveryNpc.material.needsUpdate=true;
+}
+function fhSetDeliveryNpcPose(pose){
+ fhNpcRequestedPose=pose;fhNpcWalkCycle.reset();
+ fhApplyDeliveryNpcPose(pose);
+}`;
+  const actorRegistry=String.raw`// Los actores ajenos usan la visión que ya calcula drawSight, no un segundo FOW.
+const fhSightActors=new Map();
+let fhActorSightSnapshot=null;
+function fhRegisterVisibleActor(actor,floor=()=>stories.indexOf(actor.parent)){
+ if(!actor||actor===hero||actor.isObject3D!==true)return false;
+ fhSightActors.set(actor,floor);actor.visible=false;return true;
+}
+function fhUnregisterVisibleActor(actor){fhSightActors.delete(actor)}
+window.FHActorVisibility=Object.freeze({register:fhRegisterVisibleActor,unregister:fhUnregisterVisibleActor});
+function fhRefreshActorVisibility(){
+ if(!fhActorSightSnapshot)return;
+ const {at,opaque,params}=fhActorSightSnapshot;
+ for(const [actor,floorSource] of fhSightActors){
+  if(!actor.parent){fhSightActors.delete(actor);continue}
+  const floor=typeof floorSource==='function'?floorSource():floorSource;
+  actor.visible=window.FHActorPresentation.visibleOtherActor(floor,currentFloor,actor.position.x,actor.position.z,
+   (x,z)=>litPointVisible(x,z,at,opaque,params));
+ }
+}
+`;
+  const hooks=[
+   ["const keys={},stick={x:0,z:0,id:null};",
+    "const fhPlayerWalkCycle=window.FHActorPresentation.createCycle();\nconst keys={},stick={x:0,z:0,id:null};"],
+   [" const stepCycle=(walkDistance/1.18)%1;\n  const poseIdle=!user.walking||stepCycle<.15||(stepCycle>.51&&stepCycle<.62);",
+    " const poseIdle=fhPlayerWalkCycle.tick(user.walking,dt)==='idle';"],
+   ["function drawSight(){const at=eyeLocation();const ts=performance.now();",
+    actorRegistry+"function drawSight(){const at=eyeLocation();const ts=performance.now();"],
+   [" q.restore();sightTexture.needsUpdate=true;",
+    " q.restore();sightTexture.needsUpdate=true;\n fhActorSightSnapshot={at,opaque,params};"],
+   [" drawSight();\n  if(peeking){"," drawSight();\n  fhRefreshActorVisibility();\n  if(peeking){"],
+   ["function fhDisposeDeliveryNpc(){\n if(!fhDeliveryNpc)return;const mat=fhDeliveryNpc.material;mat?.map?.dispose?.();mat?.dispose?.();fhDeliveryNpc.parent?.remove(fhDeliveryNpc);fhDeliveryNpc=null;\n}",
+    "function fhDisposeDeliveryNpc(){\n if(!fhDeliveryNpc)return;fhUnregisterVisibleActor(fhDeliveryNpc);\n const mat=fhDeliveryNpc.material;mat?.dispose?.();fhDeliveryNpc.parent?.remove(fhDeliveryNpc);fhDeliveryNpc=null;\n fhNpcDisplayedPose='';fhNpcRequestedPose='idle';fhNpcWalkCycle.reset();\n}"],
+   [oldPose,newPose],
+   ["function fhDeliveryNpcTick(dt){\n fhNpcCourier?.tick(dt);",
+    "function fhDeliveryNpcTick(dt){\n fhNpcCourier?.tick(dt);\n if(fhDeliveryNpc&&fhNpcRequestedPose==='walk')fhApplyDeliveryNpcPose(fhNpcWalkCycle.tick(true,dt));\n else fhNpcWalkCycle.tick(false,dt);"],
+   [" stories[door.f].add(sprite);"," stories[door.f].add(sprite);fhRegisterVisibleActor(sprite,()=>stories.indexOf(sprite.parent));"],
+   ["   stories[point.floor].add(fhDeliveryNpc);",
+    "   stories[point.floor].add(fhDeliveryNpc);fhRegisterVisibleActor(fhDeliveryNpc,()=>stories.indexOf(fhDeliveryNpc.parent));"]
+  ];
+  for(const [oldValue,newValue] of hooks){
+   const count=doc.split(oldValue).length-1;
+   if(count!==1)throw Error('Hook actores incompatible: '+oldValue.slice(0,85)+' ('+count+')');
+   doc=doc.replace(oldValue,newValue);
+  }
+  const script='<script src="'+new URL('./juego/assets/fh-actor-presentation.js?v=20261107-actors-1',document.baseURI).href+'"></'+'script>';
+  return doc.replace('</head>',script+'</head>');
+ }
+
+ return (window.FHContextEngine?.patch||((doc)=>doc))(addActorPresentationToEngine(addLiveTextToEngine(addDeliveryToEngine(addParkingToEngine(addStylesToEngine(addLightToEngine(source)))).replace(furnitureVisibilityHook,furnitureRenderHook).replace(cameraBefore,cameraAfter).replace(cameraBefore,cameraLightAfter).replace(loopBefore,loopAfter)
   .replace(maskBefore,maskAfter).replace(wakeHUDBefore,wakeHUDAfter).replace(locationHudHook,locationHudAfter)
   .split(wakeBefore).join(wakeAfter)
   .replace(chairSelection," const poseReachable=(item,anchor)=>canWalk(user.x,user.z)&&safePoseRoute(item,{x:user.x,z:user.z},anchor);\n const stockSeat=selectSeatInteractable(visible,user,yaw,CELL,poseReachable);\n const glbChair=window.FHFurnitureRules?.findReachableChair(visible,user,yaw,CELL,poseReachable,ForestShared);\n const sitting=glbChair&&(!stockSeat||glbChair.score<stockSeat.score)?glbChair:stockSeat;")
@@ -3653,7 +3726,7 @@ const cameraLightAfter=" const lightDistance=camDistance+(window.FHLights?.camer
   .replace(attachBefore,' window.FHAssets?.attach(g,a);\n'+attachBefore)
   .replace(cloneBefore,'const clone=source.clone(true);\n   window.FHAssets?.mirror(source,clone);\n   clone.position.y+=floorElev[f];')
   .replace(engineSuccessBefore,engineSuccessAfter).replace(engineFailBefore,engineFailAfter).replace(loadFailBefore,loadFailAfter)
-  .replace('</head>',localThree+coverageScript+lightsModule+surfaceScript+decorationScript+ruleScript+bridge+sleepStrings+sleepModule+pcAssemblyModule+computerStrings+computerModule+npcGoapModule+npcCourierModule+deliveryStrings+deliveryModule+styleCore+styleRender+parkingScript+playerMenuCss+playerMenuStrings+skillsModule+skillsStrings+playerMenuScript+locationCss+locationStrings+locationScript+hudRedesignCss+gameUiCss+hudFrameScript+'</head>')));
+  .replace('</head>',localThree+coverageScript+lightsModule+surfaceScript+decorationScript+ruleScript+bridge+sleepStrings+sleepModule+pcAssemblyModule+computerStrings+computerModule+npcGoapModule+npcCourierModule+deliveryStrings+deliveryModule+styleCore+styleRender+parkingScript+playerMenuCss+playerMenuStrings+skillsModule+skillsStrings+playerMenuScript+locationCss+locationStrings+locationScript+hudRedesignCss+gameUiCss+hudFrameScript+'</head>'))));
 }
 let fhCharacterLaunchPending=false;
 async function start3DPreview(){
