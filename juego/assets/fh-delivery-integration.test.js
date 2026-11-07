@@ -72,8 +72,8 @@ test('La caja y el mueble entregado usan modo decoración sin cambiar el layout'
  assert.match(index,/function fhStartDecoration\(/);
  assert.match(index,/function fhMoveDecoration\(/);
  assert.match(index,/function fhRotateDecoration\(/);
- assert.match(index,/#fhDecorateBtn\{position:fixed/);
- assert.match(index,/#fhDecorControls\{position:fixed/);
+ assert.match(index,/#fhDecorateBtn,#fhDecorStoredBtn\{position:fixed/);
+ assert.match(index,/#fhDecorControls,#fhDecorStoredPanel\{position:fixed/);
  assert.match(index,/fhDecorationTick\(\);if\(!fhDeliveryUiActive&&!fhDecorationActive\)moveUpdate\(dt\)/);
  assert.match(delivery,/runtimeDecoratable:true,runtimePackage/);
  assert.match(index,/runtimeDecoratable:true,runtimeDeliveryFurniture/);
@@ -91,10 +91,12 @@ test('Mover paquetes y muebles se guarda en el estado de delivery',()=>{
 
 test('Abrir la caja conserva la posición y entra a decoración del mueble',()=>{
  assert.match(index,/x:item\.x,y:item\.y/);
- assert.match(index,/setTimeout\(\(\)=>fhStartDecoration\(next,f\),0\)/);
+ assert.match(index,/setTimeout\(\(\)=>fhStartDecoration\(next,f,\{fresh:true\}\),0\)/);
  assert.match(index,/return \{item:next,floor:f\}/);
- assert.match(index,/required:!initial\.ok/);
- assert.match(index,/decorateRequired/);
+ assert.match(index,/fhRefreshDecorationPreview\(/);
+ assert.match(index,/function fhStoreDecoration\(/);
+ assert.match(index,/shouldStore=a\.fresh/);
+ assert.match(index,/fhRemoveRuntimeItem\(a\.item,a\.floor\)/);
 });
 
 test('La economía sigue desacoplada',()=>{

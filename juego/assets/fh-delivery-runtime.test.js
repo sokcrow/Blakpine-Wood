@@ -18,7 +18,7 @@ const code=fs.readFileSync(path.join(__dirname,'fh-delivery.js'),'utf8');
   state,baseUrl:'https://example.test/juego/assets/fh-delivery.js',cell:1.524,feetPerCell:5,
   save(){},notice(){},hasRuntimeItem(){return false},doorById(){return null},
   replacePackage(item,p,order){return {item:{id:'delivered_'+order.id,modelId:p.id,x:item.x,y:item.y,rotation:item.rotation||0,runtimeDeliveryFurniture:{orderId:order.id,productId:p.id}},floor:0}},
-  restoreFurniture(record,p,order){restored={record,p,order};return true}
+  restoreFurniture(record,p,order){restored={record,p,order};return {id:record.id,x:record.x,y:record.y,rotation:record.rotation,runtimeDeliveryFurniture:{orderId:record.orderId,productId:record.productId}}}
  });
  for(let i=0;i<30&&!runtime.ready;i++)await Promise.resolve();
  assert.equal(runtime.ready,true);
@@ -38,6 +38,22 @@ const code=fs.readFileSync(path.join(__dirname,'fh-delivery.js'),'utf8');
  assert.equal(state.delivery.furnishings[0].x,4);
  assert.equal(state.delivery.furnishings[0].y,5);
  assert.equal(state.delivery.furnishings[0].rotation,180);
+ moved.support={parentItemId:'mesa-base',surfaceId:'top',offsetXFt:0,offsetZFt:0};
+ assert.equal(runtime.setFurnitureStored(moved,0,true),true);
+ assert.equal(state.delivery.furnishings[0].stored,true);
+ assert.equal(runtime.storedFurniture().length,1);
+ assert.equal(runtime.storedFurniture()[0].name,'Mesa pequeña');
+ restored=null;
+ runtime.resume();assert.equal(restored,null,'no debe recrear un mueble almacenado al cargar');
+ const returned=runtime.retrieveStoredFurniture(moved.id,{floor:0,x:8,y:7});
+ assert.ok(returned,'puede restaurar un mueble almacenado para su colocación');
+ assert.equal(restored.record.x,8);assert.equal(restored.record.y,7);
+ assert.equal('support' in restored.record,false,'recuperar no debe pegarlo a la mesa anterior');
+ assert.equal(state.delivery.furnishings[0].stored,true,'no abandonar almacenaje antes de colocar');
+ assert.equal(runtime.setFurnitureStored(returned,0,false),true);
+ assert.equal(state.delivery.furnishings[0].stored,false);
+ assert.equal(runtime.storedFurniture().length,0);
+ restored=null;
  runtime.resume();assert.ok(restored);assert.equal(restored.record.id,moved.id);
  console.log('PASS fh-delivery runtime persistence');
 })().catch(error=>{console.error(error);process.exitCode=1});
