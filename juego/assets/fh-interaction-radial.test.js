@@ -147,3 +147,38 @@ test('clic fuera cierra; clic explícito permite reabrir el mismo objeto',()=>{
  api.open(context);
  assert.equal(api.visible,true);
 });
+
+test('cerrar repartidor y cambiar a puerta elimina el callback anterior',()=>{
+ const {api}=mount();let courier=0,door=0;
+ const courierContext={key:'courier:pedido1',title:'Repartidor',actions:[
+  {id:'talk',label:'Hablar',run:()=>courier++}
+ ]};
+ const doorContext={key:'door:204',title:'Puerta',actions:[
+  {id:'primary',label:'Abrir',run:()=>door++}
+ ]};
+ api.open(courierContext);
+ api.close();
+ assert.equal(api.visible,false);
+ api.syncContext(doorContext);
+ assert.equal(api.visible,false,'sin abrirse por proximidad');
+ assert.equal(api.activatePrimary(),false,'no ejecuta el callback del repartidor');
+ assert.equal(courier,0);
+ api.open(doorContext);
+ assert.equal(api.activatePrimary(),true);
+ assert.equal(door,1);
+});
+
+test('al desaparecer el objetivo se descartan acciones cerradas y el mismo objetivo sigue actualizado',()=>{
+ const {api}=mount();let previous=0,latest=0;
+ const context={key:'door:1',title:'Puerta',actions:[{id:'primary',label:'Abrir',run:()=>previous++}]};
+ api.open(context);
+ api.close();
+ api.syncContext({...context,actions:[{id:'primary',label:'Cerrar',run:()=>latest++}]});
+ assert.equal(api.visible,false);
+ assert.equal(api.activatePrimary(),true);
+ assert.equal(previous,0);
+ assert.equal(latest,1);
+ api.syncContext(null);
+ assert.equal(api.activatePrimary(),false);
+ assert.equal(latest,1);
+});
