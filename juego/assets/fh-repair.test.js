@@ -184,3 +184,27 @@ test('crear reparaciones no afecta odds, tiradas ni Scores del personaje',()=>{
  assert.doesNotMatch(source,/Math\.random\s*\(/);
  assert.doesNotMatch(source,/\.structures\s*=|\.inventory\s*=/);
 });
+
+test('ForestShared.loadProject preserva repairJobs en la importación del mapa v1',()=>{
+ const vm=require('node:vm');
+ const index=fs.readFileSync(path.join(__dirname,'../../index.html'),'utf8');
+ const start=index.indexOf('const ForestShared=(()=>{');
+ const end=index.indexOf('\n})();',start);
+ assert.ok(start>=0&&end>start);
+ const ctx={};
+ vm.runInNewContext(index.slice(start,end+6)+'\nthis.shared=ForestShared;',ctx);
+ const map=demo(),target=existingTarget(map);
+ map.repairJobs=[
+  Repair.createJob(sample({target})),
+  Repair.createJob(sample({
+   id:'trabajo_sin_habilidad',
+   subcategory:'electricidad',target,
+   compatibleKitId:'kit_electrico_pendiente'
+  }))
+ ];
+ const before=JSON.stringify(map);
+ const imported=ctx.shared.loadProject(map);
+ assert.equal(JSON.stringify(imported),before);
+ assert.deepEqual(Repair.validateProject(JSON.parse(JSON.stringify(imported))),[]);
+ assert.equal(imported.schema,'forest-horror-map-v1');
+});
