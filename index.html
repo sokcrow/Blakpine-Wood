@@ -3706,7 +3706,7 @@ function fhRefreshActorVisibility(){
    if(count!==1)throw Error('Hook actores incompatible: '+oldValue.slice(0,85)+' ('+count+')');
    doc=doc.replace(oldValue,newValue);
   }
-  const script='<script src="'+new URL('./juego/assets/fh-actor-presentation.js?v=20261107-actors-1',document.baseURI).href+'"></'+'script>';
+  const script='<script src="'+new URL('./juego/assets/fh-actor-presentation.js?v=20261107-actors-2',document.baseURI).href+'"></'+'script>';
   return doc.replace('</head>',script+'</head>');
  }
 
