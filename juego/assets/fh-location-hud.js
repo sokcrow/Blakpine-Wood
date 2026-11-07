@@ -8,6 +8,20 @@
  'use strict';
  const label=v=>typeof v==='string'?v.trim().slice(0,80):'';
  const text=(key,fallback)=>root.FH_LOCATION_TEXT?.[key]||fallback;
+ const scope=(...parts)=>parts.map(part=>encodeURIComponent(String(part??''))).join('|');
+ const DISPLAY_MS=2800;
+ const now=()=>root.performance?.now?.()??Date.now();
+ function createVisibilityState(duration=DISPLAY_MS){
+  let previous=null,until=-Infinity;
+  return Object.freeze({
+   update(key,time){
+    if(key!==previous){previous=key;until=time+duration;}
+    return time<until;
+   },
+   peek(time){if(previous===null)return false;until=time+duration;return true;},
+   visible(time){return time<until;}
+  });
+ }
  function inPolygon(p,polygon){
   if(!p||!Array.isArray(polygon)||polygon.length<3)return false;
   const x=Number(p.x),y=Number(p.y);if(!Number.isFinite(x)||!Number.isFinite(y))return false;
@@ -36,7 +50,7 @@
  }
  function resolve(map,floorIndex,point,propertyApi=root.FHStyleProperty){
   const floor=map?.floors?.[floorIndex],floorId=floor?.id;
-  if(!floor)return {kind:'exterior',floorCode:'',primary:text('exterior','EXTERIOR'),secondary:''};
+  if(!floor)return {kind:'exterior',floorCode:'',primary:text('exterior','EXTERIOR'),secondary:'',scopeKey:'missing-floor'};
   const properties=(map.properties||[]).filter(p=>p.floorId===floorId&&inPolygon(point,p.polygon));
   const property=properties.length===1?properties[0]:null;
   const buildings=typeof propertyApi?.buildings==='function'?propertyApi.buildings(map,floorId):[];
@@ -65,25 +79,39 @@
   if(property){
    return {kind:'property',floorCode:codeForFloor(map.floors,floorIndex),
     primary:label(property.name)||text('property','PROPIEDAD'),
-    secondary:label(room?.label)};
+    secondary:label(room?.label),scopeKey:scope(floorId,'property',property.id||property.name,room?.id||room?.label)};
   }
   // Una zona que el DM marca explícitamente como exterior debe ganar a las
   // áreas de edificio o pasillo que puedan quedar solapadas visualmente.
   if(exterior){
    const ownName=label(exterior.name);
    return {kind:'exterior',floorCode:'',primary:text('exterior','EXTERIOR'),
-    secondary:ownName.toUpperCase()==='EXTERIOR'?outdoorName():ownName||outdoorName()};
+    secondary:ownName.toUpperCase()==='EXTERIOR'?outdoorName():ownName||outdoorName(),
+    scopeKey:scope(floorId,'exterior-zone',exterior.id||exterior.name,parkingArea?.id||parkingArea?.label,outsideArea?.id||outsideArea?.label)};
   }
   if(building||common||buildingArea||hall||room){
    return {kind:'building',floorCode:codeForFloor(map.floors,floorIndex),
     primary:label(map.buildingNames?.[building?.id])||label(buildingArea?.label)||
      label(map.title)||text('building','EDIFICIO'),
-    secondary:label(common?.name)||label(hall?.label)||label(room?.label)};
+    secondary:label(common?.name)||label(hall?.label)||label(room?.label),
+    scopeKey:scope(floorId,'building',building?.id||buildingArea?.id||map.title,common?.id||common?.name,hall?.id||hall?.label,room?.id||room?.label)};
   }
   return {kind:'exterior',floorCode:'',primary:text('exterior','EXTERIOR'),
-   secondary:outdoorName()};
+   secondary:outdoorName(),scopeKey:scope(floorId,'open-area',parkingArea?.id||parkingArea?.label,outsideArea?.id||outsideArea?.label,namedSurface?.id||namedSurface?.label)};
  }
- let host=null,code=null,first=null,second=null,last='';
+ let host=null,code=null,first=null,second=null,last='',visible=null;
+ const visibility=createVisibilityState();
+ function showIf(shouldShow){
+  if(!host||visible===shouldShow)return;
+  visible=shouldShow;
+  host.classList.toggle('fh-location-hidden',!shouldShow);
+  host.setAttribute('aria-hidden',String(!shouldShow));
+ }
+ function peek(){
+  if(!ensure()||!visibility.peek(now()))return false;
+  showIf(true);
+  return true;
+ }
  function ensure(){
   const h=root.document?.getElementById('hud');if(!h)return false;
   if(h===host&&code?.isConnected)return true;
@@ -98,13 +126,13 @@
   h.replaceChildren(code,content);
   h.classList.add('fh-location-hud');
   h.setAttribute('role','status');h.setAttribute('aria-live','off');
-  host=h;last='';
+  host=h;last='';visible=null;
   return true;
  }
  function update(map,floorIndex,point){
   const value=resolve(map,floorIndex,point);
   if(!ensure())return value;
-  const key=[value.kind,value.floorCode,value.primary,value.secondary].join('\u0000');
+  const key=[value.scopeKey,value.kind,value.floorCode,value.primary,value.secondary].join('\u0000');
   // El motor heredado puede escribir en regionLabel durante hudUpdate().
   if(last!==key||first.textContent!==value.primary||second.textContent!==value.secondary){
    first.textContent=value.primary;second.textContent=value.secondary;
@@ -113,7 +141,8 @@
    second.hidden=!value.secondary;
    last=key;
   }
+  showIf(visibility.update(key,now()));
   return value;
  }
- return Object.freeze({resolve,codeForFloor,inPolygon,inArea,update});
+ return Object.freeze({resolve,codeForFloor,inPolygon,inArea,createVisibilityState,update,peek});
 });
