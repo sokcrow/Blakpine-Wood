@@ -250,6 +250,17 @@ function solidAt(x,y,ctx){
  return false;
 }
 
+// Geometría del ascensor en las mismas unidades del detector compartido.
+function elevatorCollision(item,cell=1){
+ const angle=(Number(item.rotation)||0)*Math.PI/180,cos=Math.cos(angle),sin=Math.sin(angle);
+ const w=Math.max(.7,Number(item.w)||1.5)*cell,d=Math.max(.7,Number(item.h)||1.5)*cell;
+ const x=(Number(item.x)||0)*cell,y=(Number(item.y)||0)*cell;
+ const point=(px,py)=>({x:x+px*cos-py*sin,y:y+px*sin+py*cos});
+ const walls=[-1,1].map(side=>({a:point(side*w*.5,-d*.5),b:point(side*w*.5,d*.5)}));
+ walls.push({a:point(-w*.5,-d*.5),b:point(w*.5,-d*.5)});
+ return {walls,door:{a:point(-w*.5,d*.52),b:point(w*.5,d*.52),open:item.enabled===true&&item.doorsOpen===true}};
+}
+
 // shared/stairs.js
 /** Geometría navegable de escaleras: coordenadas en casillas salvo que cell indique metros. */
 function stairMetrics(item,cell=1){
@@ -1527,7 +1538,7 @@ function migrate(raw){
 }
 function loadProject(raw){const doc=migrate(raw),v=validate(doc);if(!v.ok)throw new MapValidationError(v.errors);return doc}
 
-return {DOOR_VARIANTS,DOOR_LENGTH_TOLERANCE,doorSpan,doorWidthClass,doorSpec,doorErrors,distanceToSegment,rectangleLocal,distanceToRectangle,solidAt,stairMetrics,stairFrame,stairPointAt,stairDownMarker,stairOnRun,stairTriggerAt,stairAutoTriggerAt,stairDescendTriggerAt,stairRails,stairAccessBlocked,ELEVATOR_PHASES,DEFAULT_ELEVATOR_EVENTS,elevatorConfig,elevatorShaftId,elevatorEntrancePoint,elevatorEntranceDistance,createElevatorMachine,MAX_DYNAMIC_LIGHTS,DEFAULT_BATTERY_DEF,createLightingSystem,circuitsForPanel,circuitHUDState,CIRCUIT_PALETTE,editorCircuits,nextCircuit,roomCircuitAssignments,circuitCounts,circuitRoomOutline,switchNormal,roomAtSwitchSide,switchWallMount,redBoundaryLoops,createExteriorClassifier,sightRayDistance,pointInSight,lightReachesPoint,segmentInSight,furnitureInSight,crossFloorSight,rayThroughExteriorOpening,MAP_SCHEMA,CURRENT_VERSION,MapValidationError,INTERACTION_VERBS,INTERACTION_EFFECTS,BUILTIN_SOUNDS,FACING_OBJECT_TYPES,interactionPreset,validateInteraction,interactionReferenceWarnings,PROP_ACTIONS,defaultPropAnchors,propAnchors,validatePropAnchors,propAnchorWorld,nearestPropAnchor,nearestReachablePropAnchor,seatedSpriteView,spritePosturePlacement,createPoseMachine,poseRouteClear,findSafePoseExit,findFacingTVCombo,ITEM_KINDS,MAX_INVENTORY_SLOTS,itemDefById,inventorySlots,grantItem,removeItem,markNoteRead,doorKeyResult,unlockDoor,validateItemDefs,progressionReferenceWarnings,gameSaveKey,validate,migrate,loadProject};
+return {DOOR_VARIANTS,DOOR_LENGTH_TOLERANCE,doorSpan,doorWidthClass,doorSpec,doorErrors,distanceToSegment,rectangleLocal,distanceToRectangle,solidAt,elevatorCollision,stairMetrics,stairFrame,stairPointAt,stairDownMarker,stairOnRun,stairTriggerAt,stairAutoTriggerAt,stairDescendTriggerAt,stairRails,stairAccessBlocked,ELEVATOR_PHASES,DEFAULT_ELEVATOR_EVENTS,elevatorConfig,elevatorShaftId,elevatorEntrancePoint,elevatorEntranceDistance,createElevatorMachine,MAX_DYNAMIC_LIGHTS,DEFAULT_BATTERY_DEF,createLightingSystem,circuitsForPanel,circuitHUDState,CIRCUIT_PALETTE,editorCircuits,nextCircuit,roomCircuitAssignments,circuitCounts,circuitRoomOutline,switchNormal,roomAtSwitchSide,switchWallMount,redBoundaryLoops,createExteriorClassifier,sightRayDistance,pointInSight,lightReachesPoint,segmentInSight,furnitureInSight,crossFloorSight,rayThroughExteriorOpening,MAP_SCHEMA,CURRENT_VERSION,MapValidationError,INTERACTION_VERBS,INTERACTION_EFFECTS,BUILTIN_SOUNDS,FACING_OBJECT_TYPES,interactionPreset,validateInteraction,interactionReferenceWarnings,PROP_ACTIONS,defaultPropAnchors,propAnchors,validatePropAnchors,propAnchorWorld,nearestPropAnchor,nearestReachablePropAnchor,seatedSpriteView,spritePosturePlacement,createPoseMachine,poseRouteClear,findSafePoseExit,findFacingTVCombo,ITEM_KINDS,MAX_INVENTORY_SLOTS,itemDefById,inventorySlots,grantItem,removeItem,markNoteRead,doorKeyResult,unlockDoor,validateItemDefs,progressionReferenceWarnings,gameSaveKey,validate,migrate,loadProject};
 })();
 
 
@@ -2622,6 +2633,7 @@ const playCtx=playCanvas.getContext('2d',{alpha:false});
 const PLAY_SOLID_SEGMENTS=new Set(['red_wall','wall','property_wall','half_wall','fence','window']);
 const PLAY_DOORS=new Set(['door','peephole_door']);
 const PLAY_SOLID_OBJECTS=new Set(['bed','sofa','tv','dining','table','chair','kitchen','bath','toilet','car','misc']);
+let playLiftCollision=[];
 const PLAY_FLOORS={outside:'#53614b',building:'#626b79',pavement:'#8a8790',parking:'#48535e',grass:'#427d48',dirt:'#8a6245',hall:'#6d7285',room:'#b2a08b'};
 const playFloor=()=>project.floors[playState.floorIndex];
 const playSegments=()=>playFloor().items.filter(it=>SEGMENT_TYPES.has(it.type));
@@ -2637,8 +2649,8 @@ function playSolidAt(x,y){
    ...items.filter(it=>it.type==='stairs').flatMap(it=>{
     const source=it.autoLanding?project.floors[playState.floorIndex-1]?.items.find(o=>o.id===it.linkedSourceId):it;
     return source?ForestShared.stairRails(source,1,it.autoLanding?0:-.5,.5):[];
-   })],wallPad:.045,
-  doors:items.filter(it=>PLAY_DOORS.has(it.type)).map(it=>({...it,open:playDoorPassable(it)})),doorPad:.045,
+   }),...playLiftCollision.flatMap(lift=>lift.walls)],wallPad:.045,
+  doors:[...items.filter(it=>PLAY_DOORS.has(it.type)).map(it=>({...it,open:playDoorPassable(it)})),...playLiftCollision.map(lift=>lift.door)],doorPad:.045,
   objects:items.filter(it=>PLAY_SOLID_OBJECTS.has(it.type)&&it.blocksMovement!==false),objectMode:'circle',
   surfaceAllowed:playState.floorIndex===0?null:(xx,yy)=>{
    const slab=buildingSlabs(playState.floorIndex-1);
@@ -2651,7 +2663,7 @@ function playSolidAt(x,y){
  });
 }
 function playFindStart(spawn){let x=spawn.x,y=spawn.y;if(!playSolidAt(x,y))return {x,y};for(let r=.15;r<=1.5;r+=.15){for(let i=0;i<16;i++){const a=i*Math.PI/8,xx=x+r*Math.cos(a),yy=y+r*Math.sin(a);if(!playSolidAt(xx,yy))return {x:xx,y:yy}}}return {x,y}}
-function playSetFloor(idx,p={}){playState.floorIndex=idx;const f=project.floors[idx];const start=p.x!==undefined?p:f.items.find(it=>it.type==='spawn')||{x:project.units.columns/2,y:project.units.rows/2};const ok=playFindStart(start);playState.x=ok.x;playState.y=ok.y;playState.near=null;playState.stick={x:0,y:0};playState.keys.clear();document.querySelector('#playFloorLabel').textContent=f.name+' · '+f.elevationFt+' pies';playUpdateNearby();}
+function playSetFloor(idx,p={}){playState.floorIndex=idx;const f=project.floors[idx];playLiftCollision=f.items.filter(it=>it.type==='elevator').map(it=>ForestShared.elevatorCollision(it));const start=p.x!==undefined?p:f.items.find(it=>it.type==='spawn')||{x:project.units.columns/2,y:project.units.rows/2};const ok=playFindStart(start);playState.x=ok.x;playState.y=ok.y;playState.near=null;playState.stick={x:0,y:0};playState.keys.clear();document.querySelector('#playFloorLabel').textContent=f.name+' · '+f.elevationFt+' pies';playUpdateNearby();}
 function startPlay(){if(playState.running)return;const spawn=current().items.find(it=>it.type==='spawn');if(!spawn){setCategory('areas');chooseTool('spawn');toast('Marca primero un punto de aparición: Áreas → Jugador; toca el centro del cuadro donde quieras iniciar.');return}
  closeInspector();closeModal();anchor=null;preview=null;document.activeElement?.blur?.();playState.doors=new Map();for(const fl of project.floors){for(const it of fl.items.filter(it=>PLAY_DOORS.has(it.type)))playState.doors.set(it.id,!!it.open)}playState.heading=-Math.PI/2;playState.stepPhase=0;playState.last=0;playState.vision=false;document.querySelector('#playVision').textContent='Visión: libre';playState.running=true;document.querySelector('#playLayer').classList.add('show');document.querySelector('#playLayer').setAttribute('aria-hidden','false');playSetFloor(floorIndex,spawn);playResize();playState.raf=requestAnimationFrame(playFrame)}
 function stopPlay(){playState.running=false;cancelAnimationFrame(playState.raf);playState.keys.clear();playState.stick={x:0,y:0};playState.stickPointer=null;document.querySelector('#playLayer').classList.remove('show');document.querySelector('#playLayer').setAttribute('aria-hidden','true');document.querySelector('#playKnob').style.transform='translate(-50%,-50%)';render()}
@@ -3391,7 +3403,17 @@ window.FHDeliveryRuntime=window.FHDelivery?.createRuntime({
  const loadFailBefore="if(index>=providers.length){status.textContent='No se pudo cargar Three.js. Conéctate a internet y vuelve a abrir este HTML.';return}";
  const loadFailAfter="if(index>=providers.length){status.textContent='No se pudo cargar Three.js. Conéctate a internet y vuelve a abrir este HTML.';parent.postMessage({type:'FOREST_PREVIEW_ERROR',message:status.textContent},'*');return}";
  for(const hook of [engineSuccessBefore,engineFailBefore,loadFailBefore])if(source.split(hook).length!==2)throw Error('Hook de inicio 3D incompatible: '+hook.slice(0,80));
- const cameraLightAfter=" const lightDistance=camDistance+(window.FHLights?.cameraBonus(roomLampEntries,lighting,currentFloor,user.x,user.z)||0);\n const ahead=lighting.state.enabled?0.80:0;target.x+=flashDir.x*ahead;target.z+=flashDir.z*ahead;\n const desired=new THREE.Vector3(user.x+behind.x*lightDistance,y+.88+lightDistance*Math.tan(Math.PI/6),user.z+behind.z*lightDistance);";
+ // Ascensores deshabilitados también tienen puertas físicas.
+const elevatorPortalsBefore="const elevatorStops=elevatorSystem.stops.map(stop=>({...stop,x:stop.x*CELL,z:stop.y*CELL}));";
+const elevatorPortalsAfter="const elevatorStops=elevatorSystem.stops.map(stop=>({...stop,x:stop.x*CELL,z:stop.y*CELL}));\nconst elevatorPortals=DATA.floors.map((floor,f)=>(floor.items||[]).filter(it=>it.type==='elevator').map(it=>{\n const stop=elevatorStops.find(s=>s.f===f&&s.item===it);\n const angle=(Number(it.rotation)||0)*Math.PI/180,cos=Math.cos(angle),sin=Math.sin(angle);\n const w=Math.max(.7,Number(it.w)||1.5)*CELL,d=Math.max(.7,Number(it.h)||1.5)*CELL;\n const x=it.x*CELL-sin*d*.52,z=it.y*CELL+cos*d*.52;\n return {shaftId:stop?.shaftId||null,block:{x1:x-cos*w*.5,z1:z-sin*w*.5,x2:x+cos*w*.5,z2:z+sin*w*.5}};\n}));";
+const elevatorWalkBefore="function canWalk(x,z){\n const liftDoors=elevatorStops.filter(stop=>stop.f===currentFloor).map(stop=>{\n  const shaft=elevatorSystem.get(stop.shaftId),c=shaft?.cabin;\n  const opened=c?.floor===stop.f&&c?.phase==='open';\n  const it=stop.item,angle=(Number(it.rotation)||0)*Math.PI/180;\n  const w=Math.max(.7,Number(it.w)||1.5)*CELL,d=Math.max(.7,Number(it.h)||1.5)*CELL;\n  const cx=stop.x-Math.sin(angle)*d*.50,cz=stop.z+Math.cos(angle)*d*.50;\n  return {open:opened,block:{x1:cx-Math.cos(angle)*w*.5,z1:cz-Math.sin(angle)*w*.5,x2:cx+Math.cos(angle)*w*.5,z2:cz+Math.sin(angle)*w*.5}};\n });";
+const elevatorWalkAfter="function canWalk(x,z){\n const liftDoors=elevatorPortals[currentFloor].map(portal=>{\n  const c=portal.shaftId?elevatorSystem.get(portal.shaftId)?.cabin:null;\n  return {open:c?.floor===currentFloor&&c?.phase==='open',block:portal.block};\n });";
+for(const pair of [[elevatorPortalsBefore,elevatorPortalsAfter],[elevatorWalkBefore,elevatorWalkAfter]]){
+ const matches=source.split(pair[0]).length-1;
+ if(matches!==1)throw Error('Hook de colisión del ascensor incompatible: '+matches);
+ source=source.replace(pair[0],pair[1]);
+}
+const cameraLightAfter=" const lightDistance=camDistance+(window.FHLights?.cameraBonus(roomLampEntries,lighting,currentFloor,user.x,user.z)||0);\n const ahead=lighting.state.enabled?0.80:0;target.x+=flashDir.x*ahead;target.z+=flashDir.z*ahead;\n const desired=new THREE.Vector3(user.x+behind.x*lightDistance,y+.88+lightDistance*Math.tan(Math.PI/6),user.z+behind.z*lightDistance);";
  return addLiveTextToEngine(addDeliveryToEngine(addParkingToEngine(addStylesToEngine(addLightToEngine(source)))).replace(furnitureVisibilityHook,furnitureRenderHook).replace(cameraBefore,cameraAfter).replace(cameraBefore,cameraLightAfter).replace(loopBefore,loopAfter)
   .replace(maskBefore,maskAfter).replace(wakeHUDBefore,wakeHUDAfter).replace(locationHudHook,locationHudAfter)
   .split(wakeBefore).join(wakeAfter)
