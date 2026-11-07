@@ -101,13 +101,23 @@ function damage(registry,floorId,it,amount,kind='physical',part='structure'){
 function createRuntime({data,state,doorList,blockers,save,refresh,events}){
  const registry=state.structures&&typeof state.structures==='object'&&!Array.isArray(state.structures)
   ?state.structures:(state.structures={});
- const doors=new Map(),windows=new Map();
+ const doors=new Map(),windows=new Map(),exteriors=new Map();
  const floorKey=(f,id)=>String(f)+'\u0000'+String(id);
  const floorIndex=reference=>typeof reference==='number'&&Number.isInteger(reference)?
    reference:data.floors.findIndex(x=>x.id===reference);
  const get=(ref,id)=>{const f=floorIndex(ref);return {f,floor:data.floors[f],it:data.floors[f]?.items?.find(x=>x.id===id)};};
  function removeRoot(node){
   if(node?.parent?.remove)node.parent.remove(node);
+ }
+ function removeExterior(key){
+  for(const root of exteriors.get(key)||[])removeRoot(root);
+ }
+ function registerExteriorProxy(f,it,clone){
+  if(!supports(it)||!it.id||!clone)return;
+  const key=floorKey(f,it.id);
+  if(!exteriors.has(key))exteriors.set(key,[]);
+  exteriors.get(key).push(clone);
+  if(isDestroyed(f,it.id))removeRoot(clone);
  }
  function destroyDoor(d){
   if(!d||d.destroyed)return;
@@ -163,6 +173,7 @@ function createRuntime({data,state,doorList,blockers,save,refresh,events}){
    if(result.destroyed&&part==='structure'){
     if(DOORS.has(it.type))destroyDoor(doors.get(key));
     else destroyWindow(windows.get(key));
+    removeExterior(key);
    }else if(result.destroyed&&part==='reader')destroyReader(doors.get(key));
    if(typeof refresh==='function')refresh();
    if(events?.emit)events.emit('structure:damage',{...result,kind});
@@ -181,7 +192,7 @@ function createRuntime({data,state,doorList,blockers,save,refresh,events}){
   }
   return best;
  }
- return Object.freeze({getState,isDestroyed,takeDamage,registerDoor,registerWindow,registerWindowVisual,nearest});
+ return Object.freeze({getState,isDestroyed,takeDamage,registerDoor,registerWindow,registerWindowVisual,registerExteriorProxy,nearest});
 }
 global.FHStructureHealth=Object.freeze({MATERIAL,DAMAGE_KINDS,isElectronic,material,
  supports,maxPG,initialPG,validateItem,validateMap,stateFor,damage,createRuntime});
