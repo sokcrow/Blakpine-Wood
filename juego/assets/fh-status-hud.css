@@ -1,99 +1,116 @@
-/* HUD de exploración: el marco SVG de ubicación permanece intacto.
-   Reducir sus dimensiones al 75% en el flujo real, sin transform que borre bordes. */
-body.fh-player-menu-ready #hud.fh-location-hud{
- width:min(300px,calc(75vw - 96px));
- max-width:min(300px,calc(75vw - 96px));
+/* Exploración: ubicación transitoria centrada, con su marco SVG original intacto.
+   Recursos sin caja en una esquina: se reduce un 30% el tamaño visual del HUD anterior. */
+body.fh-player-menu-ready #hud.fh-location-hud {
+ position:fixed;
+ top:calc(12px + env(safe-area-inset-top,0px));
+ left:50%;
+ transform:translateX(-50%);
+ width:min(300px,calc(100vw - 24px));
+ max-width:calc(100vw - 24px);
  min-width:0;
  min-height:57px;
  padding:10px 17px 11px 12px;
  grid-template-columns:35px minmax(0,1fr);
  gap:10px;
+ opacity:1;
+ visibility:visible;
+ pointer-events:none;
+ transition:opacity .18s ease,visibility 0s;
 }
-body.fh-player-menu-ready #hud.fh-location-hud #fhFloorCode{
+body.fh-player-menu-ready #hud.fh-location-hud.fh-location-hidden {
+ opacity:0;
+ visibility:hidden;
+ transition:opacity .25s ease,visibility 0s linear .25s;
+}
+body.fh-player-menu-ready #hud.fh-location-hud #fhFloorCode {
  width:35px;
  height:35px;
  font-size:12px;
 }
-body.fh-player-menu-ready #hud.fh-location-hud #fhFloorCode::after{inset:3px}
-body.fh-player-menu-ready #hud.fh-location-hud #floorLabel{
+body.fh-player-menu-ready #hud.fh-location-hud #fhFloorCode::after {inset:3px}
+body.fh-player-menu-ready #hud.fh-location-hud #floorLabel {
  font-size:clamp(11px,1.16vw,14.25px);
 }
-body.fh-player-menu-ready #hud.fh-location-hud #regionLabel{
+body.fh-player-menu-ready #hud.fh-location-hud #regionLabel {
  font-size:clamp(9px,.79vw,10px);
 }
-body.fh-player-menu-ready #hud.fh-location-hud::after{
+body.fh-player-menu-ready #hud.fh-location-hud::after {
  left:57px;
  right:17px;
  bottom:8px;
 }
-body.fh-player-menu-ready #hud.fh-location-hud.fh-location-exterior{
+body.fh-player-menu-ready #hud.fh-location-hud.fh-location-exterior {
  grid-template-columns:minmax(0,1fr);
  padding-left:16px;
 }
-body.fh-player-menu-ready #hud.fh-location-hud.fh-location-exterior::after{left:16px}
+body.fh-player-menu-ready #hud.fh-location-hud.fh-location-exterior::after {left:16px}
 
-/* Panel secundario, del ancho exacto del panel superior. No intercepta gameplay. */
-#fhStatusHUD{
+/* Indicadores independientes, sin fondo ni borde general.
+   Los únicos fondos se reservan para las barras y casillas, legibles sobre la escena. */
+#fhStatusHUD {
  --fh-status-pg:#c94d4a;
  --fh-status-sp:#34c8d8;
  --fh-status-pe:#49ad67;
  position:fixed;
+ top:calc(15px + env(safe-area-inset-top,0px));
+ left:calc(12px + env(safe-area-inset-left,0px));
  z-index:35;
  box-sizing:border-box;
- max-width:calc(100vw - 16px);
- padding:8px 11px 10px;
- background:rgba(8,9,10,.82);
- border:1px solid rgba(224,220,211,.28);
+ width:min(210px,calc(100vw - 24px));
+ max-width:calc(100vw - 24px);
+ padding:0;
+ background:none;
+ border:0;
  border-radius:0;
  box-shadow:none;
- color:#e9e6e0;
+ color:#f2f0e9;
  font-family:Verdana,Tahoma,sans-serif;
  font-size:10px;
+ text-shadow:0 1px 2px #000,0 0 5px #000;
  pointer-events:none;
  user-select:none;
  image-rendering:pixelated;
 }
 #fhStatusHUD[hidden],
 #fhStatusHUD .fh-status-row[hidden],
-body.fh-sleeping #fhStatusHUD{
+body.fh-sleeping #fhStatusHUD {
  display:none!important;
 }
-#fhStatusHUD .fh-status-row+.fh-status-row{margin-top:8px}
-#fhStatusHUD .fh-status-heading{
+#fhStatusHUD .fh-status-row+.fh-status-row {margin-top:6px}
+#fhStatusHUD .fh-status-heading {
  display:flex;
  justify-content:flex-start;
  align-items:baseline;
- gap:8px;
- margin-bottom:4px;
- line-height:1.15;
+ gap:7px;
+ margin-bottom:3px;
+ line-height:1.1;
 }
-#fhStatusHUD .fh-status-label{
+#fhStatusHUD .fh-status-label {
  font-weight:700;
- letter-spacing:.09em;
+ letter-spacing:.07em;
 }
-#fhStatusHUD .fh-status-count{
- color:#c7c7c3;
+#fhStatusHUD .fh-status-count {
+ color:#dddcd5;
  font-variant-numeric:tabular-nums;
  font-size:9px;
 }
-#fhStatusHUD .fh-status-track{
- position:relative;
+#fhStatusHUD .fh-status-track {
  box-sizing:border-box;
  width:100%;
- height:8px;
+ height:6px;
  overflow:hidden;
- background:#222628;
- border:1px solid #4a4b49;
+ background:#161a1bd9;
+ border:1px solid #626662;
  border-radius:0;
 }
-#fhStatusHUD .fh-status-fill{
+#fhStatusHUD .fh-status-fill {
  display:block;
  height:100%;
  transition:none;
 }
-#fhStatusHUD .fh-status-fill--pg{background:var(--fh-status-pg)}
-#fhStatusHUD .fh-status-fill--sp{background:var(--fh-status-sp)}
-#fhStatusHUD .fh-status-track--pe{
+#fhStatusHUD .fh-status-fill--pg {background:var(--fh-status-pg)}
+#fhStatusHUD .fh-status-fill--sp {background:var(--fh-status-sp)}
+#fhStatusHUD .fh-status-track--pe {
  display:flex;
  flex-wrap:wrap;
  align-content:flex-start;
@@ -101,61 +118,76 @@ body.fh-sleeping #fhStatusHUD{
  gap:3px;
  overflow:visible;
  height:auto;
- min-height:9px;
+ min-height:7px;
  background:transparent;
  border:0;
 }
-#fhStatusHUD .fh-status-pe-cell{
+#fhStatusHUD .fh-status-pe-cell {
  display:block;
  box-sizing:border-box;
- width:9px;
- height:9px;
- flex:0 0 9px;
- background:#222925;
+ width:7px;
+ height:7px;
+ flex:0 0 7px;
+ background:#222925c9;
  border:1px solid #566058;
  border-radius:0;
 }
-#fhStatusHUD .fh-status-pe-cell.is-filled{
+#fhStatusHUD .fh-status-pe-cell.is-filled {
  background:var(--fh-status-pe);
  border-color:#82c496;
 }
-@media(max-width:650px){
- body.fh-player-menu-ready #hud.fh-location-hud{
-  width:calc(75vw - 79px);
-  max-width:calc(75vw - 79px);
+@media(max-width:650px) {
+ body.fh-player-menu-ready #hud.fh-location-hud {
+  top:calc(9px + env(safe-area-inset-top,0px));
+  left:50%;
+  width:min(260px,calc(100vw - 24px));
+  max-width:calc(100vw - 24px);
+  min-width:0;
   min-height:48px;
   padding:8px 11px 10px 8px;
   grid-template-columns:28px minmax(0,1fr);
   gap:8px;
  }
- body.fh-player-menu-ready #hud.fh-location-hud #fhFloorCode{
-  width:28px;height:28px;font-size:10px;
+ body.fh-player-menu-ready #hud.fh-location-hud #fhFloorCode {
+  width:28px;
+  height:28px;
+  font-size:10px;
  }
- body.fh-player-menu-ready #hud.fh-location-hud #floorLabel{
+ body.fh-player-menu-ready #hud.fh-location-hud #floorLabel {
   font-size:clamp(10px,2.6vw,12px);
  }
- body.fh-player-menu-ready #hud.fh-location-hud #regionLabel{
+ body.fh-player-menu-ready #hud.fh-location-hud #regionLabel {
   font-size:clamp(9px,2vw,10px);
  }
- body.fh-player-menu-ready #hud.fh-location-hud::after{
-  left:43px;right:11px;bottom:7px;
+ body.fh-player-menu-ready #hud.fh-location-hud::after {
+  left:43px;
+  right:11px;
+  bottom:7px;
  }
- body.fh-player-menu-ready #hud.fh-location-hud.fh-location-exterior{
+ body.fh-player-menu-ready #hud.fh-location-hud.fh-location-exterior {
   grid-template-columns:minmax(0,1fr);
   padding-left:12px;
  }
- body.fh-player-menu-ready #hud.fh-location-hud.fh-location-exterior::after{left:12px}
- #fhStatusHUD{padding:7px 8px 8px;font-size:9px}
- #fhStatusHUD .fh-status-row+.fh-status-row{margin-top:6px}
- #fhStatusHUD .fh-status-count{font-size:9px}
- #fhStatusHUD .fh-status-pe-cell{width:8px;height:8px;flex-basis:8px}
+ body.fh-player-menu-ready #hud.fh-location-hud.fh-location-exterior::after {left:12px}
+ /* El banner central no se solapa con las barras en pantallas pequeñas. */
+ #fhStatusHUD {
+  top:calc(83px + env(safe-area-inset-top,0px));
+  width:min(150px,calc(100vw - 24px));
+ }
+ #fhStatusHUD .fh-status-row+.fh-status-row {margin-top:5px}
 }
-@media(max-width:350px){
- body.fh-player-menu-ready #hud.fh-location-hud{
-  width:calc(75vw - 72px);
-  max-width:calc(75vw - 72px);
+@media(max-width:350px) {
+ body.fh-player-menu-ready #hud.fh-location-hud {
   grid-template-columns:25px minmax(0,1fr);
  }
- body.fh-player-menu-ready #hud.fh-location-hud #fhFloorCode{width:25px;height:25px}
- body.fh-player-menu-ready #hud.fh-location-hud::after{left:41px}
+ body.fh-player-menu-ready #hud.fh-location-hud #fhFloorCode {width:25px;height:25px}
+ body.fh-player-menu-ready #hud.fh-location-hud::after {left:41px}
+}
+@media(prefers-reduced-motion:reduce) {
+ body.fh-player-menu-ready #hud.fh-location-hud {
+  transition:none;
+ }
+ body.fh-player-menu-ready #hud.fh-location-hud.fh-location-hidden {
+  transition:none;
+ }
 }
