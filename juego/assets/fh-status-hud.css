@@ -2,6 +2,7 @@
    Recursos sin caja en una esquina: se reduce un 30% el tamaño visual del HUD anterior. */
 body.fh-player-menu-ready #hud.fh-location-hud {
  position:fixed;
+ z-index:41; /* El anuncio temporal queda visualmente por encima de los recursos. */
  top:calc(12px + env(safe-area-inset-top,0px));
  left:50%;
  transform:translateX(-50%);
@@ -136,6 +137,11 @@ body.fh-sleeping #fhStatusHUD {
  background:var(--fh-status-pe);
  border-color:#82c496;
 }
+/* Entre 651 y 756 px, ajustar solo el ancho: nunca bajar las barras
+   del rincón ni dejar que invadan el espacio horizontal del anuncio central. */
+@media (min-width:651px) and (max-width:756px) {
+ #fhStatusHUD {width:min(210px,calc(50vw - 168px));}
+}
 @media(max-width:650px) {
  body.fh-player-menu-ready #hud.fh-location-hud {
   top:calc(9px + env(safe-area-inset-top,0px));
@@ -169,9 +175,9 @@ body.fh-sleeping #fhStatusHUD {
   padding-left:12px;
  }
  body.fh-player-menu-ready #hud.fh-location-hud.fh-location-exterior::after {left:12px}
- /* El banner central no se solapa con las barras en pantallas pequeñas. */
+ /* El estado sigue arriba a la izquierda; nunca se mueve bajo el banner.
+    En móviles estrechos el banner temporal pasa por delante unos segundos. */
  #fhStatusHUD {
-  top:calc(83px + env(safe-area-inset-top,0px));
   width:min(150px,calc(100vw - 24px));
  }
  #fhStatusHUD .fh-status-row+.fh-status-row {margin-top:5px}
