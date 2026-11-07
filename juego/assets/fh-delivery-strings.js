@@ -1,6 +1,7 @@
 /* Forest Horror — textos del sistema de PC, Hamazon y entregas. */
 window.FH_DELIVERY_TEXT=Object.freeze({
  courierName:'Repartidor de paquetería',
+ noNpcRoute:'El repartidor no encuentra una ruta segura hasta el apartamento.',
  pcAction:'Usar PC',
  pcActionFromSeat:'Usar computadora',
  pcMissingNames:{monitor:'monitor',keyboard:'teclado',mouse:'mouse',cabinet:'gabinete de PC'},
