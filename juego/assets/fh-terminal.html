@@ -284,27 +284,27 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
  #message{bottom:46px}
 }
 
-/* Teléfonos: menús del sistema RAVEN/OS al 50%.
+/* Teléfonos: menús del sistema RAVEN/OS al 75%.
    Las ventanas siguen siendo desplazables y los botones conservan sus handlers. */
 @media (pointer: coarse) and (max-width: 767px),
        (pointer: coarse) and (orientation: landscape) and (max-width: 1100px) and (max-height: 500px) {
   #startMenu.start-menu {
-    transform: scale(.5);
+    transform: scale(.75);
     transform-origin: left bottom;
   }
   #desktopIcons {
-    transform: scale(.5);
+    transform: scale(.75);
     transform-origin: top left;
   }
   #windowsLayer .window,
   #windowsLayer .window.maximized {
-    left: 25% !important;
-    top: 25% !important;
+    left: 12.5% !important;
+    top: 12.5% !important;
     width: 100% !important;
     height: 100% !important;
     max-width: none !important;
     max-height: none !important;
-    transform: scale(.5) !important;
+    transform: scale(.75) !important;
     transform-origin: top left !important;
   }
 }
