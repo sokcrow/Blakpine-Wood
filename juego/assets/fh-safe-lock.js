@@ -10,7 +10,7 @@
    clearTimeout:id=>global.clearTimeout(id)
   };
   const pointers=new Set();
-  let active=null;
+  let active=null, lastPointerRelease=-Infinity;
   function clear() {
    if(active)clock.clearTimeout(active.timer);
    active=null;
@@ -42,6 +42,7 @@
   }
   function up(event) {
    pointers.delete(event.pointerId);
+   lastPointerRelease=clock.now();
    if(!active||active.id!==event.pointerId)return;
    const state=active;
    clear();
@@ -52,6 +53,7 @@
   }
   function cancel(event) {
    pointers.delete(event.pointerId);
+   lastPointerRelease=clock.now();
    if(active?.id!==event.pointerId)return;
    const held=active.held;
    clear();
@@ -61,6 +63,14 @@
   element.addEventListener('pointermove',move);
   element.addEventListener('pointerup',up);
   element.addEventListener('pointercancel',cancel);
+  // Consumir el click sintético posterior al puntero: el toque/hold ya se resolvió.
+  // Un click de teclado o un navegador sin eventos pointer conserva el fallback.
+  if(options.suppressClick)element.addEventListener('click',event=>{
+   if(clock.now()-lastPointerRelease>700)return;
+   if(event.detail===0&&!event.pointerType)return;
+   event.preventDefault?.();
+   event.stopImmediatePropagation?.();
+  },true);
   // El foco puede perderse mientras se mantiene pulsado.
   global.addEventListener?.('blur',()=>{pointers.clear();clear();});
   return {cancel:()=>{pointers.clear();clear();}};
