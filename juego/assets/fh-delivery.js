@@ -44,7 +44,7 @@ function createOrder(state,product,options={}){
   parcelSize:product.parcelSize,unboxMinutes:product.unboxMinutes,price:product.price,paymentMethod:method,
   payment:{required:method!=='prepaid',method,status:method==='prepaid'?'paid':'pending',amount:product.price},
   status:'placed',createdAtMinutes:now,deliveryAtMinutes:now+Math.max(0,finite(options.leadMinutes,0)),
-  floor:Number.isInteger(options.floor)?options.floor:0,doorId:options.doorId||'',apartmentId:options.apartmentId||'',packageId:null};
+  floor:Number.isInteger(options.floor)?options.floor:0,doorId:options.doorId||'',apartmentId:options.apartmentId||'',propertyId:options.propertyId||'',packageId:null};
  d.orders.push(order);return order;
 }
 function activeOrderForDoor(state,doorId){
@@ -142,7 +142,8 @@ function createRuntime(options){
    return null;
   }
   const door=chooseDoor();if(!door){say(TEXT.noDeliveryDoor||'No hay puerta de entrega.',3600);return null}
-  const order=createOrder(state,p,{paymentMethod,leadMinutes:leadMinutesFor(p),floor:door.f,doorId:door.id,apartmentId:door.apartmentId||pcItem?.apartmentId||''});
+  const address=options.resolveDoorAddress?.(door,pcItem,pcFloor)||{};
+   const order=createOrder(state,p,{paymentMethod,leadMinutes:leadMinutesFor(p),floor:door.f,doorId:door.id,apartmentId:door.apartmentId||pcItem?.apartmentId||'',propertyId:address.id||''});
   order.status='scheduled';
   const eta=formatMinutes(order.deliveryAtMinutes);
   say((TEXT.orderScheduled||((n,t)=>'Pedido registrado: '+n+'. Entrega estimada: '+t+'.'))(p.name,eta),3200);
@@ -193,6 +194,7 @@ function createRuntime(options){
    buttons.append(button);
   }
   root.classList.toggle('peephole',throughPeephole);
+   options.dialogPose?.(pose,order);
   root.classList.add('open');syncPeekTalkButton();options.freeze?.(true);
   const live=global.FHLiveText;
   if(live?.typeInto)typedDialogue=live.typeInto(body,{text,mood:'normal'},{
@@ -203,8 +205,10 @@ function createRuntime(options){
  }
  function closeDialog(){
   typedDialogue?.dispose();typedDialogue=null;
-  if(!dialog)return;
-  dialog.classList.remove('open','peephole');
+  const wasOpen=!!dialog?.classList.contains('open');
+  dialog?.classList.remove('open','peephole');
+  if(wasOpen)options.endDoorEvent?.();
+  activePeepholeDoor=null;
   global.FHLiveText?.flushNotice?.();
   if(!options.computer?.isOpen)options.freeze?.(false);
   syncPeekTalkButton();
@@ -213,30 +217,65 @@ function createRuntime(options){
   const order=activeOrderForDoor(state,door?.id);
   activePeepholeDoor=order?door:null;
   if(order)npcOrder=order;
-  syncPeekTalkButton();
-  return !!order;
+  syncPeekTalkButton();return !!order;
  }
  function onPeepholeExit(){
   activePeepholeDoor=null;
-  if(dialog?.classList.contains('peephole'))closeDialog();
+  if(dialog?.classList.contains('open'))closeDialog();
   syncPeekTalkButton();
+ }
+ function destinationName(order,door){
+  const address=options.resolveDoorAddress?.(door,null,order.floor)||{};
+  const id=order.propertyId||address.id||'';
+  return String((id&&options.propertyNameById?.(id))||address.name||'').trim().slice(0,80);
+ }
+ function talkMenu(order,door,opened=false){
+  const name=destinationName(order,door),destination=(TEXT.propertyDestination||((v)=>v))(name);
+  const back=()=>talkMenu(order,door,opened);
+  const answer=(message,pose='greeting')=>setDialog(order,pose,message,[
+   {label:TEXT.backToQuestions||'Volver a preguntar',run:back},
+   {label:TEXT.closeTalk||'Terminar conversación',run:closeDialog}
+  ],!opened);
+  const actions=[
+   {label:TEXT.askIdentity||'¿Quién es?',run:()=>answer(TEXT.identityAnswer||'Soy el repartidor de Hamazon.')},
+   {label:TEXT.askPackage||'¿Qué trae?',run:()=>answer((TEXT.peepholePackage||((v)=>v))(productById(order.productId)?.name||order.name),'clipboard')},
+   {label:TEXT.askDestination||'¿Para quién es?',run:()=>answer((TEXT.destinationAnswer||((v)=>v))(destination))},
+   {label:TEXT.askPayment||'¿Cómo se paga?',run:()=>answer(paymentText(order),order.paymentMethod==='cash'?'cash':'card')}
+  ];
+  if(!opened)actions.push({label:TEXT.openDoor||'Abrir la puerta',run:()=>{
+   if(options.openDoor?.(door)===false)answer(TEXT.doorNotOpened||'No pude abrir la puerta.');
+  }});
+  else actions.push({label:TEXT.continueDelivery||'Recibir la entrega',run:()=>{
+   if(order.status==='delivering')return showHandover(order,door);
+   if(order.payment?.required&&order.payment.status!=='paid')return showPayment(order,door);
+   return deliver(order,door);
+  }});
+  actions.push({label:TEXT.closeTalk||'Terminar conversación',run:closeDialog});
+  const greet=opened?(TEXT.doorGreeting||TEXT.peepholeGreeting||(()=>'')):(TEXT.peepholeGreeting||(()=>'')); 
+  setDialog(order,opened?'greeting':'peephole_front',greet(destination),actions,!opened);
  }
  function talkThroughPeephole(){
   const door=activePeepholeDoor,order=activeOrderForDoor(state,door?.id);
   if(!door||!order){onPeepholeExit();return false}
-  const product=productById(order.productId),greeting=(TEXT.peepholeGreeting||(()=>''))(order.apartmentId);
-  setDialog(order,'peephole_front',greeting,[
-   {label:TEXT.askPackage||'¿Qué trae?',run:()=>setDialog(order,'peephole_front',(TEXT.peepholePackage||((n)=>n))(product?.name||order.name),peepholeActions(order,door),true)},
-   {label:TEXT.askPayment||'¿Cómo se paga?',run:()=>setDialog(order,order.paymentMethod==='cash'?'cash':order.paymentMethod==='card'?'card':'peephole_front',paymentText(order),peepholeActions(order,door),true)},
-   {label:TEXT.openDoor||'Abrir la puerta',run:()=>{closeDialog();options.openDoor?.(door)}},
-   {label:TEXT.closeTalk||'Terminar conversación',run:closeDialog}
-  ],true);
-  return true;
+  talkMenu(order,door,false);return true;
  }
- function peepholeActions(order,door){return [
-  {label:TEXT.openDoor||'Abrir la puerta',run:()=>{closeDialog();options.openDoor?.(door)}},
-  {label:TEXT.closeTalk||'Terminar conversación',run:closeDialog}
- ]}
+ function showPayment(order,door){
+  order.status='payment';delivery.npc.state='payment';delivery.npc.pose=order.paymentMethod==='card'?'card':'cash';
+  options.showNpc?.(order,door,delivery.npc.pose);save();syncOrdersToTerminal();
+  setDialog(order,delivery.npc.pose,TEXT.paymentPending||paymentText(order),[
+   {label:order.paymentMethod==='card'?(TEXT.cardConfirm||'Pagar con tarjeta'):(TEXT.cashConfirm||'Entregar efectivo'),run:()=>confirmPayment(order,door)},
+   {label:TEXT.backToQuestions||'Volver a preguntar',run:()=>talkMenu(order,door,true)},
+   {label:TEXT.closeTalk||'Terminar conversación',run:closeDialog}
+  ]);return true;
+ }
+ function onDoorOpened(door){
+  const order=activeOrderForDoor(state,door?.id);if(!order)return false;
+  options.showNpc?.(order,door,'greeting');talkMenu(order,door,true);return true;
+ }
+ function interruptDialogue(){
+  if(!dialog?.classList.contains('open'))return false;
+  closeDialog();return true;
+ }
  function paymentText(order){return order.paymentMethod==='cash'?(TEXT.cash||'Pago en efectivo.'):order.paymentMethod==='card'?(TEXT.card||'Pago con tarjeta.'):(TEXT.prepaid||'Pedido pagado.')}
  function onDoorOpened(door){
   const order=activeOrderForDoor(state,door?.id);if(!order)return false;
@@ -261,13 +300,21 @@ function createRuntime(options){
   delivery.npc={activeOrderId:null,doorId:null,state:'leaving',pose:'walk'};options.hideNpc?.(order,door);closeDialog();
   say(TEXT.packageDelivered||'Paquete entregado.',3000);save();syncOrdersToTerminal();setTimeout(()=>update(0),650);return true;
  }
- function deliver(order,door){
-  const product=productById(order.productId),box=boxBySize(order.parcelSize);if(!product||!box){say(TEXT.packageMissing||'No se pudo preparar el paquete.');return false}
-  order.status='delivering';delivery.npc={activeOrderId:order.id,doorId:door.id,state:'handover',pose:'clipboard'};options.showNpc?.(order,door,'clipboard');save();syncOrdersToTerminal();
+ function showHandover(order,door){
+  const product=productById(order.productId),box=boxBySize(order.parcelSize);
+  if(!product||!box)return false;
   setDialog(order,'clipboard',TEXT.handover||'Aquí tiene su entrega. Confirme la recepción.',[
    {label:TEXT.receivePackage||'Recibir paquete',run:()=>finalizeDelivery(order,door,product,box)},
-   {label:TEXT.closeTalk||'Ahora no',run:closeDialog}
+   {label:TEXT.backToQuestions||'Volver a preguntar',run:()=>talkMenu(order,door,true)},
+   {label:TEXT.closeTalk||'Terminar conversación',run:closeDialog}
   ]);return true;
+ }
+ function deliver(order,door){
+  const product=productById(order.productId),box=boxBySize(order.parcelSize);
+  if(!product||!box){say(TEXT.packageMissing||'No se pudo preparar el paquete.');return false}
+  order.status='delivering';delivery.npc={activeOrderId:order.id,doorId:door.id,state:'handover',pose:'clipboard'};
+  options.showNpc?.(order,door,'clipboard');save();syncOrdersToTerminal();
+  return showHandover(order,door);
  }
  function isPackage(item){return !!item?.runtimePackage?.orderId}
  function isDeliveredFurniture(item){return !!item?.runtimeDeliveryFurniture?.orderId}
@@ -368,8 +415,8 @@ function createRuntime(options){
  }
  global.addEventListener('message',onMessage);
  loadCatalogs();
- return {isPc,isPackage,isDeliveredFurniture,updateRuntimeItem,storedFurniture,setFurnitureStored,retrieveStoredFurniture,actionLabel,openPc,closePc,onComputerOpen,onComputerClose,syncTerminal,onPeephole,onPeepholeExit,talkThroughPeephole,onDoorOpened,openPackage,placeOrder,advanceTime,formatClock,update,resume,activateNext,
-  get products(){return products.map(clone)},get orders(){return delivery.orders.map(clone)},get ready(){return ready}};
+ return {isPc,isPackage,isDeliveredFurniture,updateRuntimeItem,storedFurniture,setFurnitureStored,retrieveStoredFurniture,actionLabel,openPc,closePc,onComputerOpen,onComputerClose,syncTerminal,onPeephole,onPeepholeExit,talkThroughPeephole,onDoorOpened,interruptDialogue,openPackage,placeOrder,advanceTime,formatClock,update,resume,activateNext,
+  get dialogOpen(){return !!dialog?.classList.contains('open')},get products(){return products.map(clone)},get orders(){return delivery.orders.map(clone)},get ready(){return ready}};
 }
 global.FHDelivery=Object.freeze({ensureState,parcelSize,normalizeProduct,createOrder,activeOrderForDoor,advanceTime,tickClock,formatMinutes,formatClock,nextDueOrder,createRuntime});
 })(window);
