@@ -613,3 +613,72 @@ body.fh-player-menu-ready #fhPlayerMenuDetail .fh-setting-editor {
 @media(prefers-reduced-motion:reduce) {
   body.fh-player-menu-ready #fhPlayerMenuDetail .fh-resource-fill {transition:none}
 }
+
+
+/* Habilidades: lectura compacta, grupo por Score y tiradas accesibles. */
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-skill-section {
+ margin:22px 0 0;padding:clamp(13px,2vw,24px);
+ border:1px solid rgba(232,226,214,.26);background:rgba(0,0,0,.18);
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-skill-help {
+ margin:0 0 16px;color:#bcb6ad;font:400 14px/1.5 var(--fh-narrative);
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-skill-controls {
+ display:flex;flex-wrap:wrap;gap:12px;margin-bottom:15px;
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-skill-field {
+ flex:1 1 105px;display:flex;flex-direction:column;gap:6px;
+ color:#d5d0c8;font:500 12px/1.4 var(--fh-ritual);
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-skill-field input {
+ box-sizing:border-box;width:100%;min-height:44px;padding:8px;
+ border:1px solid #bbb5aa;background:#111;color:#f5f0e8;
+ font:500 16px/1.2 var(--fh-narrative);
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-skill-group {
+ border-top:1px solid #e4dfd52b;
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-skill-group summary {
+ display:flex;align-items:center;justify-content:space-between;
+ min-height:46px;padding:9px 4px;cursor:pointer;color:#eee8de;
+ font:500 15px/1.3 var(--fh-ritual);
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-skill-group-count {
+ color:#ada79e;font:400 13px var(--fh-narrative);
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-skill-row {
+ display:grid;grid-template-columns:minmax(0,1fr) auto auto;
+ align-items:center;gap:10px;min-height:48px;padding:6px 4px;
+ border-top:1px solid #e4dfd51c;
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-skill-name {
+ color:#dad4cb;font:400 14px/1.35 var(--fh-narrative);
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-skill-points {
+ color:#bfb9af;font:400 12px/1.35 var(--fh-narrative);white-space:nowrap;
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-skill-roll {
+ min-height:42px;padding:7px 12px;border:1px solid #b9b2a6;
+ border-radius:0;background:#282723;color:#f2ece2;cursor:pointer;
+ font:500 12px/1.3 var(--fh-ritual);
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-skill-roll:hover {
+ background:#393630;border-color:#f2ece2;
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-skill-field input:focus-visible,
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-skill-group summary:focus-visible {
+ outline:2px solid white;outline-offset:3px;
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-skill-result:not(:empty) {
+ display:flex;flex-direction:column;gap:8px;margin-top:17px;padding:13px;
+ border:1px solid #b9b2a666;color:#f3eee6;font:400 14px var(--fh-narrative);
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-skill-result small {color:#c8c2b8}
+@media(max-width:480px) {
+ body.fh-player-menu-ready #fhPlayerMenuDetail .fh-skill-row {
+  grid-template-columns:minmax(0,1fr) auto;
+ }
+ body.fh-player-menu-ready #fhPlayerMenuDetail .fh-skill-roll {
+  grid-column:1/-1;justify-self:start;
+ }
+}

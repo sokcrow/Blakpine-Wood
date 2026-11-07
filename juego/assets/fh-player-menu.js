@@ -70,6 +70,55 @@
       return null;
     return {current,maximum,percent:Math.max(0,Math.min(100,100*current/maximum))};
   }
+  function appendSkills(host,character){
+    const S=global.FHSkills,txt=global.FH_SKILL_TEXT;
+    if(!S||!txt||!character)return;
+    const section=node('section','fh-skill-section');
+    section.append(node('h4','fh-status-column-heading',txt.title));
+    section.append(node('p','fh-skill-help',txt.explanation));
+    const controls=node('div','fh-skill-controls');
+    const numeric=(caption,min,max,value)=>{
+      const field=node('label','fh-skill-field');
+      field.append(node('span','',caption));
+      const input=node('input');input.type='number';input.min=String(min);
+      input.max=String(max);input.step='1';input.value=String(value);input.inputMode='numeric';
+      field.append(input);controls.append(field);return input;
+    };
+    const difficulty=numeric(txt.difficulty,0,100,4);
+    const advantage=numeric(txt.advantage,0,20,0);
+    const disadvantage=numeric(txt.disadvantage,0,20,0);
+    section.append(controls);
+    const result=node('div','fh-skill-result');
+    result.setAttribute('role','status');result.setAttribute('aria-live','polite');
+    for(const [score,ids] of Object.entries(S.GROUPS)){
+      const group=node('details','fh-skill-group');
+      const summary=node('summary','',label('scoreNames')?.[score]||score);
+      summary.append(node('span','fh-skill-group-count',String(ids.length)));
+      group.append(summary);
+      for(const id of ids){
+        const row=node('div','fh-skill-row');
+        const name=node('span','fh-skill-name',txt.names[id]||id);
+        const pts=node('span','fh-skill-points',String(S.readPoints(character,id))+' '+txt.points);
+        const button=node('button','fh-skill-roll',txt.roll);
+        button.type='button';button.setAttribute('aria-label',txt.roll+': '+(txt.names[id]||id));
+        button.addEventListener('click',()=>{
+          try{
+            const opts={difficulty:Number(difficulty.value),advantage:Number(advantage.value),
+              disadvantage:Number(disadvantage.value)};
+            const check=S.roll(character,id,opts);
+            const title=node('strong','fh-skill-result-title',(txt.names[id]||id)+' · '+txt.outcomes[check.outcome]);
+            const coins=node('span','',check.coins.map(c=>c==='heads'?txt.heads:txt.tails).join(' · '));
+            const odds=node('small','',txt.headsChance+': '+check.headsPercent.toFixed(1)+'% · '+
+              txt.successChance+': '+check.successPercent.toFixed(1)+'%');
+            result.replaceChildren(title,coins,odds);
+          }catch(error){result.textContent=error?.message||txt.noCharacter;}
+        });
+        row.append(name,pts,button);group.append(row);
+      }
+      section.append(group);
+    }
+    section.append(result);host.append(section);
+  }
   function renderStatus(host){
     // Fuente de verdad: GameState.character, expuesta por FHCharacterRuntime.
     const character=global.FHCharacterRuntime?.character||null;
@@ -133,6 +182,7 @@
     cards.append(card(label('torch'),textOf('flashlightToggle')));
     world.append(cards);
     host.append(hero,grid,world);
+    appendSkills(host,character);
   }
   function syncSettingsControls(){
     if(!open||current!=='settings')return;

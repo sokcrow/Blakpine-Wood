@@ -3,6 +3,9 @@
  'use strict';
  const KEY='blakpine_character_active_v1';
  const SCORES=Object.freeze(['FOR','AGI','VOL','PRU','ING','ARC','SOC']);
+ const initialSkills=()=>global.FHSkills?.emptyPoints?.()||{};
+ const normalizedSkills=raw=>global.FHSkills?.normalizePoints?.(raw)||(
+  raw&&typeof raw==='object'&&!Array.isArray(raw)?clone(raw):{});
  const RELATIONS=Object.freeze(['hermano','hermana','madre','padre','pareja','amigo','amiga','otro']);
  const clone=value=>JSON.parse(JSON.stringify(value));
  const unique=xs=>Array.isArray(xs)&&new Set(xs).size===xs.length;
@@ -45,7 +48,7 @@
    version:1,id,life:'alive',name,origin:input.origin,
    missingPerson:{name:missingName||null,relationship:input.relationship,deadlineDays:365},
    allocation:{strengths,weaknesses,bonus},
-   scores,resources:{pg:r.pgMax,pgMax:r.pgMax,sp:r.spMax,spMax:r.spMax,pe:r.peMax,peMax:r.peMax},
+   scores,skills:initialSkills(),resources:{pg:r.pgMax,pgMax:r.pgMax,sp:r.spMax,spMax:r.spMax,pe:r.peMax,peMax:r.peMax},
    profession:null,traits:[],workHistory:[],
    employment:{hasJob:input.origin==='resident',jobId:null,pendingAssignment:input.origin==='resident'},
    housing:{propertyId:null,pendingAssignment:true},
@@ -60,14 +63,17 @@
    if(value?.version!==1||typeof value.id!=='string'||!value.id||
       !['alive','dead'].includes(value.life)||typeof value.name!=='string'||
       !value.scores||SCORES.some(k=>!Number.isInteger(value.scores[k])))return null;
+   value.skills=normalizedSkills(value.skills);
    return clone(value);
   }catch{return null}
  }
  function store(profile) {
   const store=storage();
   if(!store)throw Error('Almacenamiento no disponible.');
-  store.setItem(KEY,JSON.stringify(profile));
-  return clone(profile);
+  const saved=clone(profile);
+  saved.skills=normalizedSkills(saved.skills);
+  store.setItem(KEY,JSON.stringify(saved));
+  return saved;
  }
  function current(){const profile=load();return profile?.life==='alive'?profile:null}
  function markDead(id) {
@@ -99,5 +105,16 @@
    return updated;
   }catch{return false}
  }
- global.FHCharacterCore=Object.freeze({KEY,SCORES,RELATIONS,calculate,resources,createProfile,load,store,current,markDead,selectMapSave,syncResourcesFromSave});
+ function syncSkillsFromSave(raw,characterId) {
+  const profile=current();
+  if(!profile||profile.id!==characterId||!selectMapSave(raw,characterId))return false;
+  try{
+   const incoming=JSON.parse(raw).state.character?.skills;
+   if(!incoming||typeof incoming!=='object'||Array.isArray(incoming))return false;
+   const next=normalizedSkills(incoming);
+   if(JSON.stringify(profile.skills)===JSON.stringify(next))return false;
+   profile.skills=next;store(profile);return true;
+  }catch{return false}
+ }
+ global.FHCharacterCore=Object.freeze({KEY,SCORES,RELATIONS,calculate,resources,createProfile,load,store,current,markDead,selectMapSave,syncResourcesFromSave,syncSkillsFromSave});
 })(typeof window!=='undefined'?window:globalThis);

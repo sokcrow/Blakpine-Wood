@@ -43,6 +43,7 @@
     statusSheet: 'HOJA DE PERSONAJE',
     statusAttributes: 'Atributos',
     statusResources: 'Recursos',
+    statusSkills: 'Habilidades',
     statusWorld: 'Situación actual',
     statusNameMissing: 'Identidad no disponible',
     statusNoCharacter: 'No hay datos de un personaje activo en esta partida.',

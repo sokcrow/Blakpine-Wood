@@ -2860,9 +2860,11 @@ function prepareGLBEngineDoc(source){
   return doc.split('floorMaterial,.039)').join('roomMaterial,.039)');
  }
   const parkingScript='<script src="'+new URL('./juego/assets/fh-parking.js',document.baseURI).href+'"></'+'script>';
- const playerMenuCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-player-menu.css?v=20261106-player-ui',document.baseURI).href+'">';
+ const playerMenuCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-player-menu.css?v=20261106-skills',document.baseURI).href+'">';
  const playerMenuStrings='<script src="'+new URL('./juego/assets/fh-player-menu-strings.js?v=20261106-player-ui',document.baseURI).href+'"></'+'script>';
- const playerMenuScript='<script src="'+new URL('./juego/assets/fh-player-menu.js?v=20261106-player-ui',document.baseURI).href+'"></'+'script>';
+ const skillsModule='<script src="'+new URL('./juego/assets/fh-skills.js?v=20261106-skills',document.baseURI).href+'"></'+'script>';
+ const skillsStrings='<script src="'+new URL('./juego/assets/fh-skill-strings.js?v=20261106-skills',document.baseURI).href+'"></'+'script>';
+ const playerMenuScript='<script src="'+new URL('./juego/assets/fh-player-menu.js?v=20261106-skills',document.baseURI).href+'"></'+'script>';
  const locationCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-location-hud.css?v=20261106-hud-left-code',document.baseURI).href+'">';
  const locationStrings='<script src="'+new URL('./juego/assets/fh-location-strings.js?v=20261106-location',document.baseURI).href+'"></'+'script>';
  const locationScript='<script src="'+new URL('./juego/assets/fh-location-hud.js?v=20261106-zonas-color',document.baseURI).href+'"></'+'script>';
@@ -3618,7 +3620,7 @@ const cameraLightAfter=" const lightDistance=camDistance+(window.FHLights?.camer
   .replace(attachBefore,' window.FHAssets?.attach(g,a);\n'+attachBefore)
   .replace(cloneBefore,'const clone=source.clone(true);\n   window.FHAssets?.mirror(source,clone);\n   clone.position.y+=floorElev[f];')
   .replace(engineSuccessBefore,engineSuccessAfter).replace(engineFailBefore,engineFailAfter).replace(loadFailBefore,loadFailAfter)
-  .replace('</head>',localThree+coverageScript+lightsModule+surfaceScript+decorationScript+ruleScript+bridge+sleepStrings+sleepModule+pcAssemblyModule+computerStrings+computerModule+npcGoapModule+npcCourierModule+deliveryStrings+deliveryModule+styleCore+styleRender+parkingScript+playerMenuCss+playerMenuStrings+playerMenuScript+locationCss+locationStrings+locationScript+hudRedesignCss+gameUiCss+hudFrameScript+'</head>')));
+  .replace('</head>',localThree+coverageScript+lightsModule+surfaceScript+decorationScript+ruleScript+bridge+sleepStrings+sleepModule+pcAssemblyModule+computerStrings+computerModule+npcGoapModule+npcCourierModule+deliveryStrings+deliveryModule+styleCore+styleRender+parkingScript+playerMenuCss+playerMenuStrings+skillsModule+skillsStrings+playerMenuScript+locationCsslocationStrings+locationScript+hudRedesignCss+gameUiCss+hudFrameScript+'</head>')));
 }
 let fhCharacterLaunchPending=false;
 async function start3DPreview(){
@@ -3687,6 +3689,7 @@ window.addEventListener('message',e=>{
    if(id&&window.FHCharacterCreation.selectMapSave(e.data.json,id)){
     safeStorage(e.data.key,e.data.json);
     window.FHCharacterCore?.syncResourcesFromSave(e.data.json,id);
+    window.FHCharacterCore?.syncSkillsFromSave(e.data.json,id);
    }
   }
  }
@@ -3724,7 +3727,8 @@ setupPlayMode();
 init();
 </script>
 <script src="./juego/assets/fh-character-strings.js?v=20261106-phase1"></script>
-<script src="./juego/assets/fh-character-core.js?v=20261106-phase1"></script>
+<script src="./juego/assets/fh-skills.js?v=20261106-skills"></script>
+<script src="./juego/assets/fh-character-core.js?v=20261106-skills"></script>
 <script src="./juego/assets/fh-character-creation.js?v=20261106-phase1"></script>
 <script src="./juego/assets/fh-strings.js"></script>
 <script src="./juego/assets/fh-light-strings.js?v=20261105-light-ui2"></script>
