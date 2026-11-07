@@ -19,7 +19,7 @@
 #fhPhoneToggle:focus-visible,#fhPhonePanel :focus-visible{outline:2px solid #f5f1ea;outline-offset:3px}
 #fhPhonePanel{
  position:fixed;z-index:90;
- top:calc(85px + env(safe-area-inset-top,0px));right:calc(clamp(14px,3vw,50px) + 64px);
+ top:calc(85px + env(safe-area-inset-top,0px));right:calc(clamp(14px,3vw,50px) + 100px);
  display:flex;flex-direction:column;width:min(356px,calc(100vw - 125px));
  height:min(654px,calc(100dvh - 106px - env(safe-area-inset-top,0px)));
  min-height:230px;overflow:hidden;isolation:isolate;
@@ -190,12 +190,12 @@ body.breaker-active #fhPhoneToggle,body.breaker-active #fhPhonePanel{
  .fh-phone-content{padding:13px 14px 16px}
 }
 @media(max-width:540px) and (orientation:portrait){
- #fhPhonePanel{top:calc(125px + env(safe-area-inset-top,0px));right:7px;
-  width:min(354px,calc(100vw - 14px));height:min(640px,calc(100dvh - 140px - env(safe-area-inset-top,0px)));}
+ #fhPhonePanel{top:calc(139px + env(safe-area-inset-top,0px));right:7px;
+  width:min(354px,calc(100vw - 14px));height:min(640px,calc(100dvh - 154px - env(safe-area-inset-top,0px)));}
 }
 @media(max-height:480px) and (orientation:landscape){
  #fhPhoneToggle{top:calc(61px + env(safe-area-inset-top,0px));right:9px;width:46px;height:46px}
- #fhPhonePanel{top:6px;right:62px;width:min(340px,calc(100vw - 80px));
+ #fhPhonePanel{top:6px;right:80px;width:min(340px,calc(100vw - 80px));
   height:calc(100dvh - 12px);min-height:0;border-width:5px;border-radius:23px}
  #fhPhonePanel::before{height:10px;width:60px}
  .fh-phone-statusbar{min-height:25px;padding:9px 16px 1px}
