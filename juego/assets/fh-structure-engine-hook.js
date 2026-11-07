@@ -12,6 +12,8 @@ function one(doc,oldValue,newValue){
 function patch(source){
  if(typeof source!=='string')throw new TypeError('Documento de motor requerido');
  let doc=source;
+ doc=one(doc,'ForestShared.loadProject(DATA);',
+  'ForestShared.loadProject(DATA);window.FHStructureHealth.validateMap(DATA);');
  // El estado se guarda en la misma estructura de la partida, sin alterar el JSON del mapa.
  doc=one(doc,"return {flags:{...(initial.flags||{})},inventory:",
   "return {structures:structuredClone(initial.structures||{}),flags:{...(initial.flags||{})},inventory:");
