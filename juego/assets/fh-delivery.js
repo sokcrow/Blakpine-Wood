@@ -280,9 +280,11 @@ function createRuntime(options){
   const order=orderById(state,record.orderId),product=productById(record.productId||order?.productId);
   if(!order||!product)return false;
   const floor=Number.isInteger(position.floor)?position.floor:record.floor;
-  return options.restoreFurniture?.({...clone(record),floor,
+  const placement={...clone(record),floor,
    x:finite(position.x,record.x),y:finite(position.y,record.y),
-   rotation:finite(position.rotation,record.rotation)},product,order)||false;
+   rotation:finite(position.rotation,record.rotation)};
+  delete placement.support;delete placement.wallId;
+  return options.restoreFurniture?.(placement,product,order)||false;
  }
  function openPackage(item){
   const order=orderById(state,item?.runtimePackage?.orderId);if(!order||order.status!=='delivered')return false;
