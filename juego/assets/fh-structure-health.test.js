@@ -138,6 +138,7 @@ test('hook 3D compone contra el motor Base64 y el adaptador de GLB real',()=>{
  const b={},hctx={window:b,document:{currentScript:{src:'https://example.test/juego/assets/fh-structure-engine-hook.js'},baseURI:'https://example.test/'},URL};
  vm.runInNewContext(hookCode,hctx);
  const patched=b.FHStructureHealthEngine.patch(installed);
+ assert.match(patched,/FHStructureHealthRuntime\?\.registerExteriorProxy/);
  assert.match(patched,/FHStructureHealthRuntime\?\.registerWindow/);
  assert.match(patched,/FHStructureHealthRuntime\?\.registerDoor/);
  assert.match(patched,/const fhHealthRuntime=window\.FHStructureHealth\.createRuntime/);
@@ -175,4 +176,17 @@ test('IDs de mapas arbitrarios siguen siendo claves JSON, nunca prototipos',()=>
  assert.equal(Object.hasOwn(registry['__proto__'],'__proto__'),true);
  assert.equal(Object.getPrototypeOf(registry),Object.prototype);
  assert.equal(JSON.parse(JSON.stringify(registry))['__proto__']['__proto__'].structure.pg,9);
+});
+
+test('al destruir fachada se retiran también sus copias exteriores; al recargar no reviven',()=>{
+ const H=api(),item=door(),map={floors:[{id:'nivel1',items:[item]}]},
+  sceneGraph=scene(),registry={},d={f:0,hinge:sceneGraph.root('leaf'),frame:sceneGraph.root('frame')};
+ const rt=H.createRuntime({data:map,state:{structures:registry},doorList:[[d]],blockers:[[]]});
+ rt.registerDoor(d,item);
+ rt.registerExteriorProxy(0,item,sceneGraph.root('facade'));
+ rt.takeDamage({floorId:'nivel1',id:'d1',amount:10});
+ assert.ok(sceneGraph.removed.includes('facade'));
+ const rt2=H.createRuntime({data:map,state:{structures:registry},doorList:[[]],blockers:[[]]});
+ rt2.registerExteriorProxy(0,item,sceneGraph.root('facade-late'));
+ assert.ok(sceneGraph.removed.includes('facade-late'));
 });
