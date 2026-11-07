@@ -5,7 +5,7 @@
     menuLabel:'Acciones del objeto',action:'Acción',interact:'Interactuar',
     door:'Puerta',stairs:'Escalera',elevator:'Ascensor',furniture:'Mueble',
     courier:'Repartidor',talk:'Hablar',peephole:'Mirar por la mirilla',
-    decorate:'Decorar',decorateSelect:'Seleccionar / mover',decorateStore:'Muebles guardados',
+    decorate:'Decorar',decorateMove:'Mover frente a mí',decorateSelect:'Seleccionar / mover',decorateStore:'Muebles guardados',
     decoratePlace:'Colocar',decorateCancel:'Cancelar',decorateTurnFine:'Girar 15°',
     decorateTurn:'Girar 90°',decorateStoreItem:'Guardar mueble',
     decorateOff:'Decorar: desactivado',decorateOn:'Decorar: activado',
