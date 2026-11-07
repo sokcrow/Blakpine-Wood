@@ -99,6 +99,7 @@ function scene(profile){
   add('button','flashlightToggle','Linterna 65%');
   for(const [id,value,next] of [
     ['pixelBtn','Píxel: 2x','Píxel: 3x'],
+    ['fhDecorModeBtn','Decorar: desactivado','Decorar: activado'],
     ['gridBtn','Cuadrícula: no','Cuadrícula: sí'],
     ['fullscreenBtn','Horizontal','Salir'],
     ['mapBtn','Editor','Editor'],
@@ -157,7 +158,7 @@ test('Estado no genera estadísticas cuando falta el personaje',()=>{
     assert.equal(value.textContent,'—');
 });
 
-test('Opciones reutiliza los dos botones reales, sin cuadrícula, y separa la salida al editor',()=>{
+test('Opciones ofrece Decorar en lugar de Pixel y separa la salida al editor',()=>{
   const {tabs,detail,global,clicks}=scene({current:structuredClone(example)});
   tabs.children[4].click();
   const controls=detail.querySelectorAll('[data-fh-setting]');
@@ -165,8 +166,9 @@ test('Opciones reutiliza los dos botones reales, sin cuadrícula, y separa la sa
   assert.doesNotMatch(detail.textContent,/Cuadrícula/);
   assert.doesNotMatch(detail.textContent,/Cambiar piso/);
   controls[0].click();
-  assert.equal(clicks.pixelBtn,1);
-  assert.match(controls[0].textContent,/3x/);
+  assert.equal(clicks.fhDecorModeBtn,1);
+  assert.match(controls[0].textContent,/activado/);
+  assert.equal(clicks.pixelBtn,undefined);
   assert.equal(clicks.gridBtn,undefined);
   controls[1].click();
   assert.equal(clicks.fullscreenBtn,1);
