@@ -248,12 +248,24 @@
   }
   function flushNotice() {if(!current && !global.document?.getElementById('fhDeliveryDialog')?.classList.contains('open') && pendingNotice){const n=pendingNotice;pendingNotice=null;notice(n.text,n.ms);}}
   function getView() { return typeof viewProvider === 'function' ? viewProvider() : null; }
-  function sourceInRange(spec, view) {
-    return audible({x:spec.x,z:spec.z,y:spec.y}, view?.listener, Number(spec.range) || 9);
+  // La distancia máxima es la de dibujado; la luz y la zona negra no determinan el oído.
+  function soundLevel(spec, view = getView()) {
+    if (!view || (spec?.floor != null && spec.floor !== view.floor)) return 0;
+    const radius = Number(view.hearingRadius) > 0 ? Number(view.hearingRadius) : 10.4;
+    const range = Math.min(radius, Number(spec?.range) > 0 ? Number(spec.range) : radius);
+    if (!global.FHHearing) {
+      return audible({x:spec?.x,z:spec?.z,y:spec?.y},view.listener,range) ? 1 : 0;
+    }
+    const obstacles = typeof view.hearingObstacles === 'function'
+      ? view.hearingObstacles() : view.hearingObstacles;
+    return global.FHHearing.evaluate(spec, {
+      listener: view.listener, floor: view.floor, radius, obstacles
+    }).volume;
   }
+  function sourceInRange(spec, view) { return soundLevel(spec, view) > 0; }
   function soundAt(spec) {
     const view = getView(), info = SOUND[spec?.id] || {};
-    if (!view || !sourceInRange({ ...spec, range: spec?.range || info.range || 8 },view)) return false;
+    if (!view || !(Number.isFinite(spec?.level) ? spec.level : soundLevel({ ...spec, range: spec?.range || info.range },view))) return false;
     const word = String(spec?.text || T.soundWords?.[info.word] || '');
     if (!word) return true;
     ensure();
@@ -263,26 +275,57 @@
     spatialItems.push(entry);tick();return true;
   }
   let audio = null;
-  function knockSound() {
+  function knockSound(level = 1) {
     try {
       const Audio = global.AudioContext || global.webkitAudioContext;
       if (!Audio) return;
       audio = global.ForestHorrorAudioContext || audio || new Audio();if (audio.state === 'suspended') audio.resume().catch(()=>{});
       const now = audio.currentTime, osc = audio.createOscillator(), gain = audio.createGain();
       osc.type = 'triangle';osc.frequency.setValueAtTime(155,now);osc.frequency.exponentialRampToValueAtTime(68,now+.07);
-      gain.gain.setValueAtTime(.14,now);gain.gain.exponentialRampToValueAtTime(.001,now+.09);
+      gain.gain.setValueAtTime(Math.max(.001,.14*level),now);gain.gain.exponentialRampToValueAtTime(.001,now+.09);
       osc.connect(gain);gain.connect(audio.destination);osc.start(now);osc.stop(now+.1);
     } catch (_) { /* El texto sigue funcionando aunque el navegador bloquee el audio. */ }
   }
   function knockAt(spec) {
-    const view = getView();
-    if (!view || !sourceInRange({ ...spec, range: spec?.range || 11 }, view)) return false;
-    notice(T.doorKnock,2800);
+    const source = { ...spec, range: spec?.range || 11 };
+    if (!soundLevel(source)) return false;
+    notice(T.doorKnock,2800); // Única reacción interna: no narrar cada golpe.
     for (let i=0;i<3;i++) global.setTimeout(() => {
-      const fresh = getView();
-      if (!fresh || !sourceInRange({ ...spec, range: spec?.range || 11 }, fresh)) return;
-      knockSound();soundAt({ ...spec, id:'knock',text:T.soundWords?.knock,range:spec?.range || 11 });
+      const level = soundLevel(source); // El jugador o la puerta pueden haberse movido.
+      if (!level) return;
+      knockSound(level);
+      soundAt({ ...source, id:'knock',text:T.soundWords?.knock,level });
     }, i*440);
+    return true;
+  }
+
+  // SFX puntuales; se evalúan sólo cuando ocurre un evento, nunca por frame.
+  function playSfxAt(spec) {
+    const level = soundLevel(spec);
+    if (!level) return false;
+    const presets = {
+      door_open: { start: 130, end: 185, duration: .24, volume: .10, wave: 'sawtooth' },
+      door_close: { start: 105, end: 58, duration: .13, volume: .16, wave: 'triangle' },
+      lamp_click: { start: 620, end: 280, duration: .027, volume: .065, wave: 'square' },
+      computer_start: { start: 75, end: 155, duration: .46, volume: .075, wave: 'triangle' }
+    };
+    const preset = presets[spec?.id];
+    if (!preset) return false;
+    try {
+      const Audio = global.AudioContext || global.webkitAudioContext;
+      if (!Audio) return true;
+      audio = global.ForestHorrorAudioContext || audio || new Audio();
+      global.ForestHorrorAudioContext = audio;
+      if (audio.state === 'suspended') audio.resume().catch(()=>{});
+      const now = audio.currentTime, osc = audio.createOscillator(), gain = audio.createGain();
+      osc.type = preset.wave;
+      osc.frequency.setValueAtTime(preset.start,now);
+      osc.frequency.exponentialRampToValueAtTime(preset.end,now+preset.duration);
+      gain.gain.setValueAtTime(Math.max(.001,preset.volume*level),now);
+      gain.gain.exponentialRampToValueAtTime(.001,now+preset.duration);
+      osc.connect(gain);gain.connect(audio.destination);
+      osc.start(now);osc.stop(now+preset.duration+.01);
+    } catch (_) { /* Un navegador sin audio no debe interrumpir la interacción. */ }
     return true;
   }
   function tick() {
@@ -305,5 +348,5 @@
       p.el.style.transform = 'translate(-50%,-50%)';
     }
   }
-  global.FHLiveText = Object.freeze({ configure,showDialogue,typeInto,advance,isDialogOpen,notice,flushNotice,soundAt,knockAt,tick,delayAfter,audible,normalizePages,PAUSE });
+  global.FHLiveText = Object.freeze({ configure,showDialogue,typeInto,advance,isDialogOpen,notice,flushNotice,soundAt,soundLevel,playSfxAt,knockAt,tick,delayAfter,audible,normalizePages,PAUSE });
 })(typeof window !== 'undefined' ? window : globalThis);
