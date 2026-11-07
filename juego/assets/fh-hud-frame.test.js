@@ -79,7 +79,7 @@ test('vista previa carga nuevas capas después del HUD existente',()=>{
   const index=fs.readFileSync(path.join(__dirname,'../../index.html'),'utf8');
   assert.match(index,/fh-hud-redesign\.css\?v=/);
   assert.match(index,/fh-hud-frame\.js\?v=/);
-  assert.match(index,/locationScript\+hudRedesignCss\+gameUiCss\+hudFrameScript\+mobileMenusCss\+statusCss\+statusStrings\+statusScript\+'<\/head>'/);
+  assert.match(index,/locationScript\+hudRedesignCss\+gameUiCss\+hudFrameScript\+mobileMenusCss\+statusCss\+statusStrings\+statusScript\+mobileCameraScript\+'<\/head>'/);
 });
 test('la lógica F1\/B1 y las zonas del mapa conservan su módulo',()=>{
   const location=fs.readFileSync(path.join(__dirname,'fh-location-hud.js'),'utf8');
