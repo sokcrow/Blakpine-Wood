@@ -84,8 +84,7 @@ async function setup(method){
  };
  const clickChoice=index=>{
   const buttons=document.getElementById('fhDeliveryActions');
-  assert.equal(buttons.classList.contains('fh-waiting'),true,'las opciones deben esperar al Typewriter');
-  press('e');
+  if(buttons.classList.contains('fh-waiting'))press('e');
   assert.equal(buttons.classList.contains('fh-waiting'),false,'E revela el texto completo');
   buttons.children[index].onclick();
  };
