@@ -295,7 +295,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
   <div id="message" role="status" aria-live="polite"></div>
  </div></div>
 </div>
-<script src="fh-delivery-strings.js?v=20261106-interiores-1"></script>
+<script src="fh-delivery-strings.js?v=20261106-goap-1"></script>
 <script src="fh-computer-strings.js"></script>
 <script>
 'use strict';
@@ -501,7 +501,7 @@ function renderHamazon(body){
  }
  side.append(node('strong','','PEDIDOS'));
  if(!DATA.hamazonOrders.length)side.append(node('div','hamazon-empty','No hay pedidos.'));
- const orderStatus={scheduled:'PROGRAMADO',queued:'EN COLA',waiting:'EN LA PUERTA',payment:'ESPERANDO PAGO',delivering:'ENTREGANDO',delivered:'ENTREGADO',unboxed:'ABIERTO',placed:'PROGRAMADO'};
+ const orderStatus={scheduled:'PROGRAMADO',queued:'EN COLA',en_route:window.FH_DELIVERY_TEXT?.statusOnRoute,route_blocked:window.FH_DELIVERY_TEXT?.statusRouteBlocked,waiting:'EN LA PUERTA',payment:'ESPERANDO PAGO',delivering:'ENTREGANDO',delivered:'ENTREGADO',unboxed:'ABIERTO',placed:'PROGRAMADO'};
  for(const o of DATA.hamazonOrders.slice().reverse()){
   const label=orderStatus[o.status]||(o.status||'pending').toUpperCase(),eta=['scheduled','queued','placed'].includes(o.status)&&o.eta?' · LLEGA '+o.eta:'';
   const row=node('div','hamazon-order');row.append(node('strong','',o.name||o.productId),node('div','',label+eta+' · '+(o.paymentMethod||'prepaid').toUpperCase()));side.append(row);
