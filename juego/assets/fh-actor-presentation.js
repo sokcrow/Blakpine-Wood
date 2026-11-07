@@ -6,7 +6,7 @@
  if(root)root.FHActorPresentation=api;
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
  'use strict';
- const WALK_INTERVAL_SECONDS=0.8;
+ const WALK_INTERVAL_SECONDS=0.5;
  function createCycle(seconds=WALK_INTERVAL_SECONDS){
   const interval=Number.isFinite(seconds)&&seconds>0?seconds:WALK_INTERVAL_SECONDS;
   let elapsed=0,wasWalking=false;
