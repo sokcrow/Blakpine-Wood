@@ -47,7 +47,7 @@ class Element{
  removeEventListener(event,fn){this.listeners[event]=(this.listeners[event]||[]).filter(f=>f!==fn)}
  focus(){this.focused=true}
 }
-async function setup(method){
+async function setup(method,checkout={}){
  const document={ids:{},baseURI:'https://example.test/juego/assets/',createElement(tag){return new Element(this,tag)},getElementById(id){return this.ids[id]||null}};
  document.head=document.createElement('head');document.body=document.createElement('body');
  const listeners={};let timerId=0;
@@ -69,6 +69,11 @@ async function setup(method){
   findDoor:()=>door,doorById:()=>door,notice(){},save(){},showNpc(){},hideNpc(){},
   resolveDoorAddress:()=>({id:'parcel_test',name:'Apartamento 5 A'}),
   propertyNameById:id=>id==='parcel_test'?'Apartamento 5 A':'',endDoorEvent(){effects.ended++;},
+  listDeliveryAddresses:()=>[
+   {id:'property:parcel_test',doorId:door.id,floor:0,propertyId:'parcel_test',propertyName:'Apartamento 5 A',label:'Apartamento 5 A'},
+   {id:'room:f1:sala',doorId:door.id,floor:0,propertyId:'parcel_test',propertyName:'Apartamento 5 A',roomId:'sala',label:'Apartamento 5 A · Sala'}
+  ],
+  replacePackage:(item,p,order)=>({item:{id:'delivered_'+item.id,x:item.x,y:item.y,rotation:0,runtimeDeliveryFurniture:{orderId:order.id,productId:p.id}},floor:0}),
   knock(){effects.knocks++;return true},freeze:v=>effects.freezes.push(v),
   openDoor(){effects.opened++;runtime.onDoorOpened(door)},
   packagePlacement:()=>({floor:0,x:3,z:5}),spawnRuntimeItem:item=>effects.created.push(item)
@@ -77,7 +82,7 @@ async function setup(method){
  assert.equal(runtime.ready,true);
  for(let n=0;n<50&&runtime.products[0]?.shopStatus!=='available';n++)await Promise.resolve();
  assert.equal(runtime.products[0].shopStatus,'available');
- const order=runtime.placeOrder('mesa',method);
+ const order=runtime.placeOrder('mesa',method,checkout);
  const press=key=>{
   const event={key,repeat:false,target:document.getElementById('fhDeliveryText'),preventDefault(){},stopImmediatePropagation(){this.stopped=true}};
   for(const handler of [...listeners.keydown||[]]){handler(event);if(event.stopped)break}
@@ -88,7 +93,7 @@ async function setup(method){
   assert.equal(buttons.classList.contains('fh-waiting'),false,'E revela el texto completo');
   buttons.children[index].onclick();
  };
- return {runtime,order,door,document,effects,press,clickChoice};
+ return {runtime,order,door,document,effects,press,clickChoice,state};
 }
 for(const payment of ['cash','card','prepaid']){
  test('repartidor: diálogo de puerta y entrega ('+payment+')',async()=>{
@@ -145,4 +150,46 @@ test('un ataque interrumpe el diálogo sin completar el pedido',async()=>{
  assert.equal(effects.ended,1);
  assert.equal(order.status,'waiting');
  assert.equal(effects.created.length,0);
+});
+
+test('Hamazon entrega tres unidades a la habitación seleccionada usando una sola puerta',async()=>{
+ const env=await setup('prepaid',{quantity:3,addressId:'room:f1:sala'});
+ const {runtime,order,door,effects,clickChoice,state}=env;
+ assert.equal(order.quantity,3);
+ assert.equal(order.propertyId,'parcel_test');
+ assert.equal(order.roomId,'sala');
+ assert.equal(order.addressLabel,'Apartamento 5 A · Sala');
+ assert.equal(order.doorId,'door1');
+ runtime.onPeephole(door);
+ runtime.talkThroughPeephole();
+ clickChoice(4); // Abrir
+ clickChoice(4); // Continuar
+ clickChoice(0); // Recibir
+ assert.equal(order.status,'delivered');
+ assert.equal(effects.created.length,3,'tres cajas, una visita');
+ assert.equal(new Set(effects.created.map(c=>c.id)).size,3,'cajas con IDs independientes');
+ assert.equal(state.delivery.packages.length,3);
+ for(const [i,pack] of effects.created.entries()){
+  assert.equal(runtime.openPackage(pack),true,'cada caja se puede abrir');
+  assert.equal(order.unboxedCount,i+1);
+  assert.equal(order.status,i===2?'unboxed':'delivered');
+ }
+ assert.equal(state.delivery.packages.length,0);
+ assert.equal(state.delivery.furnishings.length,3);
+ assert.equal(new Set(state.delivery.furnishings.map(r=>r.id)).size,3,'muebles independientes');
+});
+test('Hamazon valida cantidad y dirección sin modificar pedidos anteriores',async()=>{
+ const {runtime,order}=await setup('prepaid');
+ const before=runtime.orders.length;
+ assert.equal(order.quantity,1,'pedidos sin cantidad conservan 1');
+ for(const quantity of [0,-1,1.5,21,'incorrecto']){
+  assert.equal(runtime.placeOrder('mesa','prepaid',{quantity}),null);
+ }
+ assert.equal(runtime.placeOrder('mesa','prepaid',{quantity:2,addressId:'room:f1:inexistente'}),null);
+ assert.equal(runtime.orders.length,before);
+ const second=runtime.placeOrder('mesa','cash',{quantity:2,addressId:'property:parcel_test'});
+ assert.ok(second);
+ assert.equal(second.quantity,2);
+ assert.equal(second.propertyId,'parcel_test');
+ assert.equal(second.payment.amount,null);
 });
