@@ -2826,13 +2826,32 @@ function prepareGLBEngineDoc(source){
  const pcAssemblyModule='<script src="'+new URL('./juego/assets/fh-pc-assembly.js',document.baseURI).href+'"></'+'script>';
  const computerModule='<script src="'+new URL('./juego/assets/fh-computer.js?v=20261107-raven-16x10',document.baseURI).href+'"></'+'script>';
  const computerStrings='<script src="'+new URL('./juego/assets/fh-computer-strings.js',document.baseURI).href+'"></'+'script>';
- const cameraBefore=" const desired=new THREE.Vector3(user.x+behind.x*camDistance,y+.88+camDistance*Math.tan(Math.PI/6),user.z+behind.z*camDistance);",cameraAfter=" const desired=new THREE.Vector3(user.x+behind.x*camDistance,y+.88+camDistance*Math.tan(Math.PI/6),user.z+behind.z*camDistance);\n const sleepFocus=window.FHSleep?.viewWeight()||0;\n if(sleepFocus>0){const weight=sleepFocus*sleepFocus*(3-2*sleepFocus);\n  const face=Number(playerPoseFacing)||0;\n  const back={x:-Math.sin(face),z:-Math.cos(face)};\n  target.lerp(new THREE.Vector3(user.x,y+.45,user.z),weight);\n  desired.lerp(new THREE.Vector3(user.x+back.x*.48,y+6.5,user.z+back.z*.48),weight);\n }";
+ const cameraBefore=" const desired=new THREE.Vector3(user.x+behind.x*camDistance,y+.88+camDistance*Math.tan(Math.PI/6),user.z+behind.z*camDistance);";
+ const sleepCameraBefore="function cameraUpdate(dt){let d=";
+ const sleepCameraAfter="function cameraUpdate(dt){\n" +
+  " // La cámara se fija en vertical durante toda la postura acostada.\n" +
+  " const sleepPose=playerPose.state.verb==='lie'&&['entering','lying','exiting'].includes(playerPose.state.phase);\n" +
+  " if(sleepPose&&window.FHSleep){\n" +
+  "  const p=window.FHSleep.cameraPose(user.x,user.z,floorElev[currentFloor],playerPoseFacing);\n" +
+  "  camPosition.set(p.x,p.eyeY,p.z);camAim.set(p.x,p.focusY,p.z);\n" +
+  "  cam.position.copy(camPosition);cam.up.set(p.upX,0,p.upZ);cam.lookAt(camAim);cam.updateMatrixWorld();\n" +
+  "  return;\n" +
+  " }\n" +
+  " // Corte limpio al ponerse de pie: nunca interpolar con el eje vertical degenerado.\n" +
+  " if(cam.up.y!==1){\n" +
+  "  cam.up.set(0,1,0);\n" +
+  "  camPosition.set(user.x+Math.sin(yaw)*camDistance,floorElev[currentFloor]+.88+camDistance*Math.tan(Math.PI/6),user.z+Math.cos(yaw)*camDistance);\n" +
+  "  camAim.set(user.x,floorElev[currentFloor]+.88,user.z);\n" +
+  " }\n" +
+  " let d=";
+ const sleepCameraCount=source.split(sleepCameraBefore).length-1;
+ if(sleepCameraCount!==1)throw Error('Hook cámara cenital incompatible: '+sleepCameraCount);
  const cameraCount=source.split(cameraBefore).length-1;
  if(cameraCount!==1)throw Error('Hook de sueño camera: '+cameraCount);
  const loopBefore=" cameraUpdate(dt);updateCabinIsolation();",loopAfter=" window.FHSleep?.update(dt,playerPose.state.phase,playerPose.state.verb,playerPoseItem?.type,GameEvents);\n cameraUpdate(dt);updateCabinIsolation();";
  const loopCount=source.split(loopBefore).length-1;
  if(loopCount!==1)throw Error('Hook de sueño loop: '+loopCount);
- const maskBefore="function circleMask(){mctx.clearRect(0,0,innerWidth,innerHeight);if(!peeking)return;",maskAfter="function circleMask(){mctx.clearRect(0,0,innerWidth,innerHeight);\n if(!peeking&&window.FHSleep?.viewWeight()>0){\n  const viewRect=$('view').getBoundingClientRect(),maskRect=mist.getBoundingClientRect();\n  const breath=hero.localToWorld(new THREE.Vector3(0,HERO_H*.16,0)).project(cam);\n  const breathX=viewRect.left-maskRect.left+(breath.x+1)*viewRect.width*.5;\n  const breathY=viewRect.top-maskRect.top+(1-breath.y)*viewRect.height*.5;\n  if(window.FHSleep.renderMask(mctx,maskRect.width,maskRect.height,maskRect.width*.5,maskRect.height*.5,breathX,breathY))return;\n }\n if(!peeking)return;";
+ const maskBefore="function circleMask(){mctx.clearRect(0,0,innerWidth,innerHeight);if(!peeking)return;",maskAfter="function circleMask(){mctx.globalCompositeOperation='source-over';mctx.clearRect(0,0,innerWidth,innerHeight);\n if(!peeking&&window.FHSleep?.viewWeight()>0){\n  const viewRect=$('view').getBoundingClientRect(),maskRect=mist.getBoundingClientRect();\n  const breath=hero.localToWorld(new THREE.Vector3(0,HERO_H*.16,0)).project(cam);\n  const breathX=viewRect.left-maskRect.left+(breath.x+1)*viewRect.width*.5;\n  const breathY=viewRect.top-maskRect.top+(1-breath.y)*viewRect.height*.5;\n  if(window.FHSleep.renderMask(mctx,maskRect.width,maskRect.height,maskRect.width*.5,maskRect.height*.5,breathX,breathY))return;\n }\n if(!peeking)return;";
  const maskCount=source.split(maskBefore).length-1;
  if(maskCount!==1)throw Error('Hook de sueño mask: '+maskCount);
  const wakeHUDBefore=" if(playerPose.occupied){$('use').textContent=POSTURE_TEXT.stand;return;}",wakeHUDAfter=" if(playerPose.occupied){\n  const stage=window.FHSleep?.status().stage;\n  $('use').textContent=stage==='asleep'?window.FH_SLEEP_TEXT.wake:stage==='waking'?window.FH_SLEEP_TEXT.waking:POSTURE_TEXT.stand;\n  return;\n }";
@@ -3735,7 +3754,7 @@ function fhRefreshActorVisibility(){
   return doc.replace('</head>',script+'</head>');
  }
 
- return (window.FHContextEngine?.patch||((doc)=>doc))(addActorPresentationToEngine(addLiveTextToEngine(addDeliveryToEngine(addParkingToEngine(addStylesToEngine(addLightToEngine(source)))).replace(furnitureVisibilityHook,furnitureRenderHook).replace(cameraBefore,cameraAfter).replace(cameraBefore,cameraLightAfter).replace(loopBefore,loopAfter)
+ return (window.FHContextEngine?.patch||((doc)=>doc))(addActorPresentationToEngine(addLiveTextToEngine(addDeliveryToEngine(addParkingToEngine(addStylesToEngine(addLightToEngine(source)))).replace(furnitureVisibilityHook,furnitureRenderHook).replace(cameraBefore,cameraLightAfter).replace(sleepCameraBefore,sleepCameraAfter).replace(loopBefore,loopAfter)
   .replace(maskBefore,maskAfter).replace(wakeHUDBefore,wakeHUDAfter).replace(locationHudHook,locationHudAfter)
   .split(wakeBefore).join(wakeAfter)
   .replace(chairSelection," const poseReachable=(item,anchor)=>canWalk(user.x,user.z)&&safePoseRoute(item,{x:user.x,z:user.z},anchor);\n const stockSeat=selectSeatInteractable(visible,user,yaw,CELL,poseReachable);\n const glbChair=window.FHFurnitureRules?.findReachableChair(visible,user,yaw,CELL,poseReachable,ForestShared);\n const sitting=glbChair&&(!stockSeat||glbChair.score<stockSeat.score)?glbChair:stockSeat;")
