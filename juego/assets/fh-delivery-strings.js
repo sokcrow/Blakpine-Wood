@@ -36,7 +36,7 @@ window.FH_DELIVERY_TEXT=Object.freeze({
  propertyDestination:name=>{
    const value=String(name||'').trim();
    if(!value)return '';
-   const article=/^(apartamento|departamento|depto\\.?|local|edificio)\\b/i.test(value)?'el ': /^(casa|vivienda|habitación)\\b/i.test(value)?'la ':'';
+   const article=/^(apartamento|departamento|depto\.?|local|edificio)\b/i.test(value)?'el ': /^(casa|vivienda|habitación)\b/i.test(value)?'la ':'';
    return article+value;
   },
   peepholeGreeting:destination=>'Buenas, traigo un paquete de Hamazon'+(destination?' para '+destination:'')+'.',
