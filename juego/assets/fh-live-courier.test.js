@@ -55,7 +55,7 @@ async function setup(method){
   addEventListener(name,fn){(listeners[name]??=[]).push(fn)},
   removeEventListener(name,fn){listeners[name]=(listeners[name]||[]).filter(f=>f!==fn)}};
  window.window=window;
- const furniture={furniture:[{id:'mesa',name:'Mesa',widthFt:2,depthFt:2,heightFt:2,price:20}]};
+ const furniture={furniture:[{id:'mesa',name:'Mesa',widthFt:2,depthFt:2,heightFt:2,price:20,glb:'modelos_glb/mesa.glb',environment:'interior'}]};
  const boxes={furniture:[{id:'caja_carton_pequena',name:'Caja',widthFt:1,depthFt:1,heightFt:1,parcelSize:'pequena'}]};
  const fetch=async url=>({ok:true,json:async()=>String(url).includes('catalogo_delivery')?boxes:furniture});
  const sandbox={window,document,URL,fetch,console,setTimeout:window.setTimeout,clearTimeout:window.clearTimeout};
@@ -65,6 +65,7 @@ async function setup(method){
  const effects={knocks:0,opened:0,created:[],freezes:[]};let runtime;
  runtime=window.FHDelivery.createRuntime({
   state,baseUrl:document.baseURI,cell:1.524,feetPerCell:5,deliveryLeadMinutes:0,
+  validateProduct:async product=>product.id==='mesa',
   findDoor:()=>door,doorById:()=>door,notice(){},save(){},showNpc(){},hideNpc(){},
   knock(){effects.knocks++;return true},freeze:v=>effects.freezes.push(v),
   openDoor(){effects.opened++;runtime.onDoorOpened(door)},
@@ -72,6 +73,8 @@ async function setup(method){
  });
  for(let n=0;n<50&&!runtime.ready;n++)await Promise.resolve();
  assert.equal(runtime.ready,true);
+ for(let n=0;n<50&&runtime.products[0]?.shopStatus!=='available';n++)await Promise.resolve();
+ assert.equal(runtime.products[0].shopStatus,'available');
  const order=runtime.placeOrder('mesa',method);
  const press=key=>{
   const event={key,repeat:false,target:document.getElementById('fhDeliveryText'),preventDefault(){},stopImmediatePropagation(){this.stopped=true}};
