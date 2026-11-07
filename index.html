@@ -2775,7 +2775,7 @@ function prepareGLBEngineDoc(source){
  if(!source.includes(attachBefore)||!source.includes(cloneBefore)||!source.includes(surfacePositionBefore)||!source.includes(surfaceRotationBefore)||!source.includes('</head>'))
   throw new Error('No coincide la estructura del motor 3D con los puntos de integración GLB');
  const surfaceScript='<script src="'+new URL('./juego/assets/fh-surface-placement.js',document.baseURI).href+'"></'+'script>';
- const decorationScript='<script src="'+new URL('./juego/assets/fh-decoration.js',document.baseURI).href+'"></'+'script>';
+ const decorationScript='<script src="'+new URL('./juego/assets/fh-decoration.js?v=20261106-decor-1',document.baseURI).href+'"></'+'script>';
  const ruleScript='<script src="'+new URL('./juego/assets/fh-furniture-rules.js',document.baseURI).href+'"></'+'script>';
  const bridge='<script src="'+new URL('./juego/assets/fh-glb-bridge.js',document.baseURI).href+'"></'+'script>';
  const localThree='<script src="'+new URL('./juego/assets/vendor/three.min.js',document.baseURI).href+'"></'+'script>';
@@ -2783,8 +2783,8 @@ function prepareGLBEngineDoc(source){
  const sleepModule='<script src="'+new URL('./juego/assets/fh-sleep.js',document.baseURI).href+'"></'+'script>';
  const coverageScript='<script src="'+new URL('./juego/assets/fh-light-coverage.js?v=20261105-light-ui2',document.baseURI).href+'"></'+'script>';
  const lightsModule='<script src="'+new URL('./juego/assets/fh-lights.js?v=20261105-light-ui2',document.baseURI).href+'"></'+'script>';
- const deliveryStrings='<script src="'+new URL('./juego/assets/fh-delivery-strings.js?v=20261106-live-courier',document.baseURI).href+'"></'+'script>';
- const deliveryModule='<script src="'+new URL('./juego/assets/fh-delivery.js?v=20261106-live-courier',document.baseURI).href+'"></'+'script>';
+ const deliveryStrings='<script src="'+new URL('./juego/assets/fh-delivery-strings.js?v=20261106-decor-1',document.baseURI).href+'"></'+'script>';
+ const deliveryModule='<script src="'+new URL('./juego/assets/fh-delivery.js?v=20261106-decor-1',document.baseURI).href+'"></'+'script>';
  const pcAssemblyModule='<script src="'+new URL('./juego/assets/fh-pc-assembly.js',document.baseURI).href+'"></'+'script>';
  const computerModule='<script src="'+new URL('./juego/assets/fh-computer.js',document.baseURI).href+'"></'+'script>';
  const computerStrings='<script src="'+new URL('./juego/assets/fh-computer-strings.js',document.baseURI).href+'"></'+'script>';
@@ -2994,6 +2994,12 @@ function fhRestoreDeliveredFurniture(record,product,order){
  return fhSpawnRuntimeItem(next,f)?next:false;
 }
 function fhDecorationFloorFits(item,f,ignoreId=''){
+ // No permitir fijar un mueble sólido encima del avatar.
+ if(item.blocksMovement!==false&&ForestShared.solidAt(user.x,user.z,{
+  width:MAX_X,height:MAX_Z,radius:.18,walls:[],doors:[],
+  objects:[{id:item.id,cx:item.x*CELL,cz:item.y*CELL,w:Math.max(.2,Number(item.w)||1)*CELL,
+   d:Math.max(.2,Number(item.h)||1)*CELL,rot:(Number(item.rotation)||0)*Math.PI/180}],objectMode:'box'
+ }))return false;
  const points=window.FHDecoration?.footprintPoints(item,CELL,.24)||[{x:item.x*CELL,z:item.y*CELL}];
  const objects=furnitureColliders[f].filter(o=>o.id!==item.id&&o.id!==ignoreId);
  for(const p of points)if(ForestShared.solidAt(p.x,p.z,{width:MAX_X,height:MAX_Z,radius:.018,walls:blockers[f],wallThickness:WALL_THICK,
