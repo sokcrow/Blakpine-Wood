@@ -185,7 +185,7 @@ function createRuntime(options){
    say(TEXT.shopInvalidAddress||'Selecciona una dirección de entrega válida.',3600);return null;
   }
   const door=address?options.doorById?.(address.doorId,address.floor):chooseDoor();
-  if(!door||door.kind!=='peephole_door'||(address&&(door.id!==address.doorId||door.f!==address.floor))){
+  if(!door||(address&&(door.kind!=='peephole_door'||door.id!==address.doorId||door.f!==address.floor))){
    say(TEXT.noDeliveryDoor||'No hay puerta de entrega.',3600);return null;
   }
   const legacyAddress=!address?(options.resolveDoorAddress?.(door,pcItem,pcFloor)||{}):null;
