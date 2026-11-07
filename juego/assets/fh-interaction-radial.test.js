@@ -133,3 +133,27 @@ test('la puerta mantiene cuatro sectores aunque haya acciones pendientes',()=>{
  assert.equal(api.activatePrimary(),true);
  assert.equal(opened,1);
 });
+
+
+test('tamaño compacto para móvil y escritorio sin alterar acciones',()=>{
+ const {win,doc,api}=mount();let executions=0;
+ const context={key:'door:test',title:'Puerta',actions:[
+  {id:'open',label:'Abrir puerta',run:()=>executions++},
+  {id:'look',label:'Mirilla',disabled:true},
+  {id:'knock',label:'Llamar',disabled:true},
+  {id:'examine',label:'Examinar',disabled:true}
+ ]};
+ win.innerWidth=375;win.innerHeight=700;
+ api.update(context);
+ const root=doc.getElementById('fhContextRadial');
+ assert.equal(root._style['--fh-radial-size'],'164px');
+ assert.equal(doc.getElementById('fhRadialWheel').children.filter(child=>child.dataset.index!==undefined).length,4);
+ api.activatePrimary();
+ assert.equal(executions,1);
+ win.innerWidth=1200;win.innerHeight=800;
+ api.update(context);
+ assert.equal(root._style['--fh-radial-size'],'208px');
+ win.innerWidth=900;win.innerHeight=250;
+ api.update(context);
+ assert.equal(root._style['--fh-radial-size'],'144px');
+});
