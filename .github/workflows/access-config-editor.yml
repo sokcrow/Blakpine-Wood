@@ -1,0 +1,34 @@
+name: Forest Horror — configuración de accesos
+
+on:
+  push:
+    branches:
+      - feat/configurar-accesos-v1-20261107
+  pull_request:
+    paths:
+      - index.html
+      - juego/assets/fh-access-config.js
+      - juego/assets/fh-access-editor.js
+      - juego/assets/fh-access-config.test.js
+      - juego/assets/fh-architecture-strings.js
+      - .github/workflows/access-config-editor.yml
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verificar sintaxis de los módulos
+        run: |
+          node --check juego/assets/fh-access-config.js
+          node --check juego/assets/fh-access-editor.js
+      - name: Persistencia, importación y valores predeterminados
+        run: node --test juego/assets/fh-access-config.test.js
+      - name: Regresión completa del editor y el motor
+        run: node --test juego/assets/*.test.js
