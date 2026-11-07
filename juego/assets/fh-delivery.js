@@ -393,7 +393,7 @@ function createRuntime(options){
   const replacement=result&&typeof result==='object'&&result.item?result:null;
   if(replacement?.item){
    const next=replacement.item,record=runtimePoseRecord(next,replacement.floor,order.id,p.id);
-   delivery.furnishings=delivery.furnishings.filter(x=>x.orderId!==order.id&&x.id!==record.id);delivery.furnishings.push(record);
+   delivery.furnishings=delivery.furnishings.filter(x=>x.id!==record.id);delivery.furnishings.push(record);
   }
   advanceTime(state,order.unboxMinutes);
   say((TEXT.packageOpened||((n)=>n))(p.name,order.unboxMinutes),3800);save();syncOrdersToTerminal();update(0);return true;
