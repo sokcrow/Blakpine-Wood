@@ -201,14 +201,14 @@ test('RAVEN/OS en móvil exige orientación horizontal y no reduce las ventanas 
  const fs=require('node:fs'),path=require('node:path');
  const html=fs.readFileSync(path.join(__dirname,'fh-terminal.html'),'utf8');
  const strings=fs.readFileSync(path.join(__dirname,'fh-computer-strings.js'),'utf8');
- assert.doesNotMatch(html,/transform:\\s*scale\\(\\.75\\)/);
- assert.match(html,/@media \\(pointer:coarse\\) and \\(orientation:portrait\\) and \\(max-width:1100px\\)/);
- assert.match(html,/#orientationNotice\\{display:flex\\}/);
- assert.match(strings,/rotateLandscape:'Gira el dispositivo para usar RAVEN\\/OS\\.'/);
- assert.match(html,/frame\\.style\\.height=Math\\.floor\\(availableHeight\\)\\+'px'/);
- assert.match(html,/if\\(mobileMaximized\\)win\\.classList\\.add\\('maximized'\\)/);
- assert.match(html,/height:calc\\(100% - var\\(--fh-desktop-topbar,31px\\)\\)!important/);
- assert.match(html,/aspect-ratio:16 \\/ 10/);
+ assert.ok(!html.includes('scale(.75)'), 'No debe encogerse el escritorio con transform');
+ assert.ok(html.includes('@media (pointer:coarse) and (orientation:portrait) and (max-width:1100px)'));
+ assert.ok(html.includes('#orientationNotice{display:flex}'));
+ assert.ok(strings.includes("rotateLandscape:'Gira el dispositivo para usar RAVEN/OS.'"));
+ assert.ok(html.includes("frame.style.height=Math.floor(availableHeight)+'px'"));
+ assert.ok(html.includes("if(mobileMaximized)win.classList.add('maximized')"));
+ assert.ok(html.includes('height:calc(100% - var(--fh-desktop-topbar,31px))!important'));
+ assert.ok(html.includes('aspect-ratio:16 / 10'), 'La vista física de monitor conserva 16:10');
 });
 
 console.log(passed+' pruebas correctas');
