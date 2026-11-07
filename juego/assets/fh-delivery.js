@@ -136,6 +136,12 @@ function createRuntime(options){
   options.showNpc?.(order,door,'door_idle');announceDoorArrival(order,door);
   save();syncOrdersToTerminal();return true;
  }
+ function onNpcRouteBlocked(orderId){
+  const order=orderById(state,orderId);
+  if(!order||order.status!=='en_route'||delivery.npc.activeOrderId!==orderId)return false;
+  order.status='route_blocked';delivery.npc.state='route_blocked';delivery.npc.pose='thinking';
+  save();syncOrdersToTerminal();return true;
+ }
  function activateNext(){
   if(delivery.orders.some(o=>['en_route','waiting','payment','delivering'].includes(o.status))||options.npcBusy?.())return null;
   const next=nextDueOrder(state);if(!next)return null;
@@ -427,7 +433,7 @@ function createRuntime(options){
  }
  global.addEventListener('message',onMessage);
  loadCatalogs();
- return {isPc,isPackage,isDeliveredFurniture,updateRuntimeItem,storedFurniture,setFurnitureStored,retrieveStoredFurniture,actionLabel,openPc,closePc,onComputerOpen,onComputerClose,syncTerminal,onPeephole,onPeepholeExit,talkThroughPeephole,onDoorOpened,onNpcArrived,interruptDialogue,openPackage,placeOrder,advanceTime,formatClock,update,resume,activateNext,
+ return {isPc,isPackage,isDeliveredFurniture,updateRuntimeItem,storedFurniture,setFurnitureStored,retrieveStoredFurniture,actionLabel,openPc,closePc,onComputerOpen,onComputerClose,syncTerminal,onPeephole,onPeepholeExit,talkThroughPeephole,onDoorOpened,onNpcArrived,onNpcRouteBlocked,interruptDialogue,openPackage,placeOrder,advanceTime,formatClock,update,resume,activateNext,
   get dialogOpen(){return !!dialog?.classList.contains('open')},get products(){return products.map(clone)},get orders(){return delivery.orders.map(clone)},get ready(){return ready}};
 }
 global.FHDelivery=Object.freeze({ensureState,parcelSize,normalizeProduct,createOrder,activeOrderForDoor,advanceTime,tickClock,formatMinutes,formatClock,nextDueOrder,createRuntime});
