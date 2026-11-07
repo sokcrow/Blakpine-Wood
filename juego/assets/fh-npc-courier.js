@@ -13,9 +13,10 @@
   const speed=Math.max(.2,Number(options.speed)||1.65);
   const step=Math.max(.2,Number(options.step)||.6);
   const walk=(floor,x,z)=>!!options.canWalk(floor,x,z);
+  const planWalk=(floor,x,z)=>!!(options.canPlanWalk||options.canWalk)(floor,x,z);
   const transitions=()=>options.transitions?.()||[];
   function path(from,to){
-   return GOAP.route(from,to,{canWalk:walk,step,transitions:transitions(),maxVisited:options.maxVisited||16000});
+   return GOAP.route(from,to,{canWalk:planWalk,step,transitions:transitions(),maxVisited:options.maxVisited||16000});
   }
   function choose(from,ends){
    let result=null;
@@ -94,6 +95,11 @@
     if(dist<.025){publish(next);job.index++;continue}
     const move=Math.min(dist,budget),x=p.x+(next.x-p.x)*move/dist,z=p.z+(next.z-p.z)*move/dist;
     if(!walk(p.floor,x,z)){
+     // GOAP decide abrir una puerta permitida antes de volver a calcular la ruta.
+     // Nunca desplazar el NPC dentro de un sólido hasta que el motor confirme el paso.
+     if(options.openDoor?.({floor:p.floor,x,z,from:{...p},orderId:job.orderId})===true){
+      job.replanAt=0;break;
+     }
      // La puerta o los muebles cambiaron: el camino anterior dejó de ser válido.
      job.replanAt+=Number(dt)||0;
      if(job.replanAt>=.8){
