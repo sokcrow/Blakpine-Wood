@@ -1,0 +1,27 @@
+name: Decoración del jugador — pruebas
+
+on:
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'juego/assets/fh-decoration*'
+      - 'juego/assets/fh-delivery*'
+      - '.github/workflows/decoration.yml'
+  push:
+    branches:
+      - fix/player-decoration-touch-2026-11-06
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Pruebas del modo decorar y de la entrega
+        run: |
+          node --test juego/assets/fh-decoration.test.js juego/assets/fh-decoration-ui.test.js juego/assets/fh-delivery-runtime.test.js juego/assets/fh-delivery-integration.test.js
