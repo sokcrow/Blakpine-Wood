@@ -311,7 +311,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 @media (pointer:coarse) and (orientation:portrait) and (max-width:1100px){
  #orientationNotice{display:flex}
 }
-@media (pointer:coarse) and (orientation:landscape) and (max-width:1100px) and (max-height:600px){
+@media (pointer:coarse) and (orientation:landscape) and (max-width:1100px){
  #focus{gap:0;padding:max(2px,env(safe-area-inset-top)) max(2px,env(safe-area-inset-right)) max(2px,env(safe-area-inset-bottom)) max(2px,env(safe-area-inset-left))}
  #focus .focus-top{display:none}
  #focus .focus-frame{aspect-ratio:auto;flex:1;max-width:none;max-height:none;margin:0;border:2px solid #535d52;outline:0}
@@ -469,7 +469,7 @@ function initStart(){const menu=$('startMenu');refreshStartMenu();$('startButton
 function makeIcons(){let layer=$('desktopIcons');clear(layer);let icons={mail:['✉','symbol-mail'],map:['▧','symbol-map'],cams:['◉','symbol-cams'],files:['▣','symbol-files'],hamazon:['H','symbol-hamazon']};for(const app of sessionApps){const b=labelButton('', 'desktop-icon',()=>openWindow(app));b.setAttribute('aria-label','Abrir '+LABELS[app]);const icon=node('span','pixel-symbol '+icons[app][1],icons[app][0]);b.append(icon,node('span','',LABELS[app]));layer.append(b)}}
 // El monitor físico conserva 16:10; en teléfono horizontal la interfaz usa el área disponible.
 function isCompactLandscape(){
- return window.matchMedia('(pointer: coarse) and (orientation: landscape) and (max-width: 1100px) and (max-height: 600px)').matches;
+ return window.matchMedia('(pointer: coarse) and (orientation: landscape) and (max-width: 1100px)').matches;
 }
 function fitFocusFrame(){
  const focus=$('focus');if(!focus.classList.contains('open'))return;
