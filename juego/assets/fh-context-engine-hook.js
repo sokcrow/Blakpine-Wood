@@ -42,26 +42,36 @@ function fhContextPoint(x,z,f=currentFloor){
   return {x:rect.left+rect.width*.5,y:rect.top+rect.height*.55};
  return {x:rect.left+(p.x+1)*rect.width*.5,y:rect.top+(1-p.y)*rect.height*.5};
 }
-let fhContextTapStart=null,fhContextTap=null;
-// La proximidad solo define acciones posibles: no abre ningún menú.
-const fhContextCanvas=$('view');
-fhContextCanvas.addEventListener('pointerdown',event=>{
- if(event.button!==undefined&&event.button!==0)return;
- fhContextTapStart={x:event.clientX,y:event.clientY,id:event.pointerId};
-});
-fhContextCanvas.addEventListener('pointercancel',()=>{fhContextTapStart=null;});
-fhContextCanvas.addEventListener('pointerup',event=>{
- const start=fhContextTapStart;fhContextTapStart=null;
- if(!start||(start.id!==undefined&&event.pointerId!==start.id))return;
- if(Math.hypot(event.clientX-start.x,event.clientY-start.y)>12)return; // arrastre de cámara
- fhContextTap={x:event.clientX,y:event.clientY};
+let fhContextGesture=null;
+function fhRequestContext(kind,source,event){
+ fhContextGesture={kind,source,x:event.clientX,y:event.clientY};
  fhContextRefresh();
+}
+// El mismo Safe Lock gobierna la vista 3D y el botón Usar.
+const fhContextCanvas=$('view');
+window.FHSafeLock?.bind(fhContextCanvas,{
+ onTap:event=>fhRequestContext('tap','canvas',event),
+ onHold:event=>fhRequestContext('hold','canvas',event),
+ onCancel:()=>window.FHInteractionRadial?.hide()
 });
+window.FHSafeLock?.bind($('use'),{
+ onTap:event=>fhRequestContext('tap','button',event),
+ onHold:event=>fhRequestContext('hold','button',event)
+},{capture:true});
+// Click de teclado/accesibilidad: los punteros ya se resolvieron por Safe Lock.
+function fhUseButtonClick(event){
+ if(event.detail!==0&&window.FHSafeLock)return;
+ if(playerPose.occupied)return toggleDoor();
+ if(!window.FHInteractionRadial?.activatePrimary())toggleDoor();
+}
 function fhContextRefresh(){
  const radial=window.FHInteractionRadial,t=window.FH_INTERACTION_STRINGS||{};
  if(!radial)return;
- if(peeking||breakerPanelItem||stairTravel||fhDeliveryUiActive||window.FHComputerRuntime?.isOpen||fhStoredUiActive){
-  fhContextTap=null;radial.syncContext(null);radial.hide();return;
+ if(peeking||breakerPanelItem||stairTravel||fhDeliveryUiActive||window.FHComputerRuntime?.isOpen||fhStoredUiActive
+  ||window.FHPlayerMenu?.isOpen()||$('inventoryPanel')?.classList.contains('open')
+  ||$('noteOverlay')?.classList.contains('open')||$('fhLiveDialog')?.classList.contains('open')
+  ||$('fhDeliveryDialog')?.classList.contains('open')){
+  fhContextGesture=null;radial.syncContext(null);radial.hide();return;
  }
  let key='',title='',point={x:innerWidth*.5,y:innerHeight*.53},actions=[];
  let fhTapRoots=[];
@@ -97,7 +107,7 @@ function fhContextRefresh(){
  }else{
   const courier=fhDeliveryNpc,order=(window.FHDeliveryRuntime?.orders||[])
     .find(o=>['waiting','payment','delivering'].includes(o.status));
-  if(courier&&courier.parent===stories[currentFloor]&&order
+  if(!playerPose.occupied&&courier&&courier.parent===stories[currentFloor]&&order
     &&Math.hypot(courier.position.x-user.x,courier.position.z-user.z)<2.2){
    const door=fhDeliveryDoorById(order.doorId,order.floor);
    if(door){
@@ -114,6 +124,8 @@ function fhContextRefresh(){
     key='pose:'+String(playerPoseItem?.id||'player');title=playerPoseItem?.label||t.furniture||'Mueble';
     if(playerPoseItem){point=fhContextPoint(playerPoseItem.x*CELL,playerPoseItem.y*CELL);fhTapRoots=(renderedByItem[currentFloor]?.get(playerPoseItem.id)||[]).map(entry=>entry?.root||entry).filter(root=>root?.isObject3D);}
     const front=fhSeatFrontTarget(),tv=currentTVCombo();
+    if(front?.item)fhTapRoots.push(...(renderedByItem[currentFloor]?.get(front.item.id)||[])
+      .map(entry=>entry?.root||entry).filter(root=>root?.isObject3D));
     actions=[{id:'stand',label:$('use').textContent,run:toggleDoor}];
     if(front||tv)actions.push({id:'watch',label:$('watchTv').textContent,run:fhUseFrontFromSeat});
    }else{
@@ -147,27 +159,40 @@ function fhContextRefresh(){
    }
   }
  }
- const tap=fhContextTap;fhContextTap=null;
- if(!actions.length){radial.syncContext(null);radial.hide();return;}
+ const gesture=fhContextGesture;fhContextGesture=null;
+ if(!actions.length){
+  radial.syncContext(null);radial.hide();
+  // El botón Usar conserva su comportamiento cuando no hay objetivo.
+  if(gesture?.source==='button'&&gesture.kind==='tap')toggleDoor();
+  return;
+ }
  const context={key,title,actions,x:point.x,y:point.y};
  radial.syncContext(context);
- let clicked=false;
- if(tap){
+ let hit=gesture?.source==='button';
+ if(gesture?.source==='canvas'){
   const reach=Math.max(22,Math.min(48,Math.min(innerWidth,innerHeight)*.11));
-  clicked=Math.hypot(tap.x-point.x,tap.y-point.y)<=reach;
+  hit=Math.hypot(gesture.x-point.x,gesture.y-point.y)<=reach;
   if(fhTapRoots.length){
    const rect=$('view').getBoundingClientRect();
    if(rect.width&&rect.height){
     const ray=new THREE.Raycaster();
     ray.setFromCamera(new THREE.Vector2(
-     (tap.x-rect.left)/rect.width*2-1,
-     -(tap.y-rect.top)/rect.height*2+1),cam);
-    clicked=ray.intersectObjects(fhTapRoots,true).length>0;
-   }else clicked=false;
+     (gesture.x-rect.left)/rect.width*2-1,
+     -(gesture.y-rect.top)/rect.height*2+1),cam);
+    hit=ray.intersectObjects(fhTapRoots,true).length>0;
+   }else hit=false;
   }
  }
- if(clicked)radial.open(context);
- else if(radial.visible&&radial.target===key)radial.update(context);
+ if(gesture&&hit){
+  if(gesture.kind==='hold'){radial.open(context);return;}
+  radial.hide();
+  // Ninguna interacción contextual puede desplazar Levantarse.
+  if(playerPose.occupied)return toggleDoor();
+  const primary=actions.find(action=>!action.disabled&&typeof action.run==='function');
+  primary?.run();
+  return;
+ }
+ if(radial.visible&&radial.target===key)radial.update(context);
  else radial.hide();
 }
 `;
@@ -175,16 +200,19 @@ function fhContextRefresh(){
   const refresh="window.FHLocationHUD?.update(DATA,currentFloor,{x:user.x/CELL,y:user.z/CELL})";
   doc=one(doc,refresh,refresh+';fhContextRefresh()','refresco');
   doc=one(doc,"if((k==='e'||k===' ')&&!e.repeat)toggleDoor();",
-          "if((k==='e'||k===' ')&&!e.repeat){if(!window.FHInteractionRadial?.activatePrimary())toggleDoor();}",'teclado');
+          "if((k==='e'||k===' ')&&!e.repeat&&!(k===' '&&document.activeElement===$('use'))){if(playerPose.occupied||!window.FHInteractionRadial?.activatePrimary())toggleDoor();}",'teclado');
+  doc=one(doc,"$('use').addEventListener('click',toggleDoor);",
+          "$('use').addEventListener('click',fhUseButtonClick);",'botón Usar');
   doc=one(doc,"$('pixelBtn').addEventListener('click',()=>{pixelSize=pixelSize===2?3:pixelSize===3?1:2;resize()});",
           "// Pixel 2x fijo en la interfaz del jugador.",'pixel');
   const base=new URL('./juego/assets/',global.document.baseURI).href;
   const css='<link rel="stylesheet" href="'+base+'fh-interaction-radial.css?v=20261107-door-four">';
   const strings='<script src="'+base+'fh-interaction-strings.js?v=20261107-door-four"></'+'script>';
+  const safeLock='<script src="'+base+'fh-safe-lock.js?v=20261107-safe-lock-1"></'+'script>';
   const renderer='<script src="'+base+'fh-interaction-radial.js?v=20261107-sync-context"></'+'script>';
   const hide='<style>#actions,#fhDecorateBtn,#fhDecorStoredBtn{display:none!important}</style>';
   if(!doc.includes('</head>'))throw Error('Falta el cierre de cabecera del motor 3D');
-  return doc.replace('</head>',css+strings+renderer+hide+'</head>');
+  return doc.replace('</head>',css+strings+safeLock+renderer+hide+'</head>');
  }
  global.FHContextEngine=Object.freeze({patch});
 })(typeof window!=='undefined'?window:globalThis);

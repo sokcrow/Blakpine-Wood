@@ -32,15 +32,25 @@ function generateEngine(){
 test('el HTML generado integra radial y decoración sin afectar el editor 2D',()=>{
  const output=generateEngine();
  assert.match(output,/function fhContextRefresh\(\)/);
- assert.match(output,/fhContextCanvas\.addEventListener\('pointerup'/);
- assert.match(output,/if\(clicked\)radial\.open\(context\)/);
+ assert.match(output,/FHSafeLock\?\.bind\(fhContextCanvas/);
+ assert.match(output,/FHSafeLock\?\.bind\(\$\('use'\)/);
+ assert.match(output,/fhUseButtonClick/);
+ assert.match(output,/if\(gesture\.kind==='hold'\)\{radial\.open\(context\);return;\}/);
+ assert.match(output,/primary\?\.run\(\)/);
+ assert.match(output,/if\(playerPose\.occupied\)return toggleDoor\(\)/);
+ assert.doesNotMatch(output,/fhContextTapStart/);
  assert.match(output,/radial\.syncContext\(context\)/);
+ assert.match(output,/if\(!playerPose\.occupied&&courier&&/);
+ assert.match(output,/front\?\.item/);
  assert.match(output,/radial\.syncContext\(null\)/);
- assert.match(output,/else if\(radial\.visible&&radial\.target===key\)radial\.update\(context\)/);
+ assert.match(output,/if\(radial\.visible&&radial\.target===key\)radial\.update\(context\)/);
  assert.doesNotMatch(output,/radial\.update\(actions\.length\?/);
 
  assert.match(output,/fhContextRefresh\(\)/);
  assert.match(output,/fh-interaction-radial\.js/);
+ assert.match(output,/fh-safe-lock\.js/);
+ assert.match(output,/\$\('use'\)\.addEventListener\('click',fhUseButtonClick\)/);
+ assert.doesNotMatch(output,/\$\('use'\)\.addEventListener\('click',toggleDoor\)/);
  assert.match(output,/fh-interaction-strings\.js/);
  assert.match(output,/fh-interaction-radial\.css/);
  assert.match(output,/id:'knock',label:t\.knock\|\|'Llamar',disabled:true/);
