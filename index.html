@@ -2996,7 +2996,7 @@ function fhRemoveRuntimeItem(item,f){
 }
 function fhReplacePackage(item,product,order){
  let f=DATA.floors.findIndex(fl=>(fl.items||[]).some(v=>v.id===item.id));if(f<0)return false;
- const next={id:'delivered_'+order.id,type:'misc',modelId:product.modelId,label:product.name,x:item.x,y:item.y,w:item.w,h:item.h,heightFt:product.heightFt,rotation:item.rotation||0,blocksMovement:product.blocksMovement!==false,
+ const next={id:'delivered_'+item.id,type:'misc',modelId:product.modelId,label:product.name,x:item.x,y:item.y,w:item.w,h:item.h,heightFt:product.heightFt,rotation:item.rotation||0,blocksMovement:product.blocksMovement!==false,
   runtimeDecoratable:true,runtimeDeliveryFurniture:{orderId:order.id,productId:product.id}};
  window.FHFurnitureRules?.applyCatalogModel(next,product,ForestShared,Number(DATA.units.feetPerCell)||5);
  fhRemoveRuntimeItem(item,f);fhSpawnRuntimeItem(next,f);setTimeout(()=>fhStartDecoration(next,f,{fresh:true}),0);return {item:next,floor:f};
@@ -3347,6 +3347,37 @@ function fhDeliveryDoor(pc,f){
  };
  return list.slice().sort((a,b)=>score(a)-score(b))[0];
 }
+function fhDeliveryAddresses(pc,pcFloor){
+ const result=[],P=window.FHStyleProperty;
+ for(let f=0;f<DATA.floors.length;f++){
+  const floor=DATA.floors[f],doors=(doorList[f]||[]).filter(d=>d.kind==='peephole_door');
+  const parcels=(DATA.properties||[]).filter(p=>p.floorId===floor.id);
+  for(const parcel of parcels){
+   const candidates=doors.filter(d=>fhDoorProperty(d)?.id===parcel.id);
+   if(!candidates.length)continue;
+   const score=d=>{
+    const item=floor.items?.find(it=>it.id===d.id);
+    return (item?.propertyDoorRole==='main'?-100:0)+(d.role==='entrance'?-30:0);
+   };
+   const door=candidates.slice().sort((a,b)=>score(a)-score(b))[0];
+   const propertyName=String(parcel.name||window.FH_DELIVERY_TEXT?.unnamedProperty||'Propiedad sin nombre').trim();
+   const base={propertyId:parcel.id,propertyName,doorId:door.id,floor:f,floorName:floor.name||''};
+   result.push({...base,id:'property:'+parcel.id,label:propertyName+' · '+(floor.name||'')});
+   for(const room of floor.items||[]){
+    if(room.type!=='room'||!room.id||!String(room.label||'').trim()||!P?.roomInProperty?.(room,parcel))continue;
+    result.push({...base,id:'room:'+floor.id+':'+room.id,roomId:room.roomId||room.id,
+     roomName:String(room.label).trim(),
+     label:propertyName+' · '+String(room.label).trim()+' · '+(floor.name||'')});
+   }
+  }
+ }
+ if(!result.length){
+  const door=fhDeliveryDoor(pc,pcFloor);
+  if(door)result.push({id:'legacy:'+door.id,doorId:door.id,floor:door.f,propertyId:'',
+   propertyName:'',roomId:'',label:window.FH_DELIVERY_TEXT?.defaultAddress||'Entrada principal'});
+ }
+ return result;
+}
 function fhBeginDoorEvent(door){
  fhDoorConversationView=true;peeking=true;peekDoor=door;
  $('peekOverlay').classList.add('active');document.body.classList.add('peeking');
@@ -3396,12 +3427,17 @@ window.FHDeliveryRuntime=window.FHDelivery?.createRuntime({
  clockMinutesPerSecond:1,deliveryLeadMinutes:60,knockDelayMs:1400,
  baseUrl:new URL('./juego/assets/fh-delivery.js',document.baseURI).href,
  freeze:on=>{fhDeliveryUiActive=!!on;user.vx=user.vz=0;clearStick();},
- findDoor:fhDeliveryDoor,doorById:fhDeliveryDoorById,
+ findDoor:fhDeliveryDoor,doorById:fhDeliveryDoorById,listDeliveryAddresses:fhDeliveryAddresses,
  resolveDoorAddress:fhDoorAddress,propertyNameById:id=>(DATA.properties||[]).find(p=>p.id===id)?.name||'',
  dialogPose:pose=>fhSetDeliveryNpcPose(pose),endDoorEvent:fhEndDoorEvent,
  openDoor:fhOpenDeliveryDoor,
- packagePlacement:(door)=>({floor:door.f,x:door.cx-door.norm.x*1.15,z:door.cz-door.norm.z*1.15}),
- spawnRuntimeItem:fhSpawnRuntimeItem,hasRuntimeItem:(id,f)=>!!fhRuntimeItemById(id,f),replacePackage:fhReplacePackage,restoreFurniture:fhRestoreDeliveredFurniture,
+ packagePlacement:(door,box,order,index=0,count=1)=>{
+   const span=Math.max(CELL*.65,Number(box.widthFt||2.5)*.3048,Number(box.depthFt||2.5)*.3048);
+   const side=count>1?(index%3-1)*span:0,depth=Math.floor(index/3)*span;
+   return {floor:door.f,x:door.cx-door.norm.x*(1.15+depth)-door.norm.z*side,
+    z:door.cz-door.norm.z*(1.15+depth)+door.norm.x*side};
+  },
+ spawnRuntimeItem:fhSpawnRuntimeItem,removeRuntimeItem:fhRemoveRuntimeItem,hasRuntimeItem:(id,f)=>!!fhRuntimeItemById(id,f),replacePackage:fhReplacePackage,restoreFurniture:fhRestoreDeliveredFurniture,
  showNpc:fhShowDeliveryNpc,hideNpc:fhHideDeliveryNpc,spriteUrl:fhDeliverySpriteUrl
 });`;
   const furnitureBefore="function useFurniture(item,selectedSeat=null){\n if(['sit','lie'].includes(item.interact?.verb)){";
