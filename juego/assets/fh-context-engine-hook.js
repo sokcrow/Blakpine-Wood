@@ -181,7 +181,7 @@ function fhContextRefresh(){
   const base=new URL('./juego/assets/',global.document.baseURI).href;
   const css='<link rel="stylesheet" href="'+base+'fh-interaction-radial.css?v=20261107-door-four">';
   const strings='<script src="'+base+'fh-interaction-strings.js?v=20261107-door-four"></'+'script>';
-  const renderer='<script src="'+base+'fh-interaction-radial.js?v=20261107-tap-only"></'+'script>';
+  const renderer='<script src="'+base+'fh-interaction-radial.js?v=20261107-sync-context"></'+'script>';
   const hide='<style>#actions,#fhDecorateBtn,#fhDecorStoredBtn{display:none!important}</style>';
   if(!doc.includes('</head>'))throw Error('Falta el cierre de cabecera del motor 3D');
   return doc.replace('</head>',css+strings+renderer+hide+'</head>');
