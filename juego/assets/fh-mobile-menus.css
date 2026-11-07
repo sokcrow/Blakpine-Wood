@@ -1,0 +1,79 @@
+/* Menús del JUEGO en teléfono: mitad del tamaño visual.
+   No se modifican las pantallas ni los controles del editor de mapas.
+   Escalar cada panel, no su backdrop: conserva el cierre exterior y el scroll. */
+@media (pointer: coarse) and (max-width: 767px),
+       (pointer: coarse) and (orientation: landscape) and (max-width: 1100px) and (max-height: 500px) {
+  /* Inicio y creación del personaje (la ficha aparece antes de abrir el iframe). */
+  #fhcc-root .fhcc-card,
+  body.fh-player-menu-ready #importCard {
+    transform: scale(.5) !important;
+    transform-origin: center center !important;
+  }
+
+  /* Inventario integrado: escalar una sola vez el menú completo. */
+  body.fh-player-menu-ready #fhPlayerMenu {
+    transform: scale(.5) !important;
+    transform-origin: center center !important;
+  }
+  /* Inventario suelto de compatibilidad, nunca el integrado en el menú. */
+  body.fh-player-menu-ready > #inventoryPanel.open {
+    transform: scale(.5) !important;
+    transform-origin: center bottom !important;
+  }
+
+  /* Ventanas contextuales, diálogos, lecturas y controles de decoración. */
+  body.fh-player-menu-ready #fhLiveDialog .fh-panel,
+  body.fh-player-menu-ready #fhDeliveryDialog #fhDeliveryCard,
+  #noteOverlay #noteCard {
+    transform: scale(.5) !important;
+    transform-origin: center center !important;
+  }
+  #fhDecorControls,
+  #fhDecorStoredPanel {
+    transform: scale(.5) !important;
+    transform-origin: bottom right !important;
+  }
+  #fhDecorateBtn,
+  #fhDecorStoredBtn {
+    transform: scale(.5) !important;
+    transform-origin: top right !important;
+  }
+
+  /* El radial se dibuja y recibe clics con el 50% de su área visible.
+     El tamaño interno queda intacto para no desajustar los sectores. */
+  #fhContextRadial .fh-radial-wheel {
+    transform: translate(-50%, -50%) scale(.5) !important;
+  }
+  #fhContextRadial .fh-radial-target {
+    top: calc(var(--fh-radial-size) / -4 - 24px) !important;
+    transform: translateX(-50%) scale(.5) !important;
+    transform-origin: center bottom !important;
+  }
+
+  /* Equipamiento electrónico: se reduce el panel, no el fondo modal. */
+  #fhBreakerOverlay #fhBreakerFrame {
+    transform: scale(.5) !important;
+    transform-origin: center center !important;
+  }
+  #fhBreakerOverlay #fhBreakerClose {
+    transform: scale(.5) !important;
+    transform-origin: top right !important;
+  }
+
+  /* Consola de ascensor: centrada en vertical, anclada al borde inferior. */
+  #elevatorPanel {
+    transform: translateX(-50%) scale(.5) !important;
+    transform-origin: center bottom !important;
+  }
+}
+@media (pointer: coarse) and (orientation: landscape) and (max-width: 1100px) and (max-height: 500px) {
+  /* El modo horizontal del ascensor se acopla a la derecha. */
+  #elevatorPanel,
+  body.elevator-split #elevatorPanel {
+    transform: scale(.5) !important;
+    transform-origin: bottom right !important;
+  }
+  body.elevator-split #elevatorPanel {
+    transform-origin: top right !important;
+  }
+}
