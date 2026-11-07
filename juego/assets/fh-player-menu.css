@@ -300,7 +300,7 @@ body.fh-player-menu-ready #fhPlayerMenuDetail:not(:has(#inventoryPanel)) {
 }
 body.fh-player-menu-ready #fhPlayerMenuDetail .fh-section-title {
   color:#f2efe8;
-  font:600 clamp(25px,3.4vw,45px)/1.25 var(--fh-ritual);
+  font:400 clamp(27px,3.4vw,45px)/1.25 var(--fh-horror-title);
   text-align:center;
   margin:0 0 22px;
   letter-spacing:.1em;
