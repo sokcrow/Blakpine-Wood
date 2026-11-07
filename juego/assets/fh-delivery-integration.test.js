@@ -91,9 +91,10 @@ test('Mover paquetes y muebles se guarda en el estado de delivery',()=>{
 
 test('Abrir la caja conserva la posición y entra a decoración del mueble',()=>{
  assert.match(index,/x:item\.x,y:item\.y/);
- assert.match(index,/setTimeout\(\(\)=>fhStartDecoration\(next,f\),0\)/);
+ assert.match(index,/setTimeout\(\(\)=>fhStartDecoration\(next,f,\{fresh:true\}\),0\)/);
  assert.match(index,/return \{item:next,floor:f\}/);
- assert.match(index,/required:!initial\.ok/);
+ assert.match(index,/fhRefreshDecorationPreview\(/);
+ assert.match(index,/function fhStoreDecoration\(/);
  assert.match(index,/decorateRequired/);
 });
 
