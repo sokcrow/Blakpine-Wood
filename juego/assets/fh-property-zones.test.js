@@ -12,6 +12,19 @@ test('Permite parcela adyacente',()=>{const m=make();m.properties.push(zone(m));
 test('Propietario pinta pared existente en lindero',()=>{const m=make(),z=zone(m);z.ownerId='ana';m.properties.push(z);const wall={id:'w',type:'wall',a:{x:1,y:2},b:{x:4,y:2}};m.floors[0].items.push(wall);assert.equal(P.canPaintWall(m,'f1',wall,'A','ana'),true);assert.equal(P.canPaintWall(m,'f1',wall,'B','otro'),false)});
 test('No divide muros por la parcela',()=>{const m=make();m.properties.push(zone(m,{x:2,y:1},{x:4,y:5}));m.floors[0].items.push({id:'w',type:'wall',a:{x:0,y:2},b:{x:6,y:2}});assert.equal(P.splitAtPropertyLimits(m,'f1',()=>'new'),0);assert.equal(m.floors[0].items.length,1)});
 test('Puerta de parcela detectada por geometría',()=>{const m=make();m.properties.push(zone(m));assert.equal(Z.doorAt(m,'f1',{type:'door',a:{x:1,y:2},b:{x:1,y:3}})?.id,'parcel_a');assert.equal(Z.doorAt(m,'f1',{type:'door',a:{x:7,y:2},b:{x:7,y:3}}),null)});
+test('Entrada exterior con mirilla identifica el nombre de parcela, no ID de habitación',()=>{
+ const m=make(),p=zone(m);p.name='Apartamento 5 A';m.properties.push(p);
+ const door={type:'peephole_door',a:{x:1,y:2},b:{x:1,y:3}};
+ assert.equal(P.entrancePropertyAt(m,'f1',door)?.name,'Apartamento 5 A');
+ assert.equal(P.entrancePropertyAt(m,'f1',{...door,a:{x:2,y:2},b:{x:2,y:3}}),null,'puerta entre habitaciones no es acceso exterior');
+ assert.equal(P.entrancePropertyAt(m,'f1',{...door,a:{x:8,y:2},b:{x:8,y:3}}),null,'puerta fuera de la propiedad no debe asociarse');
+});
+test('No adjudica una puerta entre dos parcelas vecinas',()=>{
+ const m=make(),a=zone(m),b=zone(m,{x:4,y:1},{x:8,y:5},'parcel_b');
+ m.properties.push(a,b);
+ const door={type:'peephole_door',a:{x:4,y:2},b:{x:4,y:3}};
+ assert.equal(P.entrancePropertyAt(m,'f1',door),null);
+});
 test('Conteo de arquitectura interior',()=>{const m=make(),z=zone(m);m.properties.push(z);m.floors[0].items.push({type:'wall',a:{x:2,y:2},b:{x:3,y:2}},{type:'door',a:{x:1,y:3},b:{x:1,y:4}},{type:'hall',x:1,y:1,w:2,h:1},{type:'chair',x:2,y:2},{type:'chair',x:12,y:12});assert.deepEqual(Z.counts(m.floors[0],z),{walls:1,areas:1,objects:1,doors:1})});
 test('Compatibilidad con propiedades heredadas',()=>{const m=make();m.properties.push({id:'old',floorId:'f1',polygon:Z.polygon({x:0,y:0,w:5,h:5}),ownerId:'ana'});assert.equal(P.canEditAt(m,'f1',{x:2,y:2},'ana'),true)});
 test('Pintar habitación contenida en parcela',()=>{const m=make(),z=zone(m);z.ownerId='ana';m.properties.push(z);assert.equal(P.canPaintRoom(m,'f1',{type:'room',x:2,y:2,w:1,h:1},'ana'),true)});
