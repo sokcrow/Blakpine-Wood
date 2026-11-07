@@ -42,3 +42,18 @@
 #fhcc-root .fhcc-nav button:disabled{opacity:.35;cursor:not-allowed}
 @media(max-width:470px){#fhcc-root .fhcc-card{max-height:96dvh}#fhcc-root .fhcc-choices,#fhcc-root .fhcc-summary{grid-template-columns:1fr}#fhcc-root .fhcc-nav{gap:5px}#fhcc-root .fhcc-nav button{padding:9px 8px;font-size:12px}}
 @media(prefers-reduced-motion:reduce){#fhcc-root *{scroll-behavior:auto!important}}
+
+/* Ayuda independiente: el botón de selección jamás contiene otro botón. */
+#fhcc-root .fhcc-score-choice{min-width:0;display:grid;grid-template-columns:minmax(0,1fr) 40px;align-items:center;gap:6px}
+#fhcc-root .fhcc-score-choice>.fhcc-choice{width:100%;min-width:0;height:100%}
+#fhcc-root .fhcc-score-choice>.fh-help-trigger{justify-self:center;border-color:#8d938e;color:#f6e9ca}
+#fhcc-root .fhcc-score-name{display:flex;flex-wrap:wrap;align-items:center;gap:7px}
+#fhcc-root .fhcc-score-name>span{min-width:0}
+#fhcc-root .fhcc-summary-stat{display:flex;align-items:center;justify-content:center;gap:5px;min-width:0}
+#fhcc-root .fhcc-summary-stat .fh-help-trigger{min-width:28px;width:28px;height:28px;font-size:13px}
+#fhcc-root .fhcc-summary-resources{display:flex;flex-wrap:wrap;gap:8px}
+#fhcc-root .fhcc-summary-resources .fhcc-summary-stat{padding:5px 7px;background:#253238}
+@media(max-width:470px){
+ #fhcc-root .fhcc-score-choice{grid-template-columns:minmax(0,1fr) 44px}
+ #fhcc-root .fhcc-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}

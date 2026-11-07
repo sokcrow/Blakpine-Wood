@@ -1,0 +1,80 @@
+/* Blakpine Wood — fichas de ayuda compartidas. Textos visibles siempre en español.
+   Los usos previstos no implican interacciones implementadas. */
+(function(global){
+ 'use strict';
+ const entry=(name,description,uses,systems)=>Object.freeze({name,description,uses,systems});
+ global.FH_CHARACTER_HELP_TEXT=Object.freeze({
+  open:'Información sobre',what:'Qué representa',where:'Cuándo se utiliza',
+  impact:'Reglas y mecánicas',hint:'Toca o enfoca el signo de ayuda para consultar esta ficha.',
+  scoreRule:'Los Scores definen capacidades del personaje y agrupan habilidades. Sus puntos no se suman automáticamente al porcentaje de una tirada de habilidad.',
+  skillRule:'Una tirada manual de habilidad parte de 100% de Heads, suma 5% por punto de habilidad y resta las penalizaciones de dificultad y desventaja. La activación automática en objetos o eventos está pendiente.',
+  scores:Object.freeze({
+   FOR:entry('Fortaleza','Capacidad física para aplicar fuerza y sostener esfuerzos.',
+    'Sirve como referencia para atletismo, fuerza bruta, forcejeo y carga física.',
+    'Actualmente determina los PG máximos (26 + 2 × FOR) y participa en los PE máximos (6 + FOR + AGI).'),
+   AGI:entry('Agilidad','Reflejos, precisión y coordinación motriz.',
+    'Agrupa sigilo, acrobacias, manipulación fina, cerrajería y conducción.',
+    'Actualmente participa en los PE máximos y en el cálculo de evasión (5% + 5% × AGI).'),
+   VOL:entry('Voluntad','Capacidad de mantener el control mental bajo presión.',
+    'Agrupa temple, concentración, autocontrol y resistencia mental.',
+    'Actualmente determina los SP máximos (14 + 2 × VOL); futuras amenazas pueden consultar este Score.'),
+   PRU:entry('Prudencia','Atención al entorno y criterio para sobrevivir.',
+    'Agrupa percepción, rastreo, orientación y evaluación de peligros.',
+    'Los usos automáticos en exploración, detección y peligros son previstos; no otorga un éxito automático.'),
+   ING:entry('Ingenio','Conocimiento práctico y resolución de problemas.',
+    'Agrupa investigación, informática, electrónica, mecánica y medicina.',
+    'Los usos automáticos con terminales, reparaciones y pistas son previstos.'),
+   ARC:entry('Arcano','Afinidad para comprender o enfrentar fenómenos arcanos.',
+    'Agrupa sensibilidad, interpretación, canalización, protección y rituales arcanos.',
+    'La interacción sobrenatural concreta dependerá de futuras mecánicas; este Score no concede poderes automáticos.'),
+   SOC:entry('Social','Capacidad de relacionarse, interpretar conductas e influir en otros.',
+    'Agrupa persuasión, engaño, intimidación, empatía e interpretación social.',
+    'Los diálogos y reacciones de NPC basados en este Score quedan previstos para futuras integraciones.')
+  }),
+  resources:Object.freeze({
+   pg:entry('PG · Salud','Puntos de Golpe: salud física actual del personaje.',
+    'Se consultan para conocer cuánto daño físico puede soportar el personaje.',
+    'El máximo actual es 26 + 2 × FOR. Los dados de daño son un sistema separado de las monedas de habilidad.'),
+   sp:entry('SP · Sanidad','Reserva de estabilidad mental del personaje.',
+    'Se consulta frente al horror, el estrés y efectos que comprometan la cordura.',
+    'El máximo actual es 14 + 2 × VOL. Las futuras pérdidas y recuperaciones requieren mecánicas específicas.'),
+   pe:entry('PE · Energía','Reserva de energía disponible para el esfuerzo del personaje.',
+    'Se consulta para actividades que consuman resistencia o cansen al personaje.',
+    'El máximo actual es 6 + FOR + AGI. Los costes y recuperaciones por acción se definirán por mecánica.')
+  }),
+  skills:Object.freeze({
+   atletismo:entry('Atletismo','Habilidad para desplazarse con esfuerzo físico.','Trepar, nadar, saltar distancias o atravesar obstáculos exigentes.','Aplicación en acciones de movimiento: prevista.'),
+   fuerzaBruta:entry('Fuerza bruta','Aplicación explosiva de potencia corporal.','Forzar puertas, empujar obstáculos o intentar romper barreras.','Aplicación a objetos destructibles: prevista.'),
+   forcejeo:entry('Forcejeo','Capacidad para dominar o resistir un agarre físico.','Sujetar a alguien, empujarlo o liberarse de una sujeción.','Resolución de agarres entre entidades: prevista.'),
+   cargaFisica:entry('Carga física','Capacidad práctica para sostener y trasladar peso.','Levantar cajas, mover mobiliario o transportar una carga difícil.','Límites de peso y fatiga por carga: previstos.'),
+   sigilo:entry('Sigilo','Capacidad para actuar sin llamar la atención.','Caminar sin hacer ruido, ocultarse o pasar desapercibido.','Detección y percepción de enemigos: integración prevista.'),
+   acrobacias:entry('Acrobacias','Control del equilibrio y movimientos precisos.','Cruzar superficies inestables, caer con control o sortear obstáculos.','Caídas, equilibrio y obstáculos: previstos.'),
+   manipulacionFina:entry('Manipulación fina','Destreza manual para manejar objetos delicados.','Mover piezas pequeñas, ocultar objetos o manipular mecanismos finos.','Interacciones de precisión y herramientas: previstas.'),
+   cerrajeria:entry('Cerrajería','Técnica de apertura de cerraduras físicas.','Manipular una cerradura mecánica utilizando herramientas apropiadas.','No sustituye tarjetas ni códigos de accesos electrónicos; integración futura.'),
+   conduccion:entry('Conducción','Coordinación necesaria para controlar vehículos.','Maniobras difíciles, conducción en peligro o con visibilidad reducida.','Sistema de vehículos: previsto.'),
+   temple:entry('Temple','Firmeza ante el miedo y la presión inmediata.','Evitar entrar en pánico ante amenazas o sucesos perturbadores.','Interacción con situaciones de horror: prevista; no reemplaza los SP.'),
+   concentracion:entry('Concentración','Capacidad de mantener la atención en una tarea.','Trabajar con distracciones, ruido o situaciones de tensión.','Interrupciones y acciones prolongadas: previstas.'),
+   autocontrol:entry('Autocontrol','Control voluntario de impulsos y reacciones.','Contener reacciones precipitadas o mantener la calma al decidir.','Estados emocionales y decisiones bajo presión: previstos.'),
+   resistenciaMental:entry('Resistencia mental','Capacidad de sostenerse frente a influencias psicológicas.','Enfrentar coacción, confusión o presión mental.','Efectos mentales específicos: previstos; no restaura SP por sí sola.'),
+   percepcion:entry('Percepción','Capacidad para advertir señales del entorno.','Escuchar pasos, notar movimiento o descubrir detalles visibles.','Detección automática, enemigos y pistas: prevista.'),
+   rastreo:entry('Rastreo','Lectura de indicios para seguir un recorrido.','Seguir huellas, marcas, objetos desplazados o pistas de criaturas.','Rastros persistentes del mundo: previstos.'),
+   orientacion:entry('Orientación','Capacidad para ubicarse y elegir un camino.','Reconocer rutas, volver a un lugar o navegar sin un mapa preciso.','Navegación, mapas y exploración: previstos.'),
+   evaluacionPeligros:entry('Evaluación de peligros','Capacidad para anticipar riesgos a partir de señales.','Reconocer zonas inestables, trampas o comportamientos amenazantes.','Avisos de peligro y trampas: previstos.'),
+   investigacion:entry('Investigación','Análisis de evidencias y conexiones entre hechos.','Examinar escenas, documentos, pistas y mecanismos desconocidos.','Sistema de pistas e investigaciones: previsto.'),
+   informatica:entry('Informática','Conocimientos prácticos de computadoras y programas.','Diagnosticar software, recuperar información o utilizar terminales complejas.','Usos avanzados en computadoras: previstos; las acciones comunes siguen sus requisitos normales.'),
+   electronica:entry('Electrónica','Comprensión de circuitos y componentes eléctricos.','Revisar cableado, lectores o paneles electrónicos dañados.','Reparaciones de dispositivos: previstas; no evita controles de acceso.'),
+   mecanica:entry('Mecánica','Conocimiento de máquinas y mecanismos físicos.','Diagnosticar motores, reparar equipos o entender piezas móviles.','Sistemas de averías y reparaciones: previstos.'),
+   medicina:entry('Medicina','Conocimiento aplicado de lesiones y primeros auxilios.','Examinar heridas, estabilizar personas o utilizar suministros médicos.','Tratamiento y estabilización: previstos; no crea curación gratuita.'),
+   sensibilidadArcana:entry('Sensibilidad arcana','Capacidad para reconocer posibles señales sobrenaturales.','Notar anomalías o indicios arcanos en un lugar.','Detección sobrenatural: prevista; no equivale a un radar permanente.'),
+   interpretacionArcana:entry('Interpretación arcana','Comprensión de símbolos y patrones ocultos.','Analizar inscripciones, manifestaciones o pistas relacionadas con lo arcano.','Descifrado de fenómenos arcanos: previsto.'),
+   canalizacion:entry('Canalización','Capacidad potencial para conducir una influencia arcana.','Acciones rituales o fenómenos que requieran control de energía arcana.','No habilita poderes sin una mecánica o requisito específico.'),
+   proteccionArcana:entry('Protección arcana','Conocimiento de medidas contra efectos sobrenaturales.','Preparar defensas, reconocer protecciones o resistir anomalías.','Protecciones sobrenaturales: previstas; no concede inmunidad automática.'),
+   rituales:entry('Rituales','Conocimiento de secuencias y condiciones rituales.','Interpretar o realizar un ritual cuando existan materiales y reglas válidas.','Rituales jugables y sus requisitos: previstos.'),
+   persuasion:entry('Persuasión','Habilidad para influir mediante argumentos.','Negociar, solicitar colaboración o convencer a un NPC.','Diálogos persuasivos con NPC: previstos.'),
+   engano:entry('Engaño','Capacidad para sostener información falsa de forma convincente.','Mentir, ocultar intenciones o inventar una coartada.','Diálogos y detección de mentiras: previstos.'),
+   intimidacion:entry('Intimidación','Capacidad de presionar a otra entidad mediante amenazas.','Exigir cooperación o disuadir a alguien en una confrontación.','Reacciones de NPC a amenazas: previstas.'),
+   empatia:entry('Empatía','Capacidad para comprender emociones ajenas.','Reconocer malestar, interpretar gestos o detectar cambios emocionales.','Lectura social de NPC: prevista.'),
+   interpretacionSocial:entry('Interpretación social','Capacidad para representar una actitud o identidad.','Fingir un papel, actuar o sostener una identidad frente a terceros.','Suplantación e interpretación ante NPC: previstas.')
+  })
+ });
+})(typeof window!=='undefined'?window:globalThis);

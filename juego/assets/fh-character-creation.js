@@ -2,6 +2,7 @@
 (function (global) {
  'use strict';
  const C=global.FHCharacterCore,T=global.FH_CHARACTER_TEXT;
+ const H=global.FHCharacterHelp;
  if(!C||!T)throw Error('Faltan los datos del creador de personajes.');
  const doc=global.document;
  let pending=null;
@@ -36,7 +37,7 @@
   cancel.type=back.type=next.type='button';
   nav.append(cancel,back,next);
   panel.append(overline,title,progress,stepName,content,error,nav);shell.append(panel);doc.body.append(shell);
-  const close=result=>{shell.remove();global.removeEventListener('keydown',onKeys,true);resolve(result)};
+  const close=result=>{H?.close?.();shell.remove();global.removeEventListener('keydown',onKeys,true);resolve(result)};
   cancel.onclick=()=>close(null);
   back.onclick=()=>{if(state.step>0){state.step--;render();panel.scrollTop=0}};
   next.onclick=()=>{
@@ -95,7 +96,10 @@
     state[list]=selected?current.filter(x=>x!==k):[...current,k];
     state.bonus={};render();
    };
-   return b;
+   const wrapper=el('div','fhcc-score-choice');
+   wrapper.append(b);
+   const info=H?.button?.('score',k);if(info)wrapper.append(info);
+   return wrapper;
   }
   function value(k){return (state.strengths.includes(k)?5:state.weaknesses.includes(k)?1:3)+(state.bonus[k]||0)}
   function canRaise(k) {
@@ -117,6 +121,7 @@
    return card;
   }
   function render() {
+   H?.close?.();
    content.replaceChildren();error.hidden=true;progress.replaceChildren();
    for(let i=0;i<6;i++){const seg=el('span','fhcc-segment'+(i<=state.step?' active':''));progress.append(seg)}
    stepName.textContent=T.progress(state.step+1,6)+' · '+T.steps[state.step];
@@ -160,6 +165,7 @@
      minus.setAttribute('data-direction','-1');plus.setAttribute('data-direction','1');
      minus.onclick=()=>change(key,-1);plus.onclick=()=>change(key,1);
      const output=el('output','',String(value(key)));
+     const info=H?.button?.('score',key);if(info)name.append(info);
      row.append(name,minus,output,plus);content.append(row);
     }
    }else{
@@ -169,10 +175,20 @@
      summaryCard(T.summaryOrigin,state.origin==='resident'?T.resident:T.visitor),
      summaryCard(T.summaryMissing,T.relations[state.relationship]+(state.missingName.trim()?' · '+state.missingName.trim():'')));
     const scores=el('div','fhcc-summary-grid');
-    for(const key of C.SCORES)scores.append(el('span','',key+' '+value(key)));
+    for(const key of C.SCORES){
+     const item=el('span','fhcc-summary-stat',key+' '+value(key));
+     const info=H?.button?.('score',key);if(info)item.append(info);
+     scores.append(item);
+    }
     summary.append(summaryCard(T.summaryStats,scores));
     const r=C.resources(Object.fromEntries(C.SCORES.map(k=>[k,value(k)])));
-    summary.append(summaryCard(T.summaryResources,'PG '+r.pgMax+' · SP '+r.spMax+' · PE '+r.peMax));
+    const resources=el('div','fhcc-summary-resources');
+    for(const [key,text] of [['pg','PG '+r.pgMax],['sp','SP '+r.spMax],['pe','PE '+r.peMax]]){
+     const item=el('span','fhcc-summary-stat',text);
+     const info=H?.button?.('resource',key);if(info)item.append(info);
+     resources.append(item);
+    }
+    summary.append(summaryCard(T.summaryResources,resources));
     content.append(summary,el('p','fhcc-note',T.summaryPending),el('p','fhcc-help',T.days));
    }
    back.disabled=state.step===0;

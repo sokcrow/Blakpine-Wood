@@ -682,3 +682,19 @@ body.fh-player-menu-ready #fhPlayerMenuDetail .fh-skill-result small {color:#c8c
   grid-column:1/-1;justify-self:start;
  }
 }
+
+/* Ayuda junto al nombre; evita cambiar las columnas de valores y barras. */
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-stat-label,
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-skill-name,
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-resource-label {
+ display:flex;align-items:center;gap:6px;min-width:0;
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-stat-label>.fh-help-trigger,
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-skill-name>.fh-help-trigger,
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-resource-label>.fh-help-trigger {
+ width:30px;height:30px;min-width:30px;font-size:14px;
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-stat-row{grid-template-columns:minmax(128px,1fr) minmax(50px,1fr) 29px}
+@media(max-width:650px){
+ body.fh-player-menu-ready #fhPlayerMenuDetail .fh-stat-row {grid-template-columns:minmax(118px,1fr) minmax(40px,1fr) 23px}
+}

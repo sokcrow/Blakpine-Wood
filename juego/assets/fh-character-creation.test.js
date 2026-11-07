@@ -45,8 +45,10 @@ function nav(){return panel().children[6]}
 function next(){nav().children[2].onclick()}
 function pick(title){
  const choices=content().children.find(n=>n.className==='fhcc-choices');
- const button=choices.children.find(n=>n.children[0]?.textContent===title);
- assert.ok(button,title);button.onclick();
+ const choice=choices.children.find(n=>n.children[0]?.children[0]?.textContent===title||n.children[0]?.textContent===title);
+ assert.ok(choice,title);
+ const button=choice.children[0]?.tag==='button'?choice.children[0]:choice;
+ button.onclick();
 }
 (async()=>{
  const pending=P.ensureCharacter();

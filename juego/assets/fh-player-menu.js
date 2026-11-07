@@ -70,6 +70,13 @@
       return null;
     return {current,maximum,percent:Math.max(0,Math.min(100,100*current/maximum))};
   }
+  function withHelp(name,type,key,className){
+    const holder=node('span',className);
+    holder.append(node('span','',name));
+    const info=global.FHCharacterHelp?.button?.(type,key);
+    if(info)holder.append(info);
+    return holder;
+  }
   function appendSkills(host,character){
     const S=global.FHSkills,txt=global.FH_SKILL_TEXT;
     if(!S||!txt||!character)return;
@@ -97,7 +104,7 @@
       group.append(summary);
       for(const id of ids){
         const row=node('div','fh-skill-row');
-        const name=node('span','fh-skill-name',txt.names[id]||id);
+        const name=withHelp(txt.names[id]||id,'skill',id,'fh-skill-name');
         const pts=node('span','fh-skill-points',String(S.readPoints(character,id))+' '+txt.points);
         const button=node('button','fh-skill-roll',txt.roll);
         button.type='button';button.setAttribute('aria-label',txt.roll+': '+(txt.names[id]||id));
@@ -142,7 +149,7 @@
     for(const key of SCORE_CODES){
       const score=scoreReading(character?.scores,key);
       const row=node('div','fh-stat-row');
-      row.append(node('span','fh-stat-label',label('scoreNames')?.[key]||key));
+      row.append(withHelp(label('scoreNames')?.[key]||key,'score',key,'fh-stat-label'));
       const ticks=node('span','fh-stat-ticks');
       ticks.setAttribute('aria-hidden','true');
       for(let i=1;i<=6;i++){
@@ -158,7 +165,7 @@
       const item=node('div','fh-resource fh-resource-'+key);
       const heading=node('div','fh-resource-heading');
       const text=reading?reading.current+' / '+reading.maximum:'—';
-      heading.append(node('span','fh-resource-label',name),node('strong','fh-resource-number',text));
+      heading.append(withHelp(name,'resource',key,'fh-resource-label'),node('strong','fh-resource-number',text));
       const track=node('div','fh-resource-track');
       if(reading){
         track.setAttribute('role','progressbar');
@@ -347,6 +354,7 @@
     ui.right.dataset.empty='false';
   }
   function renderDetail(key){
+    global.FHCharacterHelp?.close?.();
     if(!sections.some(s=>s[0]===key))return;
     if(isInventoryTab(current)&&!isInventoryTab(key))unmountInventory();
     current=key;
@@ -382,6 +390,7 @@
   }
   function showMain(){renderDetail('objectives');}
   function closeMenu(restoreFocus=true){
+    global.FHCharacterHelp?.close?.();
     if(!open)return;
     const leavingInventory=isInventoryTab(current);
     unmountInventory();
