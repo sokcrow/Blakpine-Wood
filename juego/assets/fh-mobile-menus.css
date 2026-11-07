@@ -28,6 +28,11 @@
     transform: scale(.5) !important;
     transform-origin: center center !important;
   }
+  /* El diálogo vivo usa left:50%; conserva su translateX para no cortarse. */
+  body.fh-player-menu-ready #fhLiveDialog .fh-panel {
+    transform: translateX(-50%) scale(.5) !important;
+  }
+
   #fhDecorControls,
   #fhDecorStoredPanel {
     transform: scale(.5) !important;
