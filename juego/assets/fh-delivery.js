@@ -258,6 +258,32 @@ function createRuntime(options){
   if(item.wallId)record.wallId=item.wallId;else delete record.wallId;
   save();return true;
  }
+ function storedFurniture(){
+  return delivery.furnishings.filter(record=>record.stored===true).map(record=>{
+   const order=orderById(state,record.orderId),product=productById(record.productId||order?.productId);
+   return {...clone(record),name:product?.name||order?.name||record.id};
+  });
+ }
+ function setFurnitureStored(item,floor,stored){
+  if(!isDeliveredFurniture(item))return false;
+  const record=delivery.furnishings.find(value=>value.id===item.id);
+  if(!record)return false;
+  Object.assign(record,{floor:Number.isInteger(floor)?floor:record.floor,
+   x:finite(item.x),y:finite(item.y),rotation:finite(item.rotation),stored:!!stored});
+  if(item.support)record.support=clone(item.support);else delete record.support;
+  if(item.wallId)record.wallId=item.wallId;else delete record.wallId;
+  save();return true;
+ }
+ function retrieveStoredFurniture(id,position={}){
+  const record=delivery.furnishings.find(value=>value.id===id&&value.stored===true);
+  if(!record||options.hasRuntimeItem?.(id,Number.isInteger(position.floor)?position.floor:record.floor))return false;
+  const order=orderById(state,record.orderId),product=productById(record.productId||order?.productId);
+  if(!order||!product)return false;
+  const floor=Number.isInteger(position.floor)?position.floor:record.floor;
+  return options.restoreFurniture?.({...clone(record),floor,
+   x:finite(position.x,record.x),y:finite(position.y,record.y),
+   rotation:finite(position.rotation,record.rotation)},product,order)||false;
+ }
  function openPackage(item){
   const order=orderById(state,item?.runtimePackage?.orderId);if(!order||order.status!=='delivered')return false;
   const p=productById(order.productId);if(!p)return false;
@@ -287,6 +313,7 @@ function createRuntime(options){
    options.spawnRuntimeItem?.(item,pack.floor);
   }
   for(const record of delivery.furnishings){
+   if(record.stored===true)continue;
    const order=orderById(state,record.orderId),product=productById(record.productId||order?.productId);
    if(!order||order.status!=='unboxed'||!product||options.hasRuntimeItem?.(record.id,record.floor))continue;
    options.restoreFurniture?.(record,product,order);
@@ -311,7 +338,7 @@ function createRuntime(options){
  }
  global.addEventListener('message',onMessage);
  loadCatalogs();
- return {isPc,isPackage,isDeliveredFurniture,updateRuntimeItem,actionLabel,openPc,closePc,onComputerOpen,onComputerClose,syncTerminal,onPeephole,onPeepholeExit,talkThroughPeephole,onDoorOpened,openPackage,placeOrder,advanceTime,formatClock,update,resume,activateNext,
+ return {isPc,isPackage,isDeliveredFurniture,updateRuntimeItem,storedFurniture,setFurnitureStored,retrieveStoredFurniture,actionLabel,openPc,closePc,onComputerOpen,onComputerClose,syncTerminal,onPeephole,onPeepholeExit,talkThroughPeephole,onDoorOpened,openPackage,placeOrder,advanceTime,formatClock,update,resume,activateNext,
   get products(){return products.map(clone)},get orders(){return delivery.orders.map(clone)},get ready(){return ready}};
 }
 global.FHDelivery=Object.freeze({ensureState,parcelSize,normalizeProduct,createOrder,activeOrderForDoor,advanceTime,tickClock,formatMinutes,formatClock,nextDueOrder,createRuntime});
