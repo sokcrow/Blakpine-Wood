@@ -3682,8 +3682,8 @@ function fhRefreshActorVisibility(){
   const hooks=[
    ["const keys={},stick={x:0,z:0,id:null};",
     "const fhPlayerWalkCycle=window.FHActorPresentation.createCycle();\nconst keys={},stick={x:0,z:0,id:null};"],
-   [" const stepCycle=(walkDistance/1.18)%1;\n  const poseIdle=!user.walking||stepCycle<.15||(stepCycle>.51&&stepCycle<.62);",
-    " const poseIdle=fhPlayerWalkCycle.tick(user.walking,dt)==='idle';"],
+   ["const stepCycle=(walkDistance/1.18)%1;\n  const poseIdle=!user.walking||stepCycle<.15||(stepCycle>.51&&stepCycle<.62);",
+    "const poseIdle=fhPlayerWalkCycle.tick(user.walking,dt)==='idle';"],
    ["function drawSight(){const at=eyeLocation();const ts=performance.now();",
     actorRegistry+"function drawSight(){const at=eyeLocation();const ts=performance.now();"],
    [" q.restore();sightTexture.needsUpdate=true;",
