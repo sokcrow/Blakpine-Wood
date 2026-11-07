@@ -2797,8 +2797,8 @@ function prepareGLBEngineDoc(source){
  const lightsModule='<script src="'+new URL('./juego/assets/fh-lights.js?v=20261105-light-ui2',document.baseURI).href+'"></'+'script>';
  const npcGoapModule='<script src="'+new URL('./juego/assets/fh-npc-goap.js?v=20261106-goap-1',document.baseURI).href+'"></'+'script>';
  const npcCourierModule='<script src="'+new URL('./juego/assets/fh-npc-courier.js?v=20261106-goap-1',document.baseURI).href+'"></'+'script>';
- const deliveryStrings='<script src="'+new URL('./juego/assets/fh-delivery-strings.js?v=20261106-goap-1',document.baseURI).href+'"></'+'script>';
- const deliveryModule='<script src="'+new URL('./juego/assets/fh-delivery.js?v=20261106-interiores-1',document.baseURI).href+'"></'+'script>';
+ const deliveryStrings='<script src="'+new URL('./juego/assets/fh-delivery-strings.js?v=20261106-hamazon-2',document.baseURI).href+'"></'+'script>';
+ const deliveryModule='<script src="'+new URL('./juego/assets/fh-delivery.js?v=20261106-hamazon-2',document.baseURI).href+'"></'+'script>';
  const pcAssemblyModule='<script src="'+new URL('./juego/assets/fh-pc-assembly.js',document.baseURI).href+'"></'+'script>';
  const computerModule='<script src="'+new URL('./juego/assets/fh-computer.js',document.baseURI).href+'"></'+'script>';
  const computerStrings='<script src="'+new URL('./juego/assets/fh-computer-strings.js',document.baseURI).href+'"></'+'script>';
@@ -3348,6 +3348,38 @@ function fhDoorAddress(door){
  const property=fhDoorProperty(door);
  return property?{id:property.id,name:property.name||''}:{id:'',name:''};
 }
+// Solo entradas que el repartidor puede usar y que pertenecen a una parcela o habitación del mapa.
+function fhDeliveryRoomAtDoor(door){
+ const floor=DATA.floors[door?.f],source=floor?.items?.find(it=>it.id===door.id);
+ if(!source?.a||!source?.b||!window.FHLocationHUD?.inArea)return null;
+ const dx=source.b.x-source.a.x,dy=source.b.y-source.a.y,len=Math.hypot(dx,dy);
+ if(!len)return null;
+ const center={x:(source.a.x+source.b.x)/2,y:(source.a.y+source.b.y)/2};
+ const samples=[1,-1].map(side=>({x:center.x-side*dy/len*.28,y:center.y+side*dx/len*.28}));
+ const rooms=(floor.items||[]).filter(it=>it.type==='room'&&it.id&&samples.some(p=>window.FHLocationHUD.inArea(p,it)));
+ return rooms.length===1?rooms[0]:null;
+}
+function fhDeliveryAddresses(){
+ const addresses=new Map();
+ for(let f=0;f<DATA.floors.length;f++){
+  const floor=DATA.floors[f];
+  for(const door of doorList[f]||[]){
+   if(door.kind!=='peephole_door'||!door.id)continue;
+   const property=fhDoorProperty(door),room=property?null:fhDeliveryRoomAtDoor(door);
+   if(!property&&!room)continue;
+   const kind=property?'property':'room',target=property||room;
+   const id=kind+':'+floor.id+':'+target.id;
+   const name=String(property?(property.name||property.id):(room.label||room.roomId||room.id)).trim().slice(0,80);
+   const original=floor.items?.find(it=>it.id===door.id);
+   const priority=(original?.propertyDoorRole==='main'?-100:0)+(door.role==='entrance'?-20:0);
+   const address={id,name,kind,doorId:door.id,floor:f,floorName:floor.name||String(f+1),
+    propertyId:property?.id||'',roomId:room?.id||''};
+   if(!addresses.has(id)||priority<addresses.get(id).priority)addresses.set(id,{...address,priority});
+  }
+ }
+ return [...addresses.values()].sort((a,b)=>a.floor-b.floor||a.name.localeCompare(b.name,'es'))
+  .map(({priority,...address})=>address);
+}
 function fhDeliveryDoor(pc,f){
  const floor=DATA.floors[f];if(!floor)return null;
  const parcel=window.FHStyleProperty?.propertyAt(DATA,floor.id,{x:Number(pc?.x),y:Number(pc?.y)});
@@ -3413,6 +3445,7 @@ window.FHDeliveryRuntime=window.FHDelivery?.createRuntime({
  baseUrl:new URL('./juego/assets/fh-delivery.js',document.baseURI).href,
  freeze:on=>{fhDeliveryUiActive=!!on;user.vx=user.vz=0;clearStick();},
  findDoor:fhDeliveryDoor,doorById:fhDeliveryDoorById,
+ deliveryAddresses:fhDeliveryAddresses,
  resolveDoorAddress:fhDoorAddress,propertyNameById:id=>(DATA.properties||[]).find(p=>p.id===id)?.name||'',
  dialogPose:pose=>fhSetDeliveryNpcPose(pose),endDoorEvent:fhEndDoorEvent,
  openDoor:fhOpenDeliveryDoor,
