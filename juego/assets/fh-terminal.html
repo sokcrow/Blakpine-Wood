@@ -283,6 +283,31 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
  .window-title .wm{min-width:33px;min-height:32px}
  #message{bottom:46px}
 }
+
+/* Teléfonos: menús del sistema RAVEN/OS al 50%.
+   Las ventanas siguen siendo desplazables y los botones conservan sus handlers. */
+@media (pointer: coarse) and (max-width: 767px),
+       (pointer: coarse) and (orientation: landscape) and (max-width: 1100px) and (max-height: 500px) {
+  #startMenu.start-menu {
+    transform: scale(.5);
+    transform-origin: left bottom;
+  }
+  #desktopIcons {
+    transform: scale(.5);
+    transform-origin: top left;
+  }
+  #windowsLayer .window,
+  #windowsLayer .window.maximized {
+    left: 25% !important;
+    top: 25% !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    transform: scale(.5) !important;
+    transform-origin: top left !important;
+  }
+}
 </style>
 </head>
 <body>
