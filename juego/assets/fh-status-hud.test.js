@@ -66,8 +66,7 @@ test('Paleta de Heal, DMG, consumo de PE y veneno',()=>{
   'pe-use':'#be9aff',poison:'#65ff32'
  };
  for(const [tone,hex] of Object.entries(tones)){
-  const token=tone.replace(/-/g,'-');
-  assert.ok(css.includes('--fh-status-'+token+':'+hex),'Falta color '+tone);
+  assert.ok(css.includes('--fh-status-'+tone+':'+hex),'Falta color '+tone);
   assert.ok(css.includes('.fh-status-change--'+tone),'Falta estilo '+tone);
  }
  assert.match(css,/\.fh-status-pe-cell\.is-filled\s*\{[\s\S]*?background:var\(--fh-status-pe\)/);
