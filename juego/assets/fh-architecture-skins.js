@@ -105,18 +105,19 @@ function hideLegacyVisual(node,detach=false){
 function accessDeviceId(it){
  return it?.accessDevice==='pin'?'teclado_pin':it?.accessDevice==='card'?'lector_tarjeta':null;
 }
-function mountAccessDevice(fixed,it,THREE,sightMask){
+function mountAccessDevice(fixed,it,THREE,sightMask,d){
  const id=accessDeviceId(it);
  if(!id||!fixed?.parent)return;
  // El lector está sujeto al MARCO_FIJO, nunca a la hoja que gira.
  const sides=it.accessSide==='both'?[1,-1]:[it.accessSide==='back'?-1:1];
  function place(scene,sign){
-  if(!fixed.parent)return;
+  if(!fixed.parent||d?.readerDestroyed||global.FHStructureHealthRuntime?.isDestroyed?.(d?.f,it.id,'reader'))return;
   const node=scene.clone(true);
   node.position.set(.045,1.12,sign*.1);
   if(sign<0)node.rotation.y=Math.PI;
   applyFOW(node,sightMask);
   fixed.add(node);
+  if(d)(d.accessVisuals||(d.accessVisuals=[])).push(node);
  }
  load(id).then(scene=>{for(const sign of sides)place(scene,sign);}).catch(error=>{
   reportFailure(id,error);
@@ -127,7 +128,7 @@ function mountAccessDevice(fixed,it,THREE,sightMask){
     new THREE.MeshBasicMaterial({color:0x617c76}));
    marker.position.set(.045,1.24,sign*.105);
    applyFOW(marker,sightMask);
-   if(fixed.parent)fixed.add(marker);
+   if(fixed.parent&&!d?.readerDestroyed){fixed.add(marker);if(d)(d.accessVisuals||(d.accessVisuals=[])).push(marker);}
   }
  });
 }
@@ -167,7 +168,7 @@ function decorateDoor(d,it,THREE,sightMask){
   const originalFrame=double?[]:d.frame.children.slice();
   parts.forEach((part,i)=>part.group.add(leaves[i]));
   for(const fixed of frames)d.frame.add(fixed);
-  if(!double&&electronicDoors.has(model)&&frames[0])mountAccessDevice(frames[0],it,THREE,sightMask);
+  if(!double&&electronicDoors.has(model)&&frames[0])mountAccessDevice(frames[0],it,THREE,sightMask,d);
   for(const original of originalLeaves)for(const visual of original)hideLegacyVisual(visual);
   // Con una 'T' o pared divisoria se dibujan dos puertas independientes:
   // cada puerta simple conserva su marco completo.
