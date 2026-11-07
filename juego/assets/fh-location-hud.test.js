@@ -128,4 +128,39 @@ test('Estacionamiento dentro de un edificio sigue indicando planta',()=>{
  const r=H.resolve(m,0,{x:2,y:2},P);
  assert.equal(r.kind,'building');assert.equal(r.floorCode,'F1');
 });
+test('El mismo nombre de habitación no oculta un cambio de recinto',()=>{
+ const m={title:'Mismo edificio',floors:[{id:'planta',elevationFt:0,items:[
+  {id:'sala-a',type:'room',label:'Sala',x:0,y:0,w:2,h:2},
+  {id:'sala-b',type:'room',label:'Sala',x:2,y:0,w:2,h:2}
+ ]}],properties:[{id:'parcela',floorId:'planta',name:'Apartamento',
+  polygon:poly(0,0,5,5)}]};
+ const first=H.resolve(m,0,{x:1,y:1},P);
+ const second=H.resolve(m,0,{x:3,y:1},P);
+ assert.deepEqual([first.primary,first.secondary],[second.primary,second.secondary]);
+ assert.notEqual(first.scopeKey,second.scopeKey);
+});
+test('Cambiar de parcela con la misma etiqueta también reactiva el anuncio',()=>{
+ const m={title:'Edificio',floors:[{id:'planta',elevationFt:0,items:[]}],
+  properties:[
+   {id:'p1',floorId:'planta',name:'Apartamento',polygon:poly(0,0,4,4)},
+   {id:'p2',floorId:'planta',name:'Apartamento',polygon:poly(5,0,4,4)}
+  ]};
+ const a=H.resolve(m,0,{x:1,y:1},P);
+ const b=H.resolve(m,0,{x:6,y:1},P);
+ assert.equal(a.primary,b.primary);
+ assert.notEqual(a.scopeKey,b.scopeKey);
+});
+test('La ubicación dura 2.8 segundos y no se reinicia al permanecer en el mismo recinto',()=>{
+ const state=H.createVisibilityState(2800);
+ assert.equal(state.update('sala-a',0),true);
+ assert.equal(state.update('sala-a',2700),true);
+ assert.equal(state.update('sala-a',2800),false);
+ assert.equal(state.update('sala-a',7000),false);
+ assert.equal(state.peek(7000),true);
+ assert.equal(state.update('sala-a',9000),true);
+ assert.equal(state.update('sala-a',9801),false);
+ assert.equal(state.update('sala-b',10000),true);
+ assert.equal(state.visible(12799),true);
+ assert.equal(state.visible(12800),false);
+});
 console.log(passed+' pruebas correctas');
