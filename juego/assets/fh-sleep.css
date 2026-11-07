@@ -1,0 +1,21 @@
+/* El sueño oculta el HUD, no el acceso a Despertar ni el radial contextual. */
+body.fh-sleeping #hud,
+body.fh-sleeping #top,
+body.fh-sleeping #stick,
+body.fh-sleeping #flashlightToggle,
+body.fh-sleeping #inventoryToggle,
+body.fh-sleeping #inventoryQuickbar,
+body.fh-sleeping #hint,
+body.fh-sleeping #toast,
+body.fh-sleeping #fhMenuToggle,
+body.fh-sleeping #fhPlayerMenuLayer,
+body.fh-sleeping #fhPeekTalk,
+body.fh-sleeping #actions .action:not(#use) {
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+body.fh-sleeping #actions #use,
+body.fh-sleeping #fhContextRadial {
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
