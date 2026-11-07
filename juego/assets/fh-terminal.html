@@ -130,6 +130,21 @@ button:focus:not(:focus-visible){outline:none}button:focus-visible,[tabindex]:fo
 .hamazon-card .hamazon-zone{justify-self:start;font-size:9px;padding:3px 6px}
 .hamazon-state{font:800 10px monospace;color:#8b3a34;letter-spacing:.07em;min-height:18px}
 .hamazon-state.checking{color:#6d633d}
+.hamazon-nav{display:flex;gap:5px;flex-wrap:wrap}
+.hamazon-nav button{padding:5px 9px;border:2px solid #746d58;background:#e5d9b9;color:#263d3e;font:800 11px monospace;min-height:32px}
+.hamazon-nav button.selected{background:#536c60;color:#fff1cf;border-color:#263e37}
+.hamazon-card label{display:grid;gap:3px;color:#52645a;font:700 10px monospace}
+.hamazon-card input{width:100%;min-width:0;min-height:36px;border:2px solid #726b59;background:#f1e7cb;color:#273b3d;padding:6px;font:700 12px monospace}
+.hamazon-orders-view{grid-template-columns:minmax(0,1fr)!important}
+.hamazon-orders-view .hamazon-side{display:none}
+.hamazon-order-list{display:flex!important;flex-direction:column;gap:9px;align-content:start;align-items:stretch}
+.hamazon-order-detail{background:#efe5c9;border:2px solid #887a60;padding:11px 13px;display:grid;gap:6px;line-height:1.5}
+.hamazon-order-title{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:12px}
+.hamazon-order-status{font:800 10px monospace;letter-spacing:.04em;color:#75523b}
+.hamazon-order-route{font-size:11px;color:#3d5453}
+.hamazon-remaining{font-weight:800;color:#78503b}
+.hamazon-address-warning{font:700 10px/1.5 monospace;color:#843d38}
+.hamazon-order-time{font-size:11px;color:#5b634e}
 .hamazon-card button:disabled{background:#bbb3a5;color:#574e48;border-color:#91877d;cursor:not-allowed;transform:none}
 @media(max-width:580px){.hamazon-filters{margin-left:0}.hamazon-filters select{max-width:145px}}
 @media(max-width:730px){.hamazon-body{grid-template-columns:1fr}.hamazon-side{border-left:0;border-top:3px solid #958c72;max-height:105px}.hamazon-products{grid-template-columns:repeat(2,minmax(0,1fr));padding:7px}.hamazon-card{min-height:176px}.hamazon-thumb{height:64px}}
@@ -321,6 +336,8 @@ const DATA = {
  cameras:[{id:'CAM-01',place:'VESTÍBULO',online:true},{id:'CAM-02',place:'PASILLO NORTE',online:true},{id:'CAM-03',place:'ENFERMERÍA',online:true},{id:'CAM-04',place:'MANTENIMIENTO',online:false}],
  hamazonProducts:[],
  hamazonOrders:[],
+ hamazonAddresses:[],
+ hamazonCurrentMinutes:480,
  gameClock:'08:00',
  logs:[
   {t:'23:18',type:'ACCESO',txt:'Cerradura norte activada.\nOrden firmada: ADMIN-03.\nLa apertura manual queda deshabilitada.'},
@@ -582,7 +599,9 @@ window.ForestTerminal3D={
  setCameras(cams){if(!Array.isArray(cams))return;DATA.cameras=cams.map((c,i)=>({id:String(c.id??i),place:String(c.place??''),online:!!c.online}));state.camera=0;renderWindow('cams');previewPaint()},
  setLogs(logs){if(!Array.isArray(logs))return;DATA.logs=logs.map(l=>({t:String(l.t??''),type:String(l.type??''),txt:Array.isArray(l.txt)?l.txt.join('\n'):String(l.txt??'')}));state.log=0;renderWindow('files');previewPaint()},
  setHamazonProducts(items){if(!Array.isArray(items))return;DATA.hamazonProducts=items.map(p=>({...p,id:String(p.id??''),name:String(p.name??p.id??''),kind:String(p.kind??'furniture')}));renderWindow('hamazon');previewPaint()},
+ setHamazonAddresses(items){DATA.hamazonAddresses=Array.isArray(items)?items.map(a=>({...a,id:String(a.id??''),name:String(a.name??''),doorId:String(a.doorId??'')})):[];renderWindow('hamazon')},
  setHamazonOrders(items){DATA.hamazonOrders=Array.isArray(items)?items.map(o=>({...o})):[];renderWindow('hamazon');previewPaint()},
+ setHamazonClock(minutes){if(!Number.isFinite(minutes))return;DATA.hamazonCurrentMinutes=minutes;updateHamazonCountdowns()},
  setGameClock(value){syncGameClock(value)},
  getState(){return{power:state.power,mode:state.mode,zoom:state.zoom,windows:[...state.windows],front:state.front,floor:state.floor,room:state.room,camera:state.camera,gameClock:DATA.gameClock,stationId:sessionStationId,userId:sessionUserId,apps:[...sessionApps]}}
 };
