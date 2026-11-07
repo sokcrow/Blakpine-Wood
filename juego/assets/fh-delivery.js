@@ -40,11 +40,15 @@ function normalizeProduct(p,base){
 function createOrder(state,product,options={}){
  const d=ensureState(state),now=finite(state.clock.minutes,0),seq=d.orders.length+1;
  const method=['cash','card','prepaid'].includes(options.paymentMethod)?options.paymentMethod:'prepaid';
+ const quantity=Number.isSafeInteger(options.quantity)&&options.quantity>=1&&options.quantity<=20?options.quantity:1;
+ const totalPrice=product.price==null?null:Math.round(finite(product.price,0)*quantity*100)/100;
  const order={id:'hamazon_'+Date.now().toString(36)+'_'+seq,kind:product.kind,productId:product.id,modelId:product.modelId,name:product.name,
-  parcelSize:product.parcelSize,unboxMinutes:product.unboxMinutes,price:product.price,paymentMethod:method,
-  payment:{required:method!=='prepaid',method,status:method==='prepaid'?'paid':'pending',amount:product.price},
+  quantity,parcelSize:product.parcelSize,unboxMinutes:product.unboxMinutes,price:product.price,totalPrice,paymentMethod:method,
+  payment:{required:method!=='prepaid',method,status:method==='prepaid'?'paid':'pending',amount:totalPrice},
   status:'placed',createdAtMinutes:now,deliveryAtMinutes:now+Math.max(0,finite(options.leadMinutes,0)),
-  floor:Number.isInteger(options.floor)?options.floor:0,doorId:options.doorId||'',apartmentId:options.apartmentId||'',propertyId:options.propertyId||'',packageId:null};
+  floor:Number.isInteger(options.floor)?options.floor:0,doorId:options.doorId||'',apartmentId:options.apartmentId||'',
+  propertyId:options.propertyId||'',roomId:options.roomId||'',destinationId:options.destinationId||'',
+  destinationName:options.destinationName||'',packageId:null};
  d.orders.push(order);return order;
 }
 function activeOrderForDoor(state,doorId){
@@ -75,12 +79,22 @@ function createRuntime(options){
   return Math.max(0,finite(configured,DEFAULT_DELIVERY_LEAD_MINUTES));
  }
  function terminalOrders(){return delivery.orders.map(o=>({id:o.id,productId:o.productId,name:o.name,status:o.status,paymentMethod:o.paymentMethod,
-  deliveryAtMinutes:o.deliveryAtMinutes,eta:Number.isFinite(Number(o.deliveryAtMinutes))?formatMinutes(o.deliveryAtMinutes):''}))}
+  quantity:Number.isSafeInteger(o.quantity)&&o.quantity>0?o.quantity:1,
+  destinationName:o.destinationName||((o.propertyId&&options.propertyNameById?.(o.propertyId))||''),
+  floor:o.floor,deliveryAtMinutes:o.deliveryAtMinutes,eta:Number.isFinite(Number(o.deliveryAtMinutes))?formatMinutes(o.deliveryAtMinutes):''}))}
+ function deliveryAddresses(){
+  if(typeof options.deliveryAddresses!=='function')return [];
+  const items=options.deliveryAddresses(pcItem,pcFloor);
+  return Array.isArray(items)?items.filter(a=>a&&typeof a.id==='string'&&a.id&&typeof a.doorId==='string'&&a.doorId&&Number.isInteger(a.floor)):[];
+ }
  function syncOrdersToTerminal(){try{options.computer?.terminalApi()?.setHamazonOrders(terminalOrders())}catch{}}
  function syncProductsToTerminal(){try{options.computer?.terminalApi()?.setHamazonProducts(products)}catch{}}
+ function syncAddressesToTerminal(){try{options.computer?.terminalApi()?.setHamazonAddresses?.(deliveryAddresses())}catch{}}
  function syncClockToTerminal(force=false){try{
   const api=options.computer?.terminalApi();if(!api?.setGameClock)return;
-  const clock=formatClock(state);if(!force&&clock===lastTerminalClock)return;api.setGameClock(clock);lastTerminalClock=clock;
+  const clock=formatClock(state),minutes=Math.floor(finite(state.clock.minutes,0));
+  if(!force&&clock===lastTerminalClock)return;
+  api.setGameClock(clock);api.setHamazonClock?.(minutes);lastTerminalClock=clock;
  }catch{}}
  async function verifyCatalogProducts(){
   // Comprobar el GLB real con el mismo cargador del escenario; no basta con que exista el archivo.
@@ -114,11 +128,11 @@ function createRuntime(options){
    ready=true;syncProductsToTerminal();syncOrdersToTerminal();resume();void verifyCatalogProducts();
   }catch(err){console.warn('Hamazon: catálogo de muebles no disponible',err)}
  }
- function onComputerOpen(item,floor=0){pcItem=item;pcFloor=floor;}
+ function onComputerOpen(item,floor=0){pcItem=item;pcFloor=floor;syncAddressesToTerminal();}
  function onComputerClose(){pcItem=null;}
  function openPc(item,floor=0){return !!options.computer?.open(item,floor);}
  function closePc(){options.computer?.close();}
- function syncTerminal(){syncProductsToTerminal();syncOrdersToTerminal();syncClockToTerminal(true);}
+ function syncTerminal(){syncProductsToTerminal();syncAddressesToTerminal();syncOrdersToTerminal();syncClockToTerminal(true);}
   function chooseDoor(){
   const door=options.findDoor?.(pcItem,pcFloor);return door||null;
  }
@@ -156,16 +170,29 @@ function createRuntime(options){
   if(travel!==true){options.showNpc?.(next,door,'idle');announceDoorArrival(next,door)}
   save();syncOrdersToTerminal();return next;
  }
- function placeOrder(productId,paymentMethod){
+ function placeOrder(productId,paymentMethod,quantity=1,destinationId=''){
   const p=productById(productId);if(!p){say(TEXT.productMissing||'Producto no disponible.');return null}
   if(p.environment!=='interior'){say(TEXT.shopOutside||'Los objetos de exterior no están disponibles en Hamazon.');return null}
   if(p.shopStatus!=='available'){
    say(p.shopStatus==='checking'?(TEXT.shopLoading||'Modelo en comprobación.'):(TEXT.shopModelError||'El modelo no funciona o sigue en implementación.'),3000);
    return null;
   }
-  const door=chooseDoor();if(!door){say(TEXT.noDeliveryDoor||'No hay puerta de entrega.',3600);return null}
-  const address=options.resolveDoorAddress?.(door,pcItem,pcFloor)||{};
-   const order=createOrder(state,p,{paymentMethod,leadMinutes:leadMinutesFor(p),floor:door.f,doorId:door.id,apartmentId:door.apartmentId||pcItem?.apartmentId||'',propertyId:address.id||''});
+  if(!Number.isSafeInteger(quantity)||quantity<1||quantity>20){
+   say(TEXT.shopInvalidQuantity||'La cantidad debe estar entre 1 y 20.',3200);return null;
+  }
+  const address=deliveryAddresses().find(a=>a.id===destinationId);
+  if(typeof options.deliveryAddresses==='function'&&!address){
+   say(TEXT.shopInvalidAddress||'Selecciona una dirección de entrega válida.',3600);return null;
+  }
+  const door=address?options.doorById?.(address.doorId,address.floor):chooseDoor();
+  if(!door||(address&&(door.kind!=='peephole_door'||door.id!==address.doorId||door.f!==address.floor))){
+   say(TEXT.noDeliveryDoor||'No hay puerta de entrega.',3600);return null;
+  }
+  const legacyAddress=!address?(options.resolveDoorAddress?.(door,pcItem,pcFloor)||{}):null;
+  const order=createOrder(state,p,{paymentMethod,quantity,leadMinutes:leadMinutesFor(p),
+   floor:door.f,doorId:door.id,apartmentId:door.apartmentId||pcItem?.apartmentId||'',
+   propertyId:address?.propertyId||legacyAddress?.id||'',roomId:address?.roomId||'',
+   destinationId:address?.id||'',destinationName:address?.name||legacyAddress?.name||''});
   order.status='scheduled';
   const eta=formatMinutes(order.deliveryAtMinutes);
   say((TEXT.orderScheduled||((n,t)=>'Pedido registrado: '+n+'. Entrega estimada: '+t+'.'))(p.name,eta),3200);
@@ -249,7 +276,7 @@ function createRuntime(options){
  function destinationName(order,door){
   const address=options.resolveDoorAddress?.(door,null,order.floor)||{};
   const id=order.propertyId||address.id||'';
-  return String((id&&options.propertyNameById?.(id))||address.name||'').trim().slice(0,80);
+  return String(order.destinationName||(id&&options.propertyNameById?.(id))||address.name||'').trim().slice(0,80);
  }
  function talkMenu(order,door,opened=false){
   const name=destinationName(order,door),destination=(TEXT.propertyDestination||((v)=>v))(name);
@@ -387,10 +414,19 @@ function createRuntime(options){
   const replacement=result&&typeof result==='object'&&result.item?result:null;
   if(replacement?.item){
    const next=replacement.item,record=runtimePoseRecord(next,replacement.floor,order.id,p.id);
-   delivery.furnishings=delivery.furnishings.filter(x=>x.orderId!==order.id&&x.id!==record.id);delivery.furnishings.push(record);
+   delivery.furnishings=delivery.furnishings.filter(x=>x.orderId!==order.id&&x.id!==record.id);
+   delivery.furnishings.push(record);
+   const quantity=Number.isSafeInteger(order.quantity)&&order.quantity>0?Math.min(20,order.quantity):1;
+   for(let unit=2;unit<=quantity;unit++){
+    delivery.furnishings.push({...record,id:'delivered_'+order.id+'_'+unit,stored:true});
+   }
   }
   advanceTime(state,order.unboxMinutes);
-  say((TEXT.packageOpened||((n)=>n))(p.name,order.unboxMinutes),3800);save();syncOrdersToTerminal();update(0);return true;
+  const quantity=Number.isSafeInteger(order.quantity)&&order.quantity>0?order.quantity:1;
+  say(quantity>1
+   ?(TEXT.packageOpenedGrouped||((name,count)=>'Desempacas '+count+' unidades de '+name+'.'))(p.name,quantity,order.unboxMinutes)
+   :(TEXT.packageOpened||((n)=>n))(p.name,order.unboxMinutes),3800);
+  save();syncOrdersToTerminal();update(0);return true;
  }
  function update(dt=0){
   if(dt>0)tickClock(state,dt,clockRate);
@@ -433,7 +469,7 @@ function createRuntime(options){
   const frame=options.computer?.frame;
   if(!frame||event.source!==frame.contentWindow||event.data?.type!=='FOREST_TERMINAL_EVENT')return;
   const {name,detail}=event.data;if(name==='hamazon-order'){
-   const order=placeOrder(detail?.productId,detail?.paymentMethod);
+   const order=placeOrder(detail?.productId,detail?.paymentMethod,detail?.quantity,detail?.destinationId);
    frame.contentWindow?.postMessage({type:'FOREST_TERMINAL_RESPONSE',name:'hamazon-order-result',detail:{ok:!!order}},'*');
   }
   if(name==='zoom'&&detail?.on===false)closePc();
