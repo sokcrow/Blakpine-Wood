@@ -582,7 +582,7 @@ function renderHamazon(body){
  for(const o of DATA.hamazonOrders.slice().reverse().slice(0,5)){
   const row=node('div','hamazon-order'),label=statusNames[o.status]||(o.status||'pending').toUpperCase();
   row.append(node('strong','',String(o.name||o.productId)+' × '+String(o.quantity||1)),
-   node('div','',label+(o.eta?' · '+o.eta:'')),node('div','',o.addressLabel||''));
+   node('div','',label+(o.eta?' · LLEGA '+o.eta:'')),node('div','',o.addressLabel||''));
   side.append(row);
  }
 }
