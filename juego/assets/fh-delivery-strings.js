@@ -2,6 +2,8 @@
 window.FH_DELIVERY_TEXT=Object.freeze({
  courierName:'Repartidor de paquetería',
  noNpcRoute:'El repartidor no encuentra una ruta segura hasta el apartamento.',
+ statusOnRoute:'EN CAMINO',
+ statusRouteBlocked:'RUTA BLOQUEADA',
  pcAction:'Usar PC',
  pcActionFromSeat:'Usar computadora',
  pcMissingNames:{monitor:'monitor',keyboard:'teclado',mouse:'mouse',cabinet:'gabinete de PC'},
