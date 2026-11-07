@@ -30,6 +30,7 @@
    }
    asleepTime=stage==='asleep'?asleepTime+step:0;
    global.document?.body?.classList?.toggle('fh-sleep-masking',depth>=.003);
+   syncIris();
    if(stage!==previous){
     global.document?.body?.classList?.toggle('fh-sleeping',stage==='asleep');
     if(bus?.emit)bus.emit('player:sleepState',status());
@@ -45,6 +46,26 @@
     return {ok:true,waking:true};
    }
    holdAwake=true;return action();
+  }
+  // Velo propio: la oclusión ya no depende de #mist ni del render de mirilla.
+  let veil=null;
+  function syncIris(){
+   const doc=global.document;
+   if(!doc?.body)return;
+   if(!veil&&depth>=.003&&typeof doc.createElement==='function'){
+    veil=doc.getElementById?.('fhSleepVeil')||doc.createElement('div');
+    veil.id='fhSleepVeil';
+    veil.setAttribute?.('aria-hidden','true');
+    if(!veil.parentNode)doc.body.appendChild?.(veil);
+   }
+   if(!veil)return;
+   if(depth<.003){veil.style.display='none';return;}
+   const w=Math.max(1,Number(global.innerWidth)||doc.documentElement?.clientWidth||800);
+   const h=Math.max(1,Number(global.innerHeight)||doc.documentElement?.clientHeight||600);
+   const radius=Math.hypot(w,h)*.70*(1-ease(depth));
+   veil.style.display='block';
+   veil.style.background=radius<=1?'#000':
+    'radial-gradient(circle '+radius.toFixed(1)+'px at 50% 50%, transparent '+(radius*.70).toFixed(1)+'px, #000 '+radius.toFixed(1)+'px)';
   }
   function viewWeight(){return depth;}
   // Cámara cenital estricta: "up" horizontal evita la singularidad de lookAt

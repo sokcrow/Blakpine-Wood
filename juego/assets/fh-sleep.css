@@ -20,10 +20,25 @@ body.fh-sleeping #fhContextRadial {
   pointer-events: auto !important;
 }
 
-/* El velo de sueño debe quedar SOBRE el mundo, pero DEBAJO de Despertar. */
-body.fh-sleep-masking #mist {
-  z-index: 6 !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  pointer-events: none !important;
+/* Iris dedicado: cubre escena y textos sin bloquear pulsaciones. */
+#fhSleepVeil {
+  position:fixed;
+  inset:0;
+  width:100vw;
+  height:100vh;
+  height:100dvh;
+  z-index:80;
+  pointer-events:none;
+  display:none;
+  background:transparent;
 }
+body.fh-sleep-masking #fhSleepVeil {visibility:visible!important;opacity:1!important;}
+/* El canvas original queda por encima para dibujar la respiración Zzz. */
+body.fh-sleep-masking #mist {
+  z-index:81 !important;
+  visibility:visible !important;
+  opacity:1 !important;
+  pointer-events:none !important;
+}
+body.fh-sleep-masking #actions {z-index:90 !important;}
+body.fh-sleep-masking #fhContextRadial {z-index:91 !important;}
