@@ -26,4 +26,19 @@ c=D.candidate(wall,[],{x:2,y:2,wallMount:()=>null});assert.equal(c.reason,'wall-
 
 const target={...floor,support:{parentItemId:'x'}};D.applyPose(target,{x:8,y:9,rotation:270,support:undefined,wallId:''});
 assert.equal(target.x,8);assert.equal(target.y,9);assert.equal(target.rotation,270);assert.equal('support' in target,false);
+assert.equal(D.isMovable({...floor,type:'chair'}),true);
+assert.equal(D.isMovable({id:'sofa-map',type:'sofa',x:0,y:0}),true);
+assert.equal(D.isMovable({id:'mesa-map',type:'misc',modelId:'mesa_pequena'}),true);
+assert.equal(D.isMovable({id:'wall-map',type:'wall',runtimeDecoratable:true}),false);
+assert.equal(D.isMovable({id:'reader',type:'misc',modelId:'lector_tarjetas'}),false);
+assert.equal(D.isMovable({id:'fixture',type:'light_switch'}),false);
+assert.equal(D.isMovable({id:'fixed',type:'chair',decoratable:false}),false);
+const blockedPreview=D.preview(floor,[],{x:7,y:8,rotation:45,floorFits:()=>false});
+assert.equal(blockedPreview.ok,false);
+assert.equal(blockedPreview.reason,'blocked');
+assert.deepEqual([blockedPreview.pose.x,blockedPreview.pose.y,blockedPreview.pose.rotation],[7,8,45]);
+assert.deepEqual([floor.x,floor.y,floor.rotation],[2,3,0]); // No muta el mueble real.
+const allowedPreview=D.preview(floor,[],{x:1,y:1,rotation:90,floorFits:()=>true});
+assert.equal(allowedPreview.ok,true);
+assert.deepEqual([allowedPreview.pose.x,allowedPreview.pose.y,allowedPreview.pose.rotation],[1,1,90]);
 console.log('PASS fh-decoration');
