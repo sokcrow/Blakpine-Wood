@@ -39,6 +39,24 @@ Los efectos `playSound` existentes pasan su posición al módulo. IDs reconocido
 
 La llegada de un pedido Hamazon llama a `knockAt` y produce tres golpes separados por 440 ms desde la puerta elegida. Solo se muestra el aviso si el jugador está dentro del alcance auditivo. Los golpes son sintetizados por Web Audio; el navegador puede bloquearlos si aún no ha permitido audio.
 
+## Texto cómic de acciones
+
+El adaptador `fh-comic-action-engine-hook.js` conecta eventos de acciones confirmadas con
+`FHLiveText.actionAt({id,x,y,z,floor,self?,key?})`. Reutiliza la misma capa, tipografía,
+animación y límite de textos que el `¡TOC!` espacial; las palabras en español están en
+`FH_LIVE_TEXT_STRINGS.actionWords`.
+
+Se cubren apertura y cierre de puertas, intentos de apertura bloqueados, linterna,
+interruptores, computadoras, panel eléctrico, ascensor, escaleras y las interacciones
+`performInteraction` (incluidas recoger, buscar, leer, examinar, esconderse y usar).
+Sentarse/acostarse y levantarse esperan la confirmación del cambio de postura.
+Los efectos `playSound` que ya generan una palabra espacial no dibujan otro texto
+genérico. Las acciones locales pueden conservar su texto cuando apagan la luz;
+los sonidos del entorno siguen usando los filtros habituales de distancia y visibilidad.
+
+El adaptador no incorpora sonidos nuevos, no bloquea el movimiento y no modifica el
+formato `forest-horror-map-v1`. Los mensajes de avisos y diálogos anteriores se conservan.
+
 ## Integración y pruebas
 
 `index.html` agrega el módulo al documento del motor al iniciar la prueba 3D. Los archivos `engine-00.js` a `engine-12.js` no se alteraron. La lógica del juego permanece en el motor; el editor solo inserta el adaptador.

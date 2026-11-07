@@ -55,3 +55,91 @@ test('los textos extensos se dividen sin perder palabras ni emoción', () => {
   assert.equal(pages.at(-1).segments.at(-1).mood,'impacto');
   assert.ok(pages.every(p=>p.kind==='npc' && p.speaker==='Guardabosques'));
 });
+
+
+test('las acciones tienen onomatopeyas en español y ninguna se inventa para ids desconocidos', () => {
+  assert.equal(ui.actionWord('door_open'), '¡ÑIIIC…!');
+  assert.equal(ui.actionWord('door_close'), '¡CLAC!');
+  assert.equal(ui.actionWord('flashlight_on'), '¡CLIC!');
+  assert.equal(ui.actionWord('flashlight_off'), '¡CLIC!');
+  assert.equal(ui.actionWord('lamp_click'), '¡TIC!');
+  assert.equal(ui.actionWord('breaker_toggle'), '¡CLACK!');
+  assert.equal(ui.actionWord('computer_use'), '¡BIP!');
+  assert.equal(ui.actionWord('not_an_action'), '');
+});
+
+test('las acciones propias usan el estilo del TOC, se ven en oscuridad y evitan duplicados', () => {
+  const previous = { document: globalThis.document, THREE: globalThis.THREE, addEventListener: globalThis.addEventListener };
+  let layer;
+  const node = () => ({
+    style: {}, children: [], hidden: false,
+    classList: { add() {}, remove() {} },
+    appendChild(el) { this.children.push(el); },
+    remove() { this.removed = true; },
+    querySelector() { return node(); },
+    setAttribute() {}, addEventListener() {}
+  });
+  try {
+    globalThis.document = {
+      head: node(),
+      body: { appendChild(el) { if (el.id === 'fhSpatialLayer') layer = el; } },
+      createElement: node,
+      getElementById() { return null; }
+    };
+    globalThis.addEventListener = () => {};
+    globalThis.THREE = { Vector3: class {
+      constructor(x,y,z) { this.x=x; this.y=y; this.z=z; }
+      project() { this.x=0; this.y=0; this.z=.5; return this; }
+    }};
+    ui.configure({ view: () => ({
+      floor: 0, listener: {x:0,y:1.5,z:0}, hearingRadius: 19,
+      visible: () => false,
+      camera: {}, canvas: {getBoundingClientRect: () => ({left:0,top:0,width:200,height:100})}
+    }) });
+    assert.equal(ui.actionAt({id:'flashlight_on',x:0,y:1.5,z:0,floor:0,self:true,key:'flashlight'}),true);
+    assert.equal(layer.children[0].className,'fh-sound');
+    assert.equal(layer.children[0].textContent,'¡CLIC!');
+    assert.equal(layer.children[0].hidden,false);
+    assert.equal(ui.actionAt({id:'flashlight_off',x:0,y:1.5,z:0,floor:0,self:true,key:'flashlight'}),false);
+    assert.equal(layer.children.length,1);
+    assert.equal(ui.actionAt({id:'door_open',x:1,y:1.5,z:0,floor:0,key:'other-door'}),true);
+    assert.equal(layer.children[1].hidden,true);
+    assert.equal(ui.actionAt({id:'unknown',x:0,y:1.5,z:0,floor:0,self:true}),false);
+    assert.equal(layer.children.length,2);
+  } finally {
+    globalThis.document = previous.document;
+    globalThis.THREE = previous.THREE;
+    globalThis.addEventListener = previous.addEventListener;
+  }
+});
+
+test('el adaptador cómic encuentra sus puntos de conexión en el motor empaquetado', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  require('./fh-comic-action-engine-hook.js');
+  let base64 = '';
+  for (let i=0; i<=12; i++) {
+    const file = path.join(__dirname, 'engine-' + String(i).padStart(2,'0') + '.js');
+    const match = fs.readFileSync(file,'utf8').match(/\+"([A-Za-z0-9+/=]+)";/);
+    assert.ok(match, 'fragmento de motor '+i);
+    base64 += match[1];
+  }
+  let doc = Buffer.from(base64,'base64').toString('utf8');
+  const originalDoor = " notice(d.open?'Abres la puerta.':'Cierras la puerta.',1800);";
+  const originalSwitch = "  const result=lighting.toggleRoom(currentFloor,r?.roomId||r?.id||item.roomId);";
+  assert.equal(doc.split(originalDoor).length,2);
+  assert.equal(doc.split(originalSwitch).length,2);
+  doc = doc.replace(originalDoor,
+    " window.FHLiveText?.playSfxAt({id:d.open?'door_open':'door_close',x:d.cx,z:d.cz,y:floorElev[d.f]+1.1,floor:d.f});");
+  doc = doc.replace(originalSwitch,
+    "  const result=lighting.toggleRoom(currentFloor,r?.roomId||r?.id||item.roomId);if(result.ok)window.FHLiveText?.playSfxAt({id:'lamp_click',x:item.x*CELL,z:item.y*CELL,y:floorElev[currentFloor]+1.2,floor:currentFloor});");
+  // Esta llamada la añade el adaptador de computadora antes del de texto cómic.
+  doc += "\nonOpen:(item,floor)=>window.FHDeliveryRuntime?.onComputerOpen(item,floor),";
+  const patched = globalThis.FHComicActionEngine.patch(doc);
+  assert.ok(patched.includes("fhComicOnActor(out.enabled?'flashlight_on'"));
+  assert.ok(patched.includes("fhComicOnItem(verb==='hide'"));
+  assert.ok(patched.includes("fhComicWorld('elevator_call'"));
+  const entry = fs.readFileSync(path.resolve(__dirname,'../../index.html'),'utf8');
+  assert.ok(entry.includes('fh-comic-action-engine-hook.js'));
+  assert.ok(entry.includes('FHComicActionEngine.patch'));
+});
