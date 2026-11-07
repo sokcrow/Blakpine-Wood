@@ -37,15 +37,13 @@ test('la hoja móvil se carga tanto en creación como dentro del juego, con vers
   assert.equal((page.match(/fh-mobile-menus\.css\?v=20261107-mobile-ui-75/g) || []).length, 2);
 });
 
-test('RAVEN usa 75% en teléfonos sin reescalar el monitor ni eliminar su maximización', () => {
-  const start = terminal.indexOf('/* Teléfonos: menús del sistema RAVEN/OS al 75%.');
-  assert.ok(start >= 0);
-  const mobile = terminal.slice(start, terminal.indexOf('</style>', start));
-  assert.match(mobile, /#startMenu\.start-menu\s*\{\s*transform:\s*scale\(\.75\)/);
-  assert.match(mobile, /#desktopIcons\s*\{\s*transform:\s*scale\(\.75\)/);
-  assert.match(mobile, /#windowsLayer \.window\.maximized/);
-  assert.match(mobile, /left:\s*12\.5%\s*!important/);
-  assert.match(mobile, /top:\s*12\.5%\s*!important/);
-  assert.match(mobile, /transform-origin:\s*top left/);
-  assert.equal((mobile.match(/scale\(\.75\)/g) || []).length, 3);
+test('RAVEN en móvil horizontal aprovecha el escritorio y en vertical pide girar', () => {
+  assert.ok(!terminal.includes('scale(.75)'), 'RAVEN no debe aplicar escalas artificiales');
+  assert.ok(terminal.includes('@media (pointer:coarse) and (orientation:portrait) and (max-width:1100px)'));
+  assert.ok(terminal.includes('#orientationNotice{display:flex}'));
+  assert.ok(terminal.includes('@media (pointer:coarse) and (orientation:landscape) and (max-width:1100px)'));
+  assert.ok(terminal.includes('frame.style.height=Math.floor(availableHeight)'));
+  assert.ok(terminal.includes("if(mobileMaximized)win.classList.add('maximized')"));
+  assert.ok(terminal.includes('height:calc(100% - var(--fh-desktop-topbar,31px))!important'));
+  assert.ok(terminal.includes('aspect-ratio:16 / 10'), 'El monitor 3D mantiene su formato');
 });

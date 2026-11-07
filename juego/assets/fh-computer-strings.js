@@ -7,6 +7,7 @@ window.FH_COMPUTER_TEXT=Object.freeze({
  wmMaximize:'Maximizar',
  wmRestore:'Restaurar',
  wmResize:'Redimensionar',
+ rotateLandscape:'Gira el dispositivo para usar RAVEN/OS.',
  menuExit:'↩  SALIR AL JUEGO',
  menuSleep:'◐  PONER EN REPOSO',
  menuShutdown:'⏻  APAGAR',
