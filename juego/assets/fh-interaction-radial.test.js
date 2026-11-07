@@ -17,7 +17,8 @@ function mount(){
   click(){if(this.disabled)return;for(const handler of this.events.click||[])handler({stopPropagation(){}})}
   focus(){doc.activeElement=this;}
  }
- const body=new Element('body'),doc={body,activeElement:body,createElement:tag=>new Element(tag)};
+ const body=new Element('body'),doc={body,activeElement:body,createElement:tag=>new Element(tag),events:{}};
+ doc.addEventListener=(type,listener)=>{(doc.events[type]||=[]).push(listener)};
  doc.getElementById=id=>{const visit=node=>node.id===id?node:node.children.map(visit).find(Boolean);return visit(body);};
  const win={document:doc,innerWidth:900,innerHeight:700};
  const source=fs.readFileSync(path.join(__dirname,'fh-interaction-radial.js'),'utf8');
@@ -132,4 +133,17 @@ test('la puerta mantiene cuatro sectores aunque haya acciones pendientes',()=>{
  assert.equal(opened,0);
  assert.equal(api.activatePrimary(),true);
  assert.equal(opened,1);
+});
+
+test('clic fuera cierra; clic explícito permite reabrir el mismo objeto',()=>{
+ const {api,doc}=mount();
+ const context={key:'door:1',title:'Puerta',actions:[{id:'open',label:'Abrir',run:()=>{}}]};
+ api.open(context);
+ assert.equal(api.visible,true);
+ doc.events.pointerdown[0]({target:{id:'view'}});
+ assert.equal(api.visible,false);
+ api.update(context);
+ assert.equal(api.visible,false);
+ api.open(context);
+ assert.equal(api.visible,true);
 });
