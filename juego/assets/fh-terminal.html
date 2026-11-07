@@ -267,6 +267,20 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
  .window-title .wm{min-width:33px;min-height:32px}
  #message{bottom:46px}
 }
+.hamazon-tabs{display:flex;gap:5px;flex-wrap:wrap}.hamazon-tab{border:2px solid #85765a;background:#e0d2ad;color:#253e40;font:800 11px monospace;min-height:34px;padding:6px 10px}.hamazon-tab.selected{background:#334f4b;color:#f6e8c6}
+.hamazon-history,.hamazon-checkout{overflow-y:auto;overscroll-behavior:contain;width:100%;padding:14px;min-width:0;color:#2b4142}
+.hamazon-history h3,.hamazon-checkout h3{font:800 16px monospace;margin:0 0 11px}
+.hamazon-order-entry{border:2px solid #94876f;background:#f1e8d1;padding:11px;margin-bottom:10px;display:grid;gap:8px;font:12px/1.4 monospace}
+.hamazon-order-top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.hamazon-status{background:#465f55;color:#f7e7bf;padding:4px 6px;font-weight:800}.hamazon-order-address{font-weight:700}
+.hamazon-checkout{max-width:680px;margin:auto;display:flex;flex-direction:column;gap:12px}.hamazon-checkout-product{font-size:15px}
+.hamazon-field{font:700 12px monospace;display:grid;gap:6px}
+.hamazon-field input,.hamazon-field select{border:2px solid #7b7464;min-height:44px;background:#fff8e5;color:#23383a;width:100%;padding:8px 10px;font:700 14px monospace}
+.hamazon-total{border-top:2px dashed #9a8e75;padding-top:11px;font-weight:800;font-size:13px}
+.hamazon-checkout-actions{display:flex;gap:9px;flex-wrap:wrap}
+.hamazon-checkout-actions button{min-height:44px;border:2px solid #555e52;padding:10px;font:800 12px monospace;flex:1}
+.hamazon-secondary{background:#e0d7bc;color:#364c4d}.hamazon-primary{background:#7c4d3e;color:#fff3d1}.hamazon-checkout-actions button:disabled{opacity:.5}
+@media(max-width:580px){.hamazon-head{align-items:flex-start}.hamazon-checkout,.hamazon-history{padding:9px}.hamazon-checkout-actions{flex-direction:column}}
 </style>
 </head>
 <body>
@@ -320,6 +334,7 @@ const DATA = {
  cameras:[{id:'CAM-01',place:'VESTÍBULO',online:true},{id:'CAM-02',place:'PASILLO NORTE',online:true},{id:'CAM-03',place:'ENFERMERÍA',online:true},{id:'CAM-04',place:'MANTENIMIENTO',online:false}],
  hamazonProducts:[],
  hamazonOrders:[],
+  hamazonAddresses:[],
  gameClock:'08:00',
  logs:[
   {t:'23:18',type:'ACCESO',txt:'Cerradura norte activada.\nOrden firmada: ADMIN-03.\nLa apertura manual queda deshabilitada.'},
@@ -337,6 +352,9 @@ const preview=$('screenTexture'),pctx=preview.getContext('2d',{alpha:false});pct
 const emit=(name,detail)=>{window.dispatchEvent(new CustomEvent('forest-terminal:'+name,{detail}));if(window.parent!==window)window.parent.postMessage({type:'FOREST_TERMINAL_EVENT',name,detail},'*')};
 window.addEventListener('message',event=>{
  if(event.source!==window.parent||event.data?.type!=='FOREST_TERMINAL_RESPONSE'||event.data.name!=='hamazon-order-result')return;
+ fhHamazonSending=false;
+ if(event.data.detail?.ok){fhHamazonView='orders';fhHamazonDraft=null;}
+ renderWindow('hamazon');
  say(event.data.detail?.ok?(window.FH_DELIVERY_TEXT?.orderAccepted||'Pedido registrado en Hamazon.'):(window.FH_DELIVERY_TEXT?.orderRejected||'No se pudo registrar el pedido.'));
 });
 function say(msg){let el=$('message');el.textContent=msg;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),2100)}
@@ -452,59 +470,120 @@ function renderFiles(body){let layout=node('div','files-layout'),list=node('div'
  DATA.logs.forEach((l,i)=>{let b=labelButton('','file-choice'+(state.log===i?' selected':''),()=>{state.log=i;renderWindow('files');emit('archivo',{index:i})});b.append(node('strong','',l.t+' / '+l.type),node('span','',l.txt.split('\n')[0]));list.append(b)});
  let l=DATA.logs[state.log];if(!l){read.textContent='Sin registros.';return}read.append(node('h3','','INFORME '+String(state.log+1).padStart(3,'0')),node('span','tag',l.type),node('p','',l.txt));read.append(node('p','','HORA: '+l.t+'\nESTADO: ARCHIVADO'))}
 let fhHamazonCategory='all';
+let fhHamazonView='catalog',fhHamazonDraft=null,fhHamazonSending=false;
 function renderHamazon(body){
  const t=window.FH_DELIVERY_TEXT||{};
- const shell=node('div','hamazon'),head=node('div','hamazon-head'),main=node('div','hamazon-body'),products=node('div','hamazon-products'),side=node('aside','hamazon-side');
+ const shell=node('div','hamazon'),head=node('div','hamazon-head'),main=node('div','hamazon-body');
  const brand=node('div','hamazon-brand');brand.innerHTML='<b>H</b>amazon // CATÁLOGO LOCAL';
+ const tabs=node('nav','hamazon-tabs');
+ tabs.append(
+  labelButton(t.shopCatalog||'CATÁLOGO','hamazon-tab'+(fhHamazonView==='catalog'?' selected':''),()=>{fhHamazonView='catalog';fhHamazonDraft=null;renderWindow('hamazon')}),
+  labelButton((t.shopOrders||'PEDIDOS')+' ('+DATA.hamazonOrders.length+')','hamazon-tab'+(fhHamazonView==='orders'?' selected':''),()=>{fhHamazonView='orders';fhHamazonDraft=null;renderWindow('hamazon')})
+ );
  const filters=node('div','hamazon-filters');
- filters.append(node('span','hamazon-zone',t.shopInteriors||'Interiores'));
- const category=document.createElement('select');category.setAttribute('aria-label',t.shopCategory||'Categoría');
- const values=[['all',t.shopAllCategories||'Todas las categorías'],...[...new Set(DATA.hamazonProducts.map(p=>String(p.category||'').trim()).filter(Boolean))]
-   .sort((a,b)=>a.localeCompare(b,'es')).map(name=>[name,name])];
- for(const [value,label] of values){
-  const choice=document.createElement('option');choice.value=value;choice.textContent=label;category.append(choice);
+ if(fhHamazonView==='catalog'){
+  filters.append(node('span','hamazon-zone',t.shopInteriors||'Interiores'));
+  const category=document.createElement('select');category.setAttribute('aria-label',t.shopCategory||'Categoría');
+  const values=[['all',t.shopAllCategories||'Todas las categorías'],...[...new Set(DATA.hamazonProducts.map(p=>String(p.category||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es')).map(name=>[name,name])];
+  for(const [value,label] of values){const option=document.createElement('option');option.value=value;option.textContent=label;category.append(option)}
+  if(!values.some(([value])=>value===fhHamazonCategory))fhHamazonCategory='all';
+  category.value=fhHamazonCategory;category.onchange=()=>{fhHamazonCategory=category.value;renderWindow('hamazon')};
+  filters.append(category);
  }
- if(!values.some(([value])=>value===fhHamazonCategory))fhHamazonCategory='all';
- category.value=fhHamazonCategory;
- category.onchange=()=>{fhHamazonCategory=category.value;renderWindow('hamazon')};
- filters.append(category);
- head.append(brand,node('div','hamazon-orders',DATA.hamazonOrders.length+' pedido(s) registrado(s)'),filters);
- main.append(products,side);shell.append(head,main);body.append(shell);
- if(!DATA.hamazonProducts.length)products.append(node('div','hamazon-empty','CATÁLOGO NO DISPONIBLE · CONECTA LA PC AL JUEGO.'));
+ head.append(brand,tabs,filters);shell.append(head,main);body.append(shell);
+ const statusNames=t.shopOrderStatuses||{};
+ if(fhHamazonView==='orders'){
+  const history=node('section','hamazon-history');history.append(node('h3','',t.shopOrdersTitle||'Seguimiento de pedidos'));
+  if(!DATA.hamazonOrders.length)history.append(node('p','hamazon-empty',t.shopNoOrders||'No hay pedidos.'));
+  for(const o of DATA.hamazonOrders.slice().reverse()){
+   const row=node('article','hamazon-order-entry'),top=node('div','hamazon-order-top');
+   top.append(node('strong','',String(o.name||o.productId)+' × '+String(o.quantity||1)),
+    node('span','hamazon-status',statusNames[o.status]||String(o.status||'').toUpperCase()));
+   row.append(top,node('div','hamazon-order-address',o.addressLabel||t.shopAddressUnknown||'Dirección no especificada'));
+   if(o.eta)row.append(node('div','',(t.shopEta||'Llegada estimada')+': '+o.eta));
+   if((o.quantity||1)>1&&o.unboxedCount)row.append(node('div','',(t.shopUnboxed||'Paquetes abiertos')+': '+o.unboxedCount+'/'+o.quantity));
+   row.append(node('div','',(t.shopPayment||'Pago')+': '+(o.paymentMethod||'prepaid').toUpperCase()));
+   history.append(row);
+  }
+  main.append(history);return;
+ }
+ if(fhHamazonView==='checkout'){
+  const draft=fhHamazonDraft,p=DATA.hamazonProducts.find(item=>item.id===draft?.productId);
+  if(!p){fhHamazonView='catalog';fhHamazonDraft=null;clear(body);renderHamazon(body);return}
+  const checkout=node('section','hamazon-checkout');
+  checkout.append(node('h3','',t.shopCheckout||'Confirmar pedido'),node('strong','hamazon-checkout-product',p.name||p.id));
+  const qLabel=node('label','hamazon-field',t.shopQuantity||'Cantidad');
+  const qty=document.createElement('input');qty.type='number';qty.min='1';qty.max='20';qty.step='1';
+  qty.value=String(draft.quantity||1);qty.setAttribute('aria-label',t.shopQuantity||'Cantidad');qLabel.append(qty);
+  const aLabel=node('label','hamazon-field',t.shopAddress||'Dirección de entrega');
+  const address=document.createElement('select');address.setAttribute('aria-label',t.shopAddress||'Dirección de entrega');
+  for(const dest of DATA.hamazonAddresses){const option=document.createElement('option');option.value=dest.id;option.textContent=dest.label;address.append(option)}
+  if(!DATA.hamazonAddresses.length){const opt=document.createElement('option');opt.value='';opt.textContent=t.shopNoAddresses||'Sin direcciones disponibles';address.append(opt)}
+  if(!DATA.hamazonAddresses.some(x=>x.id===draft.addressId))draft.addressId=DATA.hamazonAddresses[0]?.id||'';
+  address.value=draft.addressId;aLabel.append(address);
+  const pLabel=node('label','hamazon-field',t.shopPayment||'Forma de pago');
+  const method=document.createElement('select');method.setAttribute('aria-label',t.shopPayment||'Forma de pago');
+  for(const [value,label] of [['prepaid',t.shopPrepaid||'PAGADO / SIN COBRO'],['cash',t.shopCash||'EFECTIVO AL RECIBIR'],['card',t.shopCard||'TARJETA AL RECIBIR']]){
+   const option=document.createElement('option');option.value=value;option.textContent=label;method.append(option);
+  }
+  method.value=draft.paymentMethod;pLabel.append(method);
+  const total=node('div','hamazon-total'),actions=node('div','hamazon-checkout-actions');
+  const back=labelButton(t.shopBack||'Volver al catálogo','hamazon-secondary',()=>{fhHamazonView='catalog';fhHamazonDraft=null;renderWindow('hamazon')});
+  const confirm=labelButton(t.shopConfirm||'Confirmar compra','hamazon-primary',()=>{
+   if(confirm.disabled||fhHamazonSending)return;
+   draft.quantity=Number(qty.value);draft.addressId=address.value;draft.paymentMethod=method.value;
+   fhHamazonSending=true;confirm.disabled=true;
+   emit('hamazon-order',{productId:p.id,kind:p.kind||'furniture',paymentMethod:draft.paymentMethod,quantity:draft.quantity,addressId:draft.addressId});
+   say(t.orderSending||'Enviando pedido…');
+  });
+  const refresh=()=>{
+   const number=Number(qty.value),valid=Number.isInteger(number)&&number>=1&&number<=20;
+   total.textContent=p.price==null?(t.shopPricePending||'Precio pendiente de economía'):
+    (t.shopTotal||'Total')+': $'+(valid?((Number(p.price)||0)*number).toFixed(2):'—');
+   confirm.disabled=fhHamazonSending||!valid||!address.value;
+  };
+  qty.addEventListener('input',()=>{draft.quantity=Number(qty.value);refresh()});
+  address.addEventListener('change',()=>{draft.addressId=address.value;refresh()});
+  method.addEventListener('change',()=>{draft.paymentMethod=method.value});
+  actions.append(back,confirm);checkout.append(qLabel,aLabel,pLabel,total,actions);
+  if(!DATA.hamazonAddresses.length)checkout.append(node('p','hamazon-empty',t.shopNoAddresses||'Sin direcciones disponibles'));
+  main.append(checkout);refresh();return;
+ }
+ const products=node('div','hamazon-products'),side=node('aside','hamazon-side');main.append(products,side);
+ if(!DATA.hamazonProducts.length)products.append(node('div','hamazon-empty',t.shopCatalogMissing||'Catálogo no disponible.'));
  for(const p of DATA.hamazonProducts){
   if(fhHamazonCategory!=='all'&&p.category!==fhHamazonCategory)continue;
   if(p.environment&&p.environment!=='interior')continue;
   const card=node('article','hamazon-card'),thumb=node('div','hamazon-thumb');
   if(p.thumbnail){const img=new Image();img.src=p.thumbnail;img.alt='';thumb.append(img)}
   else thumb.textContent=p.kind==='item'?'ITEM':'MUEBLE';
-  const title=node('h4','',p.name||p.id),meta=node('div','hamazon-meta',
-   (p.category||'CATÁLOGO')+'\nPAQUETE: '+(p.parcelSize||'por calcular').toUpperCase()+
+  const meta=node('div','hamazon-meta',(p.category||'CATÁLOGO')+'\nPAQUETE: '+(p.parcelSize||'por calcular').toUpperCase()+
    (p.price==null?'\nPRECIO: PENDIENTE DE ECONOMÍA':'\nPRECIO: $'+Number(p.price).toFixed(2)));
   meta.style.whiteSpace='pre-line';
   const status=p.shopStatus==='available'?'available':p.shopStatus==='checking'?'checking':'error';
-  const statusLabel=status==='checking'?(t.shopVerify||'VERIFICANDO…'):
-   status==='error'?(t.shopError||'ERROR'):'';
-  const statusElement=node('span','hamazon-state'+(status==='checking'?' checking':''),statusLabel);
-  if(status==='error')statusElement.title=t.shopErrorReason||'Modelo no disponible o sin implementar.';
-  const method=document.createElement('select');method.setAttribute('aria-label','Forma de pago');
-  [['prepaid','PAGADO / SIN COBRO'],['cash','EFECTIVO AL RECIBIR'],['card','TARJETA AL RECIBIR']].forEach(([v,label])=>{
-   const option=document.createElement('option');option.value=v;option.textContent=label;method.append(option);
-  });
+  const statusLabel=status==='checking'?(t.shopVerify||'VERIFICANDO…'):status==='error'?(t.shopError||'ERROR'):'';
+  const state=node('span','hamazon-state'+(status==='checking'?' checking':''),statusLabel);
+  if(status==='error')state.title=t.shopErrorReason||'Modelo no disponible o sin implementar.';
+  const method=document.createElement('select');method.setAttribute('aria-label',t.shopPayment||'Forma de pago');
+  for(const [value,label] of [['prepaid',t.shopPrepaid||'PAGADO / SIN COBRO'],['cash',t.shopCash||'EFECTIVO AL RECIBIR'],['card',t.shopCard||'TARJETA AL RECIBIR']]){
+   const option=document.createElement('option');option.value=value;option.textContent=label;method.append(option);
+  }
   method.disabled=status!=='available';
   const buy=labelButton(status==='available'?(t.shopOrder||'PEDIR'):statusLabel,'',()=>{
    if(status!=='available')return;
-   emit('hamazon-order',{productId:p.id,kind:p.kind||'furniture',paymentMethod:method.value});
-   say(t.orderSending||'Enviando pedido…');
+   fhHamazonDraft={productId:p.id,quantity:1,paymentMethod:method.value,addressId:DATA.hamazonAddresses[0]?.id||''};
+   fhHamazonView='checkout';renderWindow('hamazon');
   });
   buy.disabled=status!=='available';
-  card.append(thumb,node('span','hamazon-zone',t.shopInteriors||'Interiores'),title,meta,statusElement,method,buy);products.append(card);
+  card.append(thumb,node('span','hamazon-zone',t.shopInteriors||'Interiores'),node('h4','',p.name||p.id),meta,state,method,buy);products.append(card);
  }
- side.append(node('strong','','PEDIDOS'));
- if(!DATA.hamazonOrders.length)side.append(node('div','hamazon-empty','No hay pedidos.'));
- const orderStatus={scheduled:'PROGRAMADO',queued:'EN COLA',waiting:'EN LA PUERTA',payment:'ESPERANDO PAGO',delivering:'ENTREGANDO',delivered:'ENTREGADO',unboxed:'ABIERTO',placed:'PROGRAMADO'};
- for(const o of DATA.hamazonOrders.slice().reverse()){
-  const label=orderStatus[o.status]||(o.status||'pending').toUpperCase(),eta=['scheduled','queued','placed'].includes(o.status)&&o.eta?' · LLEGA '+o.eta:'';
-  const row=node('div','hamazon-order');row.append(node('strong','',o.name||o.productId),node('div','',label+eta+' · '+(o.paymentMethod||'prepaid').toUpperCase()));side.append(row);
+ side.append(node('strong','',t.shopOrders||'PEDIDOS'));
+ if(!DATA.hamazonOrders.length)side.append(node('div','hamazon-empty',t.shopNoOrders||'No hay pedidos.'));
+ for(const o of DATA.hamazonOrders.slice().reverse().slice(0,5)){
+  const row=node('div','hamazon-order'),label=statusNames[o.status]||(o.status||'pending').toUpperCase();
+  row.append(node('strong','',String(o.name||o.productId)+' × '+String(o.quantity||1)),
+   node('div','',label+(o.eta?' · '+o.eta:'')),node('div','',o.addressLabel||''));
+  side.append(row);
  }
 }
 function drawCamera(t){let cnv=$('camCanvas');if(!cnv||!state.power)return;const c=cnv.getContext('2d');c.imageSmoothingEnabled=false;const w=cnv.width,h=cnv.height;let cam=DATA.cameras[state.camera];c.fillStyle='#0b1b24';c.fillRect(0,0,w,h);
@@ -582,6 +661,7 @@ window.ForestTerminal3D={
  setLogs(logs){if(!Array.isArray(logs))return;DATA.logs=logs.map(l=>({t:String(l.t??''),type:String(l.type??''),txt:Array.isArray(l.txt)?l.txt.join('\n'):String(l.txt??'')}));state.log=0;renderWindow('files');previewPaint()},
  setHamazonProducts(items){if(!Array.isArray(items))return;DATA.hamazonProducts=items.map(p=>({...p,id:String(p.id??''),name:String(p.name??p.id??''),kind:String(p.kind??'furniture')}));renderWindow('hamazon');previewPaint()},
  setHamazonOrders(items){DATA.hamazonOrders=Array.isArray(items)?items.map(o=>({...o})):[];renderWindow('hamazon');previewPaint()},
+  setHamazonAddresses(items){DATA.hamazonAddresses=Array.isArray(items)?items.filter(a=>a&&a.id&&a.doorId).map(a=>({...a,id:String(a.id),label:String(a.label||'')})):[];renderWindow('hamazon');previewPaint()},
  setGameClock(value){syncGameClock(value)},
  getState(){return{power:state.power,mode:state.mode,zoom:state.zoom,windows:[...state.windows],front:state.front,floor:state.floor,room:state.room,camera:state.camera,gameClock:DATA.gameClock,stationId:sessionStationId,userId:sessionUserId,apps:[...sessionApps]}}
 };
