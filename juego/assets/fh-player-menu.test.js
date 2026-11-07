@@ -157,21 +157,20 @@ test('Estado no genera estadísticas cuando falta el personaje',()=>{
     assert.equal(value.textContent,'—');
 });
 
-test('Opciones reutiliza los tres botones reales y separa la salida al editor',()=>{
+test('Opciones reutiliza los dos botones reales, sin cuadrícula, y separa la salida al editor',()=>{
   const {tabs,detail,global,clicks}=scene({current:structuredClone(example)});
   tabs.children[4].click();
   const controls=detail.querySelectorAll('[data-fh-setting]');
-  assert.equal(controls.length,3);
+  assert.equal(controls.length,2);
+  assert.doesNotMatch(detail.textContent,/Cuadrícula/);
   assert.doesNotMatch(detail.textContent,/Cambiar piso/);
   controls[0].click();
   assert.equal(clicks.pixelBtn,1);
   assert.match(controls[0].textContent,/3x/);
+  assert.equal(clicks.gridBtn,undefined);
   controls[1].click();
-  assert.equal(clicks.gridBtn,1);
-  assert.match(controls[1].textContent,/sí/);
-  controls[2].click();
   assert.equal(clicks.fullscreenBtn,1);
-  assert.match(controls[2].textContent,/Salir/);
+  assert.match(controls[1].textContent,/Salir/);
   assert.match(detail.textContent,/Salir de la partida/);
   detail.querySelector('.fh-setting-editor').click();
   assert.equal(clicks.mapBtn,1);
