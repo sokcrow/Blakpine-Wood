@@ -27,11 +27,20 @@ test('El motor pasa los recursos de FHCharacterRuntime durante el ciclo HUD',()=
  for(const file of ['fh-status-strings.js','fh-status-hud.js','fh-status-hud.css'])
   assert.ok(editor.includes('juego/assets/'+file),'Falta recurso: '+file);
 });
-test('El estilo respeta la escala 75%, las tres gamas y el sueño',()=>{
- assert.match(css,/width:min\(300px,calc\(75vw - 96px\)\)/);
+test('La ubicación se centra y desaparece; el estado va a la esquina sin caja',()=>{
+ assert.match(css,/left:50%;\s*transform:translateX\(-50%\)/);
+ assert.match(css,/fh-location-hidden\s*\{\s*opacity:0/);
+ assert.match(css,/#fhStatusHUD\s*\{[\s\S]*?width:min\(210px,calc\(100vw - 24px\)\)/);
+ assert.match(css,/#fhStatusHUD\s*\{[\s\S]*?background:none;\s*border:0/);
+ assert.match(css,/top:calc\(83px \+ env\(safe-area-inset-top,0px\)\)/);
  assert.match(css,/--fh-status-pg:#c94d4a/);
  assert.match(css,/--fh-status-sp:#34c8d8/);
  assert.match(css,/--fh-status-pe:#49ad67/);
  assert.match(css,/body\.fh-sleeping #fhStatusHUD/);
  assert.doesNotMatch(css,/clip-path|filter:blur|border-radius:\d+px/);
+});
+test('Los recursos no se posicionan a partir del panel de ubicación',()=>{
+ const moduleText=fs.readFileSync(path.join(directory,'fh-status-hud.js'),'utf8');
+ assert.doesNotMatch(moduleText,/function place\(|host\.getBoundingClientRect\(\)/);
+ assert.match(moduleText,/panel\.append\(rows\[key\]\.row\)/);
 });
