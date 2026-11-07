@@ -33,8 +33,22 @@ window.FH_DELIVERY_TEXT=Object.freeze({
  orderQueued:'Pedido en cola. El repartidor terminará la entrega anterior primero.',
  orderWaiting:'Llaman a la puerta.',
  noDeliveryDoor:'No se encontró una puerta de entrada con mirilla para esta entrega.',
- peepholeGreeting:name=>'Buenas. Traigo una entrega de Hamazon'+(name?' para '+name:'')+'.',
- peepholePackage:name=>'El paquete contiene: '+name+'.',
+ propertyDestination:name=>{
+   const value=String(name||'').trim();
+   if(!value)return '';
+   const article=/^(apartamento|departamento|depto\.?|local|edificio)\b/i.test(value)?'el ': /^(casa|vivienda|habitación)\b/i.test(value)?'la ':'';
+   return article+value;
+  },
+  peepholeGreeting:destination=>'Buenas, traigo un paquete de Hamazon'+(destination?' para '+destination:'')+'.',
+  doorGreeting:destination=>'Buenas, soy el repartidor de Hamazon'+(destination?' y traigo una entrega para '+destination:'')+'.',
+  askIdentity:'¿Quién es?',
+  identityAnswer:'Soy el repartidor de Hamazon. Vengo a dejar un pedido.',
+  askDestination:'¿Para qué apartamento?',
+  destinationAnswer:destination=>destination?'Aquí dice que es para '+destination+'.':'No aparece el número del apartamento en esta orden.',
+  backToQuestions:'Volver a preguntar',
+  continueDelivery:'Continuar con la entrega',
+  doorNotOpened:'Parece que la puerta sigue cerrada.',
+ peepholePackage:name=>'Traigo un paquete con '+name+'.',
  prepaid:'El pedido ya figura pagado. Sólo necesito entregarlo.',
  cash:'El pedido indica pago en efectivo al recibir.',
  card:'El pedido indica pago con tarjeta al recibir.',
@@ -47,7 +61,7 @@ window.FH_DELIVERY_TEXT=Object.freeze({
  cardConfirm:'Pagar con tarjeta',
  receivePackage:'Recibir paquete',
  handover:'Aquí tiene su entrega. Confirme la recepción.',
- paymentPending:'Confirma el pago para recibir el paquete.',
+ paymentPending:'Solo falta confirmar el pago y le entrego el paquete.',
  paymentConfirmed:'Pago confirmado.',
  packageDelivered:'El repartidor deja el paquete junto a la entrada.',
  packageAction:'Abrir paquete',

@@ -42,3 +42,21 @@ test('el adaptador 3D declara integración local y el motor base tiene sintaxis 
  const vendor=fs.readFileSync(path.join(root,'juego/assets/vendor/three.min.js'),'utf8');
  assert.match(vendor,/SPDX-License-Identifier: MIT/);
 });
+
+test('hook del repartidor construye una cámara de puerta válida desde el motor embebido',()=>{
+ const sandbox={window:{}};
+ for(let i=0;i<=12;i++){
+  const name='engine-'+String(i).padStart(2,'0')+'.js';
+  vm.runInNewContext(fs.readFileSync(path.join(root,'juego/assets',name),'utf8'),sandbox,{filename:name});
+ }
+ const motor=Buffer.from(sandbox.window.__FOREST_EMBEDDED_ENGINE__,'base64').toString('utf8');
+ const adapter=extract('function addDeliveryToEngine(doc){','const engineSuccessBefore=').trim();
+ const patch=vm.runInNewContext('('+adapter+')');
+ const output=patch(motor);
+ assert.match(output,/function fhBeginDoorEvent\(door\)/);
+ assert.match(output,/if\(!peeking\|\|fhDoorConversationView\)return/);
+ assert.match(output,/function fhDoorProperty\(door\)/);
+ const start=output.lastIndexOf('<script>')+8,end=output.lastIndexOf('</script>');
+ assert.ok(start>7&&end>start);
+ assert.doesNotThrow(()=>new vm.Script(output.slice(start,end)));
+});

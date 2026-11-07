@@ -69,7 +69,14 @@
     if(matches.length>1)return null; // negar permisos ante solapamientos ambiguos
     return matches[0]||null;
   }
-  function buildingAt(map,floorId,p){return buildings(map,floorId).find(b=>inside(p,b.polygon))||null;}
+  function entrancePropertyAt(map,floorId,door,margin=.45){
+     if(!door?.a||!door?.b||!['door','peephole_door'].includes(door.type))return null;
+     const first=propertyAt(map,floorId,sample(door,'A',.5,margin));
+     const second=propertyAt(map,floorId,sample(door,'B',.5,margin));
+     // Dos parcelas a ambos lados no son una entrada propia; una puerta interior tampoco.
+     return !!first!==!!second ? first||second : null;
+   }
+   function buildingAt(map,floorId,p){return buildings(map,floorId).find(b=>inside(p,b.polygon))||null;}
   function reconcileProperties(map,floorId){
     const floor=(map.floors||[]).find(f=>f.id===floorId);
     if(!floor)return [];
@@ -218,7 +225,7 @@
   }
   function validateMap(map){if(map?.patterns)validatePatterns(map.patterns);return map;}
   return Object.freeze({TEXEL_PER_FOOT,MAX_PATTERNS,MAX_PNG_BYTES,MAX_COLORS,WALL_PRESETS,FLOOR_PRESETS,
-    sideAt,sample,inside,closedLoops,buildings,properties,propertyAt,buildingAt,reconcileProperties,style,wallStyle,floorStyle,
+    sideAt,sample,inside,closedLoops,buildings,properties,propertyAt,entrancePropertyAt,buildingAt,reconcileProperties,style,wallStyle,floorStyle,
     canPaintWall,canPaintRoom,canEditAt,canEditItem,paintWall,paintRoomWalls,paintFloor,roomContains,roomInProperty,splitAtPropertyLimits,
     pngInfo,validatePatterns,validateMap});
 });
