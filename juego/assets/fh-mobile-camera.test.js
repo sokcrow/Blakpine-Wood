@@ -21,7 +21,7 @@ test('PC, tablets y pantallas sin puntero táctil mantienen la misma cámara',()
   [1180,820,true],[1024,768,true],[0,640,true],[390,0,true]]){
   assert.equal(camera.distance(11.2,width,height,coarse),11.2);
  }
- assert.equal(camera.distance(11.2,844,390,true),7.84-0.000000000000001,
+ assert.ok(Math.abs(camera.distance(11.2,844,390,true)-7.84)<1e-10,
   'el giro horizontal de un teléfono conserva el zoom');
 });
 test('distancias de cámara no válidas no se alteran',()=>{
