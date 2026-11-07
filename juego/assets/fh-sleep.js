@@ -5,7 +5,7 @@
  const clamp=x=>Math.min(1,Math.max(0,x));
  const ease=x=>x*x*(3-2*x);
  function createController(){
-  let elapsed=0,depth=0,stage='awake',holdAwake=false,wakeLeft=0,wakeAction=null,asleepTime=0;
+  let elapsed=0,depth=0,stage='awake',holdAwake=false,wakeLeft=0,wakeAction=null,asleepTime=0,nextBreath=CONFIG.breathDelay;
   function status(){return {stage,depth,vulnerable:stage==='asleep',
    vulnerability:stage==='asleep'?2.5:stage==='waking'?1.75:stage==='drowsy'?1+depth*.9:stage==='resting'?1.2:1,
    wakeDelayRemaining:wakeLeft};}
@@ -29,9 +29,11 @@
     if(phase==='standing'){elapsed=0;holdAwake=false;depth=0;stage='awake';}
    }
    asleepTime=stage==='asleep'?asleepTime+step:0;
+   if(stage!=='asleep')nextBreath=CONFIG.breathDelay;
    global.document?.body?.classList?.toggle('fh-sleep-masking',depth>=.003);
    syncIris();
    if(stage!==previous){
+    if(previous==='asleep')global.FHLiveText?.clearKind?.('sleep');
     global.document?.body?.classList?.toggle('fh-sleeping',stage==='asleep');
     if(bus?.emit)bus.emit('player:sleepState',status());
    }
@@ -43,12 +45,20 @@
    if(stage==='asleep'||depth>=.75){
     holdAwake=true;stage='waking';wakeLeft=CONFIG.wakeDelay;wakeAction=action;
     global.document?.body?.classList?.remove('fh-sleeping');
+    global.FHLiveText?.clearKind?.('sleep');
     return {ok:true,waking:true};
    }
    holdAwake=true;return action();
   }
   // Velo propio: la oclusión ya no depende de #mist ni del render de mirilla.
   let veil=null;
+  function irisRadius(width,height,progress=depth){
+   const w=Math.max(1,Number(width)||1),h=Math.max(1,Number(height)||1);
+   const start=Math.hypot(w,h)*.70;
+   // Mantener el centro visible, como un ojo entreabierto: no cerrar a negro.
+   const minimum=Math.min(w,h)*.24;
+   return start+(minimum-start)*ease(clamp(progress));
+  }
   function syncIris(){
    const doc=global.document;
    if(!doc?.body)return;
@@ -62,10 +72,9 @@
    if(depth<.003){veil.style.display='none';return;}
    const w=Math.max(1,Number(global.innerWidth)||doc.documentElement?.clientWidth||800);
    const h=Math.max(1,Number(global.innerHeight)||doc.documentElement?.clientHeight||600);
-   const radius=Math.hypot(w,h)*.70*(1-ease(depth));
+   const radius=irisRadius(w,h);
    veil.style.display='block';
-   veil.style.background=radius<=1?'#000':
-    'radial-gradient(circle '+radius.toFixed(1)+'px at 50% 50%, transparent '+(radius*.70).toFixed(1)+'px, #000 '+radius.toFixed(1)+'px)';
+   veil.style.background='radial-gradient(circle '+radius.toFixed(1)+'px at 50% 50%, transparent '+(radius*.80).toFixed(1)+'px, #000 '+radius.toFixed(1)+'px)';
   }
   function viewWeight(){return depth;}
   // Cámara cenital estricta: "up" horizontal evita la singularidad de lookAt
@@ -75,50 +84,19 @@
    return {x:Number(x)||0,z:Number(z)||0,eyeY:base+6.5,focusY:base+.45,
     upX:-Math.sin(a),upZ:-Math.cos(a)};
   }
-  function drawBreathing(ctx,x,y){
-   if(stage!=='asleep'||asleepTime<CONFIG.breathDelay||!Number.isFinite(x)||!Number.isFinite(y))return;
-   const t=((asleepTime-CONFIG.breathDelay)%CONFIG.breathCycle)/CONFIG.breathCycle;
-   const alpha=Math.pow(Math.sin(Math.PI*t),1.5)*.82;
-   if(alpha<.012)return;
-   const label=String(global.FH_SLEEP_TEXT?.breath||'Zzz');
-   const letters=Math.max(1,Math.min(label.length,Math.ceil(t*label.length*2.8)));
-   ctx.save();
-   ctx.globalAlpha=alpha;
-   ctx.font='italic 21px Georgia, serif';
-   ctx.textBaseline='middle';
-   ctx.textAlign='left';
-   ctx.lineWidth=3;
-   ctx.strokeStyle='rgba(0,0,0,.78)';
-   ctx.fillStyle='#f3efe6';
-   const bx=x+14+t*9,by=y-18-t*24;
-   ctx.strokeText(label.slice(0,letters),bx,by);
-   ctx.fillText(label.slice(0,letters),bx,by);
-   ctx.restore();
+  function needsBreath(){
+   return stage==='asleep' && asleepTime+1e-6>=nextBreath;
   }
-  function renderMask(ctx,width,height,x,y,breathX=x,breathY=y){
-   if(depth<.003)return false;
-   const w=Math.max(1,Number(width)||1),h=Math.max(1,Number(height)||1);
-   const radius=Math.hypot(w,h)*1.25*(1-ease(clamp(depth)));
-   ctx.save();
-   ctx.globalCompositeOperation='source-over';
-   ctx.clearRect(0,0,w,h);
-   if(radius<=1){
-    ctx.fillStyle='#000';
-   }else{
-    // Dibujar negro directamente: no depender de destination-out ni de la
-    // transparencia acumulada del canvas del visor de mirilla.
-    const inner=radius*.72;
-    const gradient=ctx.createRadialGradient(x,y,inner,x,y,radius);
-    gradient.addColorStop(0,'rgba(0,0,0,0)');
-    gradient.addColorStop(1,'rgba(0,0,0,1)');
-    ctx.fillStyle=gradient;
-   }
-   ctx.fillRect(0,0,w,h);
-   drawBreathing(ctx,breathX,breathY);
-   ctx.restore();
-   return true;
+  function emitBreath(point){
+   if(!needsBreath()||!point||!Number.isFinite(point.x)||!Number.isFinite(point.y)||!Number.isFinite(point.z))return false;
+   const emitted=global.FHLiveText?.soundAt?.({
+    kind:'sleep',text:String(global.FH_SLEEP_TEXT?.breath||'Zzz'),
+    x:point.x,y:point.y,z:point.z,floor:point.floor,self:true,level:1
+   })===true;
+   if(emitted)nextBreath=asleepTime+CONFIG.breathCycle;
+   return emitted;
   }
-  return Object.freeze({status,update,requestWake,viewWeight,cameraPose,renderMask});
+  return Object.freeze({status,update,requestWake,viewWeight,cameraPose,irisRadius,needsBreath,emitBreath});
  }
  global.FHSleep=global.FHSleep||createController();
  global.FHCreateSleepController=createController;

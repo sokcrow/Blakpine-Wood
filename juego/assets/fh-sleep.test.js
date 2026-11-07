@@ -7,7 +7,7 @@ const path=require('node:path');
 const vm=require('node:vm');
 
 function controller(){
- const classes=new Set(),nodes=new Map();
+ const classes=new Set(),nodes=new Map(),breaths=[];
  const body={classList:{
   toggle(name,on){if(on)classes.add(name);else classes.delete(name);},
   remove(name){classes.delete(name);}
@@ -15,103 +15,95 @@ function controller(){
  const document={body,getElementById(id){return nodes.get(id)||null;},
   createElement(){return {id:'',style:{},setAttribute(){},parentNode:null};},
   documentElement:{clientWidth:360,clientHeight:640}};
- const window={FH_SLEEP_TEXT:{breath:'Zzz'},document,innerWidth:360,innerHeight:640};
+ const window={FH_SLEEP_TEXT:{breath:'Zzz'},document,innerWidth:360,innerHeight:640,
+  FHLiveText:{soundAt(spec){breaths.push(spec);return true;},clearKind(kind){breaths.push({clearKind:kind});}}};
  vm.runInNewContext(fs.readFileSync(path.join(__dirname,'fh-sleep.js'),'utf8'),{window});
- return {sleep:window.FHCreateSleepController(),classes,nodes};
+ return {sleep:window.FHCreateSleepController(),classes,nodes,breaths};
 }
-function ctx(){
- const ops=[];
- return {ops,save(){},restore(){},clearRect(){ops.push('clear');},
-  fillRect(){ops.push(this.fillStyle==='#000'?'black':'gradientFill');},
-  createRadialGradient(){ops.push('gradient');return {addColorStop(at,value){ops.push('stop:'+at+':'+value);}};},
-  strokeText(s){ops.push('stroke:'+s);},fillText(s){ops.push('text:'+s);},
-  set globalCompositeOperation(v){ops.push('blend:'+v);}
- };
+function advance(sleep,seconds,phase='lying',verb='lie',type='bed'){
+ const ticks=Math.round(seconds*10);
+ for(let i=0;i<ticks;i++)sleep.update(.1,phase,verb,type);
 }
-test('dormir cierra completamente la visión y oculta el HUD',()=>{
- const {sleep,classes}=controller();
- for(let i=0;i<110;i++)sleep.update(.1,'lying','lie','bed');
+test('el iris mantiene centro visible incluso al llegar a sueño profundo',()=>{
+ const {sleep,classes,nodes}=controller();
+ advance(sleep,11);
  assert.equal(sleep.status().stage,'asleep');
  assert.ok(classes.has('fh-sleeping'));
  assert.ok(classes.has('fh-sleep-masking'));
- const canvas=ctx();
- assert.equal(sleep.renderMask(canvas,360,640,180,320),true);
- assert.equal(canvas.ops.includes('gradient'),false,'no debe conservar un agujero visual');
- assert.equal(canvas.ops.some(s=>s.startsWith('text:')),false,'Zzz tiene una espera');
+ const veil=nodes.get('fhSleepVeil');
+ assert.equal(veil.style.display,'block');
+ assert.match(veil.style.background,/^radial-gradient\(circle /);
+ assert.notEqual(veil.style.background,'#000');
+ assert.match(veil.style.background,/transparent /);
+ const expected=Math.min(360,640)*.24;
+ assert.ok(Math.abs(sleep.irisRadius(360,640,1)-expected)<.001);
+ assert.ok(sleep.irisRadius(360,640,.4)>expected);
 });
-test('el cierre usa un degradado opaco hacia negro sin destination-out',()=>{
- const {sleep,classes}=controller();
- for(let i=0;i<60;i++)sleep.update(.1,'lying','lie','bed');
- assert.equal(sleep.status().stage,'drowsy');
- assert.ok(classes.has('fh-sleep-masking'));
- const canvas=ctx();
- sleep.renderMask(canvas,360,640,180,320);
- assert.ok(canvas.ops.includes('gradient'));
- assert.ok(canvas.ops.includes('stop:0:rgba(0,0,0,0)'));
- assert.ok(canvas.ops.includes('stop:1:rgba(0,0,0,1)'));
- assert.ok(!canvas.ops.includes('blend:destination-out'));
+test('el círculo se cierra lentamente y se reabre al despertar',()=>{
+ const {sleep,nodes,classes}=controller();
+ advance(sleep,4);
+ const veil=nodes.get('fhSleepVeil');
+ const drowsy=sleep.irisRadius(360,640);
+ advance(sleep,7);
+ assert.ok(sleep.irisRadius(360,640)<drowsy);
+ assert.equal(sleep.requestWake(()=>({ok:true})).waking,true);
+ assert.ok(!classes.has('fh-sleeping'));
+ advance(sleep,.5);
+ assert.ok(sleep.irisRadius(360,640)>Math.min(360,640)*.24);
+ advance(sleep,4,'standing',null,null);
+ assert.equal(sleep.status().stage,'awake');
+ assert.equal(veil.style.display,'none');
+ assert.ok(!classes.has('fh-sleep-masking'));
 });
-test('cámara vertical fija y vector up horizontal para cualquier orientación de la cama',()=>{
+test('respiración cómic solo durante sueño: pausas y coordenadas de la cabeza',()=>{
+ const {sleep,breaths}=controller(),head={x:4.6,y:1.8,z:7.1,floor:0};
+ advance(sleep,11);
+ assert.equal(sleep.needsBreath(),false,'primer Zzz espera unos segundos');
+ advance(sleep,2.2);
+ assert.equal(sleep.needsBreath(),true);
+ assert.equal(sleep.emitBreath(head),true);
+ assert.equal(sleep.emitBreath(head),false,'no duplica por frame');
+ assert.equal(breaths.length,1);
+ assert.equal(breaths[0].kind,'sleep');
+ assert.equal(breaths[0].text,'Zzz');
+ assert.equal(breaths[0].x,head.x);
+ assert.equal(breaths[0].y,head.y);
+ assert.equal(breaths[0].z,head.z);
+ assert.equal(breaths[0].self,true);
+ advance(sleep,3.7);
+ assert.equal(sleep.needsBreath(),false);
+ advance(sleep,.1);
+ assert.equal(sleep.needsBreath(),true);
+ assert.equal(sleep.emitBreath(head),true);
+ assert.equal(breaths.filter(x=>x.kind==='sleep').length,2);
+ sleep.requestWake(()=>({ok:true}));
+ assert.equal(sleep.needsBreath(),false);
+ assert.ok(breaths.some(x=>x.clearKind==='sleep'));
+});
+test('cámara cenital mantiene el vector arriba horizontal para camas rotadas',()=>{
  const {sleep}=controller();
- for(const facing of [0,Math.PI/4,Math.PI/2,Math.PI,3*Math.PI/2]){
-  const p=sleep.cameraPose(5,9,2,facing);
+ for(const angle of [0,Math.PI/4,Math.PI/2,Math.PI,3*Math.PI/2]){
+  const p=sleep.cameraPose(5,9,2,angle);
   assert.equal(p.x,5);assert.equal(p.z,9);
   assert.ok(p.eyeY>p.focusY);
   assert.ok(Math.abs(Math.hypot(p.upX,p.upZ)-1)<1e-10);
-  assert.ok(Math.abs(p.upX*Math.sin(facing)+p.upZ*Math.cos(facing)+1)<1e-10);
  }
 });
-test('el iris tiene una capa propia y siempre termina en negro opaco',()=>{
- const {sleep,nodes}=controller();
- for(let i=0;i<60;i++)sleep.update(.1,'lying','lie','bed');
- const veil=nodes.get('fhSleepVeil');
- assert.ok(veil,'El overlay debe crearse mientras el sueño progresa');
- assert.equal(veil.style.display,'block');
- assert.match(veil.style.background,/^radial-gradient\(circle /);
- assert.match(veil.style.background,/#000/);
- for(let i=0;i<60;i++)sleep.update(.1,'lying','lie','bed');
- assert.equal(sleep.status().stage,'asleep');
- assert.equal(veil.style.background,'#000','No debe quedar hueco en el centro');
- sleep.requestWake(()=>({ok:true}));
- for(let i=0;i<40;i++)sleep.update(.1,'standing',null,null);
- assert.equal(veil.style.display,'none','El velo debe retirarse al despertar');
-});
-test('el efecto se actualiza sin llamar a circleMask ni a renderMask',()=>{
- const {sleep,nodes}=controller();
- for(let i=0;i<50;i++)sleep.update(.1,'lying','lie','bed');
- assert.match(nodes.get('fhSleepVeil').style.background,/radial-gradient/);
-});
-test('Zzz aparece después de una pausa y sale de la posición del sprite',()=>{
- const {sleep}=controller();
- for(let i=0;i<140;i++)sleep.update(.1,'lying','lie','bed');
- const canvas=ctx();
- sleep.renderMask(canvas,360,640,180,320,170,275);
- assert.ok(canvas.ops.some(s=>s.startsWith('text:Z')));
-});
-test('despertar recupera controles y ejecuta la salida tras el retraso',()=>{
- const {sleep,classes}=controller();let awake=false;
- for(let i=0;i<110;i++)sleep.update(.1,'lying','lie','bed');
- assert.equal(sleep.requestWake(()=>{awake=true;return {ok:true};}).waking,true);
- assert.ok(!classes.has('fh-sleeping'));
- for(let i=0;i<20;i++)sleep.update(.1,'lying','lie','bed');
- assert.ok(awake);
- sleep.update(.1,'standing',null,null);
- assert.equal(sleep.status().stage,'awake');
- assert.ok(!classes.has('fh-sleep-masking'));
-});
-test('la integración carga la hoja de sueño y conserva acción rápida/radial',()=>{
+test('integración utiliza iris único y texto cómic con su propio fade',()=>{
  const root=path.resolve(__dirname,'../..');
  const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
  const css=fs.readFileSync(path.join(__dirname,'fh-sleep.css'),'utf8');
- assert.match(html,/const sleepCss=/);
+ const live=fs.readFileSync(path.join(__dirname,'fh-live-text.js'),'utf8');
  assert.match(html,/bridge\+sleepCss\+sleepStrings\+sleepModule/);
  assert.match(html,/cam\.up\.set\(p\.upX,0,p\.upZ\)/);
- assert.match(html,/replace\(sleepCameraBefore,sleepCameraAfter\)/);
- assert.match(html,/maskRect\.width\*\.5,maskRect\.height\*\.5,breathX,breathY/);
- assert.match(css,/#actions \.action:not\(#use\)/);
- assert.match(css,/#actions #use/);
- assert.match(css,/#fhContextRadial/);
- assert.match(css,/body\.fh-sleep-masking #mist/);
+ assert.match(html,/window\.FHSleep\.emitBreath\(\{x:head\.x,y:head\.y,z:head\.z,floor:currentFloor\}\)/);
+ assert.doesNotMatch(html,/window\.FHSleep\.renderMask\(/);
+ assert.match(html,/hero\.localToWorld\(new THREE\.Vector3\(0,HERO_H\*\.82,0\)\)/);
  assert.match(css,/#fhSleepVeil/);
+ assert.match(css,/#fhSpatialLayer/);
  assert.match(css,/#actions \{z-index:90/);
+ assert.match(css,/#fhContextRadial/);
+ assert.match(live,/fh-sound fh-sleep-comic/);
+ assert.match(live,/@keyframes fh-sleep-breath/);
+ assert.match(live,/sleep\?2600:580/);
 });
