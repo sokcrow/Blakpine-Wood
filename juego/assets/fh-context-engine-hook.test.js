@@ -35,7 +35,10 @@ test('el HTML generado integra radial y decoración sin afectar el editor 2D',()
  assert.match(output,/FHSafeLock\?\.bind\(fhContextCanvas/);
  assert.match(output,/FHSafeLock\?\.bind\(\$\('use'\)/);
  assert.match(output,/fhUseButtonClick/);
- assert.match(output,/if\(gesture\.kind==='hold'\)\{radial\.open\(context\);return;\}/);
+ assert.match(output,/capture:true,suppressClick:true/);
+ assert.match(output,/fh-interaction-radial\.js\?v=20261107-hold-gate/);
+ assert.match(output,/fh-safe-lock\.js\?v=20261107-safe-lock-2/);
+ assert.match(output,/if\(gesture\.kind==='hold'\)\{radial\.open\(context,'hold'\);return;\}/);
  assert.match(output,/primary\?\.run\(\)/);
  assert.match(output,/if\(playerPose\.occupied\)return toggleDoor\(\)/);
  assert.doesNotMatch(output,/fhContextTapStart/);
