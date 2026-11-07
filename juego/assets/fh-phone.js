@@ -63,6 +63,7 @@
   const commerce=()=>state.commerce.cart;
   let opened=false,view='home',previous='home',filter='all',currentContact='',editingNote=null,currentDocument=null;
   let toggle=null,panel=null,content=null,clockNode=null,toastNode=null,topTitle=null;
+  let statusChargeBar=null,statusChargeText=null,pendingNotice=false;
   let elapsed=0,toastTimer=null,lastTorch='',orderSeen=new Map((state.delivery?.orders||[]).map(o=>[o.id,o.status]));
   const el=(tag,cls,txt)=>{
    const n=document.createElement(tag);if(cls)n.className=cls;
@@ -74,6 +75,40 @@
   };
   const append=(host,...nodes)=>{nodes.forEach(n=>host.append(n));return host};
   const container=(cls)=>el('div',cls);
+  // Iconos vectoriales de trazo único. Los iconos de apps registradas conservan su fallback textual.
+  const ICON_PATHS=Object.freeze({
+   phone:'M7 2.5h10a2 2 0 0 1 2 2v15a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-15a2 2 0 0 1 2-2Z M10 18.5h4',
+   directory:'M5 4h14v16H5z M9 4v16 M12 9h4 M12 13h4',
+   messages:'M5 5h14v12H9l-4 3V5z M8 9h8 M8 12h5',
+   notes:'M7 3h10l3 3v15H7z M17 3v4h3 M10 11h7 M10 15h7 M10 19h5',
+   flashlight:'M9 3h6l1 5-2.5 3v9h-3v-9L8 8z M9 8h6',
+   store:'M4 4h7v7H4z M14 4h6v7h-6z M4 14h7v6H4z M14 14h6v6h-6z',
+   hamazon:'M4 8h16v13H4z M8 8V6a4 4 0 0 1 8 0v2 M4 12h16',
+   signal:'M3 19v-3 M8 19v-6 M13 19V9 M18 19V5',
+   home:'M3 11l9-7 9 7 M6 10v10h12V10 M10 20v-6h4v6',
+   back:'M15 18l-6-6 6-6',
+   close:'M6 6l12 12 M18 6L6 18'
+  });
+  function glyph(id){
+   const d=ICON_PATHS[id];
+   if(!d)return el('span','',label('icon_'+id,EXTRA_APPS.get(id)?.icon||'◇'));
+   const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+   svg.setAttribute('viewBox','0 0 24 24');
+   svg.setAttribute('fill','none');svg.setAttribute('stroke','currentColor');
+   svg.setAttribute('stroke-width','1.7');svg.setAttribute('stroke-linecap','round');
+   svg.setAttribute('stroke-linejoin','round');svg.setAttribute('aria-hidden','true');
+   const path=document.createElementNS('http://www.w3.org/2000/svg','path');
+   path.setAttribute('d',d);svg.append(path);return svg;
+  }
+  function updateStatus(){
+   if(!statusChargeBar||!statusChargeText)return;
+   const raw=Number(options.torchState?.()?.charge),charge=Number.isFinite(raw)?Math.max(0,Math.min(100,raw)):0;
+   statusChargeBar.style.width=charge+'%';
+   statusChargeText.textContent=Math.ceil(charge)+'%';
+  }
+  function syncNotification(){
+   if(toggle)toggle.setAttribute('data-has-notification',String(pendingNotice));
+  }
   function notice(message){
    if(!toastNode)return;
    toastNode.textContent=message;
@@ -97,6 +132,7 @@
   function empty(text){content.append(el('p','fh-phone-empty',text))}
   function screen(name,back='home'){
    view=name;content.replaceChildren();toolbar(label('app_'+name,name),back);
+   if(name==='messages'||name==='conversation'){pendingNotice=false;syncNotification()}
    const handlers={home:home,directory:directory,messages:messages,conversation:conversation,
     notes:notes,editNote:editNote,document:readDocument,flashlight:flashlight,store:store,hamazon:hamazon};
    if(handlers[name])handlers[name]();
@@ -105,13 +141,14 @@
   }
   function home(){
    const hero=container('fh-phone-clock-card');
-   append(hero,el('span','fh-phone-kicker',label('gameTime','HORA DEL JUEGO')),el('strong','fh-phone-big-clock',clock()));
+   hero.append(el('strong','fh-phone-big-clock',clock()));
    content.append(hero);
    const grid=container('fh-phone-app-grid');content.append(grid);
    for(const id of p.installedApps){
-    const b=button(label('app_'+id,EXTRA_APPS.get(id)?.name||id),()=>screen(id),'fh-phone-app');
+    const b=button('',()=>screen(id),'fh-phone-app');
     b.dataset.app=id;
-    b.append(el('span','fh-phone-app-icon',label('icon_'+id,EXTRA_APPS.get(id)?.icon||'◇')));
+    const icon=container('fh-phone-app-icon');icon.append(glyph(id));
+    append(b,icon,el('span','fh-phone-app-label',label('app_'+id,EXTRA_APPS.get(id)?.name||id)));
     grid.append(b);
    }
   }
@@ -145,6 +182,7 @@
    p.messages.push({id:'msg_'+stamps()+'_'+p.messages.length,contactId:safe(contactId,80),
     body:value,incoming:!!incoming,time:Number(state.clock?.minutes)||0});
    if(p.messages.length>500)p.messages.splice(0,p.messages.length-500);
+   if(incoming){pendingNotice=true;syncNotification()}
    save();if(opened&&(view==='messages'||view==='conversation'))screen(view,previous);return true;
   }
   function receive(contactId,body,contact=null){
@@ -248,13 +286,18 @@
    const status=options.torchState?.()||{};
    const enabled=!!status.enabled,charge=Math.max(0,Math.min(100,Number(status.charge)||0));
    content.append(el('h3','fh-phone-section',label('flashlight','Linterna')));
+   const control=button('',()=>{
+    options.toggleTorch?.();screen('flashlight');
+   },'fh-phone-primary fh-phone-torch-toggle');
+   control.setAttribute('role','switch');
+   control.setAttribute('aria-checked',String(enabled));
+   control.setAttribute('aria-label',enabled?label('switchOff','Apagar'):label('switchOn','Encender'));
+   append(control,el('span','fh-phone-torch-label',label('flashlight','Linterna')),container('fh-phone-switch-track'));
+   content.append(control);
    content.append(el('p','fh-phone-readout',enabled?label('torchOn','ENCENDIDA'):label('torchOff','APAGADA')));
    const track=container('fh-phone-battery-track'),fill=container('fh-phone-battery-fill');
    fill.style.width=charge+'%';track.append(fill);
    append(content,track,el('p','fh-phone-muted',label('battery','Batería')+' · '+Math.ceil(charge)+'%'));
-   content.append(button(enabled?label('switchOff','Apagar'):label('switchOn','Encender'),()=>{
-    options.toggleTorch?.();screen('flashlight');
-   },'fh-phone-primary'));
   }
   function store(){
    content.append(el('p','fh-phone-muted',label('storeHelp','Aplicaciones disponibles para este dispositivo.')));
@@ -363,6 +406,7 @@
    if(elapsed<.5)return;elapsed=0;
    if(blocked()&&opened)close();
    if(clockNode)clockNode.textContent=clock();
+   updateStatus();
    if(opened&&view==='home'){
     const value=content?.querySelector('.fh-phone-big-clock');if(value)value.textContent=clock();
    }
@@ -387,7 +431,7 @@
   function open(){
    if(!panel||blocked())return false;
    opened=true;panel.hidden=false;toggle.setAttribute('aria-expanded','true');
-   document.body.classList.add('fh-phone-open');screen('home');return true;
+   document.body.classList.add('fh-phone-open');updateStatus();screen('home');return true;
   }
   function togglePhone(){return opened?(close(),true):open()}
   function onKeydown(event){
@@ -406,20 +450,34 @@
   }
   function mount(){
    if(!document||document.getElementById('fhPhoneToggle'))return false;
-   toggle=button('▣',togglePhone,'fh-phone-toggle');toggle.id='fhPhoneToggle';
+   toggle=button('',togglePhone,'fh-phone-toggle');toggle.id='fhPhoneToggle';
+   toggle.append(glyph('phone'));toggle.setAttribute('data-has-notification','false');
    toggle.setAttribute('aria-label',label('openPhone','Abrir celular'));
    toggle.setAttribute('aria-controls','fhPhonePanel');toggle.setAttribute('aria-expanded','false');
    panel=el('section','fh-phone-panel');panel.id='fhPhonePanel';panel.hidden=true;
    panel.setAttribute('aria-label',label('phone','Celular'));
    const bar=container('fh-phone-statusbar');
    clockNode=el('strong','fh-phone-status-clock',clock());
-   append(bar,clockNode,el('span','',label('gameTime','HORA DEL JUEGO')));
-   const head=container('fh-phone-header'),back=button('‹',()=>screen(previous),'fh-phone-back');
-   back.setAttribute('aria-label',label('back','Volver'));back.hidden=true;
+   const indicators=container('fh-phone-status-icons');
+   const battery=container('fh-phone-status-battery');
+   statusChargeBar=container('fh-phone-status-battery-fill');statusChargeText=el('span','fh-phone-status-percent','0%');
+   battery.append(statusChargeBar);indicators.append(glyph('signal'),battery,statusChargeText);
+   indicators.setAttribute('aria-label',label('torchBattery','Batería de la linterna'));
+   append(bar,clockNode,indicators);
+   const head=container('fh-phone-header');
    topTitle=el('strong','fh-phone-title',label('phone','Celular'));
-   append(head,back,topTitle,button('×',close,'fh-phone-close'));
-   content=container('fh-phone-content');toastNode=el('div','fh-phone-toast');toastNode.hidden=true;
-   append(panel,bar,head,content,toastNode);
+   const exit=button('',close,'fh-phone-close');
+   exit.setAttribute('aria-label',label('closePhone','Cerrar celular'));exit.append(glyph('close'));
+   append(head,topTitle,exit);
+   content=container('fh-phone-content');
+   const nav=container('fh-phone-nav'),back=button('',()=>screen(previous),'fh-phone-back');
+   back.setAttribute('aria-label',label('back','Volver'));back.hidden=true;back.append(glyph('back'));
+   const homeButton=button('',()=>screen('home'),'fh-phone-home');
+   homeButton.setAttribute('aria-label',label('app_home','Inicio'));homeButton.append(glyph('home'));
+   append(nav,back,homeButton);
+   toastNode=el('div','fh-phone-toast');toastNode.hidden=true;
+   append(panel,bar,head,content,nav,toastNode);
+   updateStatus();
    document.body.append(toggle,panel);
    root.addEventListener?.('keydown',onKeydown,true);
    if(typeof root.addEventListener==='function')root.addEventListener('blur',close);
