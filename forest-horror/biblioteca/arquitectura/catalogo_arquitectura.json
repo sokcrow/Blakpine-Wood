@@ -160,6 +160,86 @@
       "geometryRole": "visual-only",
       "mounting": "single",
       "note": "Una sola hoja; para puerta doble se instancian dos copias, la segunda con +180°"
+    },
+    {
+      "id": "puerta_electronica_reja",
+      "name": "Puerta electrónica con reja",
+      "type": "door",
+      "variant": "glass",
+      "architectureSkin": "puerta_electronica_reja",
+      "widthTiles": 1,
+      "widthFt": 5,
+      "leafHeightFt": 7,
+      "frameHeightFt": 7.38,
+      "visibility": "see_through",
+      "glb": "modelos_glb/puerta_electronica_reja.glb",
+      "thumbnail": "miniaturas/puerta_electronica_reja.png",
+      "triangleCount": 252,
+      "nodes": [
+        "MARCO_FIJO",
+        "HOJA_PIVOTE"
+      ],
+      "geometryRole": "visual-only",
+      "mounting": "single",
+      "pack": "arquitectura_03"
+    },
+    {
+      "id": "puerta_electronica_opaca",
+      "name": "Puerta electrónica opaca",
+      "type": "door",
+      "variant": "metal",
+      "architectureSkin": "puerta_electronica_opaca",
+      "widthTiles": 1,
+      "widthFt": 5,
+      "leafHeightFt": 7,
+      "frameHeightFt": 7.38,
+      "visibility": "opaque",
+      "glb": "modelos_glb/puerta_electronica_opaca.glb",
+      "thumbnail": "miniaturas/puerta_electronica_opaca.png",
+      "triangleCount": 144,
+      "nodes": [
+        "MARCO_FIJO",
+        "HOJA_PIVOTE"
+      ],
+      "geometryRole": "visual-only",
+      "mounting": "single",
+      "pack": "arquitectura_03"
+    },
+    {
+      "id": "teclado_pin",
+      "name": "Teclado de acceso numérico",
+      "type": "accessory",
+      "placement": "door_frame",
+      "widthFt": 0.5,
+      "depthFt": 0.25,
+      "heightFt": 1,
+      "mountHeightFt": 3.9,
+      "glb": "modelos_glb/teclado_pin.glb",
+      "thumbnail": "miniaturas/teclado_pin.png",
+      "triangleCount": 24,
+      "nodes": [
+        "PANEL_ACCESO"
+      ],
+      "geometryRole": "visual-only",
+      "pack": "arquitectura_03"
+    },
+    {
+      "id": "lector_tarjeta",
+      "name": "Lector de tarjeta de acceso",
+      "type": "accessory",
+      "placement": "door_frame",
+      "widthFt": 0.5,
+      "depthFt": 0.25,
+      "heightFt": 1,
+      "mountHeightFt": 3.9,
+      "glb": "modelos_glb/lector_tarjeta.glb",
+      "thumbnail": "miniaturas/lector_tarjeta.png",
+      "triangleCount": 24,
+      "nodes": [
+        "PANEL_ACCESO"
+      ],
+      "geometryRole": "visual-only",
+      "pack": "arquitectura_03"
     }
   ],
   "description": "Arquitectura 01+02: seis puertas sencillas y dos ventanas; para puertas dobles el motor instancia dos puertas individuales, la segunda a 180°. Hotfix de herrajes simétricos frente/dorso."
