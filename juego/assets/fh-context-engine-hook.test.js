@@ -32,6 +32,14 @@ function generateEngine(){
 test('el HTML generado integra radial y decoración sin afectar el editor 2D',()=>{
  const output=generateEngine();
  assert.match(output,/function fhContextRefresh\(\)/);
+ assert.match(output,/function fhContextData\(\)/);
+ assert.match(output,/function fhContextTap\(event\)/);
+ assert.match(output,/ray\.intersectObjects\(stories\[currentFloor\]\.children,true\)/);
+ assert.match(output,/fhRadialPresses=new Map\(\)/);
+ assert.match(output,/fhContextTap\(event\)/);
+ assert.match(output,/consumeOutsidePress\(event\.pointerId\)/);
+ assert.doesNotMatch(output,/radial\.update\(actions\.length\?/);
+ assert.match(output,/if\(!window\.FHInteractionRadial\?\.activatePrimary\(\)\)toggleDoor\(\)/);
  assert.match(output,/fhContextRefresh\(\)/);
  assert.match(output,/fh-interaction-radial\.js/);
  assert.match(output,/fh-interaction-strings\.js/);
