@@ -58,11 +58,14 @@
     center.blur?.();
   }
 
-  // Apertura deliberada: un nuevo clic permite reabrir el mismo objetivo.
-  function open(context) {
+  // Sólo una pulsación sostenida validada puede revelar el radial.
+  // Los llamadores legacy de open(context) ya no lo abren.
+  function open(context, source) {
+    if (source !== 'hold') return false;
     dismissedKey = '';
     dismissedActions = [];
-    update(context);
+    render(context);
+    return !!root && !root.hidden;
   }
 
   // Sin abrir el menú, mantiene vigente únicamente el objetivo alcanzable.
@@ -92,7 +95,13 @@
     return 'polygon(' + points.join(',') + ')';
   }
 
+  // Refrescar o sincronizar nunca revela un radial oculto.
   function update(context) {
+    if (!root || root.hidden) { syncContext(context); return; }
+    render(context);
+  }
+
+  function render(context) {
     ensure();
     if (!root || !context || !Array.isArray(context.actions) || !context.actions.length) {
       dismissedKey = '';
