@@ -117,8 +117,14 @@ function fhContextRefresh(){
       point=fhContextPoint(target.x,target.z);
      }
      actions.push({id:'primary',label:$('use').textContent||t.interact||'Interactuar',run:toggleDoor});
-     if(selected.kind==='door'&&target.kind==='peephole_door'&&!target.open&&isInsideDoor(target))
-      actions.push({id:'peephole',label:t.peephole||'Mirar por la mirilla',run:peephole});
+     if(selected.kind==='door'){
+      const canLook=target.kind==='peephole_door'&&!target.open&&isInsideDoor(target);
+      // Cuatro sectores constantes; las mecánicas pendientes permanecen deshabilitadas.
+      actions.push({id:'peephole',label:t.peepholeShort||'Mirilla',disabled:!canLook,
+       ...(canLook?{run:peephole}:{})});
+      actions.push({id:'knock',label:t.knock||'Llamar',disabled:true});
+      actions.push({id:'examine',label:t.examine||'Examinar',disabled:true});
+     }
     }
    }
   }
@@ -134,9 +140,9 @@ function fhContextRefresh(){
   doc=one(doc,"$('pixelBtn').addEventListener('click',()=>{pixelSize=pixelSize===2?3:pixelSize===3?1:2;resize()});",
           "// Pixel 2x fijo en la interfaz del jugador.",'pixel');
   const base=new URL('./juego/assets/',global.document.baseURI).href;
-  const css='<link rel="stylesheet" href="'+base+'fh-interaction-radial.css?v=20261107-hand">';
-  const strings='<script src="'+base+'fh-interaction-strings.js?v=20261107-hand"></'+'script>';
-  const renderer='<script src="'+base+'fh-interaction-radial.js?v=20261107-hand"></'+'script>';
+  const css='<link rel="stylesheet" href="'+base+'fh-interaction-radial.css?v=20261107-door-four">';
+  const strings='<script src="'+base+'fh-interaction-strings.js?v=20261107-door-four"></'+'script>';
+  const renderer='<script src="'+base+'fh-interaction-radial.js?v=20261107-door-four"></'+'script>';
   const hide='<style>#actions,#fhDecorateBtn,#fhDecorStoredBtn{display:none!important}</style>';
   if(!doc.includes('</head>'))throw Error('Falta el cierre de cabecera del motor 3D');
   return doc.replace('</head>',css+strings+renderer+hide+'</head>');

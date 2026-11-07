@@ -110,3 +110,26 @@ test('navegación con teclado solo mientras el radial tiene foco',()=>{
  assert.equal(api.keydown(event('Escape')),true);
  assert.equal(api.visible,false);
 });
+
+
+test('la puerta mantiene cuatro sectores aunque haya acciones pendientes',()=>{
+ const {doc,api}=mount();
+ let opened=0;
+ api.update({key:'door:204',title:'Puerta 204',actions:[
+  {id:'primary',label:'Abrir',run:()=>opened++},
+  {id:'peephole',label:'Mirilla',disabled:true},
+  {id:'knock',label:'Llamar',disabled:true},
+  {id:'examine',label:'Examinar',disabled:true}
+ ]});
+ const wheel=doc.getElementById('fhRadialWheel');
+ const buttons=wheel.children.filter(child=>child.dataset.index!==undefined);
+ assert.equal(buttons.length,4);
+ assert.deepEqual(buttons.map(button=>button.children[0].textContent),['Abrir','Mirilla','Llamar','Examinar']);
+ assert.deepEqual(buttons.map(button=>button.disabled),[false,true,true,true]);
+ buttons[1].click();
+ buttons[2].click();
+ buttons[3].click();
+ assert.equal(opened,0);
+ assert.equal(api.activatePrimary(),true);
+ assert.equal(opened,1);
+});
