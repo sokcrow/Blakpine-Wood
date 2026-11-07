@@ -3420,19 +3420,65 @@ window.FHDeliveryRuntime=window.FHDelivery?.createRuntime({
 });`;
   const furnitureBefore="function useFurniture(item,selectedSeat=null){\n if(['sit','lie'].includes(item.interact?.verb)){";
   const npcAddon=String.raw`// GOAP: la entidad usa la misma fuente de colisión que el personaje jugable.
-function fhNpcCanWalk(f,x,z){
+// Los permisos de propiedad no cambian durante la partida; los bloqueos sí.
+const fhNpcDoorRightsCache=new WeakMap();
+function fhNpcDoorRights(d){
+ let cached=fhNpcDoorRightsCache.get(d);
+ if(!cached){
+  const floor=DATA.floors[d.f],meta=floor?.items?.find(item=>item.id===d.id)||{};
+  const propQuery=window.FHStyleProperty?.propertyAt;
+  const hasParcels=(DATA.properties||[]).some(p=>p.floorId===floor?.id);
+  let propertyAccess=hasParcels&&!propQuery;
+  if(meta.a&&meta.b&&typeof propQuery==='function'){
+   const dx=meta.b.x-meta.a.x,dy=meta.b.y-meta.a.y,len=Math.hypot(dx,dy)||1;
+   const nx=-dy/len*.35,ny=dx/len*.35,mx=(meta.a.x+meta.b.x)/2,my=(meta.a.y+meta.b.y)/2;
+   propertyAccess=!!propQuery(DATA,floor.id,{x:mx+nx,y:my+ny})||
+    !!propQuery(DATA,floor.id,{x:mx-nx,y:my-ny})||
+    !!window.FHStyleProperty?.entrancePropertyAt?.(DATA,floor.id,meta);
+  }
+  cached={meta,propertyAccess};fhNpcDoorRightsCache.set(d,cached);
+ }
+ return {...cached,blockedFlag:!!(d.stairBlockFlag&&GameState.flags[d.stairBlockFlag])};
+}
+function fhNpcCanWalk(f,x,z,planning=false){
  if(!DATA.floors[f])return false;
  const liftDoors=(elevatorPortals[f]||[]).map(portal=>{
   const c=portal.shaftId?elevatorSystem.get(portal.shaftId)?.cabin:null;
   return {open:c?.floor===f&&c?.phase==='open',block:portal.block};
  });
+ const doors=planning?(doorList[f]||[]).map(d=>
+  window.FHNPCGOAP?.canOpenDoor(d,fhNpcDoorRights(d))?{...d,open:true,passable:true}:d
+ ):(doorList[f]||[]);
  return !ForestShared.solidAt(x,z,{
   width:MAX_X,height:MAX_Z,radius:PLAYER_RADIUS,
   walls:blockers[f],wallThickness:WALL_THICK,
-  doors:doorList[f].concat(liftDoors),doorPad:.038,
+  doors:doors.concat(liftDoors),doorPad:.038,
   objects:furnitureColliders[f],objectMode:'box',
   surfaceAllowed:f>0&&SLABS[f].enabled?(xx,zz)=>onStructuralSlab(xx,zz,f):null
  });
+}
+function fhNpcOpenDoor(action){
+ const f=action.floor,from=action.from;
+ if(!from||from.floor!==f||!DATA.floors[f])return false;
+ // El personaje ha llegado realmente al umbral; no puede abrir desde lejos.
+ const door=(doorList[f]||[]).filter(d=>{
+  const gap=ForestShared.distanceToSegment(action.x,action.z,d.block);
+  const near=ForestShared.distanceToSegment(from.x,from.z,d.block);
+  return gap<=PLAYER_RADIUS+.13&&near<=1.25&&
+   window.FHNPCGOAP?.planDoor(d,fhNpcDoorRights(d))?.includes('abrir_puerta');
+ }).sort((a,b)=>
+  ForestShared.distanceToSegment(action.x,action.z,a.block)-
+  ForestShared.distanceToSegment(action.x,action.z,b.block)
+ )[0];
+ if(!door)return false;
+ // La apertura usa el mismo objeto y estado persistente que el jugador.
+ door.open=true;door.target=doorTarget(door);
+ // Las puertas solo se animan en el piso activo: fuera de él hay que
+ // sincronizar la pose para que la entidad no espere indefinidamente.
+ if(f!==currentFloor){door.angle=door.target;applyDoorPose(door);}
+ else door.passable=true; // Apertura ordinaria; la hoja se anima durante los frames siguientes.
+ visibilityDirty=true;roomLightsDirty=true;rememberDoor(door);
+ return true;
 }
 function fhNpcPortals(){
  return DATA.floors.flatMap((floor,f)=>(floor.items||[])
@@ -3456,6 +3502,7 @@ function fhStartNpcRoute(order,door){
  if(!fhNpcCourier){
   fhNpcCourier=window.FHNPCCourier.createRuntime({
    step:CELL/2,speed:1.65,canWalk:fhNpcCanWalk,
+   canPlanWalk:(f,x,z)=>fhNpcCanWalk(f,x,z,true),openDoor:fhNpcOpenDoor,
    portals:fhNpcPortals,transitions:fhNpcStairTransitions,
    spawn:point=>{
     fhDeliveryNpcMotion=null;fhDisposeDeliveryNpc();

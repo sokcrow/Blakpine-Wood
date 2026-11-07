@@ -59,3 +59,40 @@ test('Dos pisos requieren una conexión explícita',()=>{
  assert.equal(w.runtime.delivered('pedido5'),true);
  w.advance(120);assert.equal(w.runtime.active,false);assert.ok(w.seen.some(p=>p.floor===0&&p.x===1));
 });
+
+test('El repartidor abre dos puertas comunes del corredor en secuencia sin atravesarlas cerradas',()=>{
+ const doors=new Map([[2,false],[4,false]]),opened=[],positions=[];
+ const permitted=(f,x,z)=>f===0&&x>=0&&x<=6&&z>=0&&z<=1;
+ const canWalk=(f,x,z)=>permitted(f,x,z)&&![...doors].some(([at,isOpen])=>!isOpen&&Math.abs(x-at)<.26);
+ const courier=Courier.createRuntime({
+  speed:3,step:.5,
+  portals:()=>[{floor:0,x:.5,z:.5}],transitions:()=>[],
+  canWalk,canPlanWalk:permitted,
+  openDoor:({floor,x,from})=>{
+   const entry=[...doors].find(([at,open])=>!open&&Math.abs(x-at)<.26&&Math.abs(from.x-at)<1.25);
+   if(!entry||floor!==0)return false;
+   doors.set(entry[0],true);opened.push(entry[0]);return true;
+  },
+  position:p=>{positions.push({...p});assert.equal(canWalk(p.floor,p.x,p.z),true,'no puede entrar a una puerta cerrada');},
+  arrived:()=>{},exited:()=>{}
+ });
+ assert.equal(courier.start('pedido-puertas',{floor:0,x:5.5,z:.5}),true);
+ for(let i=0;i<250&&courier.stage!=='waiting';i++)courier.tick(.1);
+ assert.equal(courier.stage,'waiting');
+ assert.deepEqual(opened,[2,4]);
+ assert.ok(positions.some(p=>p.x>4));
+ assert.equal(courier.delivered('pedido-puertas'),true);
+ for(let i=0;i<250&&courier.active;i++)courier.tick(.1);
+ assert.equal(courier.active,false);
+ assert.deepEqual(opened,[2,4],'en el regreso usa las puertas abiertas');
+});
+test('Una puerta no autorizada sigue siendo obstáculo para la ruta del repartidor',()=>{
+ const restricted=(f,x,z)=>f===0&&x>=0&&x<=6&&z===0&&Math.abs(x-2)>.26;
+ let attempted=0;
+ const courier=Courier.createRuntime({
+  step:.5,portals:()=>[{floor:0,x:.5,z:0}],transitions:()=>[],canWalk:restricted,
+  canPlanWalk:restricted,openDoor:()=>{attempted++;return true;}
+ });
+ assert.equal(courier.start('pedido-cerrado',{floor:0,x:5,z:0}),false);
+ assert.equal(attempted,0);
+});
