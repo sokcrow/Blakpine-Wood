@@ -2893,11 +2893,24 @@ function prepareGLBEngineDoc(source){
 
  function addDeliveryToEngine(doc){
   const stateAnchor="stats:initial.stats&&typeof initial.stats==='object'?{...initial.stats}:null};";
-  const stateAfter="stats:initial.stats&&typeof initial.stats==='object'?{...initial.stats}:null,clock:initial.clock&&typeof initial.clock==='object'?{...initial.clock}:null,delivery:initial.delivery&&typeof initial.delivery==='object'?JSON.parse(JSON.stringify(initial.delivery)):null};";
+  const stateAfter="stats:initial.stats&&typeof initial.stats==='object'?{...initial.stats}:null,clock:initial.clock&&typeof initial.clock==='object'?{...initial.clock}:null,delivery:initial.delivery&&typeof initial.delivery==='object'?JSON.parse(JSON.stringify(initial.delivery)):null,decoration:initial.decoration&&typeof initial.decoration==='object'?JSON.parse(JSON.stringify(initial.decoration)):null};";
   const interactBefore="const interactableItems=DATA.floors.map(f=>(f.items||[]).filter(it=>it.interact||it.type==='light_switch'||it.type==='breaker_panel'||ForestShared.PROP_ACTIONS[it.type])\n .map(it=>it.interact?it:{...it,interact:ForestShared.PROP_ACTIONS[it.type]?\n  {...ForestShared.interactionPreset(it.type==='bed'?'bed_lie':it.type==='tv'?'tv_watch':it.type),id:'pose_'+it.id}:\n  {id:'power_'+it.id,verb:'use',label:it.type==='breaker_panel'?LIGHTING_TEXT.breakerAction:LIGHTING_TEXT.switchAction,effects:[]}}));";
   const interactAfter="const interactableItems=DATA.floors.map(f=>(f.items||[]).filter(it=>it.interact||it.type==='light_switch'||it.type==='breaker_panel'||ForestShared.PROP_ACTIONS[it.type]||it.pcTerminal===true||it.modelId==='escritorio_pc'||window.FHComputer?.isPc(it,f.items,Number(DATA.units.feetPerCell)||5))\n .map(it=>(it.pcTerminal===true||it.modelId==='escritorio_pc'||window.FHComputer?.isPc(it,f.items,Number(DATA.units.feetPerCell)||5))?{...it,interact:{id:'pc_'+it.id,verb:'use',label:window.FH_COMPUTER_TEXT?.pcAction||'Usar PC',effects:[]}}:it.interact?it:{...it,interact:ForestShared.PROP_ACTIONS[it.type]?\n  {...ForestShared.interactionPreset(it.type==='bed'?'bed_lie':it.type==='tv'?'tv_watch':it.type),id:'pose_'+it.id}:\n  {id:'power_'+it.id,verb:'use',label:it.type==='breaker_panel'?LIGHTING_TEXT.breakerAction:LIGHTING_TEXT.switchAction,effects:[]}}));";
   const buildAnchor="DATA.floors.forEach((_,i)=>buildFloor(i));";
-  const runtimeBlock=`DATA.floors.forEach((_,i)=>buildFloor(i));
+  const runtimeBlock=`// Posiciones propias de la partida; el JSON del creador no cambia.
+const fhSavedDecor=GameState.decoration&&typeof GameState.decoration==='object'?GameState.decoration:{};
+if(!fhSavedDecor.poses||typeof fhSavedDecor.poses!=='object')fhSavedDecor.poses={};
+GameState.decoration=fhSavedDecor;
+for(let f=0;f<DATA.floors.length;f++){
+ const items=DATA.floors[f].items||[];
+ for(const item of items){
+  const pose=fhSavedDecor.poses[f+':'+item.id];
+  if(pose&&window.FHDecoration?.isMovable(item))window.FHDecoration.applyPose(item,pose);
+ }
+ window.FHSurfacePlacement?.syncAll(items,Number(DATA.units.feetPerCell)||5,
+  (item,feet)=>window.FHFurnitureRules?.supportSurfacesFor(item,feet));
+}
+DATA.floors.forEach((_,i)=>buildFloor(i));
 let fhDeliveryUiActive=false,fhDeliveryNpc=null,fhDeliveryNpcMotion=null,fhDeliveryNpcGreetingOrderId=null,fhDecorationActive=null,fhDecorationUi=null;
 let fhCharacterDeathNotified=false;
 function fhNotifyCharacterDeath(){
@@ -2970,7 +2983,7 @@ function fhReplacePackage(item,product,order){
  const next={id:'delivered_'+order.id,type:'misc',modelId:product.modelId,label:product.name,x:item.x,y:item.y,w:item.w,h:item.h,heightFt:product.heightFt,rotation:item.rotation||0,blocksMovement:product.blocksMovement!==false,
   runtimeDecoratable:true,runtimeDeliveryFurniture:{orderId:order.id,productId:product.id}};
  window.FHFurnitureRules?.applyCatalogModel(next,product,ForestShared,Number(DATA.units.feetPerCell)||5);
- fhRemoveRuntimeItem(item,f);fhSpawnRuntimeItem(next,f);setTimeout(()=>fhStartDecoration(next,f),0);return {item:next,floor:f};
+ fhRemoveRuntimeItem(item,f);fhSpawnRuntimeItem(next,f);setTimeout(()=>fhStartDecoration(next,f,{fresh:true}),0);return {item:next,floor:f};
 }
 function fhRestoreDeliveredFurniture(record,product,order){
  const f=Number.isInteger(record.floor)?record.floor:0;if(!DATA.floors[f])return false;
@@ -2989,74 +3002,272 @@ function fhDecorationFloorFits(item,f,ignoreId=''){
 }
 function fhDecorationCandidate(item,f,x,y,rotation){
  const items=(DATA.floors[f]?.items||[]).filter(v=>v.id!==item.id),feet=Number(DATA.units.feetPerCell)||5;
- let parentId='';
- const result=window.FHDecoration?.candidate(item,items,{x,y,rotation,feetPerCell:feet,surfaceApi:window.FHSurfacePlacement,
+ return window.FHDecoration?.preview(item,items,{x,y,rotation,feetPerCell:feet,surfaceApi:window.FHSurfacePlacement,
   surfaceProvider:(parent,cellFt)=>window.FHFurnitureRules?.supportSurfacesFor(parent,cellFt),
   wallMount:next=>ForestShared.switchWallMount(items,{x:next.x,y:next.y},{maxDistance:.85,rotation:next.rotation}),
-  floorFits:next=>fhDecorationFloorFits(next,f,parentId)});
- if(result?.supported)parentId=result.parentId||'';
- return result||{ok:false,reason:'blocked'};
+  floorFits:next=>fhDecorationFloorFits(next,f)})||{ok:false,reason:'blocked',pose:{x,y,rotation}};
 }
 function fhRebuildDecoratedItem(item,f,next){
- fhRemoveRuntimeItem(item,f);window.FHDecoration?.applyPose(item,window.FHDecoration.snapshot(next));fhSpawnRuntimeItem(item,f);return item;
+ // Reconstruir solo al confirmar, no durante cada evento táctil.
+ const oldInteract=interactableItems[f].find(v=>v.id===item.id)?.interact;
+ if(!item.interact&&oldInteract)item.interact={...oldInteract};
+ fhRemoveRuntimeItem(item,f);
+ window.FHDecoration?.applyPose(item,window.FHDecoration.snapshot(next));
+ fhSpawnRuntimeItem(item,f);
+ return item;
 }
 function fhDecorationMessage(reason){
- const t=window.FH_DELIVERY_TEXT||{};return reason==='surface-required'?(t.decorateNeedsSurface||'Necesita una superficie.'):
+ const t=window.FH_DELIVERY_TEXT||{};
+ return reason==='surface-required'?(t.decorateNeedsSurface||'Necesita una superficie.'):
   reason==='wall-required'?(t.decorateNeedsWall||'Necesita una pared cercana.'):(t.decorateBlocked||'No cabe ahí.');
+}
+function fhDecorationSave(item,f){
+ if(item.runtimeDeliveryFurniture){
+  window.FHDeliveryRuntime?.setFurnitureStored(item,f,false);
+ }else{
+  GameState.decoration.poses[f+':'+item.id]=window.FHDecoration.snapshot(item);
+  saveProgress();
+ }
+}
+function fhDecorationSyncChildren(item,f){
+ const items=DATA.floors[f]?.items||[],children=[],seen=new Set([item.id]);
+ // Seguir la cadena completa de soportes y mantener las relaciones existentes.
+ let added=true;
+ while(added){
+  added=false;
+  for(const child of items)if(!seen.has(child.id)&&seen.has(child.support?.parentItemId)){
+   seen.add(child.id);children.push(child);added=true;
+  }
+ }
+ if(!children.length)return;
+ window.FHSurfacePlacement?.syncChildren(items,item.id,Number(DATA.units.feetPerCell)||5,
+  (parent,feet)=>window.FHFurnitureRules?.supportSurfacesFor(parent,feet));
+ for(const child of children){
+  fhRebuildDecoratedItem(child,f,child);
+  fhDecorationSave(child,f);
+ }
+}
+function fhDecorationPreviewHeight(item,f,pose){
+ const items=(DATA.floors[f]?.items||[]).filter(v=>v.id!==item.id);
+ const candidate={...item,x:pose.x,y:pose.y,rotation:pose.rotation};
+ window.FHDecoration.applyPose(candidate,pose);
+ return (window.FHSurfacePlacement?.worldPose(items,candidate,Number(DATA.units.feetPerCell)||5,
+  (parent,feet)=>window.FHFurnitureRules?.supportSurfacesFor(parent,feet))?.heightFt||0)*.3048;
+}
+function fhRefreshDecorationPreview(x,y,rotation){
+ const a=fhDecorationActive;if(!a)return;
+ const result=fhDecorationCandidate(a.item,a.floor,x,y,rotation);
+ a.preview=result.pose;a.valid=result.ok;a.reason=result.reason;
+ const height=fhDecorationPreviewHeight(a.item,a.floor,result.pose);
+ for(const entry of a.roots){
+  const root=entry.root;
+  root.position.set(entry.position.x+(result.pose.x-a.original.x)*CELL,
+   entry.position.y+height-a.originalHeight,
+   entry.position.z+(result.pose.y-a.original.y)*CELL);
+  root.rotation.y=entry.rotation-(result.pose.rotation-a.original.rotation)*Math.PI/180;
+ }
+ a.ghost.position.set(result.pose.x*CELL,.064+height,result.pose.y*CELL);
+ a.ghost.rotation.y=-result.pose.rotation*Math.PI/180;
+ a.ghost.material.color.setHex(result.ok?0x6dcc92:0xe17170);
+ const text=window.FH_DELIVERY_TEXT||{};
+ a.ui.valid.textContent=result.ok?(text.decorateValid||'Ubicación válida'):
+  (text.decorateInvalid||'Ubicación no válida')+' · '+fhDecorationMessage(result.reason);
+ a.ui.valid.dataset.valid=result.ok?'yes':'no';
+ a.ui.place.disabled=!result.ok;
+ visibilityDirty=true;
+}
+function fhDecorationPoint(event){
+ const rect=$('view').getBoundingClientRect();
+ if(!rect.width||!rect.height)return null;
+ const ray=new THREE.Raycaster();
+ ray.setFromCamera(new THREE.Vector2((event.clientX-rect.left)/rect.width*2-1,-(event.clientY-rect.top)/rect.height*2+1),cam);
+ const point=new THREE.Vector3(),plane=new THREE.Plane(new THREE.Vector3(0,1,0),-floorElev[fhDecorationActive.floor]);
+ return ray.ray.intersectPlane(plane,point)?{x:point.x/CELL,y:point.z/CELL}:null;
+}
+function fhDecorationPointer(event){
+ const a=fhDecorationActive;if(!a)return;
+ if(event.type==='pointerdown'){
+  if(event.button!==undefined&&event.button!==0)return;
+  const pos=fhDecorationPoint(event);if(!pos)return;
+  a.pointerId=event.pointerId;a.pointerStart=pos;a.pointerPose={...a.preview};
+  try{event.currentTarget.setPointerCapture(event.pointerId)}catch{}
+ }else{
+  if(a.pointerId!==event.pointerId)return;
+  if(event.type==='pointermove'){
+   const pos=fhDecorationPoint(event);
+   if(pos&&a.pointerStart){
+    const x=a.pointerPose.x+pos.x-a.pointerStart.x,y=a.pointerPose.y+pos.y-a.pointerStart.y;
+    fhRefreshDecorationPreview(Math.max(-.5,Math.min(GRID_X+.5,x)),Math.max(-.5,Math.min(GRID_Z+.5,y)),a.preview.rotation);
+   }
+  }else{a.pointerId=null;a.pointerStart=null;}
+ }
+ event.preventDefault();event.stopImmediatePropagation();
+}
+function fhDecorStoredList(){
+ const ui=fhEnsureDecorationUi(),text=window.FH_DELIVERY_TEXT||{},stored=window.FHDeliveryRuntime?.storedFurniture()||[];
+ ui.storedList.replaceChildren();
+ if(!stored.length){
+  const empty=document.createElement('div');empty.textContent=text.decorateStoredEmpty||'No hay muebles guardados.';
+  ui.storedList.append(empty);return;
+ }
+ for(const record of stored){
+  const row=document.createElement('div');row.className='fh-decor-stored-row';
+  const name=document.createElement('span');name.textContent=record.name;
+  const action=document.createElement('button');action.type='button';action.textContent=text.decorateRetrieve||'Colocar';
+  action.onclick=()=>fhRetrieveStoredFurniture(record.id);row.append(name,action);ui.storedList.append(row);
+ }
+}
+function fhRetrieveStoredFurniture(id){
+ if(fhDecorationActive)return false;
+ const pos={floor:currentFloor,x:user.x/CELL,y:user.z/CELL,rotation:0};
+ const item=window.FHDeliveryRuntime?.retrieveStoredFurniture(id,pos);
+ if(!item){notice(window.FH_DELIVERY_TEXT?.productMissing||'No se pudo recuperar el mueble.');return false}
+ fhStoredUiActive=false;fhEnsureDecorationUi().storedPanel.hidden=true;
+ if(!fhStartDecoration(item,currentFloor,{retrieval:true})){
+  fhRemoveRuntimeItem(item,currentFloor);return false;
+ }
+ return true;
 }
 function fhEnsureDecorationUi(){
  if(fhDecorationUi)return fhDecorationUi;
- const style=document.createElement('style');style.textContent=
-  '#fhDecorateBtn{position:fixed;z-index:28;right:max(10px,env(safe-area-inset-right));top:max(72px,env(safe-area-inset-top));border:2px solid #b69462;background:#171d1cf2;color:#f3e2bd;padding:9px 12px;font:800 11px monospace;box-shadow:3px 4px #0008}'+
-  '#fhDecorateBtn[hidden],#fhDecorControls[hidden]{display:none!important}#fhDecorControls{position:fixed;z-index:29;right:max(10px,env(safe-area-inset-right));top:max(72px,env(safe-area-inset-top));width:min(260px,72vw);background:#111820f4;border:2px solid #b69462;padding:9px;box-shadow:4px 6px #0009;font:800 11px monospace;color:#f3e2bd}'+
-  '#fhDecorTitle{margin-bottom:7px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#fhDecorPad{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}#fhDecorPad button,#fhDecorActions button{min-height:38px;border:1px solid #75644f;background:#29323a;color:#f7e6c5;font:800 13px monospace}'+
-  '#fhDecorPad .empty{visibility:hidden}#fhDecorActions{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:7px}#fhDecorPlace{background:#786039!important}';
+ const t=window.FH_DELIVERY_TEXT||{},style=document.createElement('style');
+ style.textContent=
+  '#fhDecorateBtn,#fhDecorStoredBtn{position:fixed;z-index:28;right:max(10px,env(safe-area-inset-right));top:max(72px,env(safe-area-inset-top));border:2px solid #b69462;background:#171d1cf2;color:#f3e2bd;padding:10px 12px;font:800 12px monospace;min-height:44px}'+
+  '#fhDecorStoredBtn{top:max(124px,calc(env(safe-area-inset-top) + 52px))}'+
+  '#fhDecorateBtn[hidden],#fhDecorStoredBtn[hidden],#fhDecorControls[hidden],#fhDecorStoredPanel[hidden]{display:none!important}'+
+  '#fhDecorControls,#fhDecorStoredPanel{position:fixed;z-index:29;right:max(10px,env(safe-area-inset-right));bottom:max(76px,calc(env(safe-area-inset-bottom) + 72px));width:min(292px,calc(100vw - 20px));box-sizing:border-box;max-height:min(70vh,540px);overflow:auto;background:#111820f4;border:2px solid #b69462;padding:10px;box-shadow:4px 6px #0009;font:800 12px monospace;color:#f3e2bd}'+
+  '#fhDecorTitle{margin-bottom:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'+
+  '#fhDecorHelp{font-size:11px;color:#cbbda6;margin:0 0 10px}'+
+  '#fhDecorValidity{margin:0 0 9px;font-size:11px;color:#88e3a8}#fhDecorValidity[data-valid=no]{color:#ff9c91}'+
+  '#fhDecorRotateGroup,#fhDecorActions{display:flex;gap:7px;margin-top:8px}'+
+  '#fhDecorRotateGroup button,#fhDecorActions button,#fhDecorStoredPanel button{flex:1;min-height:44px;border:1px solid #75644f;background:#29323a;color:#f7e6c5;font:800 12px monospace;touch-action:manipulation}'+
+  '#fhDecorActions button:disabled{opacity:.42}#fhDecorPlace{background:#786039!important}'+
+  '#fhDecorStoredList{display:grid;gap:7px;max-height:42vh;overflow:auto}'+
+  '.fh-decor-stored-row{display:flex;gap:8px;align-items:center;justify-content:space-between;padding:5px;border-bottom:1px solid #3d4c50}.fh-decor-stored-row span{min-width:0;flex:2}.fh-decor-stored-row button{max-width:100px}';
  document.head.append(style);
- const button=document.createElement('button');button.id='fhDecorateBtn';button.type='button';button.textContent='[ DECORAR ]';button.hidden=true;
- const panel=document.createElement('div');panel.id='fhDecorControls';panel.hidden=true;panel.innerHTML='<div id="fhDecorTitle">DECORACIÓN</div><div id="fhDecorPad"><span class="empty"></span><button data-fh-move="0,1">▲</button><span class="empty"></span><button data-fh-move="-1,0">◀</button><button id="fhDecorRotate">⟳ 90°</button><button data-fh-move="1,0">▶</button><span class="empty"></span><button data-fh-move="0,-1">▼</button><span class="empty"></span></div><div id="fhDecorActions"><button id="fhDecorPlace">COLOCAR</button><button id="fhDecorCancel">CANCELAR</button></div>';
- document.body.append(button,panel);fhDecorationUi={button,panel};
+ const button=document.createElement('button');button.id='fhDecorateBtn';button.type='button';button.textContent=t.decorateNearby||'DECORAR';button.hidden=true;
+ const storedButton=document.createElement('button');storedButton.id='fhDecorStoredBtn';storedButton.type='button';storedButton.textContent=t.decorateStored||'MUEBLES GUARDADOS';storedButton.hidden=true;
+ const panel=document.createElement('div');panel.id='fhDecorControls';panel.hidden=true;
+ panel.innerHTML='<div id="fhDecorTitle"></div><p id="fhDecorHelp"></p><p id="fhDecorValidity" aria-live="polite"></p><div id="fhDecorRotateGroup"><button id="fhDecorRotateFine" type="button"></button><button id="fhDecorRotate" type="button"></button></div><div id="fhDecorActions"><button id="fhDecorPlace" type="button"></button><button id="fhDecorCancel" type="button"></button><button id="fhDecorStore" type="button"></button></div>';
+ const storedPanel=document.createElement('div');storedPanel.id='fhDecorStoredPanel';storedPanel.hidden=true;
+ storedPanel.innerHTML='<div id="fhDecorStoredTitle"></div><div id="fhDecorStoredList"></div><button id="fhDecorStoredClose" type="button"></button>';
+ document.body.append(button,storedButton,panel,storedPanel);
+ const ui=fhDecorationUi={button,storedButton,panel,storedPanel,storedList:storedPanel.querySelector('#fhDecorStoredList'),
+  valid:panel.querySelector('#fhDecorValidity'),place:panel.querySelector('#fhDecorPlace'),store:panel.querySelector('#fhDecorStore')};
+ panel.querySelector('#fhDecorHelp').textContent=t.decorateDragHelp||'Arrastra el mueble con el dedo o el ratón.';
+ panel.querySelector('#fhDecorRotateFine').textContent=t.decorateFineRotate||'Girar 15°';
+ panel.querySelector('#fhDecorRotate').textContent=t.decorateRotate||'Girar 90°';
+ ui.place.textContent=t.decoratePlace||'Colocar';
+ panel.querySelector('#fhDecorCancel').textContent=t.decorateCancel||'Cancelar';
+ ui.store.textContent=t.decorateStore||'Guardar mueble';
+ storedPanel.querySelector('#fhDecorStoredTitle').textContent=t.decorateStored||'MUEBLES GUARDADOS';
+ storedPanel.querySelector('#fhDecorStoredClose').textContent=t.decorateMenuClose||'Cerrar';
  button.onclick=()=>{const target=fhDecorationNearest();if(target)fhStartDecoration(target.item,target.floor)};
- panel.querySelectorAll('[data-fh-move]').forEach(b=>b.onclick=()=>{const [x,y]=b.dataset.fhMove.split(',').map(Number);fhMoveDecoration(x,y)});
- panel.querySelector('#fhDecorRotate').onclick=()=>fhRotateDecoration();
- panel.querySelector('#fhDecorPlace').onclick=()=>fhFinishDecoration(true);
+ storedButton.onclick=()=>{fhStoredUiActive=!fhStoredUiActive;storedPanel.hidden=!fhStoredUiActive;if(fhStoredUiActive)fhDecorStoredList()};
+ storedPanel.querySelector('#fhDecorStoredClose').onclick=()=>{fhStoredUiActive=false;storedPanel.hidden=true};
+ panel.querySelector('#fhDecorRotateFine').onclick=()=>fhRotateDecoration(15);
+ panel.querySelector('#fhDecorRotate').onclick=()=>fhRotateDecoration(90);
+ ui.place.onclick=()=>fhFinishDecoration(true);
  panel.querySelector('#fhDecorCancel').onclick=()=>fhFinishDecoration(false);
- window.addEventListener('keydown',event=>{if(fhDecorationActive&&event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();fhFinishDecoration(false)}},true);
- return fhDecorationUi;
+ ui.store.onclick=()=>fhStoreDecoration();
+ const view=$('view');
+ for(const name of ['pointerdown','pointermove','pointerup','pointercancel'])view.addEventListener(name,fhDecorationPointer,true);
+ window.addEventListener('keydown',event=>{
+  if(!fhDecorationActive)return;
+  if(['Escape','Enter','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','r','R'].includes(event.key)){
+   event.preventDefault();event.stopImmediatePropagation();
+   if(event.key==='Escape')fhFinishDecoration(false);
+   else if(event.key==='Enter')fhFinishDecoration(true);
+   else if(event.key==='r'||event.key==='R')fhRotateDecoration(90);
+   else if(event.key.startsWith('Arrow'))fhMoveDecoration(event.key==='ArrowLeft'?-1:event.key==='ArrowRight'?1:0,event.key==='ArrowUp'?1:event.key==='ArrowDown'?-1:0);
+  }
+ },true);
+ return ui;
 }
 function fhDecorationNearest(){
- let best=null,dist=1.75;for(const item of DATA.floors[currentFloor]?.items||[]){if(!item.runtimeDecoratable)continue;
-  const d=Math.hypot(item.x*CELL-user.x,item.y*CELL-user.z);if(d<dist){dist=d;best={item,floor:currentFloor}}}return best;
+ let best=null,dist=1.65;
+ for(const item of DATA.floors[currentFloor]?.items||[]){
+  if(!window.FHDecoration?.isMovable(item))continue;
+  const dx=user.x/CELL-item.x,dy=user.z/CELL-item.y,r=(Number(item.rotation)||0)*Math.PI/180,c=Math.cos(r),s=Math.sin(r);
+  const lx=c*dx+s*dy,ly=-s*dx+c*dy;
+  const outsideX=Math.max(0,Math.abs(lx)-Math.max(.15,Number(item.w)||1)/2);
+  const outsideY=Math.max(0,Math.abs(ly)-Math.max(.15,Number(item.h)||1)/2);
+  const d=Math.hypot(outsideX,outsideY)*CELL;
+  if(d<dist){dist=d;best={item,floor:currentFloor}}
+ }
+ return best;
 }
-function fhStartDecoration(item,f=currentFloor){
- if(!item?.runtimeDecoratable||fhDecorationActive)return false;const ui=fhEnsureDecorationUi(),original=window.FHDecoration.snapshot(item);
- const initial=fhDecorationCandidate(item,f,item.x,item.y,item.rotation);
- fhDecorationActive={item,floor:f,original,required:!initial.ok};ui.button.hidden=true;ui.panel.hidden=false;
- ui.panel.querySelector('#fhDecorTitle').textContent='DECORACIÓN · '+(item.label||'OBJETO');user.vx=user.vz=0;clearStick();return true;
+function fhStartDecoration(item,f=currentFloor,opts={}){
+ if(!window.FHDecoration?.isMovable(item)||fhDecorationActive||fhDeliveryUiActive||peeking||playerPose.occupied)return false;
+ const ui=fhEnsureDecorationUi(),original=window.FHDecoration.snapshot(item),roots=(renderedByItem[f].get(item.id)||[])
+  .map(root=>({root,position:root.position.clone(),rotation:root.rotation.y}));
+ const ghost=new THREE.Mesh(new THREE.BoxGeometry(Math.max(.2,Number(item.w)||1)*CELL,.025,Math.max(.2,Number(item.h)||1)*CELL),
+  new THREE.MeshBasicMaterial({color:0x6dcc92,transparent:true,opacity:.25,depthWrite:false,depthTest:false}));
+ stories[f].add(ghost);
+ fhDecorationActive={item,floor:f,original,preview:original,roots,ghost,ui,valid:false,reason:'',
+  originalHeight:fhDecorationPreviewHeight(item,f,original),fresh:!!opts.fresh,retrieval:!!opts.retrieval,pointerId:null};
+ fhStoredUiActive=false;ui.storedPanel.hidden=true;ui.button.hidden=true;ui.storedButton.hidden=true;ui.panel.hidden=false;
+ ui.panel.querySelector('#fhDecorTitle').textContent=(window.FH_DELIVERY_TEXT?.decorateTitle||'DECORAR')+' · '+(item.label||item.id);
+ ui.store.hidden=!item.runtimeDeliveryFurniture;
+ user.vx=user.vz=0;clearStick();fhRefreshDecorationPreview(item.x,item.y,item.rotation);
+ return true;
 }
 function fhMoveDecoration(side,forward){
- const a=fhDecorationActive;if(!a)return;const step=.10,fx=-Math.sin(yaw),fz=-Math.cos(yaw),rx=Math.cos(yaw),rz=-Math.sin(yaw);
- const x=a.item.x+(rx*side+fx*forward)*step,y=a.item.y+(rz*side+fz*forward)*step,res=fhDecorationCandidate(a.item,a.floor,x,y,a.item.rotation);
- if(!res.ok){notice(fhDecorationMessage(res.reason),1100);return}fhRebuildDecoratedItem(a.item,a.floor,res.item);
+ const a=fhDecorationActive;if(!a)return;
+ const step=.10,fx=-Math.sin(yaw),fz=-Math.cos(yaw),rx=Math.cos(yaw),rz=-Math.sin(yaw);
+ const x=a.preview.x+(rx*side+fx*forward)*step,y=a.preview.y+(rz*side+fz*forward)*step;
+ fhRefreshDecorationPreview(x,y,a.preview.rotation);
 }
-function fhRotateDecoration(){
- const a=fhDecorationActive;if(!a)return;const res=fhDecorationCandidate(a.item,a.floor,a.item.x,a.item.y,(Number(a.item.rotation)||0)+90);
- if(!res.ok){notice(fhDecorationMessage(res.reason),1100);return}fhRebuildDecoratedItem(a.item,a.floor,res.item);
+function fhRotateDecoration(degrees=90){
+ const a=fhDecorationActive;if(a)fhRefreshDecorationPreview(a.preview.x,a.preview.y,a.preview.rotation+degrees);
+}
+function fhCloseDecoration(){
+ const a=fhDecorationActive;if(!a)return;
+ for(const entry of a.roots){entry.root.position.copy(entry.position);entry.root.rotation.y=entry.rotation}
+ a.ghost.parent?.remove(a.ghost);a.ghost.geometry.dispose();a.ghost.material.dispose();
+ fhDecorationActive=null;a.ui.panel.hidden=true;visibilityDirty=true;
+}
+function fhStoreDecoration(){
+ const a=fhDecorationActive;if(!a||!a.item.runtimeDeliveryFurniture)return false;
+ if(!window.FHDeliveryRuntime?.setFurnitureStored(a.item,a.floor,true)){
+  notice(window.FH_DELIVERY_TEXT?.decorateNotStored||'Solo puedes guardar muebles recibidos de Hamazon.');return false;
+ }
+ fhCloseDecoration();fhRemoveRuntimeItem(a.item,a.floor);
+ notice(window.FH_DELIVERY_TEXT?.decorateStoredNotice||'Mueble guardado. Puedes colocarlo después.',1600);
+ return true;
 }
 function fhFinishDecoration(commit){
  const a=fhDecorationActive;if(!a)return false;
  if(commit){
-  const valid=fhDecorationCandidate(a.item,a.floor,a.item.x,a.item.y,a.item.rotation);
-  if(!valid.ok){notice(fhDecorationMessage(valid.reason),1300);return false}
-  fhRebuildDecoratedItem(a.item,a.floor,valid.item);window.FHDeliveryRuntime?.updateRuntimeItem(a.item,a.floor);notice(window.FH_DELIVERY_TEXT?.decoratePlaced||'Objeto colocado.',1300);
+  // Una posición inválida nunca se guarda. El fantasma sí puede cruzarla.
+  const result=fhDecorationCandidate(a.item,a.floor,a.preview.x,a.preview.y,a.preview.rotation);
+  if(!result.ok){notice(fhDecorationMessage(result.reason),1300);return false}
+  fhCloseDecoration();
+  fhRebuildDecoratedItem(a.item,a.floor,result.pose);
+  fhDecorationSave(a.item,a.floor);
+  fhDecorationSyncChildren(a.item,a.floor);
+  notice(window.FH_DELIVERY_TEXT?.decoratePlaced||'Objeto colocado.',1300);
  }else{
-  if(a.required){notice(window.FH_DELIVERY_TEXT?.decorateRequired||'Debes colocar este objeto en una posición válida antes de salir.',1800);return false}
-  fhRebuildDecoratedItem(a.item,a.floor,a.original);
+  const shouldStore=a.fresh&&!!a.item.runtimeDeliveryFurniture;
+  const retrieval=a.retrieval;
+  fhCloseDecoration();
+  if(retrieval)fhRemoveRuntimeItem(a.item,a.floor);
+  else if(shouldStore){
+   if(window.FHDeliveryRuntime?.setFurnitureStored(a.item,a.floor,true))fhRemoveRuntimeItem(a.item,a.floor);
+  }
  }
- fhDecorationActive=null;const ui=fhEnsureDecorationUi();ui.panel.hidden=true;return true;
+ return true;
 }
+let fhStoredUiActive=false,fhDecorTickAt=0;
 function fhDecorationTick(){
- const ui=fhEnsureDecorationUi();if(fhDecorationActive){ui.button.hidden=true;return}
- const target=!fhDeliveryUiActive&&!peeking&&!playerPose.occupied?fhDecorationNearest():null;ui.button.hidden=!target;
+ const ui=fhEnsureDecorationUi();
+ if(fhDecorationActive){ui.button.hidden=true;ui.storedButton.hidden=true;return}
+ const now=performance.now();if(now-fhDecorTickAt<140)return;fhDecorTickAt=now;
+ const eligible=!fhDeliveryUiActive&&!peeking&&!playerPose.occupied;
+ ui.button.hidden=!eligible||fhStoredUiActive||!fhDecorationNearest();
+ const hasStored=(window.FHDeliveryRuntime?.storedFurniture()||[]).length>0;
+ ui.storedButton.hidden=!eligible||!hasStored;
+ if(!hasStored&&fhStoredUiActive){fhStoredUiActive=false;ui.storedPanel.hidden=true;}
 }
 function fhDeliveryDoor(pc,f){
  const list=(doorList[f]||[]).filter(d=>d.kind==='peephole_door');if(!list.length)return null;
