@@ -56,7 +56,7 @@ test('el círculo se cierra lentamente y se reabre al despertar',()=>{
  assert.ok(!classes.has('fh-sleep-masking'));
 });
 test('respiración cómic solo durante sueño: pausas y coordenadas de la cabeza',()=>{
- const {sleep,breaths}=controller(),head={x:4.6,y:1.8,z:7.1,floor:0};
+ const {sleep,breaths}=controller(),head={x:4.6,y:1.8,z:7.1,floor:0,screenX:180,screenY:245};
  advance(sleep,11);
  assert.equal(sleep.needsBreath(),false,'primer Zzz espera unos segundos');
  advance(sleep,2.2);
@@ -70,6 +70,8 @@ test('respiración cómic solo durante sueño: pausas y coordenadas de la cabeza
  assert.equal(breaths[0].y,head.y);
  assert.equal(breaths[0].z,head.z);
  assert.equal(breaths[0].self,true);
+ assert.equal(breaths[0].screenX,180);
+ assert.equal(breaths[0].screenY,245);
  advance(sleep,3.7);
  assert.equal(sleep.needsBreath(),false);
  advance(sleep,.1);
@@ -96,7 +98,8 @@ test('integración utiliza iris único y texto cómic con su propio fade',()=>{
  const live=fs.readFileSync(path.join(__dirname,'fh-live-text.js'),'utf8');
  assert.match(html,/bridge\+sleepCss\+sleepStrings\+sleepModule/);
  assert.match(html,/cam\.up\.set\(p\.upX,0,p\.upZ\)/);
- assert.match(html,/window\.FHSleep\.emitBreath\(\{x:head\.x,y:head\.y,z:head\.z,floor:currentFloor\}\)/);
+ assert.match(html,/window\.FHSleep\.emitBreath\(\{x:head\.x,y:head\.y,z:head\.z,floor:currentFloor,screenX:x,screenY:y\}\)/);
+ assert.match(html,/const shown=Number\.isFinite\(ndc\.x\)/);
  assert.doesNotMatch(html,/window\.FHSleep\.renderMask\(/);
  assert.match(html,/hero\.localToWorld\(new THREE\.Vector3\(0,HERO_H\*\.82,0\)\)/);
  assert.match(css,/#fhSleepVeil/);
