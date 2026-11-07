@@ -196,4 +196,19 @@ test('Terminal RAVEN/OS incluye un único menú inferior, BIOS y reglas móviles
  assert.doesNotThrow(()=>new vm.Script(script));
 });
 
+
+test('RAVEN/OS en móvil exige orientación horizontal y no reduce las ventanas al 75%',()=>{
+ const fs=require('node:fs'),path=require('node:path');
+ const html=fs.readFileSync(path.join(__dirname,'fh-terminal.html'),'utf8');
+ const strings=fs.readFileSync(path.join(__dirname,'fh-computer-strings.js'),'utf8');
+ assert.doesNotMatch(html,/transform:\\s*scale\\(\\.75\\)/);
+ assert.match(html,/@media \\(pointer:coarse\\) and \\(orientation:portrait\\) and \\(max-width:1100px\\)/);
+ assert.match(html,/#orientationNotice\\{display:flex\\}/);
+ assert.match(strings,/rotateLandscape:'Gira el dispositivo para usar RAVEN\\/OS\\.'/);
+ assert.match(html,/frame\\.style\\.height=Math\\.floor\\(availableHeight\\)\\+'px'/);
+ assert.match(html,/if\\(mobileMaximized\\)win\\.classList\\.add\\('maximized'\\)/);
+ assert.match(html,/height:calc\\(100% - var\\(--fh-desktop-topbar,31px\\)\\)!important/);
+ assert.match(html,/aspect-ratio:16 \\/ 10/);
+});
+
 console.log(passed+' pruebas correctas');
