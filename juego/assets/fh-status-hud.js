@@ -13,7 +13,7 @@
   sp:'SP',spFull:'Puntos de sanidad',
   pe:'PE',peFull:'Puntos de energía'
  });
- let host=null,panel=null,rows=null,peCells=[],resizeObserver=null;
+ let host=null,panel=null,rows=null,peCells=[];
 
  function reading(resources,key){
   if(!resources||!KEYS.includes(key))return null;
@@ -56,26 +56,10 @@
   row.append(heading,track);
   return {row,track,fill,value};
  }
- function place(){
-  if(!host||!panel||!host.isConnected||!panel.isConnected)return;
-  const box=host.getBoundingClientRect();
-  if(!box.width||!box.height)return;
-  const x=Math.max(0,Math.round(box.left));
-  const y=Math.max(0,Math.round(box.bottom+6));
-  const available=Math.max(1,(root.innerWidth||box.right)-x-10);
-  const width=Math.min(Math.round(box.width),available);
-  const position=x+'px,'+y+'px,'+width+'px';
-  if(panel.dataset.position===position)return;
-  panel.style.left=x+'px';
-  panel.style.top=y+'px';
-  panel.style.width=width+'px';
-  panel.dataset.position=position;
- }
  function ensure(){
   const doc=root.document,hud=doc?.getElementById('hud');
   if(!hud||!hud.classList?.contains('fh-location-hud'))return false;
   if(hud===host&&panel?.isConnected)return true;
-  if(resizeObserver)resizeObserver.disconnect();
   if(panel)panel.remove();
   host=hud;peCells=[];
   const strings=labels();
@@ -89,15 +73,6 @@
    panel.append(rows[key].row);
   }
   hud.insertAdjacentElement('afterend',panel);
-  if(typeof root.ResizeObserver==='function'){
-   resizeObserver=new root.ResizeObserver(place);
-   resizeObserver.observe(hud);
-  }
-  if(!ensure.resizeAttached&&typeof root.addEventListener==='function'){
-   root.addEventListener('resize',place,{passive:true});
-   ensure.resizeAttached=true;
-  }
-  place();
   return true;
  }
  function syncPE(amount){
@@ -134,7 +109,6 @@
    }
   }
   panel.hidden=!visible;
-  if(visible)place();
   return visible;
  }
  return Object.freeze({reading,segmentStates,update});

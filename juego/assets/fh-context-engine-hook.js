@@ -163,6 +163,8 @@ function fhContextRefresh(){
  const gesture=fhContextGesture;fhContextGesture=null;
  if(!actions.length){
   radial.syncContext(null);radial.hide();
+  // Hold sobre espacio libre: consultar ubicación sin crear un radial vacío.
+  if(gesture?.source==='canvas'&&gesture.kind==='hold')window.FHLocationHUD?.peek?.();
   // El botón Usar conserva su comportamiento cuando no hay objetivo.
   if(gesture?.source==='button'&&gesture.kind==='tap')toggleDoor();
   return;
@@ -193,6 +195,8 @@ function fhContextRefresh(){
   primary?.run();
   return;
  }
+ // El Hold fuera del objetivo consulta ubicación; sobre el objetivo conserva el radial.
+ if(gesture?.source==='canvas'&&gesture.kind==='hold'&&!hit)window.FHLocationHUD?.peek?.();
  if(radial.visible&&radial.target===key)radial.update(context);
  else radial.hide();
 }
