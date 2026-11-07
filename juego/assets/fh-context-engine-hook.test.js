@@ -35,6 +35,10 @@ test('el HTML generado integra radial y decoración sin afectar el editor 2D',()
  assert.match(output,/function fhContextData\(\)/);
  assert.match(output,/function fhContextTap\(event\)/);
  assert.match(output,/ray\.intersectObjects\(stories\[currentFloor\]\.children,true\)/);
+ assert.match(output,/fhRadialVisibleHit\(ray\.intersectObjects\(stories\[currentFloor\]\.children,true\),stories\[currentFloor\]\)/);
+ assert.match(output,/ui\.storedButton\.hidden=!fhDecorMode\|\|!eligible\|\|!hasStored/);
+ assert.doesNotMatch(output,/#actions,#fhDecorateBtn,#fhDecorStoredBtn\{display:none!important\}/);
+ assert.match(output,/storedButton\.onclick=\(\)=>\{window\.FHInteractionRadial\?\.hide\(\)/);
  assert.match(output,/fhRadialPresses=new Map\(\)/);
  assert.match(output,/fhContextTap\(event\)/);
  assert.match(output,/consumeOutsidePress\(event\.pointerId\)/);
@@ -67,4 +71,29 @@ test('solo muebles decorables, no puertas ni estructura',()=>{
  assert.equal(decoration.isMovable({id:'puerta1',type:'door'}),false);
  assert.equal(decoration.isMovable({id:'lector1',type:'card_reader'}),false);
  assert.equal(decoration.isMovable({id:'puerta2',type:'misc',modelId:'puerta_electronica'}),false);
+});
+
+
+test('raycast ignora un muro oculto y todas las raíces invisibles',()=>{
+ const output=generateEngine();
+ const start=output.indexOf('function fhRadialVisibleHit(intersections,root){');
+ const end=output.indexOf('// Solo el objeto 3D pulsado',start);
+ assert.ok(start>=0&&end>start);
+ const select=new Function(output.slice(start,end)+'\nreturn fhRadialVisibleHit;')();
+ const root={visible:true,parent:null};
+ const hiddenWall={visible:false,parent:root};
+ const wallFace={visible:true,parent:hiddenWall};
+ const visibleDoor={visible:true,parent:root};
+ const invisibleDoor={visible:false,parent:root};
+ const visibleWall={visible:true,parent:root};
+ assert.equal(select([{object:wallFace},{object:visibleDoor}],root).object,visibleDoor);
+ assert.equal(select([{object:invisibleDoor},{object:wallFace}],root),null);
+ assert.equal(select([{object:visibleWall},{object:visibleDoor}],root).object,visibleWall,
+  'una pared realmente visible debe seguir bloqueando el clic detrás de ella');
+});
+test('la lista de muebles guardados tiene una entrada independiente del radial',()=>{
+ const output=generateEngine();
+ assert.match(output,/ui\.storedButton\.hidden=!fhDecorMode\|\|!eligible\|\|!hasStored/);
+ assert.match(output,/storedButton\.onclick=\(\)=>\{window\.FHInteractionRadial\?\.hide\(\)/);
+ assert.doesNotMatch(output,/#fhDecorStoredBtn\{display:none!important\}/);
 });
