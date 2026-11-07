@@ -73,7 +73,9 @@ window.ForestHorrorStructureAPI=Object.freeze({
  const base=new URL('../../',scriptUrl);
  const healthScript='<script src="'+new URL('juego/assets/fh-structure-health.js?v=20261107-structure-pg',base).href+'"></scr'+'ipt>';
  const stringScript='<script src="'+new URL('juego/assets/fh-structure-strings.js?v=20261107-structure-pg',base).href+'"></scr'+'ipt>';
- doc=one(doc,'</head>',healthScript+stringScript+'</head>');
+ const headEnd=doc.indexOf('</head>');
+ if(headEnd<0)throw Error('Motor 3D sin cierre del encabezado');
+ doc=doc.slice(0,headEnd)+healthScript+stringScript+doc.slice(headEnd);
  return doc;
 }
 global.FHStructureHealthEngine=Object.freeze({patch});
