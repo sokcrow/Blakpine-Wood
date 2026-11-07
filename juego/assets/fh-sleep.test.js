@@ -7,13 +7,17 @@ const path=require('node:path');
 const vm=require('node:vm');
 
 function controller(){
- const classes=new Set();
- const window={FH_SLEEP_TEXT:{breath:'Zzz'},document:{body:{classList:{
+ const classes=new Set(),nodes=new Map();
+ const body={classList:{
   toggle(name,on){if(on)classes.add(name);else classes.delete(name);},
   remove(name){classes.delete(name);}
- }}}};
+ },appendChild(element){element.parentNode=this;nodes.set(element.id,element);}};
+ const document={body,getElementById(id){return nodes.get(id)||null;},
+  createElement(){return {id:'',style:{},setAttribute(){},parentNode:null};},
+  documentElement:{clientWidth:360,clientHeight:640}};
+ const window={FH_SLEEP_TEXT:{breath:'Zzz'},document,innerWidth:360,innerHeight:640};
  vm.runInNewContext(fs.readFileSync(path.join(__dirname,'fh-sleep.js'),'utf8'),{window});
- return {sleep:window.FHCreateSleepController(),classes};
+ return {sleep:window.FHCreateSleepController(),classes,nodes};
 }
 function ctx(){
  const ops=[];
@@ -57,6 +61,26 @@ test('cámara vertical fija y vector up horizontal para cualquier orientación d
   assert.ok(Math.abs(p.upX*Math.sin(facing)+p.upZ*Math.cos(facing)+1)<1e-10);
  }
 });
+test('el iris tiene una capa propia y siempre termina en negro opaco',()=>{
+ const {sleep,nodes}=controller();
+ for(let i=0;i<60;i++)sleep.update(.1,'lying','lie','bed');
+ const veil=nodes.get('fhSleepVeil');
+ assert.ok(veil,'El overlay debe crearse mientras el sueño progresa');
+ assert.equal(veil.style.display,'block');
+ assert.match(veil.style.background,/^radial-gradient\(circle /);
+ assert.match(veil.style.background,/#000/);
+ for(let i=0;i<60;i++)sleep.update(.1,'lying','lie','bed');
+ assert.equal(sleep.status().stage,'asleep');
+ assert.equal(veil.style.background,'#000','No debe quedar hueco en el centro');
+ sleep.requestWake(()=>({ok:true}));
+ for(let i=0;i<40;i++)sleep.update(.1,'standing',null,null);
+ assert.equal(veil.style.display,'none','El velo debe retirarse al despertar');
+});
+test('el efecto se actualiza sin llamar a circleMask ni a renderMask',()=>{
+ const {sleep,nodes}=controller();
+ for(let i=0;i<50;i++)sleep.update(.1,'lying','lie','bed');
+ assert.match(nodes.get('fhSleepVeil').style.background,/radial-gradient/);
+});
 test('Zzz aparece después de una pausa y sale de la posición del sprite',()=>{
  const {sleep}=controller();
  for(let i=0;i<140;i++)sleep.update(.1,'lying','lie','bed');
@@ -88,4 +112,6 @@ test('la integración carga la hoja de sueño y conserva acción rápida/radial'
  assert.match(css,/#actions #use/);
  assert.match(css,/#fhContextRadial/);
  assert.match(css,/body\.fh-sleep-masking #mist/);
+ assert.match(css,/#fhSleepVeil/);
+ assert.match(css,/#actions \{z-index:90/);
 });
