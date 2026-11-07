@@ -3326,12 +3326,7 @@ function fhDecorationTick(){
 function fhDoorProperty(door){
  const f=DATA.floors[door?.f];if(!f)return null;
  const original=f.items?.find(it=>it.id===door.id);
- if(!original?.a||!original?.b)return null;
- const P=window.FHStyleProperty;if(!P?.propertyAt||!P.sample)return null;
- const a=P.propertyAt(DATA,f.id,P.sample(original,'A',.5,.45));
- const b=P.propertyAt(DATA,f.id,P.sample(original,'B',.5,.45));
- // Una entrada conecta la parcela con un espacio que no pertenece a otra vivienda.
- return !!a!==!!b ? a||b : null;
+ return window.FHStyleProperty?.entrancePropertyAt(DATA,f.id,original)||null;
 }
 function fhDoorAddress(door){
  const property=fhDoorProperty(door);
