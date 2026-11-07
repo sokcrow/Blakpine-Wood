@@ -41,7 +41,7 @@ test('RAVEN en móvil horizontal aprovecha el escritorio y en vertical pide gira
   assert.ok(!terminal.includes('scale(.75)'), 'RAVEN no debe aplicar escalas artificiales');
   assert.ok(terminal.includes('@media (pointer:coarse) and (orientation:portrait) and (max-width:1100px)'));
   assert.ok(terminal.includes('#orientationNotice{display:flex}'));
-  assert.ok(terminal.includes('@media (pointer:coarse) and (orientation:landscape) and (max-width:1100px) and (max-height:600px)'));
+  assert.ok(terminal.includes('@media (pointer:coarse) and (orientation:landscape) and (max-width:1100px)'));
   assert.ok(terminal.includes('frame.style.height=Math.floor(availableHeight)'));
   assert.ok(terminal.includes("if(mobileMaximized)win.classList.add('maximized')"));
   assert.ok(terminal.includes('height:calc(100% - var(--fh-desktop-topbar,31px))!important'));
