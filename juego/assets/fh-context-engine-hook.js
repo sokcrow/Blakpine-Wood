@@ -57,10 +57,11 @@ window.FHSafeLock?.bind(fhContextCanvas,{
 window.FHSafeLock?.bind($('use'),{
  onTap:event=>fhRequestContext('tap','button',event),
  onHold:event=>fhRequestContext('hold','button',event)
-},{capture:true});
+},{capture:true,suppressClick:true});
 // Click de teclado/accesibilidad: los punteros ya se resolvieron por Safe Lock.
 function fhUseButtonClick(event){
- if(event.detail!==0&&window.FHSafeLock)return;
+ // Fallback para teclado, lectores de pantalla y navegadores sin Pointer Events.
+ // Los clicks derivados de puntero son consumidos por FHSafeLock.
  if(playerPose.occupied)return toggleDoor();
  if(!window.FHInteractionRadial?.activatePrimary())toggleDoor();
 }
@@ -184,7 +185,7 @@ function fhContextRefresh(){
   }
  }
  if(gesture&&hit){
-  if(gesture.kind==='hold'){radial.open(context);return;}
+  if(gesture.kind==='hold'){radial.open(context,'hold');return;}
   radial.hide();
   // Ninguna interacción contextual puede desplazar Levantarse.
   if(playerPose.occupied)return toggleDoor();
@@ -208,8 +209,8 @@ function fhContextRefresh(){
   const base=new URL('./juego/assets/',global.document.baseURI).href;
   const css='<link rel="stylesheet" href="'+base+'fh-interaction-radial.css?v=20261107-door-four">';
   const strings='<script src="'+base+'fh-interaction-strings.js?v=20261107-door-four"></'+'script>';
-  const safeLock='<script src="'+base+'fh-safe-lock.js?v=20261107-safe-lock-1"></'+'script>';
-  const renderer='<script src="'+base+'fh-interaction-radial.js?v=20261107-sync-context"></'+'script>';
+  const safeLock='<script src="'+base+'fh-safe-lock.js?v=20261107-safe-lock-2"></'+'script>';
+  const renderer='<script src="'+base+'fh-interaction-radial.js?v=20261107-hold-gate"></'+'script>';
   const hide='<style>#actions,#fhDecorateBtn,#fhDecorStoredBtn{display:none!important}</style>';
   if(!doc.includes('</head>'))throw Error('Falta el cierre de cabecera del motor 3D');
   return doc.replace('</head>',css+strings+safeLock+renderer+hide+'</head>');
