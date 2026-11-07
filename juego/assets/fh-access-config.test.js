@@ -112,7 +112,7 @@ test('inspector real: los cambios disparan record() y se almacenan como JSON',()
   windowItem={id:'w1',type:'window',windowSkin:'clasica'};
  const project={schema:'forest-horror-map-v1',floors:[{items:[door,windowItem]}]};
  const parent=element('div'),snapshots=[];
- const doc={head:element('head'),createElement:element,
+ const doc={head:{appendChild(){}},createElement:element,
   getElementById:id=>id==='fields'?parent:null};
  const win={FHAccessConfig:cfg,FH_ARCHITECTURE_TEXT:labels.FH_ARCHITECTURE_TEXT};
  const scope={
