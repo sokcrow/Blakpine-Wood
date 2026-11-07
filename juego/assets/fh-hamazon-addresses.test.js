@@ -20,7 +20,9 @@ function addressResolver(map,doorList,nearest){
    return source?property.entrancePropertyAt(map,floor.id,source):null;
   },
   fhDeliveryDoor:()=>nearest||null,
-  window:{FHStyleProperty:property,FH_DELIVERY_TEXT:{defaultAddress:'Entrada principal'}}
+  window:{FHStyleProperty:property,FH_DELIVERY_TEXT:{defaultAddress:'Entrada principal',
+   shopParcelAddress:(name,floor)=>'Parcela: '+name+' · '+floor,
+   shopRoomAddress:(name,room,floor)=>'Habitación: '+room+' · '+name+' · '+floor}}
  };
  return vm.runInNewContext(code+'\nfhDeliveryAddresses',context);
 }
@@ -41,7 +43,8 @@ test('El selector muestra nombres de parcelas y habitaciones de varios pisos y e
  assert.equal(entries.length,5);
  assert.equal(entries.find(a=>a.id==='property:parcel_01').doorId,'main','entrada principal tiene prioridad');
  const room=entries.find(a=>a.id==='room:f1:living');
- assert.equal(room.label,'Apartamento 5 A · Sala · Planta 1');
+ assert.equal(room.label,'Habitación: Sala · Apartamento 5 A · Planta 1');
+ assert.equal(entries.find(a=>a.id==='property:parcel_01').label,'Parcela: Apartamento 5 A · Planta 1');
  assert.equal(room.propertyName,'Apartamento 5 A');
  assert.equal(room.roomId,'sala');
  assert.equal(room.doorId,'main','la habitación usa la entrada de su parcela');
