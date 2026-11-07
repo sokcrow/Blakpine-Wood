@@ -166,6 +166,29 @@ function fhContextTap(event){
 }
 `;
   doc=one(doc,'function hudUpdate(){',code+'\nfunction hudUpdate(){','HUD');
+  // Un tap corto sobre el canvas, no un arrastre ni un pellizco de cámara.
+  const viewAnchor="const view=$('view'),cameraTouches=new Map();let pinchDistance=0,wasPinching=false;";
+  const viewClick=String.raw`
+const fhRadialPresses=new Map();
+view.addEventListener('pointerdown',event=>{
+ if(event.button!==undefined&&event.button!==0)return;
+ if(fhRadialPresses.size)for(const press of fhRadialPresses.values())press.multiple=true;
+ fhRadialPresses.set(event.pointerId,{
+  x:event.clientX,y:event.clientY,time:performance.now(),multiple:fhRadialPresses.size>0
+ });
+});
+view.addEventListener('pointerup',event=>{
+ const press=fhRadialPresses.get(event.pointerId);
+ fhRadialPresses.delete(event.pointerId);
+ // Este mismo tap cerró un menú: no abrir otro hasta un nuevo toque.
+ if(window.FHInteractionRadial?.consumeOutsidePress(event.pointerId))return;
+ if(!press||press.multiple||fhRadialPresses.size)return;
+ if(performance.now()-press.time>550||Math.hypot(event.clientX-press.x,event.clientY-press.y)>12)return;
+ fhContextTap(event);
+});
+view.addEventListener('pointercancel',event=>fhRadialPresses.delete(event.pointerId));
+`;
+  doc=one(doc,viewAnchor,viewAnchor+viewClick,'tap sobre objetivo 3D');
   const refresh="window.FHLocationHUD?.update(DATA,currentFloor,{x:user.x/CELL,y:user.z/CELL})";
   doc=one(doc,refresh,refresh+';fhContextRefresh()','refresco');
   doc=one(doc,"if((k==='e'||k===' ')&&!e.repeat)toggleDoor();",
@@ -173,9 +196,9 @@ function fhContextTap(event){
   doc=one(doc,"$('pixelBtn').addEventListener('click',()=>{pixelSize=pixelSize===2?3:pixelSize===3?1:2;resize()});",
           "// Pixel 2x fijo en la interfaz del jugador.",'pixel');
   const base=new URL('./juego/assets/',global.document.baseURI).href;
-  const css='<link rel="stylesheet" href="'+base+'fh-interaction-radial.css?v=20261107-compact-radial">';
-  const strings='<script src="'+base+'fh-interaction-strings.js?v=20261107-compact-radial"></'+'script>';
-  const renderer='<script src="'+base+'fh-interaction-radial.js?v=20261107-compact-radial"></'+'script>';
+  const css='<link rel="stylesheet" href="'+base+'fh-interaction-radial.css?v=20261107-click-only">';
+  const strings='<script src="'+base+'fh-interaction-strings.js?v=20261107-click-only"></'+'script>';
+  const renderer='<script src="'+base+'fh-interaction-radial.js?v=20261107-click-only"></'+'script>';
   const hide='<style>#actions,#fhDecorateBtn,#fhDecorStoredBtn{display:none!important}</style>';
   if(!doc.includes('</head>'))throw Error('Falta el cierre de cabecera del motor 3D');
   return doc.replace('</head>',css+strings+renderer+hide+'</head>');
