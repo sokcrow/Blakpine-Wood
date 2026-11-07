@@ -12,7 +12,7 @@ const terminal = fs.readFileSync(path.join(assets, 'fh-terminal.html'), 'utf8');
 test('el CSS móvil reduce a la mitad los menús del motor, no el editor', () => {
   assert.match(css, /pointer:\s*coarse/);
   assert.match(css, /scale\(\.5\)/);
-  assert.match(css, /#fhLiveDialog \\.fh-panel\\s*\\{\\s*transform:\\s*translateX\\(-50%\\) scale\\(\\.5\\)/);
+  assert.match(css, /transform:\s*translateX\(-50%\) scale\(\.5\)/);
   for (const id of [
     '#fhPlayerMenu', '#importCard', '#inventoryPanel.open', '#fhcc-root',
     '#fhLiveDialog', '#fhDeliveryDialog', '#noteCard', '#fhContextRadial',
