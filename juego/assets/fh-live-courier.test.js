@@ -191,5 +191,5 @@ test('Hamazon valida cantidad y dirección sin modificar pedidos anteriores',asy
  assert.ok(second);
  assert.equal(second.quantity,2);
  assert.equal(second.propertyId,'parcel_test');
- assert.equal(second.payment.amount,null);
+ assert.equal(second.payment.amount,40);
 });
