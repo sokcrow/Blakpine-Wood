@@ -77,6 +77,8 @@
       '#fhDeliveryText .fh-next{opacity:0;text-align:center;height:19px;font-size:21px;line-height:19px;color:#e6dfc7;}#fhDeliveryText .fh-next.ready{opacity:1;animation:fh-chevron .85s ease-in-out infinite alternate;}',
       '#fhDeliveryText .fh-char.miedo,#fhDeliveryText .fh-char.grito{display:inline-block;}#fhDeliveryText .fh-char.impacto{font-weight:900;font-size:1.12em;}#fhDeliveryText .fh-char.miedo.shown{animation:fh-shiver .15s linear infinite alternate;}#fhDeliveryText .fh-char.grito.shown{animation:fh-shout .26s ease-in-out infinite alternate;}',
       '#fhSpatialLayer{position:fixed;z-index:35;inset:0;pointer-events:none;overflow:hidden;}#fhSpatialLayer .fh-sound{position:absolute;left:0;top:0;white-space:nowrap;color:#f3eee4;text-shadow:-2px -2px 0 #171619,2px -2px 0 #171619,-2px 2px 0 #171619,2px 2px 0 #171619,0 3px 5px #000;font:600 italic clamp(18px,2.6vw,30px)/1.12 "Spectral",Georgia,serif;animation:fh-impact .55s ease-out both;will-change:transform,opacity;}',
+      '#fhSpatialLayer .fh-sound.fh-sleep-comic{animation:fh-sleep-breath 2.6s cubic-bezier(.22,.44,.38,.98) both;font-size:clamp(18px,2.4vw,27px);}',
+      '@keyframes fh-sleep-breath{0%{opacity:0;translate:0 4px;scale:.90}22%{opacity:.92;translate:2px -4px;scale:1}55%{opacity:.78}100%{opacity:0;translate:8px -31px;scale:1.05}}',
       '#fhLiveDialog .fh-char.miedo,#fhLiveDialog .fh-char.grito{display:inline-block;}#fhLiveDialog .fh-char.impacto{font-weight:900;font-size:1.12em;}#fhLiveDialog .fh-char.miedo.shown{animation:fh-shiver .15s linear infinite alternate;}#fhLiveDialog .fh-char.grito.shown{animation:fh-shout .26s ease-in-out infinite alternate;}',
       '@keyframes fh-shiver{from{transform:translate(-.6px,.5px)}to{transform:translate(.6px,-.5px)}}@keyframes fh-shout{from{transform:translateY(-3px)}to{transform:translateY(3px)}}@keyframes fh-impact{0%{opacity:0;scale:.7}28%{opacity:1;scale:1.15}100%{opacity:0;scale:1;translate:0 -14px}}@keyframes fh-chevron{to{transform:translateY(3px)}}',
       '@media (prefers-reduced-motion:reduce){#fhLiveDialog .fh-char.miedo.shown,#fhLiveDialog .fh-char.grito.shown,#fhLiveDialog .fh-next.ready,#fhDeliveryText .fh-next.ready,#fhDeliveryText .fh-char.miedo.shown,#fhDeliveryText .fh-char.grito.shown,#fhSpatialLayer .fh-sound{animation:none!important;}#fhSpatialLayer .fh-sound{opacity:1;}}'
@@ -274,8 +276,9 @@
     if (!word) return true;
     ensure();
     if (spatialItems.length >= 8) { const old = spatialItems.shift();old.el.remove(); }
-    const el = global.document.createElement('div');el.className='fh-sound';el.textContent=word;elements.layer.appendChild(el);
-    const entry = { el, x:spec.x,z:spec.z,y:spec.y,floor:spec.floor,self:spec.self===true, expires:global.performance.now()+580,nextSight:0,shown:false };
+    const sleep=spec?.kind==='sleep';
+    const el = global.document.createElement('div');el.className=sleep?'fh-sound fh-sleep-comic':'fh-sound';el.textContent=word;elements.layer.appendChild(el);
+    const entry = { el,kind:sleep?'sleep':'normal',x:spec.x,z:spec.z,y:spec.y,floor:spec.floor,self:spec.self===true, expires:global.performance.now()+(sleep?2600:580),nextSight:0,shown:false };
     spatialItems.push(entry);tick();return true;
   }
   // Comparte tipografía, animación, capa y proyección con el texto «¡TOC!».
@@ -351,6 +354,13 @@
     } catch (_) { /* Un navegador sin audio no debe interrumpir la interacción. */ }
     return true;
   }
+  function clearKind(kind){
+    for(let i=spatialItems.length-1;i>=0;i--){
+      if(spatialItems[i].kind!==kind)continue;
+      spatialItems[i].el.remove();
+      spatialItems.splice(i,1);
+    }
+  }
   function tick() {
     if (!spatialItems.length || !elements) return;
     const view = getView();if (!view) return;
@@ -371,5 +381,5 @@
       p.el.style.transform = 'translate(-50%,-50%)';
     }
   }
-  global.FHLiveText = Object.freeze({ configure,showDialogue,typeInto,advance,isDialogOpen,notice,flushNotice,soundAt,soundLevel,actionAt,actionWord,playSfxAt,knockAt,tick,delayAfter,audible,normalizePages,PAUSE });
+  global.FHLiveText = Object.freeze({ configure,showDialogue,typeInto,advance,isDialogOpen,notice,flushNotice,soundAt,soundLevel,actionAt,actionWord,playSfxAt,knockAt,clearKind,tick,delayAfter,audible,normalizePages,PAUSE });
 })(typeof window !== 'undefined' ? window : globalThis);
