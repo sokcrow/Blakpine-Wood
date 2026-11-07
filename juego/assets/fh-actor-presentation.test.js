@@ -4,18 +4,18 @@ const test=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const actors=require('./fh-actor-presentation.js');
 
-test('player/NPC: idle y walk se alternan cada 0.8 s de movimiento real',()=>{
+test('player/NPC: idle y walk se alternan cada 0.5 s de movimiento real',()=>{
  for(const kind of ['player','npc']){
   const cycle=actors.createCycle();
   assert.equal(cycle.tick(false,.7),'idle',kind);
   assert.equal(cycle.tick(true,.01),'walk',kind);
-  assert.equal(cycle.tick(true,.79),'walk',kind);
+  assert.equal(cycle.tick(true,.49),'walk',kind);
   assert.equal(cycle.tick(true,.02),'idle',kind);
-  assert.equal(cycle.tick(true,.79),'walk',kind);
+  assert.equal(cycle.tick(true,.5),'walk',kind);
   assert.equal(cycle.tick(false,4),'idle',kind);
   assert.equal(cycle.tick(true,0),'walk',kind+' reinicia al volver a caminar');
  }
- assert.equal(actors.WALK_INTERVAL_SECONDS,.8);
+ assert.equal(actors.WALK_INTERVAL_SECONDS,.5);
 });
 
 test('campo visual: otros personajes necesitan mismo piso y línea de visión; el jugador local es independiente',()=>{
