@@ -18,7 +18,7 @@
   "  ray.setFromCamera(new THREE.Vector2((event.clientX-rect.left)/rect.width*2-1,-(event.clientY-rect.top)/rect.height*2+1),cam);\n"+
   "  if(!ray.intersectObjects(a.roots.map(entry=>entry.root),true).length)return;";
   doc=one(doc,pointer,pointerNew,'selección del mueble');
-  const code=String.raw\`
+  const code=String.raw`
 let fhDecorMode=false;
 const fhDecorModeBtn=document.createElement('button');
 fhDecorModeBtn.id='fhDecorModeBtn';fhDecorModeBtn.type='button';
@@ -125,7 +125,7 @@ function fhContextRefresh(){
  }
  radial.update(actions.length?{key,title,actions,x:point.x,y:point.y}:null);
 }
-\`;
+`;
   doc=one(doc,'function hudUpdate(){',code+'\nfunction hudUpdate(){','HUD');
   const refresh="window.FHLocationHUD?.update(DATA,currentFloor,{x:user.x/CELL,y:user.z/CELL})";
   doc=one(doc,refresh,refresh+';fhContextRefresh()','refresco');
