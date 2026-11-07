@@ -55,7 +55,7 @@ function setup(){
  let frozen=false,opened=0;
  const runtime=win.FHDelivery.createRuntime({state,freeze:v=>{frozen=v},
   baseUrl:'https://example.test/juego/assets/fh-delivery.js',
-  openDoor(){opened++;runtime.onPeepholeExit()},spriteUrl:()=>'https://example.test/sprite.webp'});
+  openDoor(){opened++;runtime.onDoorOpened({id:'puerta1'})},spriteUrl:()=>'https://example.test/sprite.webp'});
  const dialog=()=>body.children.find(n=>n.id==='fhDeliveryDialog');
  const action=label=>dialog().querySelector('#fhDeliveryActions').children.find(n=>n.textContent===label);
  return {runtime,overlay,dialog,action,order,get frozen(){return frozen},get opened(){return opened}};
@@ -73,7 +73,7 @@ test('mirar primero: el botón Hablar no abre el diálogo ni cierra la mirilla',
  assert.equal(ui.overlay.children[0].hidden,true);
 });
 
-test('hablar abre un panel compacto sin sprite; cerrar conserva la mirilla',()=>{
+test('hablar abre un panel compacto sin sprite; cerrar termina el evento',()=>{
  const ui=setup();ui.runtime.onPeephole({id:'puerta1'});
  let prevented=false;
  ui.overlay.children[0].handlers.click({stopPropagation(){prevented=true}});
@@ -85,20 +85,22 @@ test('hablar abre un panel compacto sin sprite; cerrar conserva la mirilla',()=>
  assert.equal(ui.frozen,true);
  ui.action('Terminar conversación').onclick();
  assert.equal(ui.dialog().classList.contains('open'),false);
- assert.equal(ui.overlay.children[0].hidden,false);
+ assert.equal(ui.overlay.children[0].hidden,true);
  assert.equal(ui.frozen,false);
  assert.equal(ui.opened,0);
 });
 
-test('preguntar mantiene panel compacto y abrir sale de la mirilla',()=>{
+test('preguntar permite regresar y abrir conserva la conversación',()=>{
  const ui=setup();ui.runtime.onPeephole({id:'puerta1'});
  ui.runtime.talkThroughPeephole();
  ui.action('¿Qué trae?').onclick();
  assert.equal(ui.dialog().classList.contains('peephole'),true);
+ ui.action('Volver a preguntar').onclick();
  ui.action('Abrir la puerta').onclick();
  assert.equal(ui.opened,1);
  assert.equal(ui.overlay.children[0].hidden,true);
- assert.equal(ui.dialog().classList.contains('open'),false);
+ assert.equal(ui.dialog().classList.contains('open'),true);
+ assert.equal(ui.dialog().classList.contains('peephole'),false);
 });
 
 test('salir de la mirilla limpia el diálogo, pero no abre la puerta',()=>{
@@ -125,5 +127,8 @@ test('la integración del motor conserva sprite 3D y limpieza de mirilla',()=>{
  assert.match(index,/FHDeliveryRuntime\?\.onPeepholeExit\(\)/);
  assert.match(index,/function fhShowDeliveryNpc\(/);
  assert.match(index,/stories\[door\.f\]\.add\(sprite\)/);
+  assert.match(index,/fhBeginDoorEvent\(d\)/);
+  assert.match(index,/fhDoorConversationView/);
+  assert.match(index,/resolveDoorAddress:fhDoorAddress/);
  assert.match(strings,/talkThroughDoor:'Hablar con el repartidor'/);
 });
