@@ -3973,7 +3973,10 @@ async function start3DPreview(){
  try{
   const originalEngineDoc=decodeEmbedded3DEngine(PREVIEW_ENGINE_DOC_B64);
   const preparedEngineDoc=prepareGLBEngineDoc(originalEngineDoc);
-   const fhEngineDoc=window.FHServicesEngine?.patch(preparedEngineDoc)||preparedEngineDoc;
+   let fhEngineDoc=preparedEngineDoc;
+   try{if(window.FHServicesEngine?.patch)fhEngineDoc=window.FHServicesEngine.patch(preparedEngineDoc)||preparedEngineDoc;}
+   catch(serviceError){console.error('[Forest servicios] No pudo instalarse el adaptador:',serviceError);
+    toast('Servicios temporalmente no disponibles en la vista 3D.');}
   try{
    if(!window.FHArchitectureSkins?.patchEngineDoc)throw Error('Adaptador del kit no disponible');
    let architectureDoc=window.FHArchitectureSkins.patchEngineDoc(fhEngineDoc);
