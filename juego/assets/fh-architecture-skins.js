@@ -106,6 +106,7 @@ function accessDeviceId(it){
  return it?.accessDevice==='pin'?'teclado_pin':it?.accessDevice==='card'?'lector_tarjeta':null;
 }
 function mountAccessDevice(fixed,it,THREE,sightMask,d){
+ if(d)d.accessMount={fixed,it,THREE,sightMask};
  const id=accessDeviceId(it);
  if(!id||!fixed?.parent)return;
  // El lector está sujeto al MARCO_FIJO, nunca a la hoja que gira.
@@ -131,6 +132,13 @@ function mountAccessDevice(fixed,it,THREE,sightMask,d){
    if(fixed.parent&&!d?.readerDestroyed){fixed.add(marker);if(d)(d.accessVisuals||(d.accessVisuals=[])).push(marker);}
   }
  });
+}
+function restoreAccessDevice(d){
+ const mount=d?.accessMount;
+ if(!mount||d.readerDestroyed)return false;
+ if((d.accessVisuals||[]).length>0)return true;
+ mountAccessDevice(mount.fixed,mount.it,mount.THREE,mount.sightMask,d);
+ return true;
 }
 function decorateDoor(d,it,THREE,sightMask){
  const model=chooseDoor(d,it);if(!model)return;
@@ -229,5 +237,5 @@ function patchEngineDoc(doc){
  // el primer cierre HTML real, sin exigir exclusividad global del texto.
  return out.slice(0,headEnd)+script+out.slice(headEnd);
 }
-global.FHArchitectureSkins=Object.freeze({chooseDoor,chooseWindow,splitWindow,accessDeviceId,decorateDoor,decorateWindow,patchEngineDoc,load});
+global.FHArchitectureSkins=Object.freeze({chooseDoor,chooseWindow,splitWindow,accessDeviceId,restoreAccessDevice,decorateDoor,decorateWindow,patchEngineDoc,load});
 })(window);
