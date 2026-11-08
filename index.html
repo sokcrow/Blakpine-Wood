@@ -3052,6 +3052,7 @@ function fhHideDeliveryNpc(){
 function fhRuntimeItemById(id,f){return (DATA.floors[f]?.items||[]).find(it=>it.id===id)||null}
 function fhSpawnRuntimeItem(item,f){
  if(!item||!DATA.floors[f]||fhRuntimeItemById(item.id,f))return false;
+ window.FHStorageRuntime?.prepareDeliveryItem?.(item);
  DATA.floors[f].items.push(item);const first=stories[f].children.length;furniture(f,item);renderedByItem[f].set(item.id,stories[f].children.slice(first));
  if(item.interact){interactableItems[f].push(item);const a=interactionAnchor(item),marker=new THREE.Mesh(new THREE.RingGeometry(.32,.365,20),new THREE.MeshBasicMaterial({color:0xffd48b,side:THREE.DoubleSide,transparent:true,opacity:.82,depthWrite:false}));marker.rotation.x=-Math.PI/2;marker.position.set(a.x*CELL,.075,a.y*CELL);marker.visible=false;stories[f].add(marker);interactionMarkers[f].set(item.id,marker);}
  visibilityDirty=true;return true;
@@ -3950,6 +3951,6 @@ init();
 <script src="./juego/assets/fh-architecture-editor-catalog.js?v=20261105-visual-models"></script>
 <script src="./juego/assets/fh-access-editor.js?v=20261107-map-v1"></script>
 <script src="./juego/assets/fh-comic-action-engine-hook.js?v=20261107-comic-actions-1"></script>
-<script src="./juego/assets/fh-context-engine-hook.js?v=20261108-storage-1"></script>
+<script src="./juego/assets/fh-context-engine-hook.js?v=20261108-hamazon-1"></script>
 </body>
 </html>

@@ -204,8 +204,22 @@
     overlay.querySelector?.('.fh-storage-close')?.focus?.();
     return true;
   }
+  // Los muebles de Hamazon nacen en runtime, no en el catálogo del mapa.
+  // Al llegar necesitan una acción real antes de entrar en interactableItems.
+  function prepareDeliveryItem(item) {
+    if (!item?.id || !item.runtimeDeliveryFurniture || item.interact) return false;
+    const container = isStorage(item);
+    item.interact = {
+      id: (container ? 'storage_' : 'decorate_') + item.id,
+      verb: container ? 'storage' : 'decorate',
+      label: container ? txt('open', 'Abrir inventario')
+        : (global.FH_DELIVERY_TEXT?.decorateAction || 'Mover / decorar'),
+      effects: []
+    };
+    return true;
+  }
   global.FHStorageRuntime = Object.freeze({
-    init, open, close, supports: isStorage,
+    init, open, close, supports: isStorage, prepareDeliveryItem,
     get isOpen() { return !!opened && !!overlay && !overlay.hidden; }
   });
   if (typeof module !== 'undefined' && module.exports) module.exports = { packLegacy, unpackLegacy, storageId, isStorage };
