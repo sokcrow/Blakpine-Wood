@@ -177,3 +177,14 @@ test('llamada fija entrante al celular identificado por su cuenta',()=>{
  const result=sys.dial('fixed',0,fixed,'guardia');
  assert.equal(result.ok,true);assert.equal(result.target.kind,'mobile');
 });
+
+test('estado del breaker del circuito existente corta enchufes nuevos',()=>{
+ const {project,state,items}=fixture();
+ items.find(it=>it.id==='breaker').circuits[0].powerFlag='circuit_a_on';
+ state.flags={circuit_a_on:false};
+ const sys=FH.createRuntime(project,state);
+ const socket=items.find(it=>it.id==='plug');
+ assert.equal(sys.statusFor(0,socket).power.powered,false);
+ state.flags.circuit_a_on=true;
+ assert.equal(sys.statusFor(0,socket).power.powered,true);
+});
