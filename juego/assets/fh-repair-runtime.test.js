@@ -5,8 +5,8 @@ const Skills=require('./fh-skills.js');
 const Repair=require('./fh-repair.js');
 const Runtime=require('./fh-repair-runtime.js');
 const Hsrc=fs.readFileSync(path.join(__dirname,'fh-structure-health.js'),'utf8');
-function healthApi(){
- const w={};vm.runInNewContext(Hsrc,{window:w,structuredClone,console});
+function healthApi(services={}){
+ const w={...services};vm.runInNewContext(Hsrc,{window:w,structuredClone,console});
  return w.FHStructureHealth;
 }
 function setup({initialPG=0,material='wood',kitLevel=1,subcategory='estructural',skillId='manipulacionFina',
@@ -212,4 +212,48 @@ test('modelo map-v1 y ruta de ejecución no añaden UI, inventario ni una fórmu
  const source=fs.readFileSync(path.join(__dirname,'fh-repair-runtime.js'),'utf8');
  assert.match(source,/Skills\.roll\(/);assert.match(source,/Skills\.odds\(/);
  assert.doesNotMatch(source,/\bd20\b|Math\.random\s*\(/);
+});
+
+test('lector destruido antes de cargar su GLB vuelve a montarse tras reconstrucción',()=>{
+ let remounts=0;
+ const H=healthApi({FHArchitectureSkins:{restoreAccessDevice:d=>{
+  remounts++;d.accessVisuals.push({id:'lector-reconstruido'});return true;
+ }}});
+ const it={id:'reader',type:'door',variant:'metal',accessDevice:'pin',readerInitialPG:0};
+ const map={floors:[{id:'p1',items:[it]}]},state={},d={f:0,accessVisuals:[]};
+ const rt=H.createRuntime({data:map,state,doorList:[[d]],blockers:[[]]});
+ rt.registerDoor(d,it);
+ assert.equal(d.readerDestroyed,true);
+ assert.equal(rt.getState('p1','reader','reader').pg,0);
+ assert.equal(rt.restorePG({floorId:'p1',id:'reader',part:'reader',amount:5}).reason,'requires-success');
+ assert.equal(remounts,0);
+ const repaired=rt.restorePG({floorId:'p1',id:'reader',part:'reader',amount:5,allowRebuild:true});
+ assert.equal(repaired.ok,true);
+ assert.equal(repaired.rebuilt,true);
+ assert.equal(remounts,1);
+ assert.equal(d.readerDestroyed,false);
+});
+test('ventana reconstruida reintegra sus colliders originales',()=>{
+ const H=healthApi();
+ const it={id:'ventana',type:'window',windowMaterial:'glass',initialPG:0};
+ const walls=[{id:'otro'},{id:'antepecho'}],root={
+  parent:null
+ };
+ let added=0;
+ const parent={add(node){node.parent=this;added++},remove(node){node.parent=null;}};
+ root.parent=parent;
+ const rt=H.createRuntime({data:{floors:[{id:'p1',items:[it]}]},state:{},
+  doorList:[[]],blockers:[walls]});
+ rt.registerWindow(0,it,[walls[1]],[root]);
+ assert.equal(walls.length,1);
+ assert.equal(root.parent,null);
+ const rejected=rt.restorePG({floorId:'p1',id:'ventana',amount:1});
+ assert.equal(rejected.reason,'requires-success');
+ assert.equal(walls.length,1);
+ const okay=rt.restorePG({floorId:'p1',id:'ventana',amount:1,allowRebuild:true});
+ assert.equal(okay.rebuilt,true);
+ assert.equal(walls.length,2);
+ assert.equal(walls.some(o=>o.id==='antepecho'),true);
+ assert.equal(root.parent,parent);
+ assert.equal(added,1);
 });
