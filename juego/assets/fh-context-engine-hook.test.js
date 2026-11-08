@@ -38,7 +38,7 @@ test('el HTML generado integra radial y decoración sin afectar el editor 2D',()
  assert.match(output,/capture:true,suppressClick:true/);
  assert.match(output,/fh-interaction-radial\.js\?v=20261107-hold-gate/);
  assert.match(output,/fh-safe-lock\.js\?v=20261107-safe-lock-2/);
- assert.match(output,/fh-mobile-camera\.js\?v=20261107-phone30/);
+ assert.match(output,/fh-mobile-camera\.js\?v=20261108-landscape20/);
  assert.ok(output.includes("const fhPhoneCameraPointer=window.matchMedia?.('(pointer: coarse)');"));
  assert.ok(output.includes("const initialCameraDistance=window.FHMobileCamera?.distance(camDistance,innerWidth,innerHeight,!!fhPhoneCameraPointer?.matches)??camDistance;"));
  assert.ok(output.includes("const fhCameraDistance=window.FHMobileCamera?.distance(lightDistance,innerWidth,innerHeight,!!fhPhoneCameraPointer?.matches)??lightDistance;"));
