@@ -1,11 +1,11 @@
 /* Forest Horror: sueño gradual sobre la postura "lie" existente. */
 (function(global){
  'use strict';
- const CONFIG=Object.freeze({delay:1.8,fallAsleep:8.2,wakeDelay:1.6,breathDelay:2.2,breathCycle:3.8});
+ const CONFIG=Object.freeze({delay:1.8,comfortDelay:3,fallAsleep:8.2,wakeDelay:1.6,breathDelay:2.2,breathCycle:3.8});
  const clamp=x=>Math.min(1,Math.max(0,x));
  const ease=x=>x*x*(3-2*x);
  function createController(){
-  let elapsed=0,depth=0,stage='awake',holdAwake=false,wakeLeft=0,wakeAction=null,asleepTime=0,nextBreath=CONFIG.breathDelay;
+  let elapsed=0,depth=0,stage='awake',holdAwake=false,wakeLeft=0,wakeAction=null,asleepTime=0,nextBreath=CONFIG.breathDelay,comfortShown=false;
   function status(){return {stage,depth,vulnerable:stage==='asleep',
    vulnerability:stage==='asleep'?2.5:stage==='waking'?1.75:stage==='drowsy'?1+depth*.9:stage==='resting'?1.2:1,
    wakeDelayRemaining:wakeLeft};}
@@ -26,14 +26,14 @@
    }else{
     depth=Math.max(0,depth-step/CONFIG.wakeDelay);
     stage=depth>0?'waking':'awake';wakeLeft=0;wakeAction=null;
-    if(phase==='standing'){elapsed=0;holdAwake=false;depth=0;stage='awake';}
+    if(phase==='standing'){elapsed=0;comfortShown=false;holdAwake=false;depth=0;stage='awake';}
    }
    asleepTime=stage==='asleep'?asleepTime+step:0;
    if(stage!=='asleep')nextBreath=CONFIG.breathDelay;
    global.document?.body?.classList?.toggle('fh-sleep-masking',depth>=.003);
    syncIris();
    if(stage!==previous){
-    if(previous==='asleep')global.FHLiveText?.clearKind?.('sleep');
+    if(previous==='asleep'||(!active&&comfortShown))global.FHLiveText?.clearKind?.('sleep');
     global.document?.body?.classList?.toggle('fh-sleeping',stage==='asleep');
     if(bus?.emit)bus.emit('player:sleepState',status());
    }
@@ -84,6 +84,19 @@
    return {x:Number(x)||0,z:Number(z)||0,eyeY:base+6.5,focusY:base+.45,
     upX:-Math.sin(a),upZ:-Math.cos(a)};
   }
+  function needsComfort(){
+   return !comfortShown&&elapsed>=CONFIG.comfortDelay&&(stage==='resting'||stage==='drowsy');
+  }
+  function emitComfort(point){
+   if(!needsComfort()||!point||!Number.isFinite(point.x)||!Number.isFinite(point.y)||!Number.isFinite(point.z))return false;
+   const emitted=global.FHLiveText?.soundAt?.({
+    kind:'sleep',text:String(global.FH_SLEEP_TEXT?.comfort||'Qué cómodo...'),
+    x:point.x,y:point.y,z:point.z,floor:point.floor,self:true,level:1,
+    screenX:point.screenX,screenY:point.screenY
+   })===true;
+   if(emitted)comfortShown=true;
+   return emitted;
+  }
   function needsBreath(){
    return stage==='asleep' && asleepTime+1e-6>=nextBreath;
   }
@@ -97,7 +110,7 @@
    if(emitted)nextBreath=asleepTime+CONFIG.breathCycle;
    return emitted;
   }
-  return Object.freeze({status,update,requestWake,viewWeight,cameraPose,irisRadius,needsBreath,emitBreath});
+  return Object.freeze({status,update,requestWake,viewWeight,cameraPose,irisRadius,needsComfort,emitComfort,needsBreath,emitBreath});
  }
  global.FHSleep=global.FHSleep||createController();
  global.FHCreateSleepController=createController;

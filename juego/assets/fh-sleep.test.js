@@ -15,7 +15,7 @@ function controller(){
  const document={body,getElementById(id){return nodes.get(id)||null;},
   createElement(){return {id:'',style:{},setAttribute(){},parentNode:null};},
   documentElement:{clientWidth:360,clientHeight:640}};
- const window={FH_SLEEP_TEXT:{breath:'Zzz'},document,innerWidth:360,innerHeight:640,
+ const window={FH_SLEEP_TEXT:{breath:'Zzz',comfort:'Qué cómodo...'},document,innerWidth:360,innerHeight:640,
   FHLiveText:{soundAt(spec){breaths.push(spec);return true;},clearKind(kind){breaths.push({clearKind:kind});}}};
  vm.runInNewContext(fs.readFileSync(path.join(__dirname,'fh-sleep.js'),'utf8'),{window});
  return {sleep:window.FHCreateSleepController(),classes,nodes,breaths};
@@ -54,6 +54,24 @@ test('el círculo se cierra lentamente y se reabre al despertar',()=>{
  assert.equal(sleep.status().stage,'awake');
  assert.equal(veil.style.display,'none');
  assert.ok(!classes.has('fh-sleep-masking'));
+});
+test('dice Qué cómodo una sola vez tras acostarse y se reinicia en otro descanso',()=>{
+ const {sleep,breaths}=controller(),head={x:1,y:2,z:3,floor:0,screenX:100,screenY:160};
+ advance(sleep,2.9);
+ assert.equal(sleep.needsComfort(),false);
+ advance(sleep,.2);
+ assert.equal(sleep.needsComfort(),true);
+ assert.equal(sleep.emitComfort(head),true);
+ assert.equal(sleep.emitComfort(head),false);
+ assert.equal(breaths[0].text,'Qué cómodo...');
+ assert.equal(breaths[0].kind,'sleep');
+ advance(sleep,4);
+ assert.equal(sleep.needsComfort(),false);
+ advance(sleep,1,'standing',null,null);
+ advance(sleep,3.2);
+ assert.equal(sleep.needsComfort(),true);
+ assert.equal(sleep.emitComfort(head),true);
+ assert.equal(breaths.filter(item=>item.text==='Qué cómodo...').length,2);
 });
 test('respiración cómic solo durante sueño: pausas y coordenadas de la cabeza',()=>{
  const {sleep,breaths}=controller(),head={x:4.6,y:1.8,z:7.1,floor:0,screenX:180,screenY:245};
