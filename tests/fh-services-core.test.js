@@ -154,3 +154,26 @@ test('línea de techo opt-in sigue las paredes incluso lejos de ellas',()=>{
  const sys=FH.createRuntime(project,state);
  assert.ok(sys.sourceFor(0,lamp,'a'));
 });
+
+test('llamada móvil alcanza teléfono fijo por número y router operativo',()=>{
+ const {sys,items}=fixture();
+ items.push({id:'wallphone',type:'landline_phone',x:3,y:3.5,routerId:'router',phoneNumber:'555-0102'});
+ const result=sys.dial('mobile',0,null,'555-0102');
+ assert.equal(result.ok,true);assert.equal(result.target.kind,'fixed');
+ assert.equal(sys.state.calls.some(c=>c.direction==='incoming'&&c.routerId==='router'),true);
+});
+test('llamada rechazada si teléfono fijo no tiene internet',()=>{
+ const {sys,items}=fixture();
+ items.push({id:'wallphone',type:'landline_phone',x:3,y:3.5,routerId:'router',phoneNumber:'555-0102'});
+ sys.setService('internet',false);
+ assert.equal(sys.dial('mobile',0,null,'555-0102').ok,false);
+ assert.equal(sys.state.calls.length,0);
+});
+test('llamada fija entrante al celular identificado por su cuenta',()=>{
+ const {sys,items,state}=fixture();
+ state.phone.accountId='guardia';
+ const fixed={id:'wallphone',type:'landline_phone',x:3,y:3.5,routerId:'router',phoneNumber:'555-0200'};
+ items.push(fixed);
+ const result=sys.dial('fixed',0,fixed,'guardia');
+ assert.equal(result.ok,true);assert.equal(result.target.kind,'mobile');
+});
