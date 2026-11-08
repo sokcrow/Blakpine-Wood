@@ -174,6 +174,83 @@
   const barriers=(f,a,b)=>graphs[f]?.wallsBetween(point(a),point(b))||0;
   const values=(f,type)=>elements[f]?.filter(it=>it.type===type)||[];
   const itemAt=(f,itemId)=>(elements[f]||[]).find(it=>id(it)===String(itemId))||null;
+  const polygonHas=(poly,p)=>{
+   if(!Array.isArray(poly)||poly.length<3)return false;
+   let inside=false;
+   for(let i=0,j=poly.length-1;i<poly.length;j=i++){
+    const a=poly[i],b=poly[j];
+    if(onSegment(p,a,b,.035))return true;
+    if((a.y>p.y)!==(b.y>p.y)&&p.x<(b.x-a.x)*(p.y-a.y)/(b.y-a.y)+a.x)inside=!inside;
+   }
+   return inside;
+  };
+  function areaHas(area,p){
+   if(Array.isArray(area.spans)&&area.spans.length)
+    return area.spans.some(sp=>p.x>=sp.x-.035&&p.x<=sp.x+sp.w+.035&&p.y>=sp.y-.035&&p.y<=sp.y+sp.h+.035);
+   if(Array.isArray(area.cells)&&area.cells.length)
+    return area.cells.some(cell=>p.x>=cell.x-.035&&p.x<=cell.x+1.035&&p.y>=cell.y-.035&&p.y<=cell.y+1.035);
+   return p.x>=area.x-.035&&p.x<=area.x+number(area.w)+.035&&
+    p.y>=area.y-.035&&p.y<=area.y+number(area.h)+.035;
+  }
+  const roomOn=(f,p)=>(elements[f]||[]).find(it=>it.type==='room'&&areaHas(it,point(p)))||null;
+  const scopeFor=(f,router)=>{
+   const floorId=floors[f]?.id;
+   const properties=(project.properties||[]).filter(p=>p.floorId===floorId&&Array.isArray(p.polygon));
+   const parcel=router.propertyId?properties.find(p=>p.id===router.propertyId):
+    properties.find(p=>polygonHas(p.polygon,point(router)));
+   if(router.propertyId&&!parcel)return {allow:()=>false,kind:'invalidProperty'};
+   if(parcel){
+    if(!polygonHas(parcel.polygon,point(router)))return {allow:()=>false,kind:'outsideProperty'};
+    return {kind:'property',id:parcel.id,allow:edge=>{
+     const a=edge.a,b=edge.b,p={x:(a.x+b.x)/2,y:(a.y+b.y)/2};
+     const dx=b.x-a.x,dy=b.y-a.y,len=Math.max(1e-7,Math.hypot(dx,dy));
+     return [p,{x:p.x-dy/len*.06,y:p.y+dx/len*.06},
+      {x:p.x+dy/len*.06,y:p.y-dx/len*.06}].some(q=>polygonHas(parcel.polygon,q));
+    }};
+   }
+   const rooms=(elements[f]||[]).filter(it=>it.type==='room');
+   if(!rooms.length)return {kind:'legacy',allow:()=>true};
+   const origin=router.roomId||roomOn(f,router)?.roomId||roomOn(f,router)?.id;
+   const assigned=Array.isArray(router.assignedRoomIds)?router.assignedRoomIds:
+    String(router.assignedRoomIds||'').split(',').map(v=>v.trim()).filter(Boolean);
+   const ids=new Set([origin,...assigned].filter(Boolean));
+   const permitted=rooms.filter(room=>ids.has(room.roomId||room.id)||ids.has(room.id));
+   if(!permitted.length)return {kind:'noRoom',allow:()=>false};
+   return {kind:'rooms',ids,allow:edge=>{
+    const a=edge.a,b=edge.b,p={x:(a.x+b.x)/2,y:(a.y+b.y)/2};
+    const dx=b.x-a.x,dy=b.y-a.y,len=Math.max(1e-7,Math.hypot(dx,dy));
+    return [p,{x:p.x-dy/len*.08,y:p.y+dx/len*.08},
+     {x:p.x+dy/len*.08,y:p.y-dx/len*.08}].some(q=>permitted.some(room=>areaHas(room,q)));
+   }};
+  };
+  // Los cables de datos y las instalaciones físicas comparten los mismos tramos.
+  function wiredRoute(f,router,target,maxFt=60){
+   if(!router||!target||f<0||!graphs[f])return null;
+   const scope=scopeFor(f,router);
+   if(scope.kind==='invalidProperty'||scope.kind==='outsideProperty'||scope.kind==='noRoom')return null;
+   const gapFt=Math.max(0,number(router.ethernetLeadFt,10));
+   const path=graphs[f].routeDetailed(point(router),point(target),gapFt/feetPerCell,scope.allow);
+   if(!path)return null;
+   const feet=(path.length+path.fromGap+path.toGap)*feetPerCell;
+   return feet<=maxFt?{...path,feet,scope:scope.kind}:null;
+  }
+  const wifiMaterials=floors.map(f=>(f.items||[]).filter(it=>
+   ['wall','red_wall','half_wall','door','peephole_door','window'].includes(it.type)&&it.a&&it.b));
+  const wirelessLoss=(f,a,b)=>{
+   const impacts=[];
+   for(const wall of wifiMaterials[f]||[]){
+    const hit=intersection(a,b,wall.a,wall.b);
+    if(!hit||dist(hit,a)<.1||dist(hit,b)<.1)continue;
+    const loss=wall.type==='red_wall'?11:wall.type==='wall'?3:
+     wall.type==='half_wall'?1.5:wall.type==='window'?3:
+     wall.open===true?0:wall.type==='peephole_door'?7:4;
+    const priority=['door','peephole_door','window'].includes(wall.type)?3:1;
+    const same=impacts.find(v=>dist(v.point,hit)<.07);
+    if(same){if(priority>=same.priority){same.loss=loss;same.priority=priority;}}
+    else impacts.push({point:hit,loss,priority});
+   }
+   return impacts.reduce((sum,v)=>sum+v.loss,0);
+  };
   const powerScopes=floors.map((floor,f)=>{
    const circuits=[];
    for(const panel of values(f,'breaker_panel')){
@@ -285,18 +362,32 @@
    for(const port of ports)if(waterStatus(f,port).water)return {connected:true,water:true,via:port.id};
    return {connected:false,water:false};
   }
+  // 2.4 GHz: modelo jugable dBm, sin prometer medidas físicas exactas.
+  // La parcela restringe los CABLES, jamás amplifica la cobertura de radio.
   function wifiAt(f,x,y,passwordById=s.wifiKeys){
-   const nearby=[];
-   const snap=electrical();
-   for(const r of values(f,'router')){
-    if(!electricalStatus(f,r,snap).powered||!active(r))continue;
-    const feet=Math.hypot(number(r.x)-x,number(r.y)-y)*feetPerCell+barriers(f,{x,y},r)*6;
-    if(feet>Math.max(0,number(r.wifiRadiusFt,60)))continue;
-    const unlocked=!String(r.wifiPassword||'')||passwordById[id(r)]===r.wifiPassword;
-    nearby.push({routerId:id(r),signal:clamp(1-feet/Math.max(1,number(r.wifiRadiusFt,60)),0,1),
-     authenticated:unlocked,online:unlocked&&s.contracts.internet==='active'});
+   if(!floors[f])return [];
+   const nearby=[],snap=electrical(),pos={x:number(x),y:number(y)};
+   for(let level=0;level<floors.length;level++)for(const r of values(level,'router')){
+    if(!electricalStatus(level,r,snap).powered||!active(r))continue;
+    const ft=feetPerCell*dist(pos,point(r));
+    const floorFeet=Math.abs(number(floors[level]?.elevationFt,level*12)-
+     number(floors[f]?.elevationFt,f*12));
+    const distanceFt=Math.hypot(ft,floorFeet);
+    if(distanceFt>Math.max(1,number(r.wifiRadiusFt,120)))continue;
+    const meters=Math.max(1,distanceFt*.3048);
+    const materialLoss=level===f?wirelessLoss(f,pos,point(r)):
+     .5*(wirelessLoss(f,pos,point(r))+wirelessLoss(level,pos,point(r)));
+    const floorsLost=Math.abs(f-level)*14;
+    const dbm=Math.round((-40-22*Math.log10(meters)-materialLoss-floorsLost)*10)/10;
+    const bars=dbm>=-67?3:dbm>=-75?2:dbm>=-82?1:0;
+    if(!bars)continue;
+    const authenticated=!String(r.wifiPassword||'')||passwordById[id(r)]===r.wifiPassword;
+    const speedFactor=bars===3?1:bars===2?.65:.25;
+    nearby.push({routerId:id(r),floor:level,bars,dbm,
+     signal:bars/3,speedFactor,latencyMultiplier:bars===3?1:bars===2?1.6:3.5,
+     authenticated,online:authenticated&&s.contracts.internet==='active'});
    }
-   return nearby.sort((a,b)=>b.signal-a.signal);
+   return nearby.sort((a,b)=>b.dbm-a.dbm||a.routerId.localeCompare(b.routerId));
   }
   function connectWifi(routerId,password){
    for(let f=0;f<floors.length;f++){
