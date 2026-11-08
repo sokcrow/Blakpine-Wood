@@ -3865,8 +3865,8 @@ function fhRefreshActorVisibility(){
  // Restringe las fachadas de niveles vecinos sin duplicar FOW ni cambiar el mapa.
  function addFloorVisibilityToEngine(doc){
   const replacements=[
-   ['  if(!inCameraVolume(bounds))return false;',
-    '  if(!window.FHFloorVisibility.facadeCandidate(currentFloor,f,inside,inCameraVolume(bounds)))return false;'],
+   [' if(!inCameraVolume(bounds))return false;',
+    ' if(!window.FHFloorVisibility.facadeCandidate(currentFloor,f,inside,inCameraVolume(bounds)))return false;'],
    ['const inside=!peeking&&outside!==true;',
     'const inside=outside!==true;']
   ];
