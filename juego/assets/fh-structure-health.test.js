@@ -83,6 +83,16 @@ test('el daño persiste en partida sin cambiar el mapa, incluso tras reiniciar e
  assert.equal(restored.destroyed,true);
  assert.equal(rt2.getState('f1','d1').pg,0);
 });
+test('el radial encuentra ventanas cercanas sin cambiar la búsqueda normal de estructuras',()=>{
+ const H=api(),d=door(),w=win({a:{x:2,y:2},b:{x:3,y:2}});
+ const map={floors:[{id:'f1',items:[d,w]},{id:'f2',items:[]}]};
+ const rt=H.createRuntime({data:map,state:{},doorList:[[],[]],blockers:[[],[]]});
+ const x=1.5*1.524,z=2*1.524;
+ assert.equal(rt.nearest(0,x,z)?.item.id,'d1','se mantiene la selección general de la puerta más cercana');
+ assert.equal(rt.nearest(0,x,z,1.524,2.4,'window')?.item.id,'w1','puede hallarse la ventana aunque haya una puerta más cerca');
+ assert.equal(rt.nearest(0,x,z,1.524,.5,'window'),null,'no muestra ventanas fuera de alcance');
+ assert.equal(rt.nearest(1,x,z,1.524,2.4,'window'),null,'respeta el piso actual');
+});
 test('ventana destruida elimina colisión y geometría, sin borrar el registro ni otras paredes',()=>{
  const H=api(),it=win(),map={floors:[{id:'f1',items:[it]}]};
  const sceneGraph=scene();
@@ -145,7 +155,8 @@ test('hook 3D compone contra el motor Base64 y el adaptador de GLB real',()=>{
  assert.match(patched,/FHStructureHealthRuntime\?\.registerDoor/);
  assert.match(patched,/const fhHealthRuntime=window\.FHStructureHealth\.createRuntime/);
  assert.match(patched,/window\.ForestHorrorStructureAPI=Object\.freeze/);
- assert.match(patched,/inspectDoor:\(floorId,id\)=>fhInspectStructure\(floorId,id\)/);
+ assert.match(patched,/inspectSelected:\(floorId,id\)=>fhInspectStructure\(floorId,id\)/);
+ assert.match(patched,/nearestWindow:\(f,x,z,cell\)=>fhHealthRuntime\.nearest\(f,x,z,cell,2\.4,'window'\)/);
  assert.doesNotMatch(patched,/fhStructureHealthInspect/);
  assert.match(patched,/structures:structuredClone\(initial\.structures\|\|\{\}\)/);
  assert.match(patched,/d\.passable=d\.destroyed===true\|\|/);
