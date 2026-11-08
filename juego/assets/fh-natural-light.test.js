@@ -258,7 +258,7 @@ test('el adaptador 3D no incorpora shaders de brillo natural adicional',()=>{
  assert.doesNotMatch(source,/totalEmissiveRadiance|uFHNaturalColor|ambient\.intensity|onBeforeCompile/);
  assert.doesNotMatch(html,/fhNatural\?\.attach/);
  assert.match(html,/fhNatural\?\.paintSight/);
- assert.match(html,/fh-natural-light\.js\?v=20261107-no-exterior-filter-1/);
+ assert.match(html,/fh-natural-light\.js\?v=20261108-exterior-mask3/);
 });
 
 test('el adaptador 3D registra el módulo sin modificar los fragmentos Base64',()=>{
@@ -269,4 +269,18 @@ test('el adaptador 3D registra el módulo sin modificar los fragmentos Base64',(
  assert.match(html,/return addNaturalLightToEngine\(assembled\)/);
  assert.match(html,/fhNatural\?\.update\(\)/);
  assert.match(html,/fh-natural-light\.js/);
+});
+
+test('la máscara exterior NO confunde el interior iluminado por una ventana con intemperie',()=>{
+ const m=Natural.computeAccess(level(roomWithWestWindow()),units);
+ const p=(x,y)=>Math.floor(y*m.scale)*m.width+Math.floor(x*m.scale);
+ assert.ok(m.access[p(3.6,4.5)]>0,'sí entra luz natural');
+ assert.equal(m.exteriorMask[p(3.6,4.5)],0,'no debe entrar lluvia');
+ assert.equal(m.exteriorMask[p(2,4.5)],1);
+ assert.equal(m.exteriorMask[p(8,4.5)],1);
+});
+test('la máscara exterior del sótano está desactivada en todas sus celdas',()=>{
+ const m=Natural.computeAccess(level(roomWithWestWindow(),'B1',-12),units);
+ assert.equal(m.exteriorMask.length,m.width*m.height);
+ assert.equal(m.exteriorMask.some(Boolean),false);
 });

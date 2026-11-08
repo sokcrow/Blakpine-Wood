@@ -49,3 +49,14 @@ test('integración de clima, esquema v1 y preview',()=>{
  assert.match(html,/fh-weather-core\.js/);
  assert.match(html,/weather:clone\(project\.weather/);
 });
+test('fecha inicial 2016 sin alterar relojes guardados',()=>{
+ const nuevo={};
+ Weather.createRuntime({gameState:nuevo,config:{advanceClock:false}});
+ assert.equal(nuevo.clock.year,2016);
+ assert.equal(nuevo.clock.month,6);
+ assert.equal(nuevo.clock.day,1);
+ const previo={clock:{year:2026,month:11,day:8,minutes:480}};
+ Weather.createRuntime({gameState:previo,config:{advanceClock:false}});
+ assert.equal(previo.clock.year,2026);
+ assert.equal(previo.clock.day,8);
+});

@@ -183,6 +183,53 @@ body.fh-player-menu-open #fhPhoneToggle,body.fh-player-menu-open #fhPhonePanel,
 body.breaker-active #fhPhoneToggle,body.breaker-active #fhPhonePanel{
  visibility:hidden!important;pointer-events:none!important
 }
+
+/* Calendario y clima: mismos grises, bordes finos y tipografía del teléfono. */
+.fh-phone-clock-card{flex-direction:column;align-items:flex-start;justify-content:flex-end;gap:7px}
+.fh-phone-app-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:11px 6px}
+.fh-phone-home-date{color:#b6b4b0;font-size:11px;line-height:1.35;text-transform:capitalize}
+.fh-phone-weather-widget{
+ width:100%;min-height:78px;display:flex;align-items:center;gap:11px;
+ padding:11px 12px;margin:0 0 16px;text-align:left;cursor:pointer;
+ border:1px solid #ffffff30;border-radius:13px;
+ background:linear-gradient(145deg,#2a2b2e,#1b1c1e 72%);
+ color:#eeeae5;box-shadow:inset 0 1px #ffffff0e;
+}
+.fh-phone-weather-widget:hover,.fh-phone-weather-widget:focus-visible{
+ border-color:#ffffff65;background:#303134;
+}
+.fh-phone-weather-icon{flex:none;display:grid;place-items:center;width:34px;height:34px;color:#d7d6d2}
+.fh-phone-weather-icon svg{width:27px;height:27px;stroke-width:1.45}
+.fh-phone-weather-copy{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.fh-phone-weather-label{font-size:10px;font-weight:600;letter-spacing:.055em;color:#bcbab8;text-transform:uppercase}
+.fh-phone-weather-condition{font-size:13px;font-weight:600;line-height:1.24;color:#f0eeeb;overflow-wrap:anywhere}
+.fh-phone-weather-date{font-size:10px;color:#aaa8a6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-transform:capitalize}
+.fh-phone-weather-temp{font-size:20px;line-height:1.1;font-weight:500;white-space:nowrap;font-variant-numeric:tabular-nums}
+.fh-phone-calendar-current{font-size:12px;line-height:1.4;color:#bdbab6;margin:0 0 14px;text-transform:capitalize}
+.fh-phone-calendar-month{display:block;margin:0 0 12px;font:500 16px/1.2 'Cinzel',Georgia,serif;text-transform:capitalize}
+.fh-phone-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin:0 0 14px}
+.fh-phone-calendar-day,.fh-phone-calendar-weekday,.fh-phone-calendar-blank{
+ display:grid;place-items:center;min-width:0;min-height:32px;font-size:11px;
+ font-variant-numeric:tabular-nums;color:#cfcdca;
+}
+.fh-phone-calendar-weekday{min-height:26px;font-size:10px;color:#a7a5a2;font-weight:650}
+.fh-phone-calendar-day.is-today{
+ border:1px solid #c7c5c0;border-radius:8px;background:#444549;
+ color:#fff;font-weight:750;
+}
+.fh-phone-weather-detail{
+ display:flex;flex-direction:column;gap:8px;margin:0 0 13px;
+ padding:17px;border:1px solid #ffffff2c;border-radius:13px;
+ background:linear-gradient(145deg,#2b2c2e,#1b1c1e 73%);
+}
+.fh-phone-weather-detail-condition{font:500 18px/1.22 'Cinzel',Georgia,serif;color:#f1efea}
+.fh-phone-weather-detail-temp{font-size:30px;font-weight:400;line-height:1;font-variant-numeric:tabular-nums}
+.fh-phone-weather-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:12px}
+.fh-phone-weather-fact{display:flex;flex-direction:column;gap:5px;min-height:53px;padding:10px;
+ border:1px solid #ffffff1f;border-radius:10px;background:#ffffff09}
+.fh-phone-weather-fact small{color:#b7b4b1;font-size:10px}
+.fh-phone-weather-fact strong{color:#f0eeec;font-size:12px;font-weight:600}
+
 @media(max-width:780px){
  #fhPhoneToggle{right:10px;top:calc(83px + env(safe-area-inset-top,0px));width:48px;height:48px}
  #fhPhonePanel{right:64px;top:calc(24px + env(safe-area-inset-top,0px));
@@ -270,6 +317,30 @@ body.breaker-active #fhPhoneToggle,body.breaker-active #fhPhonePanel{
  .fh-phone-nav::after{bottom:4px;width:72px;height:3px}
  .fh-phone-toast{bottom:40px;left:10px;right:10px;padding:8px 10px;border-radius:8px;font-size:9px}
 }
+
+@media(max-height:480px) and (orientation:landscape){
+ #fhPhonePanel .fh-phone-weather-widget{min-height:51px;padding:5px 7px;margin:0 0 7px;gap:5px;border-radius:9px}
+ #fhPhonePanel .fh-phone-weather-icon{width:23px;height:23px}
+ #fhPhonePanel .fh-phone-weather-icon svg{width:19px;height:19px}
+ #fhPhonePanel .fh-phone-weather-copy{gap:1px}
+ #fhPhonePanel .fh-phone-weather-label{font-size:7px}
+ #fhPhonePanel .fh-phone-weather-condition{font-size:9px}
+ #fhPhonePanel .fh-phone-weather-date{font-size:8px}
+ #fhPhonePanel .fh-phone-weather-temp{font-size:11px}
+ #fhPhonePanel .fh-phone-calendar-current{font-size:9px;margin:0 0 7px}
+ #fhPhonePanel .fh-phone-calendar-month{font-size:11px;margin:0 0 7px}
+ #fhPhonePanel .fh-phone-calendar-grid{gap:2px;margin:0 0 6px}
+ #fhPhonePanel .fh-phone-calendar-day,#fhPhonePanel .fh-phone-calendar-blank{min-height:25px;font-size:9px}
+ #fhPhonePanel .fh-phone-calendar-weekday{min-height:21px;font-size:8px}
+ #fhPhonePanel .fh-phone-weather-detail{gap:4px;padding:8px;margin:0 0 6px}
+ #fhPhonePanel .fh-phone-weather-detail-condition{font-size:12px}
+ #fhPhonePanel .fh-phone-weather-detail-temp{font-size:20px}
+ #fhPhonePanel .fh-phone-weather-facts{gap:4px;margin-bottom:5px}
+ #fhPhonePanel .fh-phone-weather-fact{gap:3px;min-height:39px;padding:6px}
+ #fhPhonePanel .fh-phone-weather-fact small{font-size:8px}
+ #fhPhonePanel .fh-phone-weather-fact strong{font-size:9px}
+}
+
 @media(prefers-reduced-motion:reduce){
  .fh-phone-battery-fill,.fh-phone-status-battery-fill,.fh-phone-switch-track,.fh-phone-switch-track::after{transition:none}
 }

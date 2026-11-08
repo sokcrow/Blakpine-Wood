@@ -42,44 +42,32 @@ window.FHStructureHealthRuntime=fhHealthRuntime;`);
   " if(d.destroyed)return notice(window.FH_STRUCTURE_TEXT.destroyed,1800);\n if(d.stairBlockFlag&&GameState.flags[d.stairBlockFlag])");
  doc=one(doc,"if(!d||d.kind!=='peephole_door')return notice(",
   "if(!d||d.destroyed||d.kind!=='peephole_door')return notice(");
- const button=`// Inspector de PG dentro del juego (ratón, toque y teclado), sin golpes automáticos.
+ const inspector=`// Inspección de PG desde el objetivo seleccionado del radial.
 const fhStructureText=window.FH_STRUCTURE_TEXT;
-function fhInspectStructure(){
- const near=fhHealthRuntime.nearest(currentFloor,user.x,user.z,CELL);
- if(!near){notice(fhStructureText.noTarget,2200);return null;}
- const it=near.item;
- const state=fhHealthRuntime.getState(currentFloor,it.id);
+function fhInspectStructure(floorId,id){
+ const floor=typeof floorId==='number'?DATA.floors[floorId]:DATA.floors.find(f=>f.id===floorId);
+ const it=floor?.items?.find(item=>item.id===id);
+ if(!it)return null;
+ const state=fhHealthRuntime.getState(floorId,id);
  if(!state)return null;
  const name=it.type==='window'?fhStructureText.window:fhStructureText.door;
  const condition=state.destroyed?fhStructureText.destroyed:state.pg===state.maxPG?fhStructureText.intact:fhStructureText.damaged;
- const reader=fhHealthRuntime.getState(currentFloor,it.id,'reader');
+ const reader=fhHealthRuntime.getState(floorId,id,'reader');
  const readerText=reader?' · '+(it.accessDevice==='pin'?fhStructureText.readerPin:fhStructureText.readerCard)+
   ': '+reader.pg+'/'+reader.maxPG+' '+fhStructureText.pg+
   (reader.destroyed?' ('+fhStructureText.destroyed+')':''):'';
  notice(name+': '+state.pg+'/'+state.maxPG+' '+fhStructureText.pg+' · '+condition+readerText,4300);
  return {item:it,...state,reader};
 }
-const fhInspectButton=document.createElement('button');
-fhInspectButton.type='button';fhInspectButton.id='fhStructureHealthInspect';
-fhInspectButton.textContent=fhStructureText.button;
-fhInspectButton.title=fhStructureText.buttonTitle;
-fhInspectButton.setAttribute('aria-label',fhStructureText.buttonTitle);
-fhInspectButton.style.cssText='position:fixed;right:10px;top:78px;z-index:25;min-width:44px;min-height:44px;padding:6px 9px;border:2px solid #798c85;border-radius:3px;background:#142027e8;color:#e6e2d4;font:bold 12px monospace;image-rendering:pixelated;cursor:pointer';
-fhInspectButton.addEventListener('click',fhInspectStructure);
-document.body.append(fhInspectButton);
-window.addEventListener('keydown',e=>{
- if(e.key.toLowerCase()!=='p'||e.repeat||e.altKey||e.ctrlKey||e.metaKey)return;
- if(e.target?.closest?.('input,textarea,[contenteditable="true"]'))return;
- fhInspectStructure();
-});
 window.ForestHorrorStructureAPI=Object.freeze({
  takeDamage:args=>fhHealthRuntime.takeDamage(args),
  inspect:args=>fhHealthRuntime.getState(args?.floorId,args?.id,args?.part||'structure'),
- inspectNear:fhInspectStructure
+ inspectSelected:(floorId,id)=>fhInspectStructure(floorId,id),
+ nearestWindow:(f,x,z,cell)=>fhHealthRuntime.nearest(f,x,z,cell,2.4,'window')
 });
 `;
  doc=one(doc,"window.ForestHorrorGame={source:'JSON arquitect",
-  button+"\nwindow.ForestHorrorGame={source:'JSON arquitect");
+  inspector+"\nwindow.ForestHorrorGame={source:'JSON arquitect");
  const base=new URL('../../',scriptUrl);
  const healthScript='<script src="'+new URL('juego/assets/fh-structure-health.js?v=20261107-structure-pg',base).href+'"></scr'+'ipt>';
  const stringScript='<script src="'+new URL('juego/assets/fh-structure-strings.js?v=20261107-structure-pg',base).href+'"></scr'+'ipt>';

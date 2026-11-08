@@ -66,7 +66,7 @@
   const rows=clamp(Math.floor(finite(units.rows,22)),1,500);
   const scale=columns*rows<=3000?2:1,w=columns*scale,h=rows*scale;
   const access=new Uint8Array(w*h);
-  if(isBasement(floor))return {width:w,height:h,scale,access,exterior:0,portals:0};
+  if(isBasement(floor))return {width:w,height:h,scale,access,exteriorMask:new Uint8Array(w*h),exterior:0,portals:0};
   const items=Array.isArray(floor?.items)?floor.items:[];
   const blockers=[],lightBlockers=[],portals=[];
   for(const it of items){
@@ -143,7 +143,7 @@
     }
    }
   }
-  return {width:w,height:h,scale,access,exterior:tail,portals:activePortals};
+  return {width:w,height:h,scale,access,exteriorMask:outside,exterior:tail,portals:activePortals};
  }
  function itIsDoor(type){return type!=='window'}
  function createRuntime({DATA,CELL,clock,floor,doorOpen,doorTransparent,weather}={}){

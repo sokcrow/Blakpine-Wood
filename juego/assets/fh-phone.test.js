@@ -98,3 +98,82 @@ test('los puntos de enlace permanecen dentro del motor sin alterar forest-horror
  assert.match(css,/#flashlightToggle\{display:none!important\}/);
  assert.doesNotMatch(main,/forest-horror-map-v2/);
 });
+
+test('calendario de 2016: lunes y febrero bisiesto',()=>{
+ const d=Phone.calendarModel({year:2016,month:10,day:31});
+ assert.equal(d.date.getUTCDay(),1);
+ assert.equal(d.firstDay,5);
+ assert.equal(d.days,31);
+ assert.match(Phone.formatCalendarDate({year:2016,month:10,day:31}),/lunes.*31.*octubre.*2016/i);
+ assert.equal(Phone.calendarModel({year:2016,month:2,day:29}).days,29);
+ assert.equal(Phone.calendarModel(null).year,2016);
+});
+test('las aplicaciones nuevas conservan Hamazon y partidas anteriores',()=>{
+ const state={phone:{installedApps:['hamazon','notes'],notes:[],contacts:[],messages:[]}};
+ Phone.ensureState(state);
+ for(const id of ['calendar','weather','hamazon'])assert.ok(state.phone.installedApps.includes(id));
+ assert.equal(Phone.uninstallApp(state,'calendar'),false);
+});
+function fakePhoneDocument(){
+ function node(tag){
+  const e={tagName:tag.toUpperCase(),id:'',className:'',children:[],style:{},dataset:{},
+   hidden:false,attributes:{},listeners:{},textContent:''};
+  e.classList={contains(c){return e.className.split(/\s+/).includes(c)},
+   add(c){if(!this.contains(c))e.className=(e.className+' '+c).trim()},
+   remove(c){e.className=e.className.split(/\s+/).filter(x=>x!==c).join(' ')}};
+  e.append=(...kids)=>{e.children.push(...kids)};
+  e.replaceChildren=(...kids)=>{e.children=[...kids]};
+  e.setAttribute=(key,value)=>{e.attributes[key]=String(value)};
+  e.addEventListener=(name,fn)=>{e.listeners[name]=fn};
+  e.querySelectorAll=selector=>{
+   const cls=selector.split(',').map(x=>x.trim().replace(/^\./,''));
+   const hits=[];
+   function visit(p){for(const child of p.children){
+    if(cls.some(c=>child.classList.contains(c)))hits.push(child);visit(child);
+   }}
+   visit(e);return hits;
+  };
+  e.querySelector=selector=>e.querySelectorAll(selector)[0]||null;
+  return e;
+ }
+ const body=node('body');
+ return {body,createElement:node,createElementNS:(_ns,tag)=>node(tag),
+  getElementById(id){
+   let result=null;
+   function visit(p){if(p.id===id){result=p;return}
+    for(const c of p.children)if(!result)visit(c)}
+   visit(body);return result;
+  }};
+}
+test('widget muestra el estado del juego y el calendario se abre',()=>{
+ require('./fh-phone-strings.js');
+ const doc=fakePhoneDocument();
+ const state={clock:{year:2016,month:10,day:31,minutes:480},
+  weather:{nextAt:Date.UTC(2016,9,31)/60000+900}};
+ const current={type:'tormenta',phase:'lluvia',season:'otono',temp:8,fog:1,snow:0,wetness:.5};
+ const phone=Phone.createRuntime({state,document:doc,strings:globalThis.FH_PHONE_TEXT,weather:()=>current});
+ assert.equal(phone.open(),true);
+ const widget=doc.body.querySelector('.fh-phone-weather-widget');
+ assert.ok(widget);
+ assert.match(widget.querySelector('.fh-phone-weather-condition').textContent,/Tormenta/);
+ assert.equal(widget.querySelector('.fh-phone-weather-temp').textContent,'8 °C');
+ widget.listeners.click();
+ assert.ok(doc.body.querySelector('.fh-phone-weather-detail'));
+ phone.close();phone.open();
+ const calendar=doc.body.querySelectorAll('.fh-phone-app').find(x=>x.dataset.app==='calendar');
+ assert.ok(calendar);
+ calendar.listeners.click();
+ const grid=doc.body.querySelector('.fh-phone-calendar-grid');
+ assert.equal(grid.children.length,43);
+ assert.ok(grid.querySelector('.is-today'));
+});
+test('el celular conserva el estilo y consulta el clima del motor',()=>{
+ const main=fs.readFileSync(path.resolve(__dirname,'../../index.html'),'utf8');
+ const css=fs.readFileSync(path.resolve(__dirname,'fh-phone.css'),'utf8');
+ assert.match(main,/year:2016,month:6,day:1,minutes:480/);
+ assert.match(main,/weather:\(\)=>window\.FHWeatherRuntime\?\.view\?\.\(\)\|\|null/);
+ assert.match(main,/window\.FHWeatherRuntime=fhWeather/);
+ assert.match(css,/\.fh-phone-weather-widget/);
+ assert.match(css,/\.fh-phone-calendar-grid/);
+ assert.match(main,/forest-horror-map-v1/);
+});

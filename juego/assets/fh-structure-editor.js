@@ -15,7 +15,7 @@ function apply(it,key,value){
   if(value.length)it[key]=value;
   else delete it[key];
  }else if(key==='initialPG'||key==='readerInitialPG'){
-  if(!Number.isFinite(value)||value<0||value>max)throw Error('Los PG deben estar entre 0 y '+max);
+  if(!Number.isInteger(value)||value<0||value>max)throw Error('Los PG deben ser enteros entre 0 y '+max);
   if(value===max)delete it[key];else it[key]=value;
  }else if(key==='windowMaterial'){
   if(value==='glass')delete it[key];else it[key]=value;
@@ -54,7 +54,7 @@ function attach(){
  section.append(node('div','PG máximos: '+max+(H.isElectronic(it)?' · electrónicos fijos':'')));
  function numberField(key,labelText,maxValue){
   const label=node('label',labelText);
-  const input=node('input');input.type='number';input.min='0';input.max=String(maxValue);input.step='.5';
+  const input=node('input');input.type='number';input.min='0';input.max=String(maxValue);input.step='1';
   input.value=String(H.initialPG(it,key==='readerInitialPG'?'reader':'structure'));
   input.onchange=()=>change(key,input.value.trim()===''?NaN:Number(input.value));
   label.append(input);section.append(label);

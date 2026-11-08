@@ -38,7 +38,7 @@
  function ensureClock(gameState){
   const source=gameState.clock&&typeof gameState.clock==='object'?gameState.clock:{};
   const clock=gameState.clock=source;
-  clock.year=clamp(Math.floor(finite(clock.year,2026)),1,9999);
+  clock.year=clamp(Math.floor(finite(clock.year,2016)),1,9999);
   clock.month=clamp(Math.floor(finite(clock.month,6)),1,12);
   clock.day=clamp(Math.floor(finite(clock.day,1)),1,monthDays(clock.month,clock.year));
   clock.minutes=finite(clock.minutes,480);

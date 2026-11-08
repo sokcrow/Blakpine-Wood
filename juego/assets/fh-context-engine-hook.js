@@ -158,7 +158,20 @@ function fhContextRefresh(){
     if(front||tv)actions.push({id:'watch',label:$('watchTv').textContent,run:fhUseFrontFromSeat});
    }else{
     const selected=useTarget(),target=selected?.target;
-    if(selected&&target){
+    const windowNear=window.ForestHorrorStructureAPI?.nearestWindow?.(currentFloor,user.x,user.z,CELL);
+    const selectedDistance=selected?.kind==='door'?doorApproachDistance(target):
+      selected?.kind==='furniture'?target.score:
+      selected?.kind==='stairs'?Math.hypot(user.x-target.x,user.z-target.z):
+      selected?.kind==='elevator'?ForestShared.elevatorEntranceDistance(target.item,user.x,user.z,CELL):Infinity;
+    // La ventana sólo desplaza al objetivo habitual cuando está claramente más cerca.
+    if(windowNear&&windowNear.dist+.15<selectedDistance){
+     const it=windowNear.item;
+     key='window:'+currentFloor+':'+it.id;title=it.label||window.FH_STRUCTURE_TEXT?.window||'Ventana';
+     point=fhContextPoint((it.a.x+it.b.x)*CELL*.5,(it.a.y+it.b.y)*CELL*.5);
+     const canExamine=!!window.ForestHorrorStructureAPI?.inspect({floorId:currentFloor,id:it.id});
+     actions.push({id:'examine',label:t.examine||'Examinar',disabled:!canExamine,
+      ...(canExamine?{run:()=>window.ForestHorrorStructureAPI?.inspectSelected(currentFloor,it.id)}:{})});
+    }else if(selected&&target){
      if(selected.kind==='furniture'){
       const it=target.item;key='furniture:'+currentFloor+':'+it.id;
       fhTapRoots=(renderedByItem[currentFloor]?.get(it.id)||[]).map(entry=>entry?.root||entry).filter(root=>root?.isObject3D);
@@ -192,7 +205,9 @@ function fhContextRefresh(){
       actions.push({id:'peephole',label:t.peepholeShort||'Mirilla',disabled:!canLook,
        ...(canLook?{run:peephole}:{})});
       actions.push({id:'knock',label:t.knock||'Llamar',disabled:true});
-      actions.push({id:'examine',label:t.examine||'Examinar',disabled:true});
+      const canExamine=!!window.ForestHorrorStructureAPI?.inspect({floorId:currentFloor,id:target.id});
+      actions.push({id:'examine',label:t.examine||'Examinar',disabled:!canExamine,
+       ...(canExamine?{run:()=>window.ForestHorrorStructureAPI?.inspectSelected(currentFloor,target.id)}:{})});
      }
     }
    }
