@@ -149,7 +149,7 @@ test('válvula inicialmente cerrada puede abrirse desde runtime',()=>{
 });
 test('línea de techo opt-in sigue las paredes incluso lejos de ellas',()=>{
  const {project,state,items}=fixture();
- const lamp={id:'lamp',type:'light_fixture',x:3,y:3,service:{requiresPower:true}};
+ const lamp={id:'lamp',type:'light_fixture',x:5,y:3,service:{requiresPower:true}};
  items.push(lamp);
  const sys=FH.createRuntime(project,state);
  assert.ok(sys.sourceFor(0,lamp,'a'));
