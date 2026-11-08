@@ -139,6 +139,9 @@ function createRuntime({data,state,doorList,blockers,save,refresh,events}){
   d.destroyed=false;
   d.passable=!!d.open&&(d.family!=='garage'||d.angle>=.85);
   restoreRoot(d.hinge);restoreRoot(d.frame);
+  // registerDoor() puede haber retirado los nodos antes de decorateDoor().
+  // Reintentar el GLB y el lector sólo después de reconstruir la puerta.
+  global.FHArchitectureSkins?.restoreDoorDecoration?.(d);
  }
  function destroyWindow(entry){
   if(!entry||entry.destroyed)return;
