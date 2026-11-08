@@ -212,7 +212,7 @@
     current=f;lastSignature=signatureNow;changed=true;
    }
    const minutes=finite(clock?.(),480);
-   if(minutes===lastMinutes)return changed;
+   if(minutes===lastMinutes&&!changed)return changed;
    lastMinutes=minutes;
    const light=lightAt(minutes);
    const wasActive=daylightActive;
