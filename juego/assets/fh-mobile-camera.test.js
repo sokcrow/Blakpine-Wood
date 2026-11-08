@@ -9,18 +9,15 @@ const path=require('node:path');
 const camera=require('./fh-mobile-camera.js');
 const html=fs.readFileSync(path.resolve(__dirname,'../../index.html'),'utf8');
 
-test('gameplay móvil reduce 20% el sprite sin afectar PC ni colisiones',()=>{
- assert.equal(camera.PHONE_HERO_SCALE,0.80);
- assert.ok(Math.abs(camera.visualScale(1.15,844,390,true)-.92)<1e-10);
- assert.ok(Math.abs(camera.visualScale(1.15,390,844,true)-.92)<1e-10);
- assert.equal(camera.visualScale(1.15,1920,1080,false),1.15);
- assert.equal(camera.visualScale(1.15,820,1180,true),1.15);
- assert.equal(camera.visualScale(0,844,390,true),0);
- assert.equal(camera.visualScale(Infinity,844,390,true),Infinity);
+test('personaje y mapa usan la misma escala visual 1.0 en PC y celular',()=>{
+ // El motor conserva la altura base de 1.68 m; solo se unifica su escala visual.
  assert.match(html,/const heroScaleBefore='const HERO_H=1\.68,HERO_VISUAL_SCALE=1\.15,'/);
- assert.match(html,/const heroScaleOnPhone="const HERO_H=1\.68,HERO_VISUAL_SCALE=\(window\.FHMobileCamera\?\.visualScale\(1\.15,/);
- assert.match(html,/\.replace\(heroScaleBefore,heroScaleOnPhone\)/);
- assert.doesNotMatch(html,/\.replace\(heroScaleBefore,'const HERO_H=1\.68,HERO_VISUAL_SCALE=1,'\)/);
+ assert.match(html,/const heroScaleUnified='const HERO_H=1\.68,HERO_VISUAL_SCALE=1\.0,'/);
+ assert.match(html,/\.replace\(heroScaleBefore,heroScaleUnified\)/);
+ assert.doesNotMatch(html,/FHMobileCamera\?\.visualScale|heroScaleOnPhone/);
+ assert.equal(Object.hasOwn(camera,'PHONE_HERO_SCALE'),false);
+ assert.equal(Object.hasOwn(camera,'visualScale'),false);
+ // La distancia de cámara móvil y su zoom permanecen configurados aparte.
  assert.match(html,/const fhCameraDistance=window\.FHMobileCamera\?\.distance\(lightDistance,/);
 });
 
