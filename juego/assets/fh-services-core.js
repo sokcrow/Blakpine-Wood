@@ -9,7 +9,7 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
  'use strict';
  const WALLS=new Set(['wall','red_wall','property_wall']);
- const INFRA=new Set(['power_outlet','power_strip','water_main','water_valve','water_outlet','drain_outlet','router','ethernet_port','landline_phone','phone_charger']);
+ const INFRA=new Set(['power_outlet','power_strip','water_main','water_valve','water_outlet','drain_outlet','drain_main','router','ethernet_port','landline_phone','phone_charger']);
  const POWER_NEEDS=new Set(['router','phone_charger']);
  const WATER_NEEDS=new Set(['bath','toilet','kitchen']);
  const LIMITS={small:{rangeFt:30,capacityWatts:1200},medium:{rangeFt:60,capacityWatts:2400},large:{rangeFt:120,capacityWatts:4800}};
@@ -57,44 +57,60 @@
    for(let k=1;k<sorted.length;k++){
     const p=sorted[k-1],q=sorted[k],len=dist(p,q);
     if(len<1e-5)continue;
-    const u=add(p),v=add(q),edge={a:p,b:q,u,v,len};
-    edges.push(edge);adj.get(u).push({to:v,cost:len});adj.get(v).push({to:u,cost:len});
+    const u=add(p),v=add(q),edge={a:p,b:q,u,v,len,wallId:id(w),wallType:w.type};
+    edges.push(edge);adj.get(u).push({to:v,cost:len,edge});adj.get(v).push({to:u,cost:len,edge});
    }
   }
-  const anchor=p=>{
+  const anchor=(p,allowed=()=>true)=>{
    let best=null,d=Infinity;
    for(const edge of edges){
+    if(!allowed(edge))continue;
     const q=project(p,edge.a,edge.b),v=dist(p,q);
     if(v<d){d=v;best={edge,p:q,gap:v};}
    }
    return best;
   };
-  const walk=(from,to)=>{
-   if(from===to)return 0;
-   const costs=new Map([[from,0]]),done=new Set(),queue=[[0,from]];
-   while(queue.length){
-    queue.sort((a,b)=>b[0]-a[0]);
-    const [cost,k]=queue.pop();
-    if(done.has(k))continue;
-    if(k===to)return cost;
-    done.add(k);
-    for(const n of adj.get(k)||[]){
-     const next=cost+n.cost;
-     if(next<(costs.get(n.to)??Infinity)){costs.set(n.to,next);queue.push([next,n.to]);}
+  // Una ruta compartida entre simulación y overlay: sólo tramos de pared.
+  function routeDetailed(a,b,maxGap=.65,allowed=()=>true){
+   const start=anchor(a,allowed),end=anchor(b,allowed);
+   if(!start||!end||start.gap>maxGap||end.gap>maxGap)return null;
+   let best=null;
+   const select=(length,points)=>{
+    if(!Number.isFinite(length)||best&&length>=best.length-1e-7)return;
+    const compact=points.filter((p,i)=>i===0||dist(p,points[i-1])>1e-6);
+    best={length,points:compact,from:start.p,to:end.p,fromGap:start.gap,toGap:end.gap};
+   };
+   if(start.edge===end.edge)select(dist(start.p,end.p),[start.p,end.p]);
+   for(const sa of ['u','v']){
+    const from=start.edge[sa],initial=dist(start.p,vertices.get(from));
+    const costs=new Map([[from,0]]),prev=new Map(),done=new Set(),queue=[[0,from]];
+    while(queue.length){
+     queue.sort((a,b)=>b[0]-a[0]);
+     const [cost,key]=queue.pop();
+     if(done.has(key))continue;
+     done.add(key);
+     for(const entry of adj.get(key)||[]){
+      if(!allowed(entry.edge))continue;
+      const next=cost+entry.cost;
+      if(next<(costs.get(entry.to)??Infinity)){
+       costs.set(entry.to,next);prev.set(entry.to,key);queue.push([next,entry.to]);
+      }
+     }
+    }
+    for(const eb of ['u','v']){
+     const to=end.edge[eb],length=initial+(costs.get(to)??Infinity)+dist(end.p,vertices.get(to));
+     if(!Number.isFinite(length))continue;
+     const keys=[to];let node=to;
+     while(node!==from){node=prev.get(node);if(!node)break;keys.push(node)}
+     if(node!==from)continue;
+     keys.reverse();
+     select(length,[start.p,...keys.map(k=>vertices.get(k)),end.p]);
     }
    }
-   return Infinity;
-  };
-  function route(a,b,maxGap=.65){
-   const start=anchor(a),end=anchor(b);
-   if(!start||!end||start.gap>maxGap||end.gap>maxGap)return Infinity;
-   let best=start.edge===end.edge?dist(start.p,end.p):Infinity;
-   for(const sa of ['u','v'])for(const eb of ['u','v']){
-    const sk=start.edge[sa],ek=end.edge[eb];
-    const v=dist(start.p,vertices.get(sk))+walk(sk,ek)+dist(end.p,vertices.get(ek));
-    if(v<best)best=v;
-   }
    return best;
+  }
+  function route(a,b,maxGap=.65,allowed){
+   return routeDetailed(a,b,maxGap,allowed)?.length??Infinity;
   }
   function wallsBetween(a,b){
    let count=0;
@@ -104,7 +120,7 @@
    }
    return count;
   }
-  return {route,wallsBetween,wallCount:walls.length};
+  return {route,routeDetailed,wallsBetween,wallCount:walls.length};
  }
  function defaultsFor(type){
   switch(type){
@@ -113,8 +129,9 @@
    case 'water_main':return {rangeFt:120,flowLpm:50};
    case 'water_valve':return {opened:true};
    case 'water_outlet':return {radiusFt:5,flowLpm:12};
-   case 'drain_outlet':return {radiusFt:5};
-   case 'router':return {wifiRadiusFt:60,ethernetLengthFt:30,wifiPassword:'',rayos:1,watts:18};
+   case 'drain_outlet':return {radiusFt:5,networkId:'main'};
+   case 'drain_main':return {rangeFt:120,networkId:'main'};
+   case 'router':return {wifiRadiusFt:120,ethernetLengthFt:60,wifiPassword:'',rayos:1,watts:18,assignedRoomIds:[],propertyId:''};
    case 'ethernet_port':return {cableLengthFt:30};
    case 'landline_phone':return {routerId:''};
    case 'phone_charger':return {chargePerHour:25,rayos:1,watts:12};
