@@ -146,7 +146,7 @@
     initialItems:[...items,{id:def.id,quantity:1}]
    },defs,core).ok);
    if(compatible.length){
-    const addRow=tag('div');addRow.className='fh-storage-item';
+    const addRow=tag('div');addRow.className='fh-storage-item fh-storage-add';
     const picker=tag('select');picker.setAttribute('aria-label','Objeto para agregar');
     for(const def of compatible){
      const option=tag('option',def.name||def.id);option.value=def.id;picker.append(option);
