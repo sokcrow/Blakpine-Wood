@@ -213,8 +213,8 @@ function fhContextRefresh(){
   // El adaptador de computadoras ya añadió su propia cláusula al filtro.
   // Ampliamos esa cláusula sin sustituir la prioridad de interacción de PC.
   doc=one(doc,
-    "||window.FHComputer?.isPc(it,f.items,Number(DATA.units.feetPerCell)||5))",
-    "||window.FHComputer?.isPc(it,f.items,Number(DATA.units.feetPerCell)||5)||window.FHStorageRuntime?.supports(it))",
+    "const interactableItems=DATA.floors.map(f=>(f.items||[]).filter(it=>it.interact||it.type==='light_switch'||it.type==='breaker_panel'||ForestShared.PROP_ACTIONS[it.type]||it.pcTerminal===true||it.modelId==='escritorio_pc'||window.FHComputer?.isPc(it,f.items,Number(DATA.units.feetPerCell)||5))",
+    "const interactableItems=DATA.floors.map(f=>(f.items||[]).filter(it=>it.interact||it.type==='light_switch'||it.type==='breaker_panel'||ForestShared.PROP_ACTIONS[it.type]||it.pcTerminal===true||it.modelId==='escritorio_pc'||window.FHComputer?.isPc(it,f.items,Number(DATA.units.feetPerCell)||5)||window.FHStorageRuntime?.supports(it))",
     'detección almacenamiento');
   doc=one(doc,":it.interact?it:{...it,interact:ForestShared.PROP_ACTIONS[it.type]?",
     ":it.interact?it:{...it,interact:window.FHStorageRuntime?.supports(it)?{id:'storage_'+it.id,verb:'storage',label:window.FH_STORAGE_STRINGS?.open||'Abrir inventario',effects:[]}:ForestShared.PROP_ACTIONS[it.type]?",'acción almacenamiento');
