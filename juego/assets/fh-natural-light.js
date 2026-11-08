@@ -107,7 +107,8 @@
     const t=(k+.5)/(steps+1),cx=s.x1+dx*t,cy=s.y1+dy*t;
     const extSide=(sign)=>{
      const xx=Math.floor((cx+nx*sign*.6)*scale),yy=Math.floor((cy+ny*sign*.6)*scale);
-     return inBounds(xx,yy)&&!!outside[yy*w+xx];
+     // Fuera de la cuadrícula siempre es exterior; crucial para ventanas en el borde.
+     return !inBounds(xx,yy)||!!outside[yy*w+xx];
     };
     const plus=extSide(1),minus=extSide(-1);
     if(plus===minus)continue;
