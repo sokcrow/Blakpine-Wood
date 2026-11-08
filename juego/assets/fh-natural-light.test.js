@@ -72,6 +72,80 @@ test('calcular la máscara no altera objetos ni crea luminarias',()=>{
  Natural.computeAccess(floor,units);
  assert.equal(JSON.stringify(floor),original);
 });
+
+test('P2: una habitación cerrada sobre el límite de la cuadrícula NO es exterior',()=>{
+ const walls=[line('red_wall',0,0,4,0),line('red_wall',4,0,4,4),
+  line('red_wall',4,4,0,4),line('red_wall',0,4,0,0)];
+ const mask=Natural.computeAccess(level(walls),units);
+ assert.equal(sample(mask,2,2),0);
+ assert.equal(sample(mask,5,5),255);
+});
+test('P2: las ventanas y puertas transparentes del borde dejan pasar la luz',()=>{
+ const frame=[line('red_wall',0,0,4,0),line('red_wall',4,0,4,4),
+  line('red_wall',4,4,0,4)];
+ for(const entry of [
+  {...line('window',0,4,0,0,'border')},
+  {...line('door',0,4,0,0,'border'),variant:'glass'},
+  {...line('door',0,4,0,0,'border'),variant:'storefront'}
+ ]){
+  const mask=Natural.computeAccess(level([...frame,entry]),units,{doorOpen:()=>false});
+  assert.ok(sample(mask,1,2)>0,'debe transmitir luz: '+entry.type+'/'+entry.variant);
+  assert.equal(sample(mask,5,5),255);
+ }
+ const closed=Natural.computeAccess(level([...frame,line('door',0,4,0,0,'border')]),units,{doorOpen:()=>false});
+ assert.equal(sample(closed,1,2),0);
+});
+test('P1: consulta de luz natural mantiene interiores oscuros y respeta sótanos',()=>{
+ const THREE={
+  Color:class {setRGB(r,g,b){this.rgb=[r,g,b]}},
+  DataTexture:class{constructor(data,w,h){this.image={data,width:w,height:h}}dispose(){}},
+  RGBAFormat:1,LinearFilter:2
+ };
+ const originalDocument=global.document;
+ let painted=0;
+ global.document={createElement:()=>({
+  width:0,height:0,getContext(){return {
+   createImageData(w,h){return {data:new Uint8ClampedArray(w*h*4)}},
+   putImageData(){painted++}
+  }}
+ })};
+ try{
+  const floors=[level(roomWithWestWindow(),'F1',0),level(roomWithWestWindow(),'B1',-12)];
+  let floorIndex=0,minutes=720;
+  const runtime=Natural.createRuntime({THREE,DATA:{floors,units},CELL:1,scene:{traverse(){}},
+   ambient:{intensity:.26},floor:()=>floorIndex,clock:()=>minutes});
+  assert.equal(runtime.hasLight(),true);
+  assert.equal(runtime.illuminates(2,2),true);
+  assert.equal(runtime.illuminates(3.6,4.5),true);
+  assert.equal(runtime.illuminates(5,8),true);
+  assert.equal(runtime.illuminates(5,5),true);
+  // Cuarto cerrado para verificar el predicado que se usa al dibujar FOW.
+  const opaque=Natural.createRuntime({THREE,DATA:{floors:[level(
+   roomWithWestWindow().map(it=>it.type==='window'?{...it,type:'red_wall'}:it)
+   )],units},CELL:1,scene:{traverse(){}},floor:()=>0,clock:()=>minutes});
+  assert.equal(opaque.illuminates(4,4.5),false);
+  opaque.dispose();
+  assert.ok(painted>=2,'la máscara 2D se creó para la textura de visibilidad');
+  let drawCount=0;
+  runtime.paintSight({drawImage(){drawCount++}},300,400);
+  assert.equal(drawCount,1);
+  floorIndex=1;assert.equal(runtime.update(),true);
+  assert.equal(runtime.hasLight(),false);
+  assert.equal(runtime.illuminates(2,2),false);
+  runtime.paintSight({drawImage(){drawCount++}},300,400);
+  assert.equal(drawCount,1,'los sótanos no pintan luz natural en FOW');
+  runtime.dispose();
+ }finally{if(originalDocument===undefined)delete global.document;else global.document=originalDocument}
+});
+test('P1: el motor conecta la visión de objetos, FOW y la luz natural',()=>{
+ const fs=require('node:fs'),path=require('node:path');
+ const html=fs.readFileSync(path.resolve(__dirname,'../../index.html'),'utf8');
+ assert.match(html,/fhNatural\?\.illuminates\(x,z\)/);
+ assert.match(html,/fhNatural\?\.paintSight\(q,sightCanvas\.width,sightCanvas\.height\)/);
+ assert.match(html,/fhNatural\?\.hasLight\(\)/);
+ assert.match(html,/if\(fhNatural\?\.update\(\)\)visibilityDirty=true/);
+});
+
 test('el adaptador 3D registra el módulo sin modificar los fragmentos Base64',()=>{
  const fs=require('node:fs'),path=require('node:path');
  const html=fs.readFileSync(path.resolve(__dirname,'../../index.html'),'utf8');
