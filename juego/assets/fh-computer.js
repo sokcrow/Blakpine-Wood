@@ -99,7 +99,10 @@
   function applySession(){
    if(!opened||!active)return;
    const api=terminalApi();if(!api)return;
-   api.setSession?.({stationId:active.stationId,userId:active.userId,apps:active.apps,cameras:active.cameras});
+   const network=options.networkFor?.(active.stationId,active.floor)||null;
+    const apps=network?.online===false?active.apps.filter(app=>!['mail','hamazon'].includes(app)):active.apps;
+    api.setSession?.({stationId:active.stationId,userId:active.userId,apps,cameras:active.cameras});
+    if(network?.online===false)say(TEXT.noInternet||'Esta computadora no tiene conexión a internet.');
    if(active.mails)api.setMails?.(active.mails);
    options.onTerminalReady?.(api,active);
    if(api.setPowerState)api.setPowerState(powerStore.read(activeKey));
@@ -151,6 +154,9 @@
    return frame;
   }
   function open(item,floor=options.currentFloor?.()||0){
+    if(options.powerAvailable?.(item,floor)===false){
+     say(TEXT.noPower||'Esta computadora no tiene electricidad.');return false;
+    }
    const session=sessionFor(item,floorItems(floor),{
     state:options.state,assembly,feetPerCell:options.feetPerCell,
     floor,cameras:options.cameras?.()||[],defaultUserId:options.defaultUserId
