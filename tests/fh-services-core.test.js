@@ -90,7 +90,8 @@ test('toma de agua recibe por tubería y válvula puede cerrarse/reabrirse',()=>
  assert.equal(sys.waterStatus(0,sink).water,true);
 });
 test('agua: medición de litros y drenaje sin facturas',()=>{
- const {sys}=fixture();
+ const {sys,items}=fixture();
+ sys.useWaterFixture(0,items.find(it=>it.id==='sink'));
  sys.tick(10,1);
  assert.ok(sys.state.meters.waterLiters>0);
  assert.ok(sys.state.meters.drainLiters>0);
@@ -121,4 +122,35 @@ test('capacidad y precio no son equivalentes',()=>{
  assert.equal(sys.state.contracts.electricity,'active');
  assert.equal(sys.state.meters.kwh,0);
  assert.equal(sys.state.meters.waterLiters,0);
+});
+
+test('grifo instalado pero cerrado no consume agua',()=>{
+ const {sys}=fixture();sys.tick(10,1);assert.equal(sys.state.meters.waterLiters,0);
+});
+test('inodoro usa un pulso de agua y no queda drenando',()=>{
+ const {sys,items}=fixture();const toilet={id:'wc',type:'toilet',x:3,y:3.3,service:{requiresWater:true,waterMode:'pulse',litersPerUse:6}};
+ items.push(toilet);
+ assert.equal(sys.useWaterFixture(0,toilet).liters,6);
+ assert.equal(sys.state.meters.waterLiters,6);
+ sys.tick(5,1);assert.equal(sys.state.meters.waterLiters,6);
+});
+test('cargador sin teléfono no factura consumos de carga',()=>{
+ const {sys}=fixture();sys.tick(1,1);const standby=sys.state.meters.kwh;
+ assert.ok(standby>0); // Router, no cargador.
+ const plugged=fixture();plugged.sys.chargePhone(0,'charger');plugged.sys.tick(1,1);
+ assert.ok(plugged.sys.state.meters.kwh>standby);
+});
+test('válvula inicialmente cerrada puede abrirse desde runtime',()=>{
+ const {project,state,items}=fixture();items.find(it=>it.id==='valve').opened=false;
+ const sys=FH.createRuntime(project,state),sink=items.find(it=>it.id==='sink');
+ assert.equal(sys.waterStatus(0,sink).water,false);
+ sys.state.enabled.valve=true;
+ assert.equal(sys.waterStatus(0,sink).water,true);
+});
+test('línea de techo opt-in sigue las paredes incluso lejos de ellas',()=>{
+ const {project,state,items}=fixture();
+ const lamp={id:'lamp',type:'light_fixture',x:3,y:3,service:{requiresPower:true}};
+ items.push(lamp);
+ const sys=FH.createRuntime(project,state);
+ assert.ok(sys.sourceFor(0,lamp,'a'));
 });
