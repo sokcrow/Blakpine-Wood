@@ -228,6 +228,8 @@
    if(!router||!target||f<0||!graphs[f])return null;
    const scope=scopeFor(f,router);
    if(scope.kind==='invalidProperty'||scope.kind==='outsideProperty'||scope.kind==='noRoom')return null;
+   if(scope.kind==='rooms'&&target.roomId&&!scope.ids.has(target.roomId))return null;
+   if(scope.kind==='property'&&target.propertyId&&scope.id!==target.propertyId)return null;
    const gapFt=Math.max(0,number(router.ethernetLeadFt,10));
    const path=graphs[f].routeDetailed(point(router),point(target),gapFt/feetPerCell,scope.allow);
    if(!path)return null;
