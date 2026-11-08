@@ -7,7 +7,7 @@
   labels:Object.freeze({
    power_outlet:'Enchufe doble',power_strip:'Multiconector',phone_charger:'Cargador de celular',
    water_main:'Entrada de agua',water_valve:'Válvula de agua',
-   water_outlet:'Toma de agua',drain_outlet:'Desagüe',
+   water_outlet:'Toma de agua',drain_outlet:'Desagüe',drain_main:'Salida principal de drenaje',
    router:'Router Wi-Fi',ethernet_port:'Toma Ethernet',landline_phone:'Teléfono de pared'
   }),
   fields:Object.freeze({
@@ -15,7 +15,8 @@
    radiusFt:'Radio de conexión (pies)',outletId:'ID del enchufe o multiconector',
    rangeFt:'Recorrido por pared (pies)',flowLpm:'Caudal (litros/min)',opened:'Válvula abierta',
    wifiRadiusFt:'Radio Wi-Fi (pies)',wifiPassword:'Contraseña Wi-Fi',
-   ethernetLengthFt:'Largo del cable Ethernet (pies)',routerId:'ID del router',
+   ethernetLengthFt:'Largo del cable Ethernet (pies)',ethernetLeadFt:'Cable del router a pared (pies)',
+   roomId:'Habitación de origen',propertyId:'Parcela del router (opcional)',routerId:'Router asignado',
    cableLengthFt:'Cable disponible (pies)',phoneNumber:'Número de teléfono fijo',chargePerHour:'Carga de batería por hora (%)',
    rayos:'Consumo (rayos)',watts:'Potencia (vatios)',
    powerRequired:'Necesita electricidad',waterRequired:'Necesita agua',
@@ -30,8 +31,9 @@
    water_main:'Distribuye suministro por los tramos conectados de pared.',
    water_valve:'Cierra o abre el flujo de la tubería asociada.',
    water_outlet:'Permite conectar muebles que requieren agua.',
-   drain_outlet:'Conexión de drenaje, independiente de la entrada de agua.',
-   router:'Requiere electricidad. El Wi-Fi llega a los dispositivos con contraseña.',
+   drain_outlet:'Conecta al colector de drenaje por las paredes.',
+   drain_main:'Salida de aguas residuales conectada a las tuberías.',
+   router:'El Ethernet recorre paredes de las habitaciones asignadas o la parcela; el Wi-Fi atraviesa paredes, pero pierde fuerza con distancia y materiales.',
    ethernet_port:'Conecta equipos por cable a un router asignado.',
    landline_phone:'El teléfono depende de su router y del servicio de telefonía fija.'
   }),
