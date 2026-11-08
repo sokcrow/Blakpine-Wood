@@ -40,7 +40,7 @@
   }catch(error){return {ok:false,reason:'invalid-skill-options',message:String(error.message||error)};}
  }
  function preflight({job,kit,character,health,config,skillOptions}={}){
-  const c=checkConfig(config);
+  const c=checkConfig({failureRecoveryPct:config?.failureRecoveryPct??job?.failureRecoveryPct});
   if(!c.ok)return c;
   const probs=odds({job,character,skillOptions});
   if(!probs.ok)return probs;
@@ -86,7 +86,13 @@
   state.repairReceipts=receipts.concat([spent.receiptId]);
   // Persistir el uso del kit ANTES del resultado, incluso si el RNG externo falla.
   saveState();
-  const options={difficulty:job.difficulty,...skillOptions};
+  const options={
+   ...(skillOptions?.advantage===undefined?{}:{advantage:skillOptions.advantage}),
+   ...(skillOptions?.disadvantage===undefined?{}:{disadvantage:skillOptions.disadvantage}),
+   ...(skillOptions?.difficultyPenaltyPerPoint===undefined?{}:
+      {difficultyPenaltyPerPoint:skillOptions.difficultyPenaltyPerPoint}),
+   difficulty:job.difficulty
+  };
   if(rng!==undefined)options.rng=rng;
   let rolled;
   try{rolled=Skills.roll(character,job.requiredSkillId,options);}
