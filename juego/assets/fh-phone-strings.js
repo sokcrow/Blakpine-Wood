@@ -28,6 +28,15 @@
   payment:'Forma de pago',prepaid:'PAGADO / SIN COBRO',cash:'EFECTIVO AL RECIBIR',
   card:'TARJETA AL RECIBIR',addCart:'Añadir al carrito',added:'Añadido al carrito',
   invalidPurchase:'Comprueba la cantidad, el producto y el destino.',
-  ordersCreated:'Pedidos registrados',failed:'No registrados',orderUpdate:'Pedido'
+  ordersCreated:'Pedidos registrados',failed:'No registrados',orderUpdate:'Pedido',
+  app_network:'Redes',app_calls:'Llamadas',networkTitle:'Wi-Fi cercanas',
+  noNetworks:'No hay redes cercanas.',online:'Internet disponible',
+  offlineNet:'Red Wi-Fi sin internet',wifiLocked:'Contraseña necesaria',
+  wifiPassword:'Contraseña Wi-Fi',connect:'Conectar',wifiConnected:'Red guardada',
+  wifiRejected:'Contraseña incorrecta',mobileReady:'Red móvil disponible',
+  mobileUnavailable:'Sin servicio móvil o cobertura',
+  callsTitle:'Telefonía móvil',dialNumber:'Número o contacto',call:'Llamar',
+  callUnavailable:'No se puede realizar la llamada',incoming:'Entrante',outgoing:'Saliente',
+  noInternet:'Sin internet ni red móvil.',phoneBattery:'Batería del celular'
  });
 })(typeof window!=='undefined'?window:globalThis);
