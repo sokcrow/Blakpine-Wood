@@ -24,6 +24,55 @@ test('el sol domina al mediodía, cae al anochecer y la luna es un porcentaje pe
  assert.ok(sunset.sun<noon.sun);
  assert.deepEqual(Natural.lightAt(720),Natural.lightAt(720+1440));
 });
+test('visión: día sin filtro exterior y noche con oscuridad parcialmente translúcida',()=>{
+ const midday=Natural.sightStrength(12*60),morning=Natural.sightStrength(8*60),night=Natural.sightStrength(0);
+ assert.equal(midday,1,'el mediodía no oscurece el exterior');
+ assert.equal(morning,1,'durante el día normal no se impone un filtro');
+ assert.ok(night>=.20&&night<=.32,'la noche mantiene oscuridad, pero no negro total');
+ assert.ok(night<midday*.5,'la luna no equivale a la iluminación solar');
+ assert.ok(Natural.sightStrength(18*60)<midday);
+});
+test('la luz natural se suma a la linterna y se atenúa de forma espacial',()=>{
+ const THREE={
+  Color:class {setRGB(r,g,b){this.rgb=[r,g,b]}},
+  DataTexture:class{constructor(data,w,h){this.image={data,width:w,height:h}}dispose(){}},
+  RGBAFormat:1,LinearFilter:2
+ };
+ const backup=global.document,frames=[];
+ global.document={createElement:()=>({
+  width:0,height:0,
+  getContext(){
+   return {createImageData(w,h){return {data:new Uint8ClampedArray(w*h*4)}},
+    putImageData(image){frames.push(Uint8ClampedArray.from(image.data))}};
+  }
+ })};
+ const mins={value:720};
+ const room=level(roomWithWestWindow()),floors=[room];
+ try{
+  const runtime=Natural.createRuntime({THREE,DATA:{floors,units},CELL:1,
+   scene:{traverse(){}},floor:()=>0,clock:()=>mins.value});
+  const scale=2,width=units.columns*scale;
+  const pixel=(frame,x,y)=>frame[(Math.floor(y*scale)*width+Math.floor(x*scale))*4];
+  assert.equal(pixel(frames.at(-1),2,4.5),255,'día exterior sin filtro');
+  assert.ok(pixel(frames.at(-1),3.6,4.5)>0&&pixel(frames.at(-1),3.6,4.5)<255,
+   'la luz de ventana es tenue, no una luz blanca total');
+  assert.equal(pixel(frames.at(-1),8,4.5),255,'otro exterior sigue a plena luz');
+  let mode='source-over',sampledMode='',draws=0;
+  const ctx={save(){},restore(){},get globalCompositeOperation(){return mode},
+   set globalCompositeOperation(value){mode=value},
+   drawImage(){sampledMode=mode;draws++}};
+  runtime.paintSight(ctx,300,400);
+  assert.equal(sampledMode,'lighten','la máscara solar se suma a lámparas/linterna');
+  assert.equal(mode,'source-over','el modo de mezcla anterior se restaura');
+  mins.value=0;assert.equal(runtime.update(),true);
+  assert.ok(pixel(frames.at(-1),2,4.5)>=45&&pixel(frames.at(-1),2,4.5)<=85,
+   'por la noche el exterior conserva luz lunar tenue');
+  assert.ok(pixel(frames.at(-1),3.6,4.5)<pixel(frames.at(-1),2,4.5),
+   'la luz lunar también pierde intensidad al entrar');
+  assert.equal(draws,1);
+  runtime.dispose();
+ }finally{if(backup===undefined)delete global.document;else global.document=backup}
+});
 test('un exterior sin barreras recibe luz natural de cobertura total',()=>{
  const m=Natural.computeAccess(level([]),units);
  assert.equal(m.exterior,m.width*m.height);
