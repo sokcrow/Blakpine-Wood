@@ -219,7 +219,7 @@ function fhContextRefresh(){
   doc=one(doc,":it.interact?it:{...it,interact:ForestShared.PROP_ACTIONS[it.type]?",
     ":it.interact?it:{...it,interact:window.FHStorageRuntime?.supports(it)?{id:'storage_'+it.id,verb:'storage',label:window.FH_STORAGE_STRINGS?.open||'Abrir inventario',effects:[]}:ForestShared.PROP_ACTIONS[it.type]?",'acción almacenamiento');
   doc=one(doc,'function useFurniture(item,selectedSeat=null){',
-    "function useFurniture(item,selectedSeat=null){\n if(item.interact?.verb==='storage')return window.FHStorageRuntime?.open(item,currentFloor);",'abrir almacenamiento');
+    "function useFurniture(item,selectedSeat=null){\n if(item.interact?.verb==='storage')return window.FHStorageRuntime?.open(item,currentFloor);\n if(item.runtimeDeliveryFurniture&&item.interact?.verb==='decorate')return fhStartDecoration(item,currentFloor);",'abrir almacenamiento');
   doc=one(doc,'function toggleDoor(){',
     'function toggleDoor(){if(window.FHStorageRuntime?.isOpen)return;','bloqueo con panel');
   const refresh="window.FHLocationHUD?.update(DATA,currentFloor,{x:user.x/CELL,y:user.z/CELL})";
@@ -237,7 +237,7 @@ function fhContextRefresh(){
   const renderer='<script src="'+base+'fh-interaction-radial.js?v=20261107-hold-gate"></'+'script>';
   const storageCss='<link rel="stylesheet" href="'+base+'fh-storage.css?v=20261108-storage-1">';
   const storageStrings='<script src="'+base+'fh-storage-strings.js?v=20261108-storage-1"></'+'script>';
-  const storageRuntime='<script src="'+base+'fh-storage-runtime.js?v=20261108-storage-1"></'+'script>';
+  const storageRuntime='<script src="'+base+'fh-storage-runtime.js?v=20261108-hamazon-1"></'+'script>';
   const hide='<style>#actions,#fhDecorateBtn,#fhDecorStoredBtn{display:none!important}</style>';
   if(!doc.includes('</head>'))throw Error('Falta el cierre de cabecera del motor 3D');
   return doc.replace('</head>',css+strings+safeLock+renderer+storageCss+storageStrings+storageRuntime+hide+'</head>');
