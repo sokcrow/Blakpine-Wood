@@ -339,7 +339,7 @@
      break;
     }
    }
-   if(!found&&state.phone.phoneNumber&&target===state.phone.phoneNumber&&mobileFor())
+   if(!found&&target===String(state.phone.phoneNumber||state.phone.accountId||'')&&mobileFor())
     found={kind:'mobile'};
    if(!found)return {ok:false,reason:'noAnswer'};
    const now=number(state.clock?.minutes);
