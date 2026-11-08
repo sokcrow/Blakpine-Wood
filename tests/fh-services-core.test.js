@@ -282,3 +282,27 @@ test('una PC por Ethernet no se conecta si el router sólo cubre otra habitació
  const sys=FH.createRuntime(project,{});
  assert.equal(sys.internetFor(0,computer).online,false);
 });
+
+test('el cable Ethernet no puede salir del perímetro de la parcela',()=>{
+ const {items,project}=roomNetworkFixture(true);
+ const outside={id:'out',type:'ethernet_port',x:11.5,y:0,routerId:'r',cableLengthFt:80};
+ items.push(outside);
+ const sys=FH.createRuntime(project,{});
+ assert.equal(sys.wiredRoute(0,items.find(it=>it.id==='r'),outside,80),null);
+});
+test('parcelas superpuestas no conceden permisos de cableado ambiguos',()=>{
+ const {items,project}=roomNetworkFixture(true);
+ project.properties.push({id:'overlap',floorId:'f0',
+  polygon:[{x:0,y:0},{x:10,y:0},{x:10,y:6},{x:0,y:6}]});
+ const sys=FH.createRuntime(project,{});
+ assert.equal(sys.wiredRoute(0,items.find(it=>it.id==='r'),items.find(it=>it.id==='c'),80),null);
+});
+test('las aplicaciones reportan menor velocidad si quedan menos barras',()=>{
+ const {items,project}=roomNetworkFixture();
+ items.find(it=>it.id==='r').wifiRadiusFt=150;
+ const sys=FH.createRuntime(project,{});
+ const close=sys.wifiAt(0,2.5,.2)[0];
+ const distant=sys.wifiAt(0,10,5)[0];
+ assert.equal(close.bars,3);
+ if(distant)assert.ok(distant.speedFactor<=close.speedFactor);
+});
