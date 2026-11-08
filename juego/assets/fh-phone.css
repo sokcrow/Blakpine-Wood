@@ -194,21 +194,81 @@ body.breaker-active #fhPhoneToggle,body.breaker-active #fhPhonePanel{
   width:min(354px,calc(100vw - 14px));height:min(640px,calc(100dvh - 154px - env(safe-area-inset-top,0px)));}
 }
 @media(max-height:480px) and (orientation:landscape){
+ /* Marco vertical intacto; reducir un 25% la presentación interna, no los targets táctiles. */
  #fhPhoneToggle{top:calc(61px + env(safe-area-inset-top,0px));right:9px;width:46px;height:46px}
- #fhPhonePanel{top:6px;right:80px;width:min(340px,calc(100vw - 80px));
-  height:calc(100dvh - 12px);min-height:0;border-width:5px;border-radius:23px}
+ #fhPhonePanel{
+  top:calc(6px + env(safe-area-inset-top,0px));
+  right:calc(80px + env(safe-area-inset-right,0px));
+  width:min(228px,58dvh,calc(100vw - 80px - env(safe-area-inset-left,0px) - env(safe-area-inset-right,0px)));
+  height:calc(100dvh - 12px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));
+  max-height:100dvh;min-height:0;border-width:5px;border-radius:23px;
+ }
  #fhPhonePanel::before{height:10px;width:60px}
- .fh-phone-statusbar{min-height:25px;padding:9px 16px 1px}
- .fh-phone-header{min-height:44px;padding-top:0;padding-bottom:0}
- .fh-phone-content{padding:8px 13px 10px}
- .fh-phone-clock-card{min-height:52px;margin:0 0 10px;padding:3px 1px 7px}
- .fh-phone-big-clock{font-size:36px}
- .fh-phone-app-grid{gap:5px 8px}
- .fh-phone-app{min-height:80px;gap:4px;padding-top:2px}
- .fh-phone-app-icon{height:47px;width:47px;border-radius:13px}
- .fh-phone-nav{min-height:52px;padding-bottom:10px}
- .fh-phone-nav::after{bottom:4px}
- .fh-phone-message-log{min-height:60px;max-height:26vh}
+ .fh-phone-statusbar{min-height:25px;padding:7px 12px 2px;gap:8px}
+ .fh-phone-status-clock{font-size:9px}
+ .fh-phone-status-icons{gap:4px}
+ .fh-phone-status-icons svg{width:12px;height:11px}
+ .fh-phone-status-battery{width:17px;height:9px;border-width:1px;padding:1px}
+ .fh-phone-status-percent{font-size:8.25px;min-width:22px}
+ .fh-phone-header{height:36px;min-height:36px;padding:0 7px 0 10px}
+ .fh-phone-header button{height:44px;min-height:44px}
+ .fh-phone-header button svg,.fh-phone-nav button svg{width:16px;height:16px}
+ .fh-phone-title{font-size:9.75px}
+ .fh-phone-content{
+  min-height:0;padding:6px 10px 8px;font-size:9px;line-height:1.35;
+  overflow-y:auto;overflow-x:hidden;
+ }
+ #fhPhonePanel:has(.fh-phone-app-grid) .fh-phone-header,
+ #fhPhonePanel:has(.fh-phone-app-grid) .fh-phone-clock-card{display:none}
+ #fhPhonePanel:has(.fh-phone-app-grid) .fh-phone-content{
+  display:flex;flex-direction:column;justify-content:center;overflow:hidden;
+ }
+ .fh-phone-app-grid{grid-template-columns:repeat(auto-fit,minmax(48px,1fr));gap:6px 4px;width:100%}
+ .fh-phone-app{min-height:44px;gap:3px;padding:1px 1px 2px;border-radius:11px;font-size:8px;line-height:1.3}
+ .fh-phone-app-icon{height:33px;width:33px;border-radius:9px;font-size:16px}
+ .fh-phone-app-icon svg{width:18px;height:18px}
+ .fh-phone-app-label{font-size:8px;line-height:1.3;white-space:normal}
+ .fh-phone-tabs{gap:4px;margin-bottom:10px}
+ .fh-phone-tabs button{min-height:44px;padding:6px 9px;border-radius:17px;font-size:9px}
+ .fh-phone-entry,.fh-phone-product,.fh-phone-order,.fh-phone-conversation-row{
+  gap:7.5px;margin-bottom:6px;padding:9px;border-radius:10px;
+ }
+ .fh-phone-entry-text{gap:4px}
+ .fh-phone-entry-text strong,.fh-phone-product strong{font-size:9.75px}
+ .fh-phone-entry-text small{font-size:8.25px}
+ .fh-phone-product small{font-size:9px}
+ .fh-phone-entry>button:not(.fh-phone-entry-text){
+  min-height:44px;padding:7px 9px;border-radius:8px;font-size:9px;
+ }
+ .fh-phone-empty,.fh-phone-muted,.fh-phone-error{font-size:9px;line-height:1.4}
+ .fh-phone-empty{padding:10px 2px}
+ .fh-phone-section{font-size:12px;margin:3px 0 10px}
+ .fh-phone-primary{min-height:44px;padding:8px 11px;border-radius:8px;font-size:9px}
+ .fh-phone-note-form,.fh-phone-product{gap:7.5px}
+ #fhPhonePanel input,#fhPhonePanel textarea,#fhPhonePanel select{
+  min-height:44px;padding:7px 8px;border-radius:8px;font-size:9.75px;
+ }
+ #fhPhonePanel textarea{min-height:105px}
+ .fh-phone-message-log{min-height:45px;max-height:26vh;gap:7px;padding:4px 1px 8px}
+ .fh-phone-bubble{padding:8px 10px;border-radius:13px 13px 13px 4px;font-size:9px}
+ .fh-phone-bubble.outgoing{border-radius:13px 13px 4px 13px}
+ .fh-phone-bubble small{font-size:7.5px;margin-top:4px}
+ .fh-phone-conversation-row{min-height:44px;font-size:9px;line-height:1.4}
+ .fh-phone-message-form{gap:5px}
+ .fh-phone-torch-toggle{min-height:44px;gap:10px;margin-bottom:13px;padding:7px 9px;border-radius:10px}
+ .fh-phone-torch-label{font-size:9.75px}
+ .fh-phone-switch-track{width:36px;height:21px}
+ .fh-phone-switch-track::after{left:2px;top:2px;width:15px;height:15px}
+ .fh-phone-torch-toggle[aria-checked="true"] .fh-phone-switch-track::after{transform:translateX(15px)}
+ .fh-phone-battery-track{height:8px;margin:9px 0 6px}
+ .fh-phone-readout{font-size:9px;margin:6px 0 5px}
+ .fh-phone-product-fields{grid-template-columns:44px minmax(0,1fr);gap:6px}
+ .fh-phone-order{font-size:9px}
+ .fh-phone-document{padding:10px;border-radius:9px;font-size:9.75px;line-height:1.5}
+ .fh-phone-nav{height:40px;min-height:40px;padding:0 10px}
+ .fh-phone-nav button{position:relative;top:-4px;height:44px;min-height:44px}
+ .fh-phone-nav::after{bottom:4px;width:72px;height:3px}
+ .fh-phone-toast{bottom:40px;left:10px;right:10px;padding:8px 10px;border-radius:8px;font-size:9px}
 }
 @media(prefers-reduced-motion:reduce){
  .fh-phone-battery-fill,.fh-phone-status-battery-fill,.fh-phone-switch-track,.fh-phone-switch-track::after{transition:none}
