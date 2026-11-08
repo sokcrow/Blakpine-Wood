@@ -181,11 +181,11 @@ function createRuntime({data,state,doorList,blockers,save,refresh,events}){
   }
   return result;
  }
- function nearest(f,x,z,cell=1.524,maxDist=2.4){
+ function nearest(f,x,z,cell=1.524,maxDist=2.4,onlyType=null){
   if(!data.floors[f])return null;
   let best=null;
   for(const it of data.floors[f].items||[]){
-   if(!supports(it)||!it.id||!it.a||!it.b)continue;
+   if(!supports(it)||(onlyType&&it.type!==onlyType)||!it.id||!it.a||!it.b)continue;
    const mx=(it.a.x+it.b.x)*cell/2,mz=(it.a.y+it.b.y)*cell/2;
    const dist=Math.hypot(x-mx,z-mz);
    if(dist<=maxDist&&(!best||dist<best.dist))best={item:it,dist,f};
