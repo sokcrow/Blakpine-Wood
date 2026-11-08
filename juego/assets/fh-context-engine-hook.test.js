@@ -43,6 +43,15 @@ test('el HTML generado integra radial y decoración sin afectar el editor 2D',()
  assert.match(output,/gesture\?\.source==='canvas'&&gesture\.kind==='hold'&&!hit\)window\.FHLocationHUD\?\.peek\?\.\(\)/);
 
  assert.match(output,/primary\?\.run\(\)/);
+ assert.match(output,/function fhContextOpenElevator\(shaft,fromLanding=false\)/);
+ assert.match(output,/elevatorSystem\.doorControl\(shaft\.id,'open'\)/);
+ assert.match(output,/ForestShared\.elevatorEntrancePoint\(target\.item,CELL\)/);
+ assert.match(output,/ForestShared\.elevatorEntrancePoint\(landing\.item,CELL\)/);
+ assert.match(output,/id:'elevator-open'/);
+ assert.match(output,/window\.FHSleep\?\.needsComfort\(\)/);
+ assert.match(output,/window\.FHSleep\.emitComfort\(fhSleepHead\)/);
+ assert.doesNotMatch(output,/notice\(POSTURE_TEXT\.standing\)/);
+ assert.doesNotMatch(output,/notice\(poseStep\.phase==='sitting'/);
  assert.match(output,/if\(playerPose\.occupied\)return toggleDoor\(\)/);
  assert.doesNotMatch(output,/fhContextTapStart/);
  assert.match(output,/radial\.syncContext\(context\)/);
