@@ -9,15 +9,20 @@
 })(typeof window!=='undefined'?window:globalThis,function(){
  'use strict';
  const PHONE_SCALE=0.70;
+ const PHONE_HERO_SCALE=0.80;
  const MAX_PHONE_SHORT_SIDE=600;
  function isPhone(width,height,coarsePointer){
   return coarsePointer===true&&Number.isFinite(width)&&Number.isFinite(height)
    &&width>0&&height>0&&Math.min(width,height)<=MAX_PHONE_SHORT_SIDE;
+ }
+ function visualScale(base,width,height,coarsePointer){
+  if(!Number.isFinite(base)||base<=0)return base;
+  return isPhone(width,height,coarsePointer)?base*PHONE_HERO_SCALE:base;
  }
  function distance(base,width,height,coarsePointer){
   // El motor determina la distancia (incluido el bono de luz), aquí solo se escala.
   if(!Number.isFinite(base)||base<=0)return base;
   return isPhone(width,height,coarsePointer)?base*PHONE_SCALE:base;
  }
- return Object.freeze({PHONE_SCALE,MAX_PHONE_SHORT_SIDE,isPhone,distance});
+ return Object.freeze({PHONE_SCALE,PHONE_HERO_SCALE,MAX_PHONE_SHORT_SIDE,isPhone,distance,visualScale});
 });
