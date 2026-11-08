@@ -6,7 +6,7 @@
  else root.FHPhone=Object.freeze(api);
 })(typeof globalThis!=='undefined'?globalThis:this,function(root){
  'use strict';
- const BASE_APPS=Object.freeze(['directory','messages','notes','calendar','weather','flashlight','store']);
+ const BASE_APPS=Object.freeze(['directory','messages','notes','calendar','weather','flashlight','store','network','calls']);
  const AVAILABLE_APPS=Object.freeze([...BASE_APPS,'hamazon']);
  const CATEGORIES=Object.freeze(['person','business','service','player']);
  const EXTRA_APPS=new Map();
@@ -29,6 +29,9 @@
   p.notes=Array.isArray(p.notes)?p.notes.filter(n=>n&&typeof n==='object').slice(0,200):[];
   p.contacts=Array.isArray(p.contacts)?p.contacts.filter(c=>c&&typeof c==='object').slice(0,200):[];
   p.messages=Array.isArray(p.messages)?p.messages.filter(m=>m&&typeof m==='object').slice(-500):[];
+  p.calls=Array.isArray(p.calls)?p.calls.slice(-100):[];
+  p.battery=Number.isFinite(Number(p.battery))?Math.max(0,Math.min(100,Number(p.battery))):100;
+  p.placedAt=typeof p.placedAt==='string'?p.placedAt:'';
   if(!p.contacts.some(c=>c.id==='hamazon'))p.contacts.unshift({id:'hamazon',name:'Hamazon',kind:'business'});
   if(!p.contacts.some(c=>c.id==='hamazon-delivery'))p.contacts.push({id:'hamazon-delivery',name:'Entregas Hamazon',kind:'service'});
   p.accountId=safe(p.accountId||state.characterId||state.player?.id||state.playerId||'GUARDIA_03',100);
@@ -111,6 +114,8 @@
   const container=(cls)=>el('div',cls);
   // Iconos vectoriales de trazo único. Los iconos de apps registradas conservan su fallback textual.
   const ICON_PATHS=Object.freeze({
+  network:'M3 10a13 13 0 0 1 18 0 M6 13a8 8 0 0 1 12 0 M9 16a4 4 0 0 1 6 0 M12 19h.1',
+  calls:'M6 4c1 0 2 3 3 4l-2 2a16 16 0 0 0 7 7l2-2c2 1 4 2 4 3-1 2-3 3-5 3C8 21 3 15 3 9c0-2 1-4 3-5Z',
    phone:'M7 2.5h10a2 2 0 0 1 2 2v15a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-15a2 2 0 0 1 2-2Z M10 18.5h4',
    directory:'M5 4h14v16H5z M9 4v16 M12 9h4 M12 13h4',
    messages:'M5 5h14v12H9l-4 3V5z M8 9h8 M8 12h5',
@@ -138,7 +143,7 @@
   }
   function updateStatus(){
    if(!statusChargeBar||!statusChargeText)return;
-   const raw=Number(options.torchState?.()?.charge),charge=Number.isFinite(raw)?Math.max(0,Math.min(100,raw)):0;
+   const raw=Number(p.battery),charge=Number.isFinite(raw)?Math.max(0,Math.min(100,raw)):0;
    statusChargeBar.style.width=charge+'%';
    statusChargeText.textContent=Math.ceil(charge)+'%';
   }
@@ -170,7 +175,7 @@
    view=name;content.replaceChildren();toolbar(label('app_'+name,name),back);
    if(name==='messages'||name==='conversation'){pendingNotice=false;syncNotification()}
    const handlers={home:home,directory:directory,messages:messages,conversation:conversation,
-    notes:notes,editNote:editNote,document:readDocument,calendar:calendar,weather:weather,flashlight:flashlight,store:store,hamazon:hamazon};
+    notes:notes,editNote:editNote,document:readDocument,calendar:calendar,weather:weather,flashlight:flashlight,store:store,hamazon:hamazon,network:network,calls:calls};
    if(handlers[name])handlers[name]();
    else if(EXTRA_APPS.has(name))EXTRA_APPS.get(name).render({container:content,state,save,back:()=>screen('home')});
    else home();
@@ -254,7 +259,44 @@
    content.append(facts);
    content.append(el('p','fh-phone-muted',label('weatherNextChange')+': '+nextWeatherChange()));
   }
-  function directory(){
+  function network(){
+  const nets=options.networks?.()||[];
+  content.append(el('h3','fh-phone-section',label('networkTitle','Conexiones disponibles')));
+  if(!nets.length)empty(label('noNetworks','Sin redes Wi-Fi al alcance.'));
+  for(const net of nets){
+   const row=container('fh-phone-entry');
+   row.append(el('strong','',safe(net.name||net.routerId,80)));
+   row.append(el('small','',net.online?label('online','Conectado'):net.authenticated?label('offlineNet','Sin servicio'):label('wifiLocked','Protegido')));
+   if(!net.authenticated){
+    const password=el('input');password.type='password';password.maxLength=100;password.placeholder=label('wifiPassword','Clave Wi-Fi');
+    row.append(password,button(label('connect','Conectar'),()=>{
+     const ok=options.connectWifi?.(net.routerId,password.value)===true;
+     notice(label(ok?'wifiConnected':'wifiRejected',ok?'Conectado':'Clave incorrecta'));
+     if(ok){save();screen('network');}
+    },'fh-phone-primary'));
+   }
+   content.append(row);
+  }
+  content.append(el('p','fh-phone-muted',options.mobileAvailable?.()!==false?
+   label('mobileReady','Red móvil disponible'):label('mobileUnavailable','Sin red móvil')));
+ }
+ function calls(){
+  const enabled=options.mobileAvailable?.()!==false;
+  const form=el('form','fh-phone-message-form'),field=el('input');
+  field.type='tel';field.maxLength=80;field.placeholder=label('dialNumber','Número o contacto');
+  const call=button(label('call','Llamar'),()=>{},'fh-phone-primary');call.type='submit';call.disabled=!enabled;
+  form.addEventListener('submit',ev=>{
+   ev.preventDefault();const to=safe(field.value,80);if(!enabled||!to)return;
+   const c={direction:'outgoing',to,at:Number(state.clock?.minutes)||0,status:'dialing'};
+   if(options.onCall?.(c)===false){notice(label('callUnavailable','No se puede llamar'));return;}
+   p.calls.push(c);p.calls=p.calls.slice(-100);save();screen('calls');
+  });
+  form.append(field,call);content.append(form);
+  if(!enabled)empty(label('mobileUnavailable','Sin red móvil'));
+  for(const c of p.calls.slice().reverse().slice(0,30))
+   content.append(el('p','fh-phone-muted',(c.direction==='incoming'?label('incoming','Entrante'):label('outgoing','Saliente'))+' · '+safe(c.to||c.from,80)+' · '+formatClock(c.at)));
+ }
+ function directory(){
    const tabs=container('fh-phone-tabs');
    [['all','all'],['person','people'],['business','businesses'],['service','services'],['player','players']].forEach(([key,name])=>{
     const b=button(label(name,key),()=>{filter=key;screen('directory')});
@@ -292,6 +334,7 @@
    return message(contactId,body,true);
   }
   function send(contactId,body){
+  if(options.networkAvailable&&options.networkAvailable()!==true){notice(label('noInternet','Sin internet ni red móvil'));return false;}
    const contact=p.contacts.find(c=>c.id===contactId);
    if(!contact)return false;
    if(contact.kind==='player'&&!options.sendPlayerMessage){
@@ -503,7 +546,14 @@
    if(idx>=0)p.contacts[idx]=entry;else p.contacts.push(entry);
    save();return true;
   }
-  function update(dt=0){
+  function syncAvailability(){
+  const available=!p.placedAt;
+  if(!available&&opened)close();
+  if(toggle){toggle.hidden=!available;toggle.style.display=available?'':'none';}
+  return available;
+ }
+ function update(dt=0){
+  syncAvailability();
    elapsed+=Number.isFinite(dt)?Math.max(0,dt):0;
    if(elapsed<.5)return;elapsed=0;
    if(blocked()&&opened)close();
@@ -540,7 +590,7 @@
    document.body.classList.remove('fh-phone-open');
   }
   function open(){
-   if(!panel||blocked())return false;
+   if(!panel||blocked()||!syncAvailability()||p.battery<=0)return false;
    opened=true;panel.hidden=false;toggle.setAttribute('aria-expanded','true');
    document.body.classList.add('fh-phone-open');updateStatus();screen('home');return true;
   }
@@ -573,7 +623,7 @@
    const battery=container('fh-phone-status-battery');
    statusChargeBar=container('fh-phone-status-battery-fill');statusChargeText=el('span','fh-phone-status-percent','0%');
    battery.append(statusChargeBar);indicators.append(glyph('signal'),battery,statusChargeText);
-   indicators.setAttribute('aria-label',label('torchBattery','Batería de la linterna'));
+   indicators.setAttribute('aria-label',label('phoneBattery','Batería del celular'));
    append(bar,clockNode,indicators);
    const head=container('fh-phone-header');
    topTitle=el('strong','fh-phone-title',label('phone','Celular'));
@@ -596,7 +646,12 @@
   }
   mount();
   return Object.freeze({
-   open,close,toggle:togglePhone,update,addContact,receiveMessage:receive,sendMessage:send,
+   open,close,toggle:togglePhone,update,syncAvailability,addContact,receiveMessage:receive,sendMessage:send,
+    receiveCall:call=>{
+     if(!call||p.placedAt||p.battery<=0)return false;
+     p.calls.push({from:safe(call.from,80),to:p.accountId,at:Number(state.clock?.minutes)||0,direction:'incoming',status:'ringing'});
+     p.calls=p.calls.slice(-100);pendingNotice=true;syncNotification();save();return true;
+    },
    addToCart:addCart,removeFromCart:removeCart,checkoutCart,
    syncCartToTerminal:()=>options.onCartChange?.(copy(commerce())),
    get isOpen(){return opened},
