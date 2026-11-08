@@ -142,7 +142,7 @@
   const feetPerCell=Math.max(.1,number(project?.units?.feetPerCell,5));
   const graphs=floors.map(f=>wallGraph(f.items||[]));
   const elements=floors.map(f=>f.items||[]);
-  const route=(f,a,b)=>graphs[f]?.route(point(a),point(b))*feetPerCell??Infinity;
+  const route=(f,a,b)=>graphs[f]?graphs[f].route(point(a),point(b))*feetPerCell:Infinity;
   const barriers=(f,a,b)=>graphs[f]?.wallsBetween(point(a),point(b))||0;
   const values=(f,type)=>elements[f]?.filter(it=>it.type===type)||[];
   const itemAt=(f,itemId)=>(elements[f]||[]).find(it=>id(it)===String(itemId))||null;
@@ -211,6 +211,14 @@
     for(const strip of strips.slice().sort((a,b)=>id(a).localeCompare(id(b))))claim(strip,['power_outlet']);
     for(const it of (elements[f]||[]).filter(x=>requiresPower(x)&&x.type!=='power_strip').sort((a,b)=>id(a).localeCompare(id(b))))
      claim(it,['power_strip','power_outlet']);
+    // La regleta no crea potencia: propagar la suma de sus aparatos al enchufe.
+    for(const strip of strips){
+     const parent=bindings.get(f+':'+id(strip));
+     if(parent&&active(strip)){
+      const childLoad=loads.get(f+':'+id(strip))||0;
+      const k=f+':'+id(parent);loads.set(k,(loads.get(k)||0)+childLoad);
+     }
+    }
    }
    return {bindings,used,loads};
   }
@@ -225,8 +233,17 @@
    if(!requiresWater(it)&&it.type!=='water_outlet')return {connected:true,water:true,legacy:true};
    if(s.contracts.water!=='active')return {connected:false,water:false};
    const mains=values(f,'water_main').filter(x=>active(x));
+   const valves=values(f,'water_valve');
+   const valveOpen=(main,port)=>{
+    const assigned=String(port.valveId||main.valveId||'');
+    return valves.every(v=>{
+     if(assigned&&id(v)!==assigned)return true;
+     if(!assigned&&(!port.networkId||!v.networkId||v.networkId!==port.networkId))return true;
+     return v.opened!==false&&s.enabled[id(v)]!==false;
+    });
+   };
    if(it.type==='water_outlet'){
-    const linked=mains.some(main=>route(f,main,it)<=Math.max(0,number(main.rangeFt,120)));
+    const linked=mains.some(main=>valveOpen(main,it)&&route(f,main,it)<=Math.max(0,number(main.rangeFt,120)));
     return {connected:linked,water:linked};
    }
    const ports=candidates(f,it,['water_outlet']);
@@ -267,11 +284,19 @@
    if(it.service?.internetMode!=='ethernet'&&it.type!=='ethernet_port')return {online:false,reason:'noLink'};
    const routers=values(f,'router').filter(r=>!it.routerId||id(r)===String(it.routerId));
    for(const router of routers){
+    if(!electricalStatus(f,router,electrical()).powered||!active(router))continue;
     const link=it.type==='ethernet_port'?route(f,router,it):dist(point(router),point(it))*feetPerCell;
     const limit=Math.max(0,number(it.cableLengthFt,number(router.ethernetLengthFt,30)));
-    if(link>limit||!electricalStatus(f,router,electrical()).powered||!active(router))continue;
-    if(it.type!=='ethernet_port'&&barriers(f,it,router)>0)continue;
-    return {online:true,method:'ethernet',routerId:id(router)};
+    if(link<=limit&&(it.type==='ethernet_port'||barriers(f,it,router)===0))
+     return {online:true,method:'ethernet',routerId:id(router)};
+    if(it.type==='ethernet_port')continue;
+    // Toma Ethernet en la pared: cable visible solo en datos, no en gameplay.
+    for(const port of values(f,'ethernet_port')){
+     if(port.routerId&&String(port.routerId)!==id(router))continue;
+     if(dist(point(port),point(it))*feetPerCell>limit||barriers(f,it,port)>0)continue;
+     if(route(f,router,port)<=Math.max(0,number(port.cableLengthFt,number(router.ethernetLengthFt,30))))
+      return {online:true,method:'ethernet',routerId:id(router),portId:id(port)};
+    }
    }
    return {online:false,reason:'noLink'};
   }
@@ -312,7 +337,7 @@
      if(requiresWater(it)&&active(it)&&waterStatus(f,it).water){
       const liters=Math.max(0,number(it.service?.flowLpm))*seconds/60;
       waterLiters+=liters;
-      if(it.service?.drains!==false)drainLiters+=liters;
+      if(it.service?.drains!==false&&candidates(f,it,['drain_outlet']).length)drainLiters+=liters;
      }
     }
    }
