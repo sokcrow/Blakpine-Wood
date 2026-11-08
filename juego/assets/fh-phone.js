@@ -176,6 +176,15 @@
    if(name==='messages'||name==='conversation'){pendingNotice=false;syncNotification()}
    const handlers={home:home,directory:directory,messages:messages,conversation:conversation,
     notes:notes,editNote:editNote,document:readDocument,calendar:calendar,weather:weather,flashlight:flashlight,store:store,hamazon:hamazon,network:network,calls:calls};
+   if(['store','hamazon'].includes(name)&&options.networkDelayMs){
+    const ms=Math.max(0,Math.min(1800,Number(options.networkDelayMs())||0));
+    if(ms>0){
+     const loading=el('p','fh-phone-muted',label('networkLoading','Cargando datos de internet…'));
+     content.append(loading);
+     setTimeout(()=>{if(view!==name||!opened||p.placedAt)return;loading.remove();handlers[name]?.();},ms);
+     return;
+    }
+   }
    if(handlers[name])handlers[name]();
    else if(EXTRA_APPS.has(name))EXTRA_APPS.get(name).render({container:content,state,save,back:()=>screen('home')});
    else home();
@@ -266,7 +275,10 @@
   for(const net of nets){
    const row=container('fh-phone-entry');
    row.append(el('strong','',safe(net.name||net.routerId,80)));
-   row.append(el('small','',net.online?label('online','Conectado'):net.authenticated?label('offlineNet','Sin servicio'):label('wifiLocked','Protegido')));
+   const bars=Math.max(0,Math.min(3,Number(net.bars)||0));
+   const quality=bars===3?label('wifiExcellent','Excelente'):bars===2?label('wifiGood','Buena'):label('wifiWeak','Débil');
+   row.append(el('small','',bars+'/3 barras · '+quality+' · '+
+    (net.online?label('online','Conectado'):net.authenticated?label('offlineNet','Sin servicio'):label('wifiLocked','Protegido'))));
    if(!net.authenticated){
     const password=el('input');password.type='password';password.maxLength=100;password.placeholder=label('wifiPassword','Clave Wi-Fi');
     row.append(password,button(label('connect','Conectar'),()=>{
