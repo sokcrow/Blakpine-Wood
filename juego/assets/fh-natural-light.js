@@ -275,7 +275,7 @@
    ctx.restore?.();
   }
   update();
-  return {update,attach,hasLight:()=>daylightActive,visionRadius:base=>naturalVisionRadius(lastMinutes,base),illuminates,paintSight,
+  return {update,attach,hasLight:()=>daylightActive,visionRadius:base=>daylightActive?naturalVisionRadius(lastMinutes,base):base,illuminates,paintSight,
    dispose:()=>{for(const t of atlas.values())t.dispose();atlas.clear();atlasMasks.clear();atlasCanvas.clear();empty.dispose()},
    access:()=>atlas.get(current)||empty};
  }
