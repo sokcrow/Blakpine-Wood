@@ -101,7 +101,7 @@
     const plus=extSide(1),minus=extSide(-1);
     if(plus===minus)continue;
     activePortals++;
-    const radius=5,base=itIsDoor(s.item.type)?.88:.78;
+    const radius=5,base=itIsDoor(s.item.type)?0.88:0.78;
     const x0=Math.max(0,Math.floor((cx-radius)*scale)),x1=Math.min(w-1,Math.ceil((cx+radius)*scale));
     const y0=Math.max(0,Math.floor((cy-radius)*scale)),y1=Math.min(h-1,Math.ceil((cy+radius)*scale));
     for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){
@@ -123,7 +123,9 @@
  function itIsDoor(type){return type!=='window'}
  function createRuntime({THREE,DATA,CELL,scene,ambient,clock,floor,doorOpen}={}){
   if(!THREE||!DATA||!scene)return null;
-  const atlas=new Map(),installed=new WeakSet();
+  const atlas=new Map(),atlasSignature=new Map(),installed=new WeakSet();
+  // Penumbra basal; la luz natural solo ilumina las superficies con acceso exterior.
+  if(ambient)ambient.intensity=.08;
   const sizeX=clamp(finite(DATA.units?.columns,16),1,500)*CELL;
   const sizeZ=clamp(finite(DATA.units?.rows,22),1,500)*CELL;
   const uniformMask={value:null},uniformColor={value:new THREE.Color(0)};
@@ -133,10 +135,10 @@
   uniformMask.value=empty;
   function signature(f){
    const fl=DATA.floors[f],doors=(fl?.items||[]).filter(it=>PORTALS.has(it.type)&&it.type!=='window');
-   return doors.map(it=>String(it.id||'')+':'+String(!!doorOpen?.(f,it.id,it))).join('|');
+   return doors.map(it=>String(it.id||'')+':'+String(!!(doorOpen?.(f,it.id,it)??it.open))).join('|');
   }
-  function textureFor(f,force){
-   if(!force&&atlas.has(f))return atlas.get(f);
+  function textureFor(f,signatureNow){
+   if(atlas.has(f)&&atlasSignature.get(f)===signatureNow)return atlas.get(f);
    const old=atlas.get(f);
    const mask=computeAccess(DATA.floors[f],DATA.units,{doorOpen:(id,it)=>doorOpen?.(f,id,it)??it.open===true});
    const data=new Uint8Array(mask.width*mask.height*4);
@@ -146,7 +148,7 @@
    }
    const tex=new THREE.DataTexture(data,mask.width,mask.height,THREE.RGBAFormat);
    tex.magFilter=THREE.LinearFilter;tex.minFilter=THREE.LinearFilter;tex.generateMipmaps=false;tex.needsUpdate=true;
-   atlas.set(f,tex);old?.dispose();return tex;
+   atlas.set(f,tex);atlasSignature.set(f,signatureNow);old?.dispose();return tex;
   }
   function attach(container=scene){
    if(!container?.traverse)return;
@@ -179,7 +181,7 @@
    const f=clamp(Math.floor(finite(floor?.(),0)),0,DATA.floors.length-1);
    const signatureNow=signature(f);
    if(f!==current||signatureNow!==lastSignature){
-    uniformMask.value=textureFor(f,signatureNow!==lastSignature&&f===current);
+    uniformMask.value=textureFor(f,signatureNow);
     current=f;lastSignature=signatureNow;
    }
    const minutes=finite(clock?.(),480);
