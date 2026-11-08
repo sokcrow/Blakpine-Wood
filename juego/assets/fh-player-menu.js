@@ -5,7 +5,6 @@
   const sections = Object.freeze([
     ['objectives','objectives','◇'],
     ['inventory','inventory','▧'],
-    ['notes','notes','≡'],
     ['status','status','◈'],
     ['settings','settings','⚙']
   ]);

@@ -1,0 +1,277 @@
+/* Blakpine Wood — celular en juego. Independiente del menú del jugador. */
+#fhPhoneToggle,#fhPhonePanel{box-sizing:border-box;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+#fhPhoneToggle *,#fhPhonePanel *{box-sizing:border-box}
+#fhPhoneToggle{
+ position:fixed;z-index:91;
+ top:calc(108px + env(safe-area-inset-top,0px));right:clamp(14px,3vw,50px);
+ display:grid;place-items:center;width:52px;height:52px;padding:0;
+ border:1px solid #b4b4b4;border-radius:16px;
+ background:linear-gradient(150deg,#333 0%,#111 54%,#050505 100%);
+ box-shadow:inset 0 0 0 2px #090909,0 5px 16px #0009;
+ color:#f1efec;cursor:pointer;touch-action:manipulation;
+}
+#fhPhoneToggle svg{width:25px;height:25px;display:block}
+#fhPhoneToggle[aria-expanded="true"]{border-color:#f0eee9;background:linear-gradient(150deg,#484848,#121212)}
+#fhPhoneToggle[data-has-notification="true"]::after{
+ content:"";position:absolute;top:4px;right:4px;width:9px;height:9px;
+ border:2px solid #111;border-radius:50%;background:#dc756e;
+}
+#fhPhoneToggle:focus-visible,#fhPhonePanel :focus-visible{outline:2px solid #f5f1ea;outline-offset:3px}
+#fhPhonePanel{
+ position:fixed;z-index:90;
+ top:calc(85px + env(safe-area-inset-top,0px));right:calc(clamp(14px,3vw,50px) + 100px);
+ display:flex;flex-direction:column;width:min(356px,calc(100vw - 125px));
+ height:min(654px,calc(100dvh - 106px - env(safe-area-inset-top,0px)));
+ min-height:230px;overflow:hidden;isolation:isolate;
+ border:7px solid #070707;border-radius:29px;
+ background:#111214;color:#f0efed;
+ box-shadow:0 17px 45px #000c,inset 0 0 0 1px #626262;
+}
+#fhPhonePanel::before{
+ content:"";position:absolute;left:50%;top:0;z-index:2;transform:translateX(-50%);
+ width:85px;height:15px;border-radius:0 0 11px 11px;background:#050505;pointer-events:none;
+}
+#fhPhonePanel[hidden]{display:none!important}
+.fh-phone-statusbar{
+ flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;
+ min-height:36px;padding:15px 17px 4px;
+ background:#111214;color:#eee;line-height:1;font-size:11px;
+}
+.fh-phone-status-clock{font-size:12px;font-weight:650;letter-spacing:.01em;font-variant-numeric:tabular-nums}
+.fh-phone-status-icons{display:flex;align-items:center;gap:6px;color:#e3e3e3;white-space:nowrap}
+.fh-phone-status-icons svg{width:16px;height:15px;stroke-width:1.8}
+.fh-phone-status-battery{position:relative;width:23px;height:11px;border:1.5px solid #d7d7d7;border-radius:3px;padding:2px;display:flex;align-items:stretch}
+.fh-phone-status-battery::after{content:"";position:absolute;right:-4px;top:3px;width:2px;height:4px;border-radius:0 2px 2px 0;background:#d7d7d7}
+.fh-phone-status-battery-fill{display:block;max-width:100%;height:100%;border-radius:1px;background:#dadada;transition:width .25s linear}
+.fh-phone-status-percent{font-size:11px;font-weight:600;min-width:29px;text-align:right;font-variant-numeric:tabular-nums}
+.fh-phone-header{
+ flex:none;display:flex;align-items:center;justify-content:space-between;gap:8px;
+ min-height:52px;padding:3px 12px 4px 19px;border-bottom:1px solid #ffffff1b;
+ background:#141516;
+}
+.fh-phone-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+ font:500 15px/1.3 'Cinzel',Georgia,serif;letter-spacing:.025em;color:#f5f2ed}
+.fh-phone-header button,.fh-phone-nav button{
+ display:grid;place-items:center;flex:none;min-width:44px;min-height:44px;
+ padding:10px;border:0;border-radius:13px;background:transparent;color:#f2f0eb;cursor:pointer;
+}
+.fh-phone-header button:hover,.fh-phone-nav button:hover{background:#ffffff16}
+.fh-phone-header button svg,.fh-phone-nav button svg{width:21px;height:21px;stroke-width:1.8}
+.fh-phone-header button[hidden],.fh-phone-nav button[hidden]{display:none!important}
+.fh-phone-content{
+ flex:1;min-width:0;min-height:0;overflow:auto;overscroll-behavior:contain;
+ padding:16px 16px 20px;background:linear-gradient(155deg,#191a1c,#0d0e10 74%);
+ scrollbar-width:thin;scrollbar-color:#777 #17181a;
+}
+.fh-phone-clock-card{
+ display:flex;align-items:flex-end;min-height:112px;margin:2px 2px 20px;
+ padding:12px 2px 15px;border:0;border-bottom:1px solid #ffffff31;background:none;box-shadow:none;
+}
+.fh-phone-kicker{font-size:11px;letter-spacing:.12em;color:#aaa}
+.fh-phone-big-clock{font:300 clamp(44px,6vw,56px)/1 system-ui,-apple-system,"Segoe UI",sans-serif;
+ letter-spacing:-.055em;color:#f4f2ee;font-variant-numeric:tabular-nums}
+.fh-phone-app-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 8px}
+.fh-phone-app{
+ display:flex;align-items:center;flex-direction:column;justify-content:flex-start;gap:7px;
+ min-width:0;min-height:96px;padding:4px 1px 7px;
+ border:1px solid transparent;border-radius:15px;background:transparent;
+ color:#e8e7e4;font:500 11px/1.25 system-ui,-apple-system,"Segoe UI",sans-serif;
+ overflow-wrap:anywhere;cursor:pointer;touch-action:manipulation;
+}
+.fh-phone-app:hover,.fh-phone-app:focus-visible{background:#ffffff0d;border-color:#ffffff2a}
+.fh-phone-app-icon{
+ display:grid;place-items:center;flex:none;width:55px;height:55px;
+ border:1px solid #ffffff35;border-radius:15px;
+ background:linear-gradient(140deg,#37383c,#202125 63%,#17181a);
+ color:#ededed;font-size:21px;font-weight:450;
+ box-shadow:inset 0 1px #ffffff1b,0 3px 8px #0006;
+}
+.fh-phone-app-icon svg{width:26px;height:26px;stroke-width:1.55}
+.fh-phone-app[data-app="hamazon"] .fh-phone-app-icon{background:linear-gradient(145deg,#4c4540,#211e1c);color:#e7d6bd}
+.fh-phone-app-label{max-width:100%;display:block;text-align:center;line-height:1.3}
+.fh-phone-tabs{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 14px}
+.fh-phone-tabs button{
+ min-height:44px;padding:9px 12px;border:1px solid #ffffff36;border-radius:22px;
+ background:#ffffff0c;color:#cfcfd0;font:500 12px system-ui,-apple-system,"Segoe UI",sans-serif;cursor:pointer;
+}
+.fh-phone-tabs button[aria-pressed="true"]{border-color:#b7b7b7;background:#38393d;color:#fff}
+.fh-phone-entry,.fh-phone-product,.fh-phone-order,.fh-phone-conversation-row{
+ display:flex;align-items:center;gap:10px;min-width:0;margin:0 0 8px;padding:12px;
+ border:1px solid #ffffff20;border-radius:13px;background:#ffffff0a;color:#ecebea;
+}
+.fh-phone-entry-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px;overflow-wrap:anywhere}
+.fh-phone-entry-text strong{font-size:13px;font-weight:600}
+.fh-phone-entry-text small{font-size:11px;line-height:1.4;color:#aaa9aa}
+button.fh-phone-entry-text{min-height:44px;text-align:left;padding:0;border:0;background:none;color:inherit;cursor:pointer}
+.fh-phone-entry>button:not(.fh-phone-entry-text){flex:none;min-height:44px;padding:10px 12px;
+ border:1px solid #ffffff49;border-radius:10px;background:#35363a;color:#f5f4f1;
+ font:600 12px system-ui,-apple-system,"Segoe UI",sans-serif;cursor:pointer}
+.fh-phone-entry>button:disabled{opacity:.45;cursor:default}
+.fh-phone-entry>button.fh-phone-danger{border-color:#865e5e;background:#402d2d;color:#f3d0d0}
+.fh-phone-empty,.fh-phone-muted{color:#b9b8ba;font-size:12px;line-height:1.5}
+.fh-phone-empty{padding:14px 3px}
+.fh-phone-section{font:500 16px/1.35 'Cinzel',Georgia,serif;color:#edeae5;margin:4px 0 14px}
+.fh-phone-primary{
+ min-height:44px;padding:11px 14px;border:1px solid #d0d0ce;border-radius:11px;
+ background:#d4d3d0;color:#171719;font:650 12px/1.3 system-ui,-apple-system,"Segoe UI",sans-serif;
+ cursor:pointer;touch-action:manipulation;
+}
+.fh-phone-primary:disabled{opacity:.42;cursor:not-allowed}
+.fh-phone-note-form,.fh-phone-product{display:flex;flex-direction:column;align-items:stretch;gap:10px}
+#fhPhonePanel input,#fhPhonePanel textarea,#fhPhonePanel select{
+ min-width:0;max-width:100%;min-height:44px;padding:10px 11px;
+ border:1px solid #ffffff55;border-radius:11px;background:#242529;
+ color:#f3f3f2;font:13px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+#fhPhonePanel input::placeholder,#fhPhonePanel textarea::placeholder{color:#a9a8aa}
+#fhPhonePanel textarea{resize:vertical;min-height:140px}
+.fh-phone-message-log{display:flex;flex-direction:column;gap:9px;min-height:150px;
+ max-height:42vh;overflow:auto;padding:5px 1px 11px}
+.fh-phone-bubble{
+ width:fit-content;max-width:89%;padding:11px 13px;
+ border:1px solid #ffffff23;border-radius:17px 17px 17px 5px;
+ font-size:12px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;
+ background:#313236;color:#f5f4f2;
+}
+.fh-phone-bubble.incoming{background:#303136}
+.fh-phone-bubble.outgoing{align-self:flex-end;border-radius:17px 17px 5px 17px;background:#55565b}
+.fh-phone-bubble small{display:block;text-align:right;opacity:.72;margin-top:5px;font-size:10px}
+.fh-phone-conversation-row{width:100%;min-height:52px;text-align:left;cursor:pointer;font-size:12px;line-height:1.5}
+.fh-phone-conversation-row:hover,.fh-phone-entry:has(button:hover){border-color:#ffffff55;background:#ffffff13}
+.fh-phone-message-form{display:flex;align-items:stretch;gap:7px}
+.fh-phone-message-form input{flex:1;width:0}
+.fh-phone-message-form button{flex:none}
+.fh-phone-torch-toggle{
+ width:100%;display:flex;justify-content:space-between;align-items:center;gap:14px;
+ min-height:56px;margin:0 0 17px;padding:10px 12px;
+ border:1px solid #ffffff2f;border-radius:13px;background:#27282c;color:#eee;
+ text-align:left;
+}
+.fh-phone-torch-label{font-size:13px;font-weight:550}
+.fh-phone-switch-track{position:relative;display:block;flex:none;width:48px;height:28px;
+ border:1px solid #ffffff42;border-radius:30px;background:#45464a;transition:background .18s}
+.fh-phone-switch-track::after{content:"";position:absolute;left:3px;top:3px;
+ width:20px;height:20px;border-radius:50%;background:#ecebea;box-shadow:0 1px 3px #0008;transition:transform .18s}
+.fh-phone-torch-toggle[aria-checked="true"] .fh-phone-switch-track{background:#96979c}
+.fh-phone-torch-toggle[aria-checked="true"] .fh-phone-switch-track::after{transform:translateX(20px);background:#111214}
+.fh-phone-battery-track{height:10px;margin:12px 0 8px;overflow:hidden;
+ border:1px solid #757578;border-radius:8px;background:#27282a}
+.fh-phone-battery-fill{height:100%;border-radius:7px;background:#c1c1c2;transition:width .25s linear}
+.fh-phone-readout{margin:8px 0 7px;color:#dad9d7;font-size:12px;font-weight:550;letter-spacing:.07em}
+.fh-phone-product strong{font-size:13px}.fh-phone-product small{font-size:12px;color:#c5c4c3}
+.fh-phone-product-fields{display:grid;grid-template-columns:58px minmax(0,1fr);gap:8px}
+.fh-phone-product-fields select:last-child{grid-column:1/-1}
+.fh-phone-order{font-size:12px;line-height:1.5;white-space:normal}
+.fh-phone-error{font-size:12px;color:#dfa3a0}
+.fh-phone-document{padding:13px;border:1px solid #ffffff26;border-radius:12px;
+ background:#ffffff09;color:#e8e5e0;font-size:13px;line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere}
+.fh-phone-nav{
+ flex:none;display:flex;align-items:center;justify-content:space-between;
+ min-height:66px;padding:2px 13px 15px;border-top:1px solid #ffffff1a;
+ background:#111214;position:relative;
+}
+.fh-phone-nav::after{content:"";position:absolute;bottom:6px;left:50%;transform:translateX(-50%);
+ width:96px;max-width:38%;height:4px;border-radius:4px;background:#d2d1cf;pointer-events:none}
+.fh-phone-nav .fh-phone-home{margin-left:auto}
+.fh-phone-toast{position:absolute;z-index:3;bottom:66px;left:13px;right:13px;
+ padding:11px 13px;border:1px solid #bcbab7;border-radius:11px;
+ background:#ddd9d2;color:#1b1b1d;font-size:12px;font-weight:600;line-height:1.35;
+ box-shadow:0 5px 18px #0009}
+.fh-phone-toast[hidden]{display:none!important}
+body.fh-pc-in-use #fhPhoneToggle,body.fh-pc-in-use #fhPhonePanel,
+body.fh-player-menu-open #fhPhoneToggle,body.fh-player-menu-open #fhPhonePanel,
+body.breaker-active #fhPhoneToggle,body.breaker-active #fhPhonePanel{
+ visibility:hidden!important;pointer-events:none!important
+}
+@media(max-width:780px){
+ #fhPhoneToggle{right:10px;top:calc(83px + env(safe-area-inset-top,0px));width:48px;height:48px}
+ #fhPhonePanel{right:64px;top:calc(24px + env(safe-area-inset-top,0px));
+  width:min(354px,calc(100vw - 75px));height:calc(100dvh - 45px - env(safe-area-inset-top,0px));}
+ .fh-phone-content{padding:13px 14px 16px}
+}
+@media(max-width:540px) and (orientation:portrait){
+ #fhPhonePanel{top:calc(139px + env(safe-area-inset-top,0px));right:7px;
+  width:min(354px,calc(100vw - 14px));height:min(640px,calc(100dvh - 154px - env(safe-area-inset-top,0px)));}
+}
+@media(max-height:480px) and (orientation:landscape){
+ /* Marco vertical intacto; reducir un 25% la presentación interna, no los targets táctiles. */
+ #fhPhoneToggle{top:calc(61px + env(safe-area-inset-top,0px));right:9px;width:46px;height:46px}
+ #fhPhonePanel{
+  top:calc(6px + env(safe-area-inset-top,0px));
+  right:calc(80px + env(safe-area-inset-right,0px));
+  width:min(228px,58dvh,calc(100vw - 80px - env(safe-area-inset-left,0px) - env(safe-area-inset-right,0px)));
+  height:calc(100dvh - 12px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));
+  max-height:100dvh;min-height:0;border-width:5px;border-radius:23px;
+ }
+ #fhPhonePanel::before{height:10px;width:60px}
+ .fh-phone-statusbar{min-height:25px;padding:7px 12px 2px;gap:8px}
+ .fh-phone-status-clock{font-size:9px}
+ .fh-phone-status-icons{gap:4px}
+ .fh-phone-status-icons svg{width:12px;height:11px}
+ .fh-phone-status-battery{width:17px;height:9px;border-width:1px;padding:1px}
+ .fh-phone-status-percent{font-size:8.25px;min-width:22px}
+ .fh-phone-header{height:36px;min-height:36px;padding:0 7px 0 10px}
+ .fh-phone-header button{height:44px;min-height:44px}
+ .fh-phone-header button svg,.fh-phone-nav button svg{width:16px;height:16px}
+ .fh-phone-title{font-size:9.75px}
+ .fh-phone-content{
+  min-height:0;padding:6px 10px 8px;font-size:9px;line-height:1.35;
+  overflow-y:auto;overflow-x:hidden;
+ }
+ #fhPhonePanel:has(.fh-phone-app-grid) .fh-phone-header,
+ #fhPhonePanel:has(.fh-phone-app-grid) .fh-phone-clock-card{display:none}
+ #fhPhonePanel:has(.fh-phone-app-grid) .fh-phone-content{
+  display:flex;flex-direction:column;justify-content:center;overflow:hidden;
+ }
+ .fh-phone-app-grid{grid-template-columns:repeat(auto-fit,minmax(48px,1fr));gap:6px 4px;width:100%}
+ .fh-phone-app{min-height:44px;gap:3px;padding:1px 1px 2px;border-radius:11px;font-size:8px;line-height:1.3}
+ .fh-phone-app-icon{height:33px;width:33px;border-radius:9px;font-size:16px}
+ .fh-phone-app-icon svg{width:18px;height:18px}
+ .fh-phone-app-label{font-size:8px;line-height:1.3;white-space:normal}
+ .fh-phone-tabs{gap:4px;margin-bottom:10px}
+ .fh-phone-tabs button{min-height:44px;padding:6px 9px;border-radius:17px;font-size:9px}
+ .fh-phone-entry,.fh-phone-product,.fh-phone-order,.fh-phone-conversation-row{
+  gap:7.5px;margin-bottom:6px;padding:9px;border-radius:10px;
+ }
+ .fh-phone-entry-text{gap:4px}
+ .fh-phone-entry-text strong,.fh-phone-product strong{font-size:9.75px}
+ .fh-phone-entry-text small{font-size:8.25px}
+ .fh-phone-product small{font-size:9px}
+ .fh-phone-entry>button:not(.fh-phone-entry-text){
+  min-height:44px;padding:7px 9px;border-radius:8px;font-size:9px;
+ }
+ .fh-phone-empty,.fh-phone-muted,.fh-phone-error{font-size:9px;line-height:1.4}
+ .fh-phone-empty{padding:10px 2px}
+ .fh-phone-section{font-size:12px;margin:3px 0 10px}
+ .fh-phone-primary{min-height:44px;padding:8px 11px;border-radius:8px;font-size:9px}
+ .fh-phone-note-form,.fh-phone-product{gap:7.5px}
+ #fhPhonePanel input,#fhPhonePanel textarea,#fhPhonePanel select{
+  min-height:44px;padding:7px 8px;border-radius:8px;font-size:9.75px;
+ }
+ #fhPhonePanel textarea{min-height:105px}
+ .fh-phone-message-log{min-height:45px;max-height:26vh;gap:7px;padding:4px 1px 8px}
+ .fh-phone-bubble{padding:8px 10px;border-radius:13px 13px 13px 4px;font-size:9px}
+ .fh-phone-bubble.outgoing{border-radius:13px 13px 4px 13px}
+ .fh-phone-bubble small{font-size:7.5px;margin-top:4px}
+ .fh-phone-conversation-row{min-height:44px;font-size:9px;line-height:1.4}
+ .fh-phone-message-form{gap:5px}
+ .fh-phone-torch-toggle{min-height:44px;gap:10px;margin-bottom:13px;padding:7px 9px;border-radius:10px}
+ .fh-phone-torch-label{font-size:9.75px}
+ .fh-phone-switch-track{width:36px;height:21px}
+ .fh-phone-switch-track::after{left:2px;top:2px;width:15px;height:15px}
+ .fh-phone-torch-toggle[aria-checked="true"] .fh-phone-switch-track::after{transform:translateX(15px)}
+ .fh-phone-battery-track{height:8px;margin:9px 0 6px}
+ .fh-phone-readout{font-size:9px;margin:6px 0 5px}
+ .fh-phone-product-fields{grid-template-columns:44px minmax(0,1fr);gap:6px}
+ .fh-phone-order{font-size:9px}
+ .fh-phone-document{padding:10px;border-radius:9px;font-size:9.75px;line-height:1.5}
+ .fh-phone-nav{height:40px;min-height:40px;padding:0 10px}
+ .fh-phone-nav button{position:relative;top:-4px;height:44px;min-height:44px}
+ .fh-phone-nav::after{bottom:4px;width:72px;height:3px}
+ .fh-phone-toast{bottom:40px;left:10px;right:10px;padding:8px 10px;border-radius:8px;font-size:9px}
+}
+@media(prefers-reduced-motion:reduce){
+ .fh-phone-battery-fill,.fh-phone-status-battery-fill,.fh-phone-switch-track,.fh-phone-switch-track::after{transition:none}
+}
+/* La tecla F conserva la misma linterna; se oculta solo el control legacy. */
+#flashlightToggle{display:none!important}

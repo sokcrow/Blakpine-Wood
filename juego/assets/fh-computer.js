@@ -27,7 +27,7 @@
   const assembly=options.assembly||root.FHPcAssembly;
   const hardware=inspect(item,items,options.feetPerCell||5,assembly);
   const state=options.state||{};
-  const userId=safeText(state.player?.id||state.playerId||options.defaultUserId||'GUARDIA_03');
+  const userId=safeText(state.phone?.accountId||state.characterId||state.player?.id||state.playerId||options.defaultUserId||'GUARDIA_03');
   const apps=Array.isArray(item?.pcApps)
    ?APPS.filter(app=>item.pcApps.includes(app)):APPS.slice();
   const ids=Array.isArray(item?.pcConnections?.cameras)?item.pcConnections.cameras.filter(v=>typeof v==='string'):[];
