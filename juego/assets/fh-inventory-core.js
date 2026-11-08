@@ -13,6 +13,7 @@
     armario: { slots: 24, allowed: ['clothing', 'other', 'food'], limits: { food: 2 } },
     estante_bajo: { slots: 6 },
     gabinete_inferior: { slots: 6, allowed: ['kitchen', 'hygiene', 'other'] },
+    encimera_simple: { slots: 6, allowed: ['kitchen', 'food', 'hygiene', 'other'] },
     alacena_superior: { slots: 6, allowed: ['food', 'kitchen'] },
     fregadero_mueble: { slots: 6, allowed: ['hygiene', 'kitchen'] },
     despensa_alta: { slots: 32, allowed: ['food', 'kitchen'] },

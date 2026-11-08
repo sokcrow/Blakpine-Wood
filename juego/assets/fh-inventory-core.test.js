@@ -94,3 +94,24 @@ test('inventarios independientes y guardado/restauración sin reiniciar por piso
   assert.deepEqual(restored.furniture['f1:arm1'].items,[{id:'camiseta',quantity:1}]);
   assert.equal(Inventory.resolve(restored,{kind:'furniture',id:'f2:arm1'},'npc').ok,true);
 });
+
+test('encimera modular tiene inventario de 6 espacios y restricciones editables', () => {
+  const world = scene();
+  assert.equal(Inventory.furnitureProfile('encimera_simple').slots, 6);
+  assert.deepEqual(Inventory.furnitureProfile('encimera_simple').allowed,
+    ['kitchen', 'food', 'hygiene', 'other']);
+  assert.equal(Inventory.addFurniture(world, 'cocina:encimera-1', 'encimera_simple').ok, true);
+  const ref = { kind: 'furniture', id: 'cocina:encimera-1' };
+  assert.equal(Inventory.deposit(world, ref, 'jugador', { id: 'lata', quantity: 2 }).ok, true);
+  assert.equal(Inventory.deposit(world, ref, 'jugador', { id: 'camiseta', quantity: 1 }).reason, 'category');
+  assert.equal(world.furniture['cocina:encimera-1'].items[0].quantity, 2);
+  assert.equal(Inventory.addFurniture(world, 'cocina:encimera-2', 'encimera_simple', {
+    slots: 12, allowedCategories: ['food', 'clothing']
+  }).ok, true);
+  assert.equal(world.furniture['cocina:encimera-2'].slots, 12);
+  assert.equal(Inventory.deposit(world, { kind: 'furniture', id: 'cocina:encimera-2' },
+    'jugador', { id: 'camiseta', quantity: 1 }).ok, true);
+  const saved = Inventory.restoreWorld(Inventory.saveWorld(world));
+  assert.equal(saved.furniture['cocina:encimera-1'].items[0].quantity, 2);
+  assert.equal(saved.furniture['cocina:encimera-2'].items[0].id, 'camiseta');
+});

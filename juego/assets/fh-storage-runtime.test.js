@@ -107,3 +107,18 @@ test('las restricciones y el guardado siguen vigentes al cerrar y reabrir', () =
   assert.equal(restored.instance.world.furniture['F1:alacena-1'].items[0].quantity, 1);
   assert.equal(restored.instance.world.furniture['F2:alacena-2'].items.length, 0);
 });
+
+test('encimera modular aparece como contenedor interactuable en 3D', () => {
+  const s = mount();
+  const encimera = { id: 'encimera-1', type: 'misc', modelId: 'encimera_simple', label: 'Encimera modular' };
+  s.instance.project.floors[0].items.push(encimera);
+  assert.equal(s.rt.supports(encimera), true);
+  assert.equal(s.rt.open(encimera, 0), true);
+  assert.equal(s.rt.isOpen, true);
+  assert.equal(s.instance.world.furniture['F1:encimera-1'].slots, 6);
+  const moveButtons = () => s.findAll(s.doc.body, el => el.className === 'fh-storage-move');
+  moveButtons()[0].click();
+  assert.deepEqual(s.state.inventory, ['lata', 'nota']);
+  assert.equal(s.instance.world.furniture['F1:encimera-1'].items[0].id, 'lata');
+  s.rt.close();
+});
