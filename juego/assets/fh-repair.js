@@ -66,6 +66,11 @@
     fail('requiredSkillId','Electricidad está pendiente de asignación: requiredSkillId debe ser null.');
   }else if(!FHSkills.IDS.includes(job.requiredSkillId)){
    fail('requiredSkillId','Usa un ID existente en FHSkills.IDS.');
+  }else if(job.subcategory==='estructural'&&skillGroup(job.requiredSkillId)!=='AGI'){
+   fail('requiredSkillId','Reparación física exige una habilidad de AGI.');
+  }else if(['mecanica','informatica','electronica'].includes(job.subcategory)&&
+    job.requiredSkillId!==DEFAULT_SKILLS[job.subcategory]){
+   fail('requiredSkillId','Esta subcategoría exige su habilidad específica de FHSkills (ING).');
   }
 
   if(!validId(job.compatibleKitId))
