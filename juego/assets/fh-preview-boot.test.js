@@ -7,6 +7,20 @@ const vm=require('node:vm');
 
 const root=path.resolve(__dirname,'../..');
 const editor=fs.readFileSync(path.join(root,'index.html'),'utf8');
+function integrationEnvironment(){
+ const document={baseURI:'https://example.test/',currentScript:null};
+ const window={document,__FOREST_EMBEDDED_ENGINE__:''};
+ const context=vm.createContext({window,document,URL,console});
+ for(let i=0;i<=12;i++){
+  vm.runInContext(fs.readFileSync(path.join(__dirname,'engine-'+String(i).padStart(2,'0')+'.js'),'utf8'),context);
+ }
+ for(const file of ['fh-architecture-skins.js','fh-comic-action-engine-hook.js','fh-context-engine-hook.js','fh-structure-engine-hook.js']){
+  document.currentScript={src:new URL('juego/assets/'+file,document.baseURI).href};
+  vm.runInContext(fs.readFileSync(path.join(__dirname,file),'utf8'),context);
+ }
+ vm.runInContext(extract('function addLiveTextToEngine(','\nlet fhCharacterLaunchPending=false;'),context);
+ return {context,window,motor:Buffer.from(window.__FOREST_EMBEDDED_ENGINE__,'base64').toString('utf8')};
+}
 function extract(start,end){
  const from=editor.indexOf(start),to=editor.indexOf(end,from);
  assert.ok(from>=0&&to>from,'No se encontró el código de arranque: '+start);
@@ -60,3 +74,55 @@ test('hook del repartidor construye una cámara de puerta válida desde el motor
  assert.ok(start>7&&end>start);
  assert.doesNotThrow(()=>new vm.Script(output.slice(start,end)));
 });
+
+test('arranque real: GLB y PG componen después de cómics y menú contextual',()=>{
+ const {context,window,motor}=integrationEnvironment();
+ const prepared=context.prepareGLBEngineDoc(motor);
+ assert.match(prepared,/if\(d\.stairBlockFlag&&GameState.flags\[d.stairBlockFlag\]\)\{fhComicWorld/);
+ const patched=window.FHStructureHealthEngine.patch(window.FHArchitectureSkins.patchEngineDoc(prepared));
+ assert.match(patched,/FHArchitectureSkins\?\.decorateDoor\(d,it,THREE,installVisibility\)/);
+ assert.match(patched,/FHArchitectureSkins\?\.decorateWindow/);
+ assert.match(patched,/FHStructureHealthRuntime\?\.registerDoor/);
+ assert.match(patched,/FHStructureHealthRuntime\?\.registerWindow/);
+ assert.match(patched,/if\(d.destroyed\)return notice\(window.FH_STRUCTURE_TEXT.destroyed,1800\);\n if\(d.stairBlockFlag/);
+ assert.match(patched,/FHStorageRuntime\?\.isOpen/);
+ const body=patched.slice(patched.lastIndexOf('<script>')+8,patched.lastIndexOf('</script>'));
+ assert.doesNotThrow(()=>new vm.Script(body),'la cadena completa produce JavaScript válido');
+});
+
+async function previewWithFailure(failingAdapter){
+ const frame={srcdoc:''},messages=[];
+ const context=vm.createContext({
+  window:{
+   FHCharacterCreation:{ensureCharacter:async()=>({id:'test'})},
+   FHArchitectureSkins:{patchEngineDoc(){if(failingAdapter==='architecture')throw Error('architecture');return 'motor-con-glb';}},
+   FHStructureHealthEngine:{patch(){throw Error('structure');}},
+   FH_ARCHITECTURE_TEXT:{patchFailure:'error de arquitectura'},
+   FH_STRUCTURE_TEXT:{integrationFailure:'error de PG'}
+  },
+  project:{floors:[{items:[{type:'spawn'}]}]},
+  document:{activeElement:null},console:{error(){}},
+  preview3DActive:false,preview3DSent:false,preview3DRunning:false,preview3DArchitectureError:'',
+  play3DFrame:frame,play3DLayer:{classList:{add(){}},setAttribute(){}},
+  PREVIEW_ENGINE_DOC_B64:'base64',PREVIEW_TEXT:{preparing:'preparando'},
+  decodeEmbedded3DEngine:()=>'',prepareGLBEngineDoc:()=>'motor-base',
+  closeInspector(){},closeModal(){},show3DStatus(){},
+  preview3DError(message){messages.push(message);},setTimeout:()=>1
+ });
+ vm.runInContext(extract('let fhCharacterLaunchPending=false;','\nfunction close3DPreview(){'),context);
+ await context.start3DPreview();
+ return {frame,context,messages};
+}
+test('si PG falla, el arranque conserva el documento con GLB y distingue el error',async()=>{
+ const {frame,context,messages}=await previewWithFailure('structure');
+ assert.equal(frame.srcdoc,'motor-con-glb');
+ assert.equal(context.preview3DArchitectureError,'error de PG');
+ assert.deepEqual(messages,[]);
+});
+test('si falla arquitectura, el arranque conserva el motor base y su aviso',async()=>{
+ const {frame,context,messages}=await previewWithFailure('architecture');
+ assert.equal(frame.srcdoc,'motor-base');
+ assert.equal(context.preview3DArchitectureError,'error de arquitectura');
+ assert.deepEqual(messages,[]);
+});
+
