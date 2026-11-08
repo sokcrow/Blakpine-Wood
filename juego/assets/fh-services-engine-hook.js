@@ -56,10 +56,13 @@
    '  if(it.type==="landline_phone"){',
    '   if(!service.landlineFor(f,it)){notice(T.noInternet||"Teléfono fuera de servicio.");return true;}',
    '   const calls=service.state.calls||=[];',
-   '   const pending=calls.find(c=>c.direction==="incoming"&&c.to===it.routerId&&!c.answered);',
+   '   const pending=calls.find(c=>c.direction==="incoming"&&(c.routerId||c.to)===it.routerId&&!c.answered);',
    '   if(pending){pending.answered=true;notice("Llamada atendida: "+pending.from);saveProgress();return true;}',
    '   const number=window.prompt?.("Número telefónico:");',
-   '   if(number&&number.trim()){calls.push({direction:"outgoing",from:it.id,to:number.trim().slice(0,80),at:GameState.clock?.minutes||0});',
+   '   if(number&&number.trim()){',
+   '    const result=service.dial("fixed",f,it,number.trim());',
+   '    if(!result.ok){notice("Número fuera de servicio.");return true;}',
+   '    if(result.target.kind==="mobile")window.FHPhoneRuntime?.receiveCall?.({from:it.phoneNumber||it.id});',
    '    notice("Llamando a "+number.trim().slice(0,80));saveProgress();}',
    '   return true;',
    '  }',
@@ -113,9 +116,11 @@
    'mobileAvailable:()=>window.FHServicesRuntime?.mobileFor()===true,',
    'networkAvailable:()=>window.FHServicesRuntime?.mobileFor()===true||',
    ' (window.FHServicesRuntime?.wifiAt(currentFloor,user.x/CELL,user.z/CELL)||[]).some(n=>n.online),',
-   'onCall:c=>{if(!window.FHServicesRuntime?.mobileFor())return false;',
-   ' const calls=window.FHServicesRuntime.state.calls||=[];',
-   ' calls.push({...c,from:GameState.phone?.accountId||"player",network:"mobile"});saveProgress();return true;},'
+   'onCall:c=>{',
+   ' const result=window.FHServicesRuntime?.dial("mobile",currentFloor,null,c.to);',
+   ' if(!result?.ok)return false;',
+   ' if(result.target.kind==="mobile")window.FHPhoneRuntime?.receiveCall?.({from:GameState.phone?.phoneNumber||"celular"});',
+   ' saveProgress();return true;},'
   ].join('\n');
   doc=once(doc,phone,start+'\n'+phone+'\n'+phoneOptions,'inicialización');
 
