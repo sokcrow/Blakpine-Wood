@@ -25,6 +25,19 @@
    .13*smooth((h-18.6)/1.8);
   return {hour:h,sun:clamp(sun,0,1),moon:clamp(moon,0,.13)};
  }
+ // El día despejado no aplica filtro al exterior; la luna solo reduce la oscuridad.
+ // La contribución natural SE SUMA a la visión artificial, nunca la reemplaza.
+ function sightStrength(minutes){
+  const {sun,moon}=lightAt(minutes);
+  const daylight=smooth((sun-.07)/.40);
+  const moonHaze=.28*clamp(moon/.13,0,1)*(1-daylight);
+  return clamp(daylight+moonHaze,0,1);
+ }
+ // La luz diurna permite ver algo más lejos; la luna no prolonga el alcance.
+ function naturalVisionRadius(minutes,base=19){
+  const radius=clamp(finite(base,19),0,200);
+  return radius+6.5*smooth((lightAt(minutes).sun-.14)/.48);
+ }
  function isBasement(floor){
   if(!floor)return false;
   if(Number.isFinite(Number(floor.elevationFt))&&Number(floor.elevationFt)<0)return true;
@@ -113,7 +126,7 @@
     const plus=extSide(1),minus=extSide(-1);
     if(plus===minus)continue;
     activePortals++;
-    const radius=5,base=itIsDoor(s.item.type)?0.88:0.78;
+    const radius=8,base=itIsDoor(s.item.type)?0.88:0.78;
     const x0=Math.max(0,Math.floor((cx-radius)*scale)),x1=Math.min(w-1,Math.ceil((cx+radius)*scale));
     const y0=Math.max(0,Math.floor((cy-radius)*scale)),y1=Math.min(h-1,Math.ceil((cy+radius)*scale));
     for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){
@@ -141,7 +154,7 @@
   const sizeX=clamp(finite(DATA.units?.columns,16),1,500)*CELL;
   const sizeZ=clamp(finite(DATA.units?.rows,22),1,500)*CELL;
   const uniformMask={value:null},uniformColor={value:new THREE.Color(0)};
-  let current=-1,lastSignature='',lastMinutes=NaN,daylightActive=false;
+  let current=-1,lastSignature='',lastMinutes=NaN,lastVisionReach=NaN,daylightActive=false;
   const empty=new THREE.DataTexture(new Uint8Array([0,0,0,255]),1,1,THREE.RGBAFormat);
   empty.magFilter=THREE.LinearFilter;empty.minFilter=THREE.LinearFilter;empty.needsUpdate=true;
   uniformMask.value=empty;
@@ -165,17 +178,33 @@
    tex.magFilter=THREE.LinearFilter;tex.minFilter=THREE.LinearFilter;tex.generateMipmaps=false;tex.needsUpdate=true;
    atlas.set(f,tex);atlasMasks.set(f,mask);atlasSignature.set(f,signatureNow);
    const canvas=typeof document!=='undefined'?document.createElement('canvas'):null;
-   const context=canvas?.getContext?.('2d');
-   if(context){
+   if(canvas){
     canvas.width=mask.width;canvas.height=mask.height;
-    const image=context.createImageData(mask.width,mask.height);
-    for(let i=0;i<mask.access.length;i++){
-     if(mask.access[i]<16)continue;
-     const p=i*4;image.data[p]=image.data[p+1]=image.data[p+2]=image.data[p+3]=255;
+    const context=canvas.getContext?.('2d');
+    if(context){
+     context.imageSmoothingEnabled=false;
+     atlasCanvas.set(f,{
+      canvas,context,image:context.createImageData(mask.width,mask.height),level:-1
+     });
     }
-    context.putImageData(image,0,0);atlasCanvas.set(f,canvas);
    }
    old?.dispose();return tex;
+  }
+  function refreshSightCanvas(f,minutes){
+   const mask=atlasMasks.get(f),layer=atlasCanvas.get(f);
+   if(!mask||!layer)return false;
+   const level=Math.round(sightStrength(minutes)*255);
+   if(layer.level===level)return false;
+   layer.level=level;
+   // Blanco al mediodía en el exterior. La penumbra lunar nunca equivale al sol.
+   // El valor de cada píxel sigue la distancia real a una abertura.
+   for(let i=0;i<mask.access.length;i++){
+    const strength=Math.round(mask.access[i]*level/255),p=i*4;
+    layer.image.data[p]=layer.image.data[p+1]=layer.image.data[p+2]=strength;
+    layer.image.data[p+3]=strength?255:0;
+   }
+   layer.context.putImageData(layer.image,0,0);
+   return true;
   }
   function attach(container=scene){
    if(!container?.traverse)return;
@@ -212,19 +241,23 @@
     uniformMask.value=textureFor(f,signatureNow);
     current=f;lastSignature=signatureNow;changed=true;
    }
-   const minutes=finite(clock?.(),480);
+   const minutes=Math.floor(finite(clock?.(),480));
    if(minutes===lastMinutes&&!changed)return changed;
    lastMinutes=minutes;
    const light=lightAt(minutes);
    const wasActive=daylightActive;
    daylightActive=!isBasement(DATA.floors[f])&&(light.sun>.025||light.moon>.009);
    if(daylightActive!==wasActive)changed=true;
+   // El radio cambia con la posición solar incluso cuando la máscara llega al
+   // blanco máximo. Forzar FOW para el jugador quieto al amanecer/anochecer.
+   const visionReach=daylightActive?naturalVisionRadius(minutes,19):19;
+   if(visionReach!==lastVisionReach){lastVisionReach=visionReach;changed=true;}
    uniformColor.value.setRGB(
     .92*light.sun+.32*light.moon,
     .82*light.sun+.46*light.moon,
     .69*light.sun+.68*light.moon
    );
-   return changed;
+   return refreshSightCanvas(f,minutes)||changed;
   }
   function illuminates(x,z){
    if(!daylightActive)return false;
@@ -232,17 +265,23 @@
    const gx=Math.floor(x/CELL*m.scale),gy=Math.floor(z/CELL*m.scale);
    return gx>=0&&gy>=0&&gx<m.width&&gy<m.height&&m.access[gy*m.width+gx]>=16;
   }
-  // Pintar dentro del clip FOW preexistente; nunca atraviesa paredes ni
-  // muestra lugares fuera del radio máximo del jugador.
+  // Solo SUMA luz donde hay cielo/ventanas: nunca tapa el haz de la linterna
+  // ni modifica el FOW de una habitación sin entradas o de un sótano.
+  // El motor conserva su clip de paredes, puertas y radio de visión.
   function paintSight(ctx,width,height){
-   const canvas=atlasCanvas.get(current);
-   if(!daylightActive||!canvas)return;
-   ctx.drawImage(canvas,0,0,width,height);
+   const layer=atlasCanvas.get(current);
+   if(!daylightActive||!layer)return;
+   ctx.save?.();
+   const oldMode=ctx.globalCompositeOperation;
+   ctx.globalCompositeOperation='lighten';
+   ctx.drawImage(layer.canvas,0,0,width,height);
+   ctx.globalCompositeOperation=oldMode;
+   ctx.restore?.();
   }
   update();
-  return {update,attach,hasLight:()=>daylightActive,illuminates,paintSight,
+  return {update,attach,hasLight:()=>daylightActive,visionRadius:base=>daylightActive?naturalVisionRadius(lastMinutes,base):base,illuminates,paintSight,
    dispose:()=>{for(const t of atlas.values())t.dispose();atlas.clear();atlasMasks.clear();atlasCanvas.clear();empty.dispose()},
    access:()=>atlas.get(current)||empty};
  }
- return Object.freeze({lightAt,isBasement,computeAccess,createRuntime});
+ return Object.freeze({lightAt,sightStrength,naturalVisionRadius,isBasement,computeAccess,createRuntime});
 });

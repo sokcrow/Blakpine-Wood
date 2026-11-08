@@ -24,6 +24,88 @@ test('el sol domina al mediodía, cae al anochecer y la luna es un porcentaje pe
  assert.ok(sunset.sun<noon.sun);
  assert.deepEqual(Natural.lightAt(720),Natural.lightAt(720+1440));
 });
+test('visión: día sin filtro exterior y noche con oscuridad parcialmente translúcida',()=>{
+ const midday=Natural.sightStrength(12*60),morning=Natural.sightStrength(8*60),night=Natural.sightStrength(0);
+ assert.equal(midday,1,'el mediodía no oscurece el exterior');
+ assert.equal(morning,1,'durante el día normal no se impone un filtro');
+ assert.ok(night>=.20&&night<=.32,'la noche mantiene oscuridad, pero no negro total');
+ assert.ok(night<midday*.5,'la luna no equivale a la iluminación solar');
+ assert.ok(Natural.sightStrength(18*60)<midday);
+ assert.ok(Natural.naturalVisionRadius(720,19)>25,'la luz solar extiende la línea de visión');
+ assert.equal(Natural.naturalVisionRadius(0,19),19,'la niebla nocturna no extiende el alcance');
+});
+test('la luz natural se suma a la linterna y se atenúa de forma espacial',()=>{
+ const THREE={
+  Color:class {setRGB(r,g,b){this.rgb=[r,g,b]}},
+  DataTexture:class{constructor(data,w,h){this.image={data,width:w,height:h}}dispose(){}},
+  RGBAFormat:1,LinearFilter:2
+ };
+ const backup=global.document,frames=[];
+ global.document={createElement:()=>({
+  width:0,height:0,
+  getContext(){
+   return {createImageData(w,h){return {data:new Uint8ClampedArray(w*h*4)}},
+    putImageData(image){frames.push(Uint8ClampedArray.from(image.data))}};
+  }
+ })};
+ const mins={value:720};
+ const room=level(roomWithWestWindow()),floors=[room];
+ try{
+  const runtime=Natural.createRuntime({THREE,DATA:{floors,units},CELL:1,
+   scene:{traverse(){}},floor:()=>0,clock:()=>mins.value});
+  const scale=2,width=units.columns*scale;
+  const pixel=(frame,x,y)=>frame[(Math.floor(y*scale)*width+Math.floor(x*scale))*4];
+  assert.equal(pixel(frames.at(-1),2,4.5),255,'día exterior sin filtro');
+  assert.ok(runtime.visionRadius(19)>25,'amplía visión exterior durante el día');
+  assert.ok(pixel(frames.at(-1),3.6,4.5)>0&&pixel(frames.at(-1),3.6,4.5)<255,
+   'la luz de ventana es tenue, no una luz blanca total');
+  assert.equal(pixel(frames.at(-1),8,4.5),255,'otro exterior sigue a plena luz');
+  let mode='source-over',sampledMode='',draws=0;
+  const ctx={save(){},restore(){},get globalCompositeOperation(){return mode},
+   set globalCompositeOperation(value){mode=value},
+   drawImage(){sampledMode=mode;draws++}};
+  runtime.paintSight(ctx,300,400);
+  assert.equal(sampledMode,'lighten','la máscara solar se suma a lámparas/linterna');
+  assert.equal(mode,'source-over','el modo de mezcla anterior se restaura');
+  mins.value=0;assert.equal(runtime.update(),true);
+  assert.equal(runtime.visionRadius(19),19);
+  assert.ok(pixel(frames.at(-1),2,4.5)>=45&&pixel(frames.at(-1),2,4.5)<=85,
+   'por la noche el exterior conserva luz lunar tenue');
+  assert.ok(pixel(frames.at(-1),3.6,4.5)<pixel(frames.at(-1),2,4.5),
+   'la luz lunar también pierde intensidad al entrar');
+  assert.equal(draws,1);
+  runtime.dispose();
+ }finally{if(backup===undefined)delete global.document;else global.document=backup}
+});
+test('Codex P2: actualizar FOW al cambiar alcance solar aunque el brillo siga al máximo',()=>{
+ const THREE={
+  Color:class{setRGB(){}},
+  DataTexture:class{dispose(){}},
+  RGBAFormat:1,LinearFilter:2
+ };
+ let minutes=7*60+25; // 07:25, jugador inmóvil
+ const start=minutes,end=7*60+45;
+ assert.equal(Natural.sightStrength(start),1);
+ assert.equal(Natural.sightStrength(end),1);
+ assert.notEqual(Natural.naturalVisionRadius(start,19),Natural.naturalVisionRadius(end,19));
+ const runtime=Natural.createRuntime({
+  THREE,DATA:{floors:[level(roomWithWestWindow())],units},CELL:1,
+  scene:{traverse(){}},floor:()=>0,clock:()=>minutes
+ });
+ try{
+  assert.equal(runtime.update(),false,'sin avanzar reloj no hay que regenerar FOW');
+  const before=runtime.visionRadius(19);
+  minutes=end;
+  assert.ok(runtime.visionRadius(19)<Natural.naturalVisionRadius(end,19));
+  assert.equal(runtime.update(),true,'el radio cambió aunque el brillo sea idéntico');
+  assert.ok(runtime.visionRadius(19)>before);
+  assert.equal(runtime.update(),false,'la misma hora no fuerza nuevos redibujados');
+  minutes=18*60+40;
+  assert.equal(runtime.update(),true,'al anochecer se reduce el alcance');
+  assert.ok(runtime.visionRadius(19)<Natural.naturalVisionRadius(end,19));
+ }finally{runtime.dispose();}
+});
+
 test('un exterior sin barreras recibe luz natural de cobertura total',()=>{
  const m=Natural.computeAccess(level([]),units);
  assert.equal(m.exterior,m.width*m.height);
@@ -131,6 +213,7 @@ test('P1: consulta de luz natural mantiene interiores oscuros y respeta sótanos
   assert.equal(drawCount,1);
   floorIndex=1;assert.equal(runtime.update(),true);
   assert.equal(runtime.hasLight(),false);
+  assert.equal(runtime.visionRadius(19),19,'los sótanos no amplían visión natural');
   assert.equal(runtime.illuminates(2,2),false);
   runtime.paintSight({drawImage(){drawCount++}},300,400);
   assert.equal(drawCount,1,'los sótanos no pintan luz natural en FOW');
@@ -143,6 +226,7 @@ test('P1: el motor conecta la visión de objetos, FOW y la luz natural',()=>{
  assert.match(html,/fhNatural\?\.illuminates\(x,z\)/);
  assert.match(html,/fhNatural\?\.paintSight\(q,sightCanvas\.width,sightCanvas\.height\)/);
  assert.match(html,/fhNatural\?\.hasLight\(\)/);
+ assert.match(html,/fhNatural\?\.visionRadius\(LOOK_RADIUS\)/);
  assert.match(html,/if\(fhNatural\?\.update\(\)\)visibilityDirty=true/);
 });
 
