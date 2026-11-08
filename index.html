@@ -3768,7 +3768,39 @@ function fhRefreshActorVisibility(){
   return doc.replace('</head>',script+'</head>');
  }
 
- return (window.FHContextEngine?.patch||((doc)=>doc))(addActorPresentationToEngine(addLiveTextToEngine(addDeliveryToEngine(addParkingToEngine(addStylesToEngine(addLightToEngine(source)))).replace(furnitureVisibilityHook,furnitureRenderHook).replace(cameraBefore,cameraLightAfter).replace(sleepCameraBefore,sleepCameraAfter).replace(loopBefore,loopAfter)
+ // Iluminación natural para la vista 3D, sin alterar el circuito de lámparas.
+ function addNaturalLightToEngine(doc){
+  const before='installVisibility();window.FHAssets?.setSightMaskInstaller(installVisibility);';
+  const after=[
+   "const fhNatural=window.FHNaturalLight?.createRuntime({THREE,DATA,CELL,scene,ambient,",
+   " clock:()=>GameState.clock?.minutes,floor:()=>currentFloor,",
+   " doorOpen:(f,id,it)=>doorList[f]?.find(d=>d.id===id)?.open??it?.open,",
+   " doorTransparent:it=>ForestShared.doorSpec(it)?.transparent===true});",
+   "fhNatural?.attach(scene);",
+   "installVisibility();window.FHAssets?.setSightMaskInstaller(root=>{fhNatural?.attach(root);installVisibility(root);});"
+  ].join('\n');
+  const tickBefore='window.FHDeliveryRuntime?.update(dt);window.FHPhoneRuntime?.update(dt);';
+  const tickAfter='window.FHDeliveryRuntime?.update(dt);window.FHPhoneRuntime?.update(dt);if(fhNatural?.update())visibilityDirty=true;';
+  const pointBefore='if(dist<=radius&&ForestShared.pointInSight(x,z,at,opaque,radius))return true;';
+  const pointAfter=pointBefore+'\n if(fhNatural?.illuminates(x,z)&&dist<=LOOK_RADIUS+.075&&ForestShared.pointInSight(x,z,at,opaque,LOOK_RADIUS))return true;';
+  const rangeBefore='const range=params.sources?.length?LOOK_RADIUS:Math.max(params.dim||2.4384,params.beam);';
+  const rangeAfter='const range=params.sources?.length||fhNatural?.hasLight()?LOOK_RADIUS:Math.max(params.dim||2.4384,params.beam);';
+  const radiusBefore='const radius=params.sources?.length?LOOK_RADIUS:Math.max(params.dim||2.4384,params.beam);';
+  const radiusAfter='const radius=params.sources?.length||fhNatural?.hasLight()?LOOK_RADIUS:Math.max(params.dim||2.4384,params.beam);';
+  const sightBefore=' q.restore();sightTexture.needsUpdate=true;';
+  const sightAfter=' fhNatural?.paintSight(q,sightCanvas.width,sightCanvas.height);\n'+sightBefore;
+  for(const [oldText,newText,expected] of [[before,after,1],[tickBefore,tickAfter,1],
+    [pointBefore,pointAfter,1],[rangeBefore,rangeAfter,1],
+    [radiusBefore,radiusAfter,2],[sightBefore,sightAfter,1]]){
+   const count=doc.split(oldText).length-1;
+   if(count!==expected)throw Error('Hook de luz natural incompatible ('+count+'/'+expected+'): '+oldText.slice(0,70));
+   doc=doc.split(oldText).join(newText);
+  }
+  const script='<script src="'+new URL('./juego/assets/fh-natural-light.js?v=20261107-natural-2',document.baseURI).href+'"></'+'script>';
+  return doc.replace('</head>',script+'</head>');
+ }
+
+ const assembled=(window.FHContextEngine?.patch||((doc)=>doc))(addActorPresentationToEngine(addLiveTextToEngine(addDeliveryToEngine(addParkingToEngine(addStylesToEngine(addLightToEngine(source)))).replace(furnitureVisibilityHook,furnitureRenderHook).replace(cameraBefore,cameraLightAfter).replace(sleepCameraBefore,sleepCameraAfter).replace(loopBefore,loopAfter)
   .replace(maskBefore,maskAfter).replace(wakeHUDBefore,wakeHUDAfter).replace(locationHudHook,locationHudAfter)
   .split(wakeBefore).join(wakeAfter)
   .replace(chairSelection," const poseReachable=(item,anchor)=>canWalk(user.x,user.z)&&safePoseRoute(item,{x:user.x,z:user.z},anchor);\n const stockSeat=selectSeatInteractable(visible,user,yaw,CELL,poseReachable);\n const glbChair=window.FHFurnitureRules?.findReachableChair(visible,user,yaw,CELL,poseReachable,ForestShared);\n const sitting=glbChair&&(!stockSeat||glbChair.score<stockSeat.score)?glbChair:stockSeat;")
@@ -3788,6 +3820,7 @@ function fhRefreshActorVisibility(){
   .replace(cloneBefore,'const clone=source.clone(true);\n   window.FHAssets?.mirror(source,clone);\n   clone.position.y+=floorElev[f];')
   .replace(engineSuccessBefore,engineSuccessAfter).replace(engineFailBefore,engineFailAfter).replace(loadFailBefore,loadFailAfter)
   .replace('</head>',localThree+coverageScript+lightsModule+surfaceScript+decorationScript+ruleScript+bridge+sleepCss+sleepStrings+sleepModule+pcAssemblyModule+computerStrings+computerModule+npcGoapModule+npcCourierModule+deliveryStrings+deliveryModule+styleCore+styleRender+parkingScript+playerMenuCss+playerMenuStrings+skillsModule+skillsStrings+helpCss+helpStrings+helpScript+playerMenuScript+locationCss+locationStrings+locationScript+hudRedesignCss+gameUiCss+hudFrameScript+mobileMenusCss+statusCss+statusStrings+statusScript+phoneCss+phoneStrings+phoneScript+'</head>'))));
+ return addNaturalLightToEngine(assembled);
 }
 let fhCharacterLaunchPending=false;
 async function start3DPreview(){
