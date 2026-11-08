@@ -230,6 +230,37 @@ test('P1: el motor conecta la visión de objetos, FOW y la luz natural',()=>{
  assert.match(html,/if\(fhNatural\?\.update\(\)\)visibilityDirty=true/);
 });
 
+test('la luz exterior NO aplica filtros emissive ni modifica brillo ambiental',()=>{
+ const ambient={intensity:.37};
+ const shader={onBeforeCompile(){throw Error('No se debe modificar el shader')},needsUpdate:false};
+ const mesh={isMesh:true,material:shader};
+ let traversals=0;
+ const scene={traverse(cb){traversals++;cb(mesh)}};
+ const floorData=level(roomWithWestWindow());
+ const runtime=Natural.createRuntime({
+  DATA:{floors:[floorData],units},CELL:1,scene,ambient,
+  clock:()=>12*60,floor:()=>0
+ });
+ assert.ok(runtime);
+ assert.equal(ambient.intensity,.37,'la luz natural no cambia el brillo global');
+ assert.equal(traversals,0,'no debe recorrer los materiales para instalar filtros');
+ assert.equal(shader.needsUpdate,false,'no provoca recompilación de materiales');
+ assert.equal(runtime.hasLight(),true);
+ assert.equal(runtime.illuminates(3.6,4.5),true,'se mantiene la luz que entra por ventana');
+ assert.equal(typeof runtime.paintSight,'function','conserva la máscara de visión');
+ assert.ok(runtime.access()?.access instanceof Uint8Array,'mantiene la máscara espacial');
+ runtime.dispose();
+});
+test('el adaptador 3D no incorpora shaders de brillo natural adicional',()=>{
+ const fs=require('node:fs'),path=require('node:path');
+ const html=fs.readFileSync(path.resolve(__dirname,'../../index.html'),'utf8');
+ const source=fs.readFileSync(path.resolve(__dirname,'fh-natural-light.js'),'utf8');
+ assert.doesNotMatch(source,/totalEmissiveRadiance|uFHNaturalColor|ambient\.intensity|onBeforeCompile/);
+ assert.doesNotMatch(html,/fhNatural\?\.attach/);
+ assert.match(html,/fhNatural\?\.paintSight/);
+ assert.match(html,/fh-natural-light\.js\?v=20261107-no-exterior-filter-1/);
+});
+
 test('el adaptador 3D registra el módulo sin modificar los fragmentos Base64',()=>{
  const fs=require('node:fs'),path=require('node:path');
  const html=fs.readFileSync(path.resolve(__dirname,'../../index.html'),'utf8');

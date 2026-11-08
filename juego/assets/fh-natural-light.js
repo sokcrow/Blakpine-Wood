@@ -146,37 +146,23 @@
   return {width:w,height:h,scale,access,exterior:tail,portals:activePortals};
  }
  function itIsDoor(type){return type!=='window'}
- function createRuntime({THREE,DATA,CELL,scene,ambient,clock,floor,doorOpen,doorTransparent}={}){
-  if(!THREE||!DATA||!scene)return null;
-  const atlas=new Map(),atlasMasks=new Map(),atlasCanvas=new Map(),atlasSignature=new Map(),installed=new WeakSet();
-  // Penumbra basal; la luz natural solo ilumina las superficies con acceso exterior.
-  if(ambient)ambient.intensity=.08;
-  const sizeX=clamp(finite(DATA.units?.columns,16),1,500)*CELL;
-  const sizeZ=clamp(finite(DATA.units?.rows,22),1,500)*CELL;
-  const uniformMask={value:null},uniformColor={value:new THREE.Color(0)};
+ function createRuntime({DATA,CELL,clock,floor,doorOpen,doorTransparent}={}){
+  if(!DATA||!Array.isArray(DATA.floors)||!DATA.floors.length)return null;
+  // La luz exterior modifica SOLO la máscara de visibilidad, no el brillo
+  // ambiental ni los materiales de Three.js. Conserva luces artificiales.
+  const atlasMasks=new Map(),atlasCanvas=new Map(),atlasSignature=new Map();
   let current=-1,lastSignature='',lastMinutes=NaN,lastVisionReach=NaN,daylightActive=false;
-  const empty=new THREE.DataTexture(new Uint8Array([0,0,0,255]),1,1,THREE.RGBAFormat);
-  empty.magFilter=THREE.LinearFilter;empty.minFilter=THREE.LinearFilter;empty.needsUpdate=true;
-  uniformMask.value=empty;
   function signature(f){
    const fl=DATA.floors[f],doors=(fl?.items||[]).filter(it=>PORTALS.has(it.type)&&it.type!=='window');
    return doors.map(it=>String(it.id||'')+':'+String(!!(doorOpen?.(f,it.id,it)??it.open))).join('|');
   }
-  function textureFor(f,signatureNow){
-   if(atlas.has(f)&&atlasSignature.get(f)===signatureNow)return atlas.get(f);
-   const old=atlas.get(f);
+  function maskFor(f,signatureNow){
+   if(atlasMasks.has(f)&&atlasSignature.get(f)===signatureNow)return atlasMasks.get(f);
    const mask=computeAccess(DATA.floors[f],DATA.units,{
     doorOpen:(id,it)=>doorOpen?.(f,id,it)??it.open===true,
     isTransparentDoor:it=>doorTransparent?.(it)
    });
-   const data=new Uint8Array(mask.width*mask.height*4);
-   for(let y=0;y<mask.height;y++)for(let x=0;x<mask.width;x++){
-    const from=y*mask.width+x,to=((mask.height-1-y)*mask.width+x)*4;
-    data[to]=data[to+1]=data[to+2]=mask.access[from];data[to+3]=255;
-   }
-   const tex=new THREE.DataTexture(data,mask.width,mask.height,THREE.RGBAFormat);
-   tex.magFilter=THREE.LinearFilter;tex.minFilter=THREE.LinearFilter;tex.generateMipmaps=false;tex.needsUpdate=true;
-   atlas.set(f,tex);atlasMasks.set(f,mask);atlasSignature.set(f,signatureNow);
+   atlasMasks.set(f,mask);atlasSignature.set(f,signatureNow);
    const canvas=typeof document!=='undefined'?document.createElement('canvas'):null;
    if(canvas){
     canvas.width=mask.width;canvas.height=mask.height;
@@ -188,7 +174,7 @@
      });
     }
    }
-   old?.dispose();return tex;
+   return mask;
   }
   function refreshSightCanvas(f,minutes){
    const mask=atlasMasks.get(f),layer=atlasCanvas.get(f);
@@ -206,39 +192,12 @@
    layer.context.putImageData(layer.image,0,0);
    return true;
   }
-  function attach(container=scene){
-   if(!container?.traverse)return;
-   container.traverse(mesh=>{
-    if(!mesh.isMesh)return;
-    const mats=Array.isArray(mesh.material)?mesh.material:[mesh.material];
-    for(const mat of mats){
-     if(!mat||installed.has(mat)||!mat.isMeshLambertMaterial&&!mat.isMeshPhongMaterial&&!mat.isMeshStandardMaterial)continue;
-     installed.add(mat);
-     const previous=mat.onBeforeCompile;
-     mat.onBeforeCompile=function(shader){
-      previous?.call(this,shader);
-      if(!shader.vertexShader.includes('#include <begin_vertex>')||!shader.fragmentShader.includes('#include <emissivemap_fragment>'))return;
-      shader.uniforms.uFHNaturalMask=uniformMask;
-      shader.uniforms.uFHNaturalColor=uniformColor;
-      shader.vertexShader=shader.vertexShader.replace('#include <common>',
-       '#include <common>\nvarying vec3 fhNaturalWorld;')
-       .replace('#include <begin_vertex>',
-       '#include <begin_vertex>\nfhNaturalWorld=(modelMatrix*vec4(position,1.)).xyz;');
-      shader.fragmentShader=shader.fragmentShader.replace('#include <common>',
-       '#include <common>\nvarying vec3 fhNaturalWorld;\nuniform sampler2D uFHNaturalMask;\nuniform vec3 uFHNaturalColor;')
-       .replace('#include <emissivemap_fragment>',
-       '#include <emissivemap_fragment>\nvec2 fhNUV=vec2(fhNaturalWorld.x/'+sizeX.toFixed(6)+',1.-fhNaturalWorld.z/'+sizeZ.toFixed(6)+');\nif(fhNUV.x>=0.&&fhNUV.y>=0.&&fhNUV.x<=1.&&fhNUV.y<=1.) totalEmissiveRadiance+=texture2D(uFHNaturalMask,fhNUV).r*uFHNaturalColor;');
-     };
-     mat.needsUpdate=true;
-    }
-   });
-  }
   function update(){
    let changed=false;
    const f=clamp(Math.floor(finite(floor?.(),0)),0,DATA.floors.length-1);
    const signatureNow=signature(f);
    if(f!==current||signatureNow!==lastSignature){
-    uniformMask.value=textureFor(f,signatureNow);
+    maskFor(f,signatureNow);
     current=f;lastSignature=signatureNow;changed=true;
    }
    const minutes=Math.floor(finite(clock?.(),480));
@@ -252,11 +211,6 @@
    // blanco máximo. Forzar FOW para el jugador quieto al amanecer/anochecer.
    const visionReach=daylightActive?naturalVisionRadius(minutes,19):19;
    if(visionReach!==lastVisionReach){lastVisionReach=visionReach;changed=true;}
-   uniformColor.value.setRGB(
-    .92*light.sun+.32*light.moon,
-    .82*light.sun+.46*light.moon,
-    .69*light.sun+.68*light.moon
-   );
    return refreshSightCanvas(f,minutes)||changed;
   }
   function illuminates(x,z){
@@ -279,9 +233,9 @@
    ctx.restore?.();
   }
   update();
-  return {update,attach,hasLight:()=>daylightActive,visionRadius:base=>daylightActive?naturalVisionRadius(lastMinutes,base):base,illuminates,paintSight,
-   dispose:()=>{for(const t of atlas.values())t.dispose();atlas.clear();atlasMasks.clear();atlasCanvas.clear();empty.dispose()},
-   access:()=>atlas.get(current)||empty};
+  return {update,hasLight:()=>daylightActive,visionRadius:base=>daylightActive?naturalVisionRadius(lastMinutes,base):base,illuminates,paintSight,
+   dispose:()=>{atlasMasks.clear();atlasCanvas.clear();atlasSignature.clear()},
+   access:()=>atlasMasks.get(current)||null};
  }
  return Object.freeze({lightAt,sightStrength,naturalVisionRadius,isBasement,computeAccess,createRuntime});
 });
