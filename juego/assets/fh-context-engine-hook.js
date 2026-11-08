@@ -192,7 +192,9 @@ function fhContextRefresh(){
       actions.push({id:'peephole',label:t.peepholeShort||'Mirilla',disabled:!canLook,
        ...(canLook?{run:peephole}:{})});
       actions.push({id:'knock',label:t.knock||'Llamar',disabled:true});
-      actions.push({id:'examine',label:t.examine||'Examinar',disabled:true});
+      const canExamine=!!window.ForestHorrorStructureAPI?.inspect({floorId:currentFloor,id:target.id});
+      actions.push({id:'examine',label:t.examine||'Examinar',disabled:!canExamine,
+       ...(canExamine?{run:()=>window.ForestHorrorStructureAPI?.inspectDoor(currentFloor,target.id)}:{})});
      }
     }
    }
