@@ -26,6 +26,46 @@
   tex.needsUpdate=true;
   return tex;
  }
+ // La máscara solar separa las celdas EXTERIORES de las celdas iluminadas
+ // por ventanas. La exposición a la lluvia requiere cielo abierto, NO luz.
+ function areaHasPoint(item,x,y){
+  if(!item)return false;
+  if(Array.isArray(item.spans)&&item.spans.length)
+   return item.spans.some(sp=>Number.isFinite(sp.x)&&Number.isFinite(sp.y)&&Number.isFinite(sp.w)&&Number.isFinite(sp.h)&&
+    x>=sp.x&&x<sp.x+sp.w&&y>=sp.y&&y<sp.y+sp.h);
+  if(Array.isArray(item.cells)&&item.cells.length)
+   return item.cells.some(c=>Number.isFinite(c.x)&&Number.isFinite(c.y)&&
+    x>=c.x&&x<c.x+1&&y>=c.y&&y<c.y+1);
+  return Number.isFinite(item.x)&&Number.isFinite(item.y)&&
+   Number.isFinite(item.w)&&Number.isFinite(item.h)&&item.w>0&&item.h>0&&
+   x>=item.x&&x<item.x+item.w&&y>=item.y&&y<item.y+item.h;
+ }
+ function createExteriorExposure({floors=[],units={},cell=1.524,slabs=[],natural}={}){
+  const cols=Math.max(1,Math.floor(Number(units.columns)||16));
+  const rows=Math.max(1,Math.floor(Number(units.rows)||22));
+  const interiors=floors.map(f=>(f?.items||[]).filter(it=>['room','hall','building'].includes(it.type)));
+  const outdoors=floors.map(f=>(f?.items||[]).filter(it=>['outside','grass','dirt','pavement','parking'].includes(it.type)));
+  // Se calcula UNA vez por planta, no en cada fotograma ni por partícula.
+  const masks=floors.map(f=>natural?.computeAccess?.(f,{...units,columns:cols,rows})||null);
+  return function isOpenSky(f,x,z){
+   const level=Math.floor(Number(f));
+   if(level<0||level>=floors.length||!Number.isFinite(x)||!Number.isFinite(z))return false;
+   const px=x/cell,py=z/cell;
+   if(px<0||py<0||px>=cols||py>=rows)return false;
+   // Las etiquetas de habitación y pasillo tienen prioridad, incluso cuando
+   // un contorno de fachada está incompleto o un patio quedó mal clasificado.
+   if(interiors[level].some(it=>areaHasPoint(it,px,py)))return false;
+   const slab=slabs[level];
+   if(slab?.enabled&&Array.isArray(slab.spans)&&slab.spans.some(sp=>areaHasPoint(sp,px,py)))return false;
+   // Patios y exteriores explícitos no necesitan conectarse al borde del mapa.
+   if(outdoors[level].some(it=>areaHasPoint(it,px,py)))return true;
+   const mask=masks[level];
+   if(!mask?.exteriorMask)return false; // Sin datos: no dejar llover dentro por error.
+   const gx=Math.floor(px*mask.scale),gy=Math.floor(py*mask.scale);
+   return gx>=0&&gy>=0&&gx<mask.width&&gy<mask.height&&
+    mask.exteriorMask[gy*mask.width+gx]===1;
+  };
+ }
  // Mismas regiones exteriores que utiliza el motor; nunca se simulan interiores.
  function createOutsideCache(isOutside, floorIndex, cell=1.524){
   let activeFloor=null;
@@ -148,7 +188,7 @@
    particles.position.set(x,y,z);
    const delta=clamp(Number(dt)||0,0,.06);
    let visibleRain=0;
-   if(rainN>0){
+   if(rainN>0&&actorOutside){
     const speed=v.type==='tormenta'?11:8;
     for(let i=0;i<rainN;i++){
      const p=rainPoints[i];p.y-=delta*speed;
@@ -164,9 +204,11 @@
      rainGeometry.attributes.position.needsUpdate=true;
     }
    }
-   rain.visible=visibleRain>0;
+   // El techo se retira visualmente en vista cenital: nunca proyectar gotas
+   // exteriores encima de habitaciones desde una cámara situada dentro.
+   rain.visible=actorOutside&&visibleRain>0;
    let visibleSnow=0;
-   if(snowN>0){
+   if(snowN>0&&actorOutside){
     for(let i=0;i<snowN;i++){
      const p=snowPoints[i];p.y-=delta*(.65+p.s);
      p.x+=Math.sin(p.y*1.4+i)*delta*.12;
@@ -181,7 +223,7 @@
      snowGeometry.attributes.position.needsUpdate=true;
     }
    }
-   snow.visible=visibleSnow>0;
+   snow.visible=actorOutside&&visibleSnow>0;
    // La niebla pertenece al exterior. No cubrir el corredor ni la cabina.
    const fogLevel=actorOutside?clamp(Math.floor(Number(v.fog)||0),0,3):0;
    if(fogLevel!==oldFog){
@@ -209,5 +251,5 @@
   }
   return {update,dispose};
  }
- return Object.freeze({createRuntime,createOutsideCache});
+ return Object.freeze({createRuntime,createOutsideCache,createExteriorExposure,areaHasPoint});
 });

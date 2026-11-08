@@ -89,12 +89,12 @@ test('el exterior funciona; cambiar de planta vuelve a ocultarlo bajo techo',()=
   r.dispose();
  }finally{global.document=old}
 });
-test('lluvia visible solo en posiciones exteriores, incluso desde una ventana',()=>{
+test('lluvia al aire libre se limita a posiciones exteriores',()=>{
  const {THREE,document,scene}=mockThree();
  const old=global.document;global.document=document;
  try{
   const r=Renderer.createRuntime({THREE,scene,columns:16,rows:20,cell:1.524,
-   actor:()=>({x:8,z:10}),floorY:()=>0,floorIndex:()=>0,
+   actor:()=>({x:9,z:10}),floorY:()=>0,floorIndex:()=>0,
    isOutside:(x,z)=>x>8});
   r.update(.016,state());
   const group=scene.children.find(g=>g instanceof THREE.Group);
@@ -104,7 +104,66 @@ test('lluvia visible solo en posiciones exteriores, incluso desde una ventana',(
   assert.ok(count>0&&count<360,'no se dibujan todas las gotas');
   const positions=rain.geometry.attributes.position.array;
   for(let i=0;i<count/2;i++)
-   assert.ok(8+positions[i*6]>7.85,'cada gota está al lado exterior del límite');
+   assert.ok(9+positions[i*6]>7.85,'cada gota está al lado exterior del límite');
   r.dispose();
  }finally{global.document=old}
+});
+
+test('al estar dentro ninguna gota exterior se proyecta sobre la habitación',()=>{
+ const {THREE,document,scene}=mockThree();
+ const old=global.document;global.document=document;
+ try{
+  const r=Renderer.createRuntime({THREE,scene,columns:16,rows:20,cell:1.524,
+   actor:()=>({x:7,z:10}),floorY:()=>0,floorIndex:()=>0,
+   isOutside:(x)=>x>7.5});
+  const group=scene.children.find(g=>g instanceof THREE.Group);
+  r.update(.016,state());
+  assert.equal(group.children[0].visible,false);
+  assert.equal(scene.fog,null);
+  r.update(.016,state({phase:'nieve'}));
+  assert.equal(group.children[1].visible,false);
+  r.dispose();
+ }finally{global.document=old}
+});
+test('el filtro de lluvia distingue luz de ventana de cielo abierto y respeta habitación',()=>{
+ const Natural=require('./fh-natural-light.js');
+ const line=(type,x1,y1,x2,y2)=>({
+  type,a:{x:x1,y:y1},b:{x:x2,y:y2}
+ });
+ const walls=[
+  line('red_wall',2,2,8,2),line('red_wall',8,2,8,8),
+  line('red_wall',8,8,2,8),line('red_wall',2,2,2,4),
+  line('window',2,4,2,5),line('red_wall',2,5,2,8)
+ ];
+ const floors=[{name:'Piso 1',items:walls}],units={columns:12,rows:12};
+ const mask=Natural.computeAccess(floors[0],units);
+ const pixel=(x,y)=>Math.floor(y*mask.scale)*mask.width+Math.floor(x*mask.scale);
+ assert.ok(mask.access[pixel(4,4.5)]>0,'la luz atraviesa la ventana');
+ assert.equal(mask.exteriorMask[pixel(4,4.5)],0,'pero NO permite lluvia');
+ assert.equal(mask.exteriorMask[pixel(1,4.5)],1);
+ const outside=Renderer.createExteriorExposure({floors,units,cell:1,natural:Natural});
+ assert.equal(outside(0,4,4.5),false);
+ assert.equal(outside(0,1,4.5),true);
+});
+test('contorno abierto con dormitorio marcado sigue seco; patio descubierto sí recibe lluvia',()=>{
+ const Natural=require('./fh-natural-light.js');
+ const units={columns:12,rows:12};
+ const floor={items:[
+  {type:'red_wall',a:{x:3,y:3},b:{x:7,y:3}},
+  {type:'room',spans:[{x:3,y:3,w:4,h:4}]},
+  {type:'outside',x:9,y:9,w:2,h:2}
+ ]};
+ const outside=Renderer.createExteriorExposure({floors:[floor],units,cell:1,natural:Natural});
+ assert.equal(outside(0,5,5),false,'la habitación prevalece sobre el falso exterior');
+ assert.equal(outside(0,9.5,9.5),true,'el patio explícito sigue a la intemperie');
+ const roof=Renderer.createExteriorExposure({floors:[floor],units,cell:1,natural:Natural,
+  slabs:[{enabled:true,spans:[{x:9,y:9,w:2,h:2}]}]});
+ assert.equal(roof(0,9.5,9.5),false,'el techo prevalece incluso sobre una etiqueta de exterior');
+});
+test('el puente 3D usa una sola exposición atmosférica, no el clasificador de fachadas',()=>{
+ const fs=require('node:fs'),path=require('node:path');
+ const html=fs.readFileSync(path.resolve(__dirname,'../../index.html'),'utf8');
+ assert.match(html,/createExteriorExposure\(\{floors:DATA\.floors/);
+ assert.match(html,/isOutside:\(x,z\)=>fhWeatherExposure\?\.\(currentFloor,x,z\)===true/);
+ assert.doesNotMatch(html,/isOutside:\(x,z\)=>floorExteriorClassifiers/);
 });
