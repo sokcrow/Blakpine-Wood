@@ -14,6 +14,7 @@
  const WALLS=new Set(['wall','red_wall','property_wall']);
  const PORTALS=new Set(['window','door','peephole_door','door_electronic','electronic_door']);
  const OUTER_BOUNDARIES=new Set([...WALLS,...PORTALS]);
+ const transparentDoor=(item,resolve)=>!!(resolve?.(item)??(item.transparent===true||['glass','storefront'].includes(item.variant)));
  function lightAt(minutes){
   const h=((finite(minutes,480)%1440)+1440)%1440/60;
   const rise=smooth((h-5.7)/3.5);
@@ -59,9 +60,10 @@
    if(!OUTER_BOUNDARIES.has(it?.type))continue;
    const s=segment(it);if(!s)continue;
    blockers.push(s);
-   const open=(typeof options.doorOpen==='function'?options.doorOpen(it.id,it):it.open===true);
-   if(WALLS.has(it.type)||it.type!=='window'&&!open)lightBlockers.push(s);
-   if(it.type==='window'||PORTALS.has(it.type)&&open)portals.push(s);
+   const open=typeof options.doorOpen==='function'?(options.doorOpen(it.id,it)??it.open===true):it.open===true;
+   const transmits=it.type==='window'||!WALLS.has(it.type)&&(open||transparentDoor(it,options.isTransparentDoor));
+   if(!transmits)lightBlockers.push(s);
+   if(transmits)portals.push(s);
   }
   const inBounds=(x,y)=>x>=0&&y>=0&&x<w&&y<h;
   const pt=(x,y)=>({x:(x+.5)/scale,y:(y+.5)/scale});
@@ -73,8 +75,17 @@
    const i=y*w+x;
    if(!outside[i]){outside[i]=1;queue[tail++]=i}
   }
-  for(let x=0;x<w;x++){add(x,0);add(x,h-1)}
-  for(let y=0;y<h;y++){add(0,y);add(w-1,y)}
+  // Sembrar desde FUERA del mapa; las habitaciones adosadas al borde
+  // no pueden recibir luz atravesando una pared sobre la línea x=0/y=0.
+  const seed=(x,y,from)=>{if(!crossed(from,pt(x,y),blockers))add(x,y)};
+  for(let x=0;x<w;x++){
+   seed(x,0,{x:(x+.5)/scale,y:-.5/scale});
+   seed(x,h-1,{x:(x+.5)/scale,y:rows+.5/scale});
+  }
+  for(let y=0;y<h;y++){
+   seed(0,y,{x:-.5/scale,y:(y+.5)/scale});
+   seed(w-1,y,{x:columns+.5/scale,y:(y+.5)/scale});
+  }
   while(head<tail){
    const i=queue[head++],x=i%w,y=(i-x)/w,a=pt(x,y);
    for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
@@ -121,15 +132,15 @@
   return {width:w,height:h,scale,access,exterior:tail,portals:activePortals};
  }
  function itIsDoor(type){return type!=='window'}
- function createRuntime({THREE,DATA,CELL,scene,ambient,clock,floor,doorOpen}={}){
+ function createRuntime({THREE,DATA,CELL,scene,ambient,clock,floor,doorOpen,doorTransparent}={}){
   if(!THREE||!DATA||!scene)return null;
-  const atlas=new Map(),atlasSignature=new Map(),installed=new WeakSet();
+  const atlas=new Map(),atlasMasks=new Map(),atlasCanvas=new Map(),atlasSignature=new Map(),installed=new WeakSet();
   // Penumbra basal; la luz natural solo ilumina las superficies con acceso exterior.
   if(ambient)ambient.intensity=.08;
   const sizeX=clamp(finite(DATA.units?.columns,16),1,500)*CELL;
   const sizeZ=clamp(finite(DATA.units?.rows,22),1,500)*CELL;
   const uniformMask={value:null},uniformColor={value:new THREE.Color(0)};
-  let current=-1,lastSignature='',lastMinutes=NaN;
+  let current=-1,lastSignature='',lastMinutes=NaN,daylightActive=false;
   const empty=new THREE.DataTexture(new Uint8Array([0,0,0,255]),1,1,THREE.RGBAFormat);
   empty.magFilter=THREE.LinearFilter;empty.minFilter=THREE.LinearFilter;empty.needsUpdate=true;
   uniformMask.value=empty;
@@ -140,7 +151,10 @@
   function textureFor(f,signatureNow){
    if(atlas.has(f)&&atlasSignature.get(f)===signatureNow)return atlas.get(f);
    const old=atlas.get(f);
-   const mask=computeAccess(DATA.floors[f],DATA.units,{doorOpen:(id,it)=>doorOpen?.(f,id,it)??it.open===true});
+   const mask=computeAccess(DATA.floors[f],DATA.units,{
+    doorOpen:(id,it)=>doorOpen?.(f,id,it)??it.open===true,
+    isTransparentDoor:it=>doorTransparent?.(it)
+   });
    const data=new Uint8Array(mask.width*mask.height*4);
    for(let y=0;y<mask.height;y++)for(let x=0;x<mask.width;x++){
     const from=y*mask.width+x,to=((mask.height-1-y)*mask.width+x)*4;
@@ -148,7 +162,19 @@
    }
    const tex=new THREE.DataTexture(data,mask.width,mask.height,THREE.RGBAFormat);
    tex.magFilter=THREE.LinearFilter;tex.minFilter=THREE.LinearFilter;tex.generateMipmaps=false;tex.needsUpdate=true;
-   atlas.set(f,tex);atlasSignature.set(f,signatureNow);old?.dispose();return tex;
+   atlas.set(f,tex);atlasMasks.set(f,mask);atlasSignature.set(f,signatureNow);
+   const canvas=typeof document!=='undefined'?document.createElement('canvas'):null;
+   const context=canvas?.getContext?.('2d');
+   if(context){
+    canvas.width=mask.width;canvas.height=mask.height;
+    const image=context.createImageData(mask.width,mask.height);
+    for(let i=0;i<mask.access.length;i++){
+     if(mask.access[i]<16)continue;
+     const p=i*4;image.data[p]=image.data[p+1]=image.data[p+2]=image.data[p+3]=255;
+    }
+    context.putImageData(image,0,0);atlasCanvas.set(f,canvas);
+   }
+   old?.dispose();return tex;
   }
   function attach(container=scene){
    if(!container?.traverse)return;
@@ -178,24 +204,44 @@
    });
   }
   function update(){
+   let changed=false;
    const f=clamp(Math.floor(finite(floor?.(),0)),0,DATA.floors.length-1);
    const signatureNow=signature(f);
    if(f!==current||signatureNow!==lastSignature){
     uniformMask.value=textureFor(f,signatureNow);
-    current=f;lastSignature=signatureNow;
+    current=f;lastSignature=signatureNow;changed=true;
    }
    const minutes=finite(clock?.(),480);
-   if(minutes===lastMinutes)return;
+   if(minutes===lastMinutes)return changed;
    lastMinutes=minutes;
    const light=lightAt(minutes);
+   const wasActive=daylightActive;
+   daylightActive=!isBasement(DATA.floors[f])&&(light.sun>.025||light.moon>.009);
+   if(daylightActive!==wasActive)changed=true;
    uniformColor.value.setRGB(
     .92*light.sun+.32*light.moon,
     .82*light.sun+.46*light.moon,
     .69*light.sun+.68*light.moon
    );
+   return changed;
+  }
+  function illuminates(x,z){
+   if(!daylightActive)return false;
+   const m=atlasMasks.get(current);if(!m)return false;
+   const gx=Math.floor(x/CELL*m.scale),gy=Math.floor(z/CELL*m.scale);
+   return gx>=0&&gy>=0&&gx<m.width&&gy<m.height&&m.access[gy*m.width+gx]>=16;
+  }
+  // Pintar dentro del clip FOW preexistente; nunca atraviesa paredes ni
+  // muestra lugares fuera del radio máximo del jugador.
+  function paintSight(ctx,width,height){
+   const canvas=atlasCanvas.get(current);
+   if(!daylightActive||!canvas)return;
+   ctx.drawImage(canvas,0,0,width,height);
   }
   update();
-  return {update,attach,dispose:()=>{for(const t of atlas.values())t.dispose();empty.dispose()},access:()=>atlas.get(current)||empty};
+  return {update,attach,hasLight:()=>daylightActive,illuminates,paintSight,
+   dispose:()=>{for(const t of atlas.values())t.dispose();atlas.clear();atlasMasks.clear();atlasCanvas.clear();empty.dispose()},
+   access:()=>atlas.get(current)||empty};
  }
  return Object.freeze({lightAt,isBasement,computeAccess,createRuntime});
 });
