@@ -50,6 +50,15 @@ test('el HTML generado integra radial y decoración sin afectar el editor 2D',()
  assert.match(output,/gesture\?\.source==='canvas'&&gesture\.kind==='hold'&&!hit\)window\.FHLocationHUD\?\.peek\?\.\(\)/);
 
  assert.match(output,/primary\?\.run\(\)/);
+ assert.match(output,/function fhContextOpenElevator\(shaft,fromLanding=false\)/);
+ assert.match(output,/elevatorSystem\.doorControl\(shaft\.id,'open'\)/);
+ assert.match(output,/ForestShared\.elevatorEntrancePoint\(target\.item,CELL\)/);
+ assert.match(output,/ForestShared\.elevatorEntrancePoint\(landing\.item,CELL\)/);
+ assert.match(output,/id:'elevator-open'/);
+ assert.match(output,/window\.FHSleep\?\.needsComfort\(\)/);
+ assert.match(output,/window\.FHSleep\.emitComfort\(fhSleepHead\)/);
+ assert.doesNotMatch(output,/notice\(POSTURE_TEXT\.standing\)/);
+ assert.doesNotMatch(output,/notice\(poseStep\.phase==='sitting'/);
  assert.match(output,/if\(playerPose\.occupied\)return toggleDoor\(\)/);
  assert.doesNotMatch(output,/fhContextTapStart/);
  assert.match(output,/radial\.syncContext\(context\)/);
@@ -70,9 +79,20 @@ test('el HTML generado integra radial y decoración sin afectar el editor 2D',()
  assert.match(output,/id:'examine',label:t\.examine\|\|'Examinar',disabled:true/);
  assert.match(output,/const canLook=target\.kind==='peephole_door'/);
  assert.match(output,/id='fhDecorModeBtn'/);
- assert.match(output,/if\(!fhDeliveryUiActive\)moveUpdate\(dt\)/);
+ assert.match(output,/if\(!fhDeliveryUiActive&&!window\.FHStorageRuntime\?\.isOpen\)moveUpdate\(dt\)/);
  assert.doesNotMatch(output,/if\(!fhDeliveryUiActive&&!fhDecorationActive\)moveUpdate\(dt\)/);
  assert.doesNotMatch(output,/pixelSize=pixelSize===2\?3/);
+ assert.match(output,/fh-storage-runtime\.js\?v=20261108-hamazon-1/);
+ assert.match(output,/fh-storage-strings\.js\?v=20261108-storage-1/);
+ assert.match(output,/fh-storage\.css\?v=20261108-storage-1/);
+ assert.match(output,/window\.FHStorageRuntime\?\.init\(/);
+ assert.match(output,/window\.FHStorageRuntime\?\.supports\(it\)/);
+ assert.match(output,/id:'storage_'\+it\.id,verb:'storage'/);
+ assert.match(output,/window\.FHStorageRuntime\?\.open\(item,currentFloor\)/);
+ assert.match(output,/window\.FHStorageRuntime\?\.isOpen\)return/);
+ assert.match(output,/restored\?\.fhInventoryStorage/);
+ assert.match(output,/item\.runtimeDeliveryFurniture&&item\.interact\?\.verb==='decorate'/);
+ assert.match(output,/id:'storage',label:t\.openStorage/);
  assert.match(output,/let pixelSize=2/);
  assert.match(output,/intersectObjects\(a\.roots\.map\(entry=>entry\.root\),true\)/);
  const inline=[...output.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)]

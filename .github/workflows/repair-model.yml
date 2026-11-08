@@ -1,0 +1,30 @@
+name: Blakpine-Wood — definición de Reparación
+
+on:
+  push:
+    branches:
+      - feat/repair-definition-model-20261107
+  pull_request:
+    paths:
+      - 'juego/assets/fh-repair.js'
+      - 'juego/assets/fh-repair.test.js'
+      - 'juego/assets/fh-skills.js'
+      - '.github/workflows/repair-model.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  repair-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Sintaxis del modelo declarativo
+        run: node --check juego/assets/fh-repair.js
+      - name: Modelo, cinco subcategorías, habilidad pendiente y compatibilidad JSON
+        run: node --test juego/assets/fh-repair.test.js
+      - name: Regresión completa de habilidades y motor
+        run: node --test juego/assets/*.test.js

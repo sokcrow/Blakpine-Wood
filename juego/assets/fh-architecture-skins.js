@@ -105,18 +105,19 @@ function hideLegacyVisual(node,detach=false){
 function accessDeviceId(it){
  return it?.accessDevice==='pin'?'teclado_pin':it?.accessDevice==='card'?'lector_tarjeta':null;
 }
-function mountAccessDevice(fixed,it,THREE,sightMask){
+function mountAccessDevice(fixed,it,THREE,sightMask,d){
  const id=accessDeviceId(it);
  if(!id||!fixed?.parent)return;
  // El lector está sujeto al MARCO_FIJO, nunca a la hoja que gira.
  const sides=it.accessSide==='both'?[1,-1]:[it.accessSide==='back'?-1:1];
  function place(scene,sign){
-  if(!fixed.parent)return;
+  if(!fixed.parent||d?.readerDestroyed||global.FHStructureHealthRuntime?.isDestroyed?.(d?.f,it.id,'reader'))return;
   const node=scene.clone(true);
   node.position.set(.045,1.12,sign*.1);
   if(sign<0)node.rotation.y=Math.PI;
   applyFOW(node,sightMask);
   fixed.add(node);
+  if(d)(d.accessVisuals||(d.accessVisuals=[])).push(node);
  }
  load(id).then(scene=>{for(const sign of sides)place(scene,sign);}).catch(error=>{
   reportFailure(id,error);
@@ -127,7 +128,7 @@ function mountAccessDevice(fixed,it,THREE,sightMask){
     new THREE.MeshBasicMaterial({color:0x617c76}));
    marker.position.set(.045,1.24,sign*.105);
    applyFOW(marker,sightMask);
-   if(fixed.parent)fixed.add(marker);
+   if(fixed.parent&&!d?.readerDestroyed){fixed.add(marker);if(d)(d.accessVisuals||(d.accessVisuals=[])).push(marker);}
   }
  });
 }
@@ -167,7 +168,7 @@ function decorateDoor(d,it,THREE,sightMask){
   const originalFrame=double?[]:d.frame.children.slice();
   parts.forEach((part,i)=>part.group.add(leaves[i]));
   for(const fixed of frames)d.frame.add(fixed);
-  if(!double&&electronicDoors.has(model)&&frames[0])mountAccessDevice(frames[0],it,THREE,sightMask);
+  if(!double&&electronicDoors.has(model)&&frames[0])mountAccessDevice(frames[0],it,THREE,sightMask,d);
   for(const original of originalLeaves)for(const visual of original)hideLegacyVisual(visual);
   // Con una 'T' o pared divisoria se dibujan dos puertas independientes:
   // cada puerta simple conserva su marco completo.
@@ -176,8 +177,8 @@ function decorateDoor(d,it,THREE,sightMask){
  }).catch(error=>reportFailure(model,error));
 }
 function decorateWindow(args){
- const {it,container,built,a,b,angle,sightMask}=args||{};
- if(!it||!container||!Array.isArray(built)||!a)return;
+ const {it,container,built,a,b,angle,sightMask,floor}=args||{};
+ if(!it||!container||!Array.isArray(built)||!a||global.FHStructureHealthRuntime?.isDestroyed?.(floor,it.id))return;
  // El antepecho y el dintel originales mantienen su colisión y visibilidad.
  const originalPaneAndSideFrames=built.slice(2);
  if(originalPaneAndSideFrames.length!==3)return;
@@ -188,7 +189,7 @@ function decorateWindow(args){
  const stepZ=plan?(b?(b.z-a.z)/plan.length:plan.uy*1.524):0;
  const model=chooseWindow(it);
  load(model).then(scene=>{
-  if(!container.parent)return;
+  if(!container.parent||global.FHStructureHealthRuntime?.isDestroyed?.(floor,it.id))return;
   const windows=[];
   for(let i=0;i<count;i++){
    const node=scene.clone(true);
@@ -197,7 +198,7 @@ function decorateWindow(args){
    applyFOW(node,sightMask);
    windows.push(node);
   }
-  for(const node of windows)container.add(node);
+  for(const node of windows){container.add(node);global.FHStructureHealthRuntime?.registerWindowVisual?.(floor,it.id,node);}
   for(const visual of originalPaneAndSideFrames)hideLegacyVisual(visual,true);
  }).catch(error=>reportFailure(model,error));
 }
@@ -219,7 +220,7 @@ function patchEngineDoc(doc){
  if(begin<0||end<0)throw Error('No se encontró windowModel o doorTarget');
  const part=out.slice(begin,end),last=part.lastIndexOf('\n}');
  if(last<0)throw Error('No se encontró cierre de windowModel');
- const hook="\n window.FHArchitectureSkins?.decorateWindow({it,THREE,container:stories[f],built:stories[f].children.slice(fhWinVisualStart),a,b,angle,sightMask:installVisibility});";
+ const hook="\n window.FHArchitectureSkins?.decorateWindow({it,THREE,container:stories[f],built:stories[f].children.slice(fhWinVisualStart),a,b,angle,floor:f,sightMask:installVisibility});";
  out=out.slice(0,begin)+part.slice(0,last)+hook+part.slice(last)+out.slice(end);
  const script='<script src="'+scriptUrl.href+'"></scr'+'ipt>';
  const headEnd=out.indexOf('</head>');
