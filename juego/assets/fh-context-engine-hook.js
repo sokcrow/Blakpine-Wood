@@ -210,10 +210,14 @@ function fhContextRefresh(){
     'if(restored?.fhInventoryStorage)GameState.fhInventoryStorage=restored.fhInventoryStorage;\n'+
     'window.FHStorageRuntime?.init({project:DATA,state:GameState,itemDefs,save:saveProgress,onInventoryChange:()=>renderInventory()});\n'+
     'const GameEvents=createEventBus();','persistencia almacenamiento');
-  doc=one(doc,"const interactableItems=DATA.floors.map(f=>(f.items||[]).filter(it=>it.interact||it.type==='light_switch'||it.type==='breaker_panel'||ForestShared.PROP_ACTIONS[it.type])",
-    "const interactableItems=DATA.floors.map(f=>(f.items||[]).filter(it=>it.interact||it.type==='light_switch'||it.type==='breaker_panel'||ForestShared.PROP_ACTIONS[it.type]||window.FHStorageRuntime?.supports(it))",'detección almacenamiento');
-  doc=one(doc,".map(it=>it.interact?it:{...it,interact:ForestShared.PROP_ACTIONS[it.type]?",
-    ".map(it=>it.interact?it:{...it,interact:window.FHStorageRuntime?.supports(it)?{id:'storage_'+it.id,verb:'storage',label:window.FH_STORAGE_STRINGS?.open||'Abrir inventario',effects:[]}:ForestShared.PROP_ACTIONS[it.type]?",'acción almacenamiento');
+  // El adaptador de computadoras ya añadió su propia cláusula al filtro.
+  // Ampliamos esa cláusula sin sustituir la prioridad de interacción de PC.
+  doc=one(doc,
+    "||window.FHComputer?.isPc(it,f.items,Number(DATA.units.feetPerCell)||5))",
+    "||window.FHComputer?.isPc(it,f.items,Number(DATA.units.feetPerCell)||5)||window.FHStorageRuntime?.supports(it))",
+    'detección almacenamiento');
+  doc=one(doc,":it.interact?it:{...it,interact:ForestShared.PROP_ACTIONS[it.type]?",
+    ":it.interact?it:{...it,interact:window.FHStorageRuntime?.supports(it)?{id:'storage_'+it.id,verb:'storage',label:window.FH_STORAGE_STRINGS?.open||'Abrir inventario',effects:[]}:ForestShared.PROP_ACTIONS[it.type]?",'acción almacenamiento');
   doc=one(doc,'function useFurniture(item,selectedSeat=null){',
     "function useFurniture(item,selectedSeat=null){\n if(item.interact?.verb==='storage')return window.FHStorageRuntime?.open(item,currentFloor);",'abrir almacenamiento');
   doc=one(doc,'function toggleDoor(){',
