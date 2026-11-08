@@ -80,6 +80,10 @@
   if(typeof job.recoverablePG!=='number'||!Number.isFinite(job.recoverablePG)||
      job.recoverablePG<=0)
    fail('recoverablePG','Los PG recuperables deben ser un número positivo y finito.');
+  if(job.failureRecoveryPct!==undefined&&
+     (typeof job.failureRecoveryPct!=='number'||!Number.isFinite(job.failureRecoveryPct)||
+      job.failureRecoveryPct<0||job.failureRecoveryPct>=100))
+   fail('failureRecoveryPct','El porcentaje de fallo debe estar entre 0 y menos de 100.');
 
   const target=job.target;
   if(!target||typeof target!=='object'||Array.isArray(target)){
@@ -141,6 +145,7 @@
    compatibleKitId:input.compatibleKitId,
    difficulty:input.difficulty,
    recoverablePG:input.recoverablePG,
+   ...(input.failureRecoveryPct===undefined?{}:{failureRecoveryPct:input.failureRecoveryPct}),
    target:input.target&&typeof input.target==='object'&&!Array.isArray(input.target)
     ?{floorId:input.target.floorId,itemId:input.target.itemId,
       ...(input.target.part===undefined?{}:{part:input.target.part})}
