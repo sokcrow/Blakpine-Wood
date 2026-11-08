@@ -217,10 +217,12 @@ function roomNetworkFixture(withParcel=false){
   {id:'bottom',type:'wall',a:{x:0,y:0},b:{x:10,y:0}},
   {id:'first',type:'wall',a:{x:3,y:0},b:{x:3,y:6}},
   {id:'second',type:'wall',a:{x:6,y:0},b:{x:6,y:6}},
+  {id:'breaker',type:'breaker_panel',x:0,y:0,circuits:[{zoneId:'main',rangeFt:100}]},
+  {id:'socket',type:'power_outlet',x:2,y:0,zoneId:'main',radiusFt:8},
   {id:'roomA',type:'room',roomId:'A',x:0,y:0,w:3,h:6},
   {id:'roomB',type:'room',roomId:'B',x:3,y:0,w:3,h:6},
   {id:'roomC',type:'room',roomId:'C',x:6,y:0,w:4,h:6},
-  {id:'r',type:'router',roomId:'A',x:2.5,y:.2,wifiRadiusFt:120,ethernetLeadFt:10,ethernetLengthFt:80},
+  {id:'r',type:'router',roomId:'A',x:2.5,y:.2,outletId:'socket',wifiRadiusFt:120,ethernetLeadFt:10,ethernetLengthFt:80},
   {id:'b',type:'ethernet_port',roomId:'B',routerId:'r',x:3,y:4,cableLengthFt:80},
   {id:'c',type:'ethernet_port',roomId:'C',routerId:'r',x:6,y:4,cableLengthFt:80}
  ];
