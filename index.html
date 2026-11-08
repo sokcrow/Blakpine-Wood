@@ -611,20 +611,49 @@ function createLightingSystem(floors,state,config={}){
  function powered(floor,zone=''){
   return on('power_global')&&on(powerKey(floor))&&on(zoneKey(zone));
  }
+ // Sólo circuitos declarados por un panel real; nunca inferirlos de los cuartos.
+ const circuitsByFloor=floors.map(()=>new Map());
+ floors.forEach((level,panelFloor)=>{
+  for(const panel of level.items||[]){
+   if(panel.type!=='breaker_panel')continue;
+   const specs=Array.isArray(panel.circuits)&&panel.circuits.length?panel.circuits:[panel];
+   for(const spec of specs){
+    if(!spec||typeof spec!=='object')continue;
+    const target=str(spec.floorId)?floors.findIndex(f=>f.id===spec.floorId):
+     Number.isInteger(spec.floorIndex)?spec.floorIndex:panelFloor;
+    if(!circuitsByFloor[target])continue;
+    const zone=str(spec.zoneId)||(spec===panel?'':str(spec.id))||'main';
+    const circuit={...spec,zoneId:zone,powerScope:spec.powerScope||'zone'};
+    const sources=circuitsByFloor[target].get(zone)||[];
+    sources.push({panel,circuit});circuitsByFloor[target].set(zone,sources);
+   }
+  }
+ });
+ function circuitAvailable(floor,zone){
+  if(!zone||state.services?.contracts?.electricity==='suspended')return false;
+  const enabled=state.services?.enabled||{};
+  if(enabled.power_global===false||enabled[powerKey(floor)]===false||enabled[zoneKey(zone)]===false)return false;
+  return (circuitsByFloor[floor]?.get(zone)||[]).some(({panel,circuit})=>
+   panel.enabled!==false&&panel.on!==false&&(!panel.id||on(panel.id)&&enabled[panel.id]!==false)&&
+   !(Number(state.services?.damage?.[panel.id])>=100)&&
+   (!str(panel.powerFlag)||on(panel.powerFlag))&&breakerPower(floor,circuit));
+ }
  function fixtureLit(floor,room,fixture){
+  if(!fixture||!circuitAvailable(floor,str(fixture.zoneId)||str(room?.zoneId)))return false;
   const roomId=room?.roomId||room?.id;
   return powered(floor,str(fixture?.zoneId)||str(room?.zoneId))&&(!roomId||on(roomKey(floor,roomId)));
  }
  function roomLit(floor,room){
-  if(!room)return powered(floor);
+  if(!room)return false;
   const roomId=room.roomId||room.id;
   const fixtures=(floors[floor]?.items||[]).filter(it=>it.type==='light_fixture'&&it.roomId===roomId);
-  return fixtures.length?fixtures.some(it=>fixtureLit(floor,room,it)):fixtureLit(floor,room,null);
+  return fixtures.some(it=>fixtureLit(floor,room,it));
  }
  function toggleRoom(floor,roomId){
   if(!str(roomId))return {ok:false,reason:'noRoom'};
   const key=roomKey(floor,roomId);state.flags[key]=!on(key);
-  return {ok:true,key,value:state.flags[key],lit:state.flags[key]&&powered(floor)};
+  const room=(floors[floor]?.items||[]).find(it=>it.type==='room'&&(it.roomId||it.id)===roomId);
+  return {ok:true,key,value:state.flags[key],lit:state.flags[key]&&roomLit(floor,room)};
  }
  function breakerKey(floor,item={}){
   return item.powerScope==='global'?'power_global':item.powerScope==='zone'?zoneKey(str(item.zoneId)||'main'):powerKey(floor);
@@ -2992,6 +3021,11 @@ function addLiveTextToEngine(doc){
 }
 
 function prepareGLBEngineDoc(source){
+ // El motor embebido recibe la misma regla de energía que el código compartido.
+ const lightingStart=source.indexOf('function createLightingSystem(');
+ const lightingEnd=source.indexOf('\n// shared/breakers.js',lightingStart);
+ if(lightingStart<0||lightingEnd<=lightingStart)throw Error('No se encontró el sistema compartido de iluminación');
+ source=source.slice(0,lightingStart)+ForestShared.createLightingSystem.toString()+'\n\n'+source.slice(lightingEnd);
  const attachBefore=' return g;\n}\nfunction windowModel(f,it){';
  const cloneBefore='const clone=source.clone(true);\n   clone.position.y+=floorElev[f];';
  const surfacePositionBefore='g.position.set(a.x*CELL,.03,a.y*CELL);';
@@ -4291,4 +4325,5 @@ init();
 <script src="./juego/assets/fh-services-engine-hook.js?v=20261108-service-core-1"></script>
 </body>
 </html>
+
 

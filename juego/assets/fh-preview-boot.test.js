@@ -11,6 +11,9 @@ function integrationEnvironment(){
  const document={baseURI:'https://example.test/',currentScript:null};
  const window={document,__FOREST_EMBEDDED_ENGINE__:''};
  const context=vm.createContext({window,document,URL,console});
+ const sharedStart=editor.indexOf('const ForestShared=(()=>{');
+ const sharedEnd=editor.indexOf("\n'use strict';",sharedStart);
+ vm.runInContext(editor.slice(sharedStart,sharedEnd),context);
  for(let i=0;i<=12;i++){
   vm.runInContext(fs.readFileSync(path.join(__dirname,'engine-'+String(i).padStart(2,'0')+'.js'),'utf8'),context);
  }
@@ -125,4 +128,5 @@ test('si falla arquitectura, el arranque conserva el motor base y su aviso',asyn
  assert.equal(context.preview3DArchitectureError,'error de arquitectura');
  assert.deepEqual(messages,[]);
 });
+
 

@@ -40,7 +40,9 @@ test('adapter 3D aplica FOW también al repartidor y expone registro para jugado
  const end=index.indexOf('let fhCharacterLaunchPending',start);
  assert.ok(start>=0&&end>start,'adaptadores localizados');
  const env={URL,document:{baseURI:'https://example.test/'},window:{},ENGINE_SOURCE:engine};
- vm.runInNewContext(index.slice(start,end)+'\nvar PATCHED=prepareGLBEngineDoc(ENGINE_SOURCE);',env,{timeout:20000});
+ const sharedStart=index.indexOf('const ForestShared=(()=>{');
+ const sharedEnd=index.indexOf("\n'use strict';",sharedStart);
+ vm.runInNewContext(index.slice(sharedStart,sharedEnd)+index.slice(start,end)+'\nvar PATCHED=prepareGLBEngineDoc(ENGINE_SOURCE);',env,{timeout:20000});
  const result=env.PATCHED;
  assert.match(result,/window\.FHActorVisibility=Object\.freeze/);
  assert.match(result,/fhRegisterVisibleActor\(fhDeliveryNpc/);
@@ -59,3 +61,4 @@ test('adapter 3D aplica FOW también al repartidor y expone registro para jugado
   if(js.trim())assert.doesNotThrow(()=>new vm.Script(js));
  }
 });
+

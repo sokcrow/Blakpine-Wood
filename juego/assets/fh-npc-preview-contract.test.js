@@ -28,7 +28,9 @@ test('La reconstrucción del motor Base64 integra GOAP y mantiene JS válido',()
  assert.ok(start>0&&end>start,'No se localizaron los adaptadores del motor');
  const patch=index.slice(start,end);
  const env={URL,document:{baseURI:'https://example.test/'},window:{},ENGINE_SOURCE:engine};
- vm.runInNewContext(patch+'\nvar PATCHED=prepareGLBEngineDoc(ENGINE_SOURCE);',env,{timeout:20000});
+ const sharedStart=index.indexOf('const ForestShared=(()=>{');
+ const sharedEnd=index.indexOf("\n'use strict';",sharedStart);
+ vm.runInNewContext(index.slice(sharedStart,sharedEnd)+patch+'\nvar PATCHED=prepareGLBEngineDoc(ENGINE_SOURCE);',env,{timeout:20000});
  const result=env.PATCHED;
  assert.ok(result.includes('function fhNpcCanWalk('));
  assert.ok(result.includes('function fhStartNpcRoute('));
@@ -42,3 +44,4 @@ test('La reconstrucción del motor Base64 integra GOAP y mantiene JS válido',()
  }
  assert.ok(count>=1,'No se encontraron scripts generados');
 });
+
