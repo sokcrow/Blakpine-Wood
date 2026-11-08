@@ -13,10 +13,10 @@ function patch(source){
  if(typeof source!=='string')throw new TypeError('Documento de motor requerido');
  let doc=source;
  doc=one(doc,'ForestShared.loadProject(DATA);',
-  'ForestShared.loadProject(DATA);window.FHStructureHealth.validateMap(DATA);');
+  'ForestShared.loadProject(DATA);window.FHStructureHealth.validateMap(DATA);window.FHRepair?.assertProject(DATA);');
  // El estado se guarda en la misma estructura de la partida, sin alterar el JSON del mapa.
  doc=one(doc,"return {flags:{...(initial.flags||{})},inventory:",
-  "return {structures:structuredClone(initial.structures||{}),flags:{...(initial.flags||{})},inventory:");
+  "return {repairReceipts:Array.isArray(initial.repairReceipts)?[...initial.repairReceipts]:[],structures:structuredClone(initial.structures||{}),flags:{...(initial.flags||{})},inventory:");
  doc=one(doc,"if(d.open===true&&d.passable!==false)continue;",
   "if(d.destroyed===true||d.open===true&&d.passable!==false)continue;");
  doc=one(doc,"const GameEvents=createEventBus();",
@@ -76,14 +76,33 @@ window.ForestHorrorStructureAPI=Object.freeze({
  inspectNear:fhInspectStructure
 });
 `;
+ const repairApi=`// Sólo API de reparación: sin consumir kits de la nada ni interfaz nueva.
+const fhRepairById=new Map((DATA.repairJobs||[]).map(job=>[job.id,job]));
+window.ForestHorrorRepairAPI=Object.freeze({
+ status:()=>({consumptionReady:typeof window.FHRepairInventory?.consumeKitUse==='function',
+  pending:typeof window.FHRepairInventory?.consumeKitUse!=='function'?'inventory-consumption-pending':null}),
+ odds:(jobId,skillOptions={})=>window.FHRepairRuntime.odds({
+  job:fhRepairById.get(jobId),character:GameState.character||DATA.__runtimeCharacter,
+  skillOptions
+ }),
+ attempt:({jobId,kit,config,skillOptions}={})=>window.FHRepairRuntime.perform({
+  job:fhRepairById.get(jobId),kit,config,skillOptions,
+  character:GameState.character||DATA.__runtimeCharacter,
+  health:fhHealthRuntime,state:GameState,saveState:saveProgress,
+  consumeKitUse:window.FHRepairInventory?.consumeKitUse
+ })
+});
+`;
  doc=one(doc,"window.ForestHorrorGame={source:'JSON arquitect",
-  button+"\nwindow.ForestHorrorGame={source:'JSON arquitect");
+  repairApi+button+"\nwindow.ForestHorrorGame={source:'JSON arquitect");
  const base=new URL('../../',scriptUrl);
  const healthScript='<script src="'+new URL('juego/assets/fh-structure-health.js?v=20261107-structure-pg',base).href+'"></scr'+'ipt>';
  const stringScript='<script src="'+new URL('juego/assets/fh-structure-strings.js?v=20261107-structure-pg',base).href+'"></scr'+'ipt>';
+ const repairModelScript='<script src="'+new URL('juego/assets/fh-repair.js?v=20261108-repair-playable',base).href+'"></scr'+'ipt>';
+ const repairRuntimeScript='<script src="'+new URL('juego/assets/fh-repair-runtime.js?v=20261108-repair-playable',base).href+'"></scr'+'ipt>';
  const headEnd=doc.indexOf('</head>');
  if(headEnd<0)throw Error('Motor 3D sin cierre del encabezado');
- doc=doc.slice(0,headEnd)+healthScript+stringScript+doc.slice(headEnd);
+ doc=doc.slice(0,headEnd)+healthScript+stringScript+repairModelScript+repairRuntimeScript+doc.slice(headEnd);
  return doc;
 }
 global.FHStructureHealthEngine=Object.freeze({patch});
