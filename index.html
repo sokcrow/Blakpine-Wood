@@ -3768,7 +3768,28 @@ function fhRefreshActorVisibility(){
   return doc.replace('</head>',script+'</head>');
  }
 
- return (window.FHContextEngine?.patch||((doc)=>doc))(addActorPresentationToEngine(addLiveTextToEngine(addDeliveryToEngine(addParkingToEngine(addStylesToEngine(addLightToEngine(source)))).replace(furnitureVisibilityHook,furnitureRenderHook).replace(cameraBefore,cameraLightAfter).replace(sleepCameraBefore,sleepCameraAfter).replace(loopBefore,loopAfter)
+ // Iluminación natural para la vista 3D, sin alterar el circuito de lámparas.
+ function addNaturalLightToEngine(doc){
+  const before='installVisibility();window.FHAssets?.setSightMaskInstaller(installVisibility);';
+  const after=[
+   "const fhNatural=window.FHNaturalLight?.createRuntime({THREE,DATA,CELL,scene,ambient,",
+   " clock:()=>GameState.clock?.minutes,floor:()=>currentFloor,",
+   " doorOpen:(f,id,it)=>doorList[f]?.find(d=>d.id===id)?.open??it?.open});",
+   "fhNatural?.attach(scene);",
+   "installVisibility();window.FHAssets?.setSightMaskInstaller(root=>{fhNatural?.attach(root);installVisibility(root);});"
+  ].join('\n');
+  const tickBefore='window.FHDeliveryRuntime?.update(dt);window.FHPhoneRuntime?.update(dt);';
+  const tickAfter=tickBefore+'fhNatural?.update();';
+  for(const [oldText,newText] of [[before,after],[tickBefore,tickAfter]]){
+   const count=doc.split(oldText).length-1;
+   if(count!==1)throw Error('Hook de luz natural incompatible ('+count+'): '+oldText.slice(0,65));
+   doc=doc.replace(oldText,newText);
+  }
+  const script='<script src="'+new URL('./juego/assets/fh-natural-light.js?v=20261107-natural-1',document.baseURI).href+'"></'+'script>';
+  return doc.replace('</head>',script+'</head>');
+ }
+
+ const assembled=(window.FHContextEngine?.patch||((doc)=>doc))(addActorPresentationToEngine(addLiveTextToEngine(addDeliveryToEngine(addParkingToEngine(addStylesToEngine(addLightToEngine(source)))).replace(furnitureVisibilityHook,furnitureRenderHook).replace(cameraBefore,cameraLightAfter).replace(sleepCameraBefore,sleepCameraAfter).replace(loopBefore,loopAfter)
   .replace(maskBefore,maskAfter).replace(wakeHUDBefore,wakeHUDAfter).replace(locationHudHook,locationHudAfter)
   .split(wakeBefore).join(wakeAfter)
   .replace(chairSelection," const poseReachable=(item,anchor)=>canWalk(user.x,user.z)&&safePoseRoute(item,{x:user.x,z:user.z},anchor);\n const stockSeat=selectSeatInteractable(visible,user,yaw,CELL,poseReachable);\n const glbChair=window.FHFurnitureRules?.findReachableChair(visible,user,yaw,CELL,poseReachable,ForestShared);\n const sitting=glbChair&&(!stockSeat||glbChair.score<stockSeat.score)?glbChair:stockSeat;")
@@ -3788,6 +3809,7 @@ function fhRefreshActorVisibility(){
   .replace(cloneBefore,'const clone=source.clone(true);\n   window.FHAssets?.mirror(source,clone);\n   clone.position.y+=floorElev[f];')
   .replace(engineSuccessBefore,engineSuccessAfter).replace(engineFailBefore,engineFailAfter).replace(loadFailBefore,loadFailAfter)
   .replace('</head>',localThree+coverageScript+lightsModule+surfaceScript+decorationScript+ruleScript+bridge+sleepCss+sleepStrings+sleepModule+pcAssemblyModule+computerStrings+computerModule+npcGoapModule+npcCourierModule+deliveryStrings+deliveryModule+styleCore+styleRender+parkingScript+playerMenuCss+playerMenuStrings+skillsModule+skillsStrings+helpCss+helpStrings+helpScript+playerMenuScript+locationCss+locationStrings+locationScript+hudRedesignCss+gameUiCss+hudFrameScript+mobileMenusCss+statusCss+statusStrings+statusScript+phoneCss+phoneStrings+phoneScript+'</head>'))));
+ return addNaturalLightToEngine(assembled);
 }
 let fhCharacterLaunchPending=false;
 async function start3DPreview(){
