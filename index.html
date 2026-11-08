@@ -3774,18 +3774,29 @@ function fhRefreshActorVisibility(){
   const after=[
    "const fhNatural=window.FHNaturalLight?.createRuntime({THREE,DATA,CELL,scene,ambient,",
    " clock:()=>GameState.clock?.minutes,floor:()=>currentFloor,",
-   " doorOpen:(f,id,it)=>doorList[f]?.find(d=>d.id===id)?.open??it?.open});",
+   " doorOpen:(f,id,it)=>doorList[f]?.find(d=>d.id===id)?.open??it?.open,",
+   " doorTransparent:it=>ForestShared.doorSpec(it)?.transparent===true});",
    "fhNatural?.attach(scene);",
    "installVisibility();window.FHAssets?.setSightMaskInstaller(root=>{fhNatural?.attach(root);installVisibility(root);});"
   ].join('\n');
-  const tickBefore='window.FHDeliveryRuntime?.update(dt);window.FHPhoneRuntime?.update(dt);';
-  const tickAfter=tickBefore+'fhNatural?.update();';
-  for(const [oldText,newText] of [[before,after],[tickBefore,tickAfter]]){
+  const tickBefore='window.FHDeliveryRuntime?.update(dt);window.FHPhoneRuntime?.update(dt);fhNatural?.update();';
+  const tickAfter='window.FHDeliveryRuntime?.update(dt);window.FHPhoneRuntime?.update(dt);if(fhNatural?.update())visibilityDirty=true;';
+  const pointBefore='if(dist<=radius&&ForestShared.pointInSight(x,z,at,opaque,radius))return true;';
+  const pointAfter=pointBefore+'\n if(fhNatural?.illuminates(x,z)&&dist<=LOOK_RADIUS+.075&&ForestShared.pointInSight(x,z,at,opaque,LOOK_RADIUS))return true;';
+  const rangeBefore='const range=params.sources?.length?LOOK_RADIUS:Math.max(params.base,params.beam);';
+  const rangeAfter='const range=params.sources?.length||fhNatural?.hasLight()?LOOK_RADIUS:Math.max(params.base,params.beam);';
+  const radiusBefore='const radius=params.sources?.length?LOOK_RADIUS:Math.max(params.base,params.beam);';
+  const radiusAfter='const radius=params.sources?.length||fhNatural?.hasLight()?LOOK_RADIUS:Math.max(params.base,params.beam);';
+  const sightBefore=' q.restore();sightTexture.needsUpdate=true;';
+  const sightAfter=' fhNatural?.paintSight(q,sightCanvas.width,sightCanvas.height);\n'+sightBefore;
+  for(const [oldText,newText,expected] of [[before,after,1],[tickBefore,tickAfter,1],
+    [pointBefore,pointAfter,1],[rangeBefore,rangeAfter,1],
+    [radiusBefore,radiusAfter,2],[sightBefore,sightAfter,1]]){
    const count=doc.split(oldText).length-1;
-   if(count!==1)throw Error('Hook de luz natural incompatible ('+count+'): '+oldText.slice(0,65));
-   doc=doc.replace(oldText,newText);
+   if(count!==expected)throw Error('Hook de luz natural incompatible ('+count+'/'+expected+'): '+oldText.slice(0,70));
+   doc=doc.split(oldText).join(newText);
   }
-  const script='<script src="'+new URL('./juego/assets/fh-natural-light.js?v=20261107-natural-1',document.baseURI).href+'"></'+'script>';
+  const script='<script src="'+new URL('./juego/assets/fh-natural-light.js?v=20261107-natural-2',document.baseURI).href+'"></'+'script>';
   return doc.replace('</head>',script+'</head>');
  }
 
