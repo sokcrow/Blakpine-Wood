@@ -33,6 +33,11 @@
   const moonHaze=.28*clamp(moon/.13,0,1)*(1-daylight);
   return clamp(daylight+moonHaze,0,1);
  }
+ // La luz diurna permite ver algo más lejos; la luna no prolonga el alcance.
+ function naturalVisionRadius(minutes,base=19){
+  const radius=clamp(finite(base,19),0,200);
+  return radius+6.5*smooth((lightAt(minutes).sun-.14)/.48);
+ }
  function isBasement(floor){
   if(!floor)return false;
   if(Number.isFinite(Number(floor.elevationFt))&&Number(floor.elevationFt)<0)return true;
@@ -270,9 +275,9 @@
    ctx.restore?.();
   }
   update();
-  return {update,attach,hasLight:()=>daylightActive,illuminates,paintSight,
+  return {update,attach,hasLight:()=>daylightActive,visionRadius:base=>naturalVisionRadius(lastMinutes,base),illuminates,paintSight,
    dispose:()=>{for(const t of atlas.values())t.dispose();atlas.clear();atlasMasks.clear();atlasCanvas.clear();empty.dispose()},
    access:()=>atlas.get(current)||empty};
  }
- return Object.freeze({lightAt,sightStrength,isBasement,computeAccess,createRuntime});
+ return Object.freeze({lightAt,sightStrength,naturalVisionRadius,isBasement,computeAccess,createRuntime});
 });
