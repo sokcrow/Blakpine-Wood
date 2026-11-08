@@ -127,6 +127,7 @@
   for(const prop of ['damage','enabled','wifiKeys','connections','meters','usage']){
    if(!s[prop]||typeof s[prop]!=='object'||Array.isArray(s[prop]))s[prop]={};
   }
+  if(!Array.isArray(s.calls))s.calls=[];
   if(!s.contracts||typeof s.contracts!=='object')s.contracts={};
   for(const name of ['internet','landline','mobile','water','electricity'])
    if(!['active','suspended'].includes(s.contracts[name]))s.contracts[name]='active';
@@ -325,6 +326,30 @@
   function mobileFor(){
    return s.contracts.mobile==='active'&&state.phone.battery>0&&s.mobileSignal!==false&&!state.phone.placedAt;
   }
+  function dial(kind,f,source,to){
+   const target=String(to||'').trim().slice(0,80);
+   if(!target)return {ok:false,reason:'number'};
+   if(kind==='mobile'&&!mobileFor())return {ok:false,reason:'mobileUnavailable'};
+   if(kind==='fixed'&&!landlineFor(f,source))return {ok:false,reason:'landlineUnavailable'};
+   let found=null;
+   for(let level=0;level<floors.length&&!found;level++){
+    for(const phone of values(level,'landline_phone')){
+     if(String(phone.phoneNumber||'')!==target||!landlineFor(level,phone))continue;
+     found={kind:'fixed',floor:level,phoneId:id(phone),routerId:String(phone.routerId)};
+     break;
+    }
+   }
+   if(!found&&state.phone.phoneNumber&&target===state.phone.phoneNumber&&mobileFor())
+    found={kind:'mobile'};
+   if(!found)return {ok:false,reason:'noAnswer'};
+   const now=number(state.clock?.minutes);
+   const from=kind==='fixed'?String(source.phoneNumber||source.id):String(state.phone.phoneNumber||state.phone.accountId||'jugador');
+   const event={from,to:target,at:now,target:found.kind,phoneId:found.phoneId||'',routerId:found.routerId||''};
+   s.calls.push({...event,direction:'outgoing',status:'ringing'});
+   s.calls.push({...event,direction:'incoming',status:'ringing'});
+   if(s.calls.length>200)s.calls.splice(0,s.calls.length-200);
+   return {ok:true,event,target:found};
+  }
   function chargePhone(f,chargerId){
    const it=itemAt(f,chargerId);
    if(it?.type!=='phone_charger'||state.phone.placedAt||!electricalStatus(f,it,electrical()).powered)return false;
@@ -394,7 +419,7 @@
   function setService(name,active){if(!Object.prototype.hasOwnProperty.call(s.contracts,name))return false;s.contracts[name]=active?'active':'suspended';return true;}
   return Object.freeze({state:s,phone:state.phone,graphs,point,itemAt,defaultsFor,sourceFor,
    statusFor,electrical,waterStatus,wifiAt,connectWifi,internetFor,landlineFor,mobileFor,
-   chargePhone,takePhone,useWaterFixture,setUsage,tick,setService,feetPerCell});
+   chargePhone,takePhone,useWaterFixture,setUsage,dial,tick,setService,feetPerCell});
  }
  return Object.freeze({INFRA,defaultsFor,wallGraph,ensureState,createRuntime});
 });
