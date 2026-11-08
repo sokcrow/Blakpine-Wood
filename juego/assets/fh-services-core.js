@@ -196,12 +196,13 @@
   const scopeFor=(f,router)=>{
    const floorId=floors[f]?.id;
    const properties=(project.properties||[]).filter(p=>p.floorId===floorId&&Array.isArray(p.polygon));
-   const parcel=router.propertyId?properties.find(p=>p.id===router.propertyId):
-    properties.find(p=>polygonHas(p.polygon,point(router)));
+   const insideProperties=properties.filter(p=>polygonHas(p.polygon,point(router)));
+   if(insideProperties.length>1)return {allow:()=>false,kind:'ambiguousProperty'};
+   const parcel=router.propertyId?properties.find(p=>p.id===router.propertyId):insideProperties[0];
    if(router.propertyId&&!parcel)return {allow:()=>false,kind:'invalidProperty'};
    if(parcel){
     if(!polygonHas(parcel.polygon,point(router)))return {allow:()=>false,kind:'outsideProperty'};
-    return {kind:'property',id:parcel.id,allow:edge=>{
+    return {kind:'property',id:parcel.id,contains:p=>polygonHas(parcel.polygon,p),allow:edge=>{
      const a=edge.a,b=edge.b,p={x:(a.x+b.x)/2,y:(a.y+b.y)/2};
      const dx=b.x-a.x,dy=b.y-a.y,len=Math.max(1e-7,Math.hypot(dx,dy));
      return [p,{x:p.x-dy/len*.06,y:p.y+dx/len*.06},
@@ -227,7 +228,8 @@
   function wiredRoute(f,router,target,maxFt=60){
    if(!router||!target||f<0||!graphs[f])return null;
    const scope=scopeFor(f,router);
-   if(scope.kind==='invalidProperty'||scope.kind==='outsideProperty'||scope.kind==='noRoom')return null;
+   if(['invalidProperty','outsideProperty','ambiguousProperty','noRoom'].includes(scope.kind))return null;
+   if(scope.kind==='property'&&!scope.contains(point(target)))return null;
    if(scope.kind==='rooms'&&target.roomId&&!scope.ids.has(target.roomId))return null;
    if(scope.kind==='property'&&target.propertyId&&scope.id!==target.propertyId)return null;
    const gapFt=Math.max(0,number(router.ethernetLeadFt,10));
