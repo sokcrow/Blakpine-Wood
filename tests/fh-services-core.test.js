@@ -19,6 +19,7 @@ function fixture(){
   {id:'valve',type:'water_valve',x:3,y:1,networkId:'house',opened:true},
   {id:'tap',type:'water_outlet',x:3,y:3.1,networkId:'house',radiusFt:5},
   {id:'drain',type:'drain_outlet',x:3,y:3.4,radiusFt:5},
+  {id:'drainMain',type:'drain_main',x:0,y:0,rangeFt:60},
   {id:'sink',type:'kitchen',x:3,y:3.3,service:{requiresWater:true,flowLpm:5,drains:true}}
  ];
  const project={schema:'forest-horror-map-v1',units:{feetPerCell:5},floors:[{id:'f0',items}]};
@@ -187,4 +188,95 @@ test('estado del breaker del circuito existente corta enchufes nuevos',()=>{
  assert.equal(sys.statusFor(0,socket).power.powered,false);
  state.flags.circuit_a_on=true;
  assert.equal(sys.statusFor(0,socket).power.powered,true);
+});
+
+test('el grafo devuelve puntos sobre paredes sin una diagonal entre breaker y toma',()=>{
+ const {sys}=fixture(),path=sys.graphs[0].routeDetailed({x:0,y:0},{x:3,y:3},.65);
+ assert.ok(path&&path.points.length>=3);
+ for(let i=1;i<path.points.length;i++){
+  const a=path.points[i-1],b=path.points[i];
+  assert.ok(Math.abs(a.x-b.x)<.0001||Math.abs(a.y-b.y)<.0001,'segmento sobre muro');
+ }
+});
+test('sin salida de drenaje no se contabilizan litros de agua evacuada',()=>{
+ const {items,project,state}=fixture();
+ items.splice(items.findIndex(it=>it.id==='drainMain'),1);
+ const sys=FH.createRuntime(project,state),sink=items.find(it=>it.id==='sink');
+ sys.useWaterFixture(0,sink);sys.tick(10,1);
+ assert.ok(sys.state.meters.waterLiters>0);
+ assert.equal(sys.state.meters.drainLiters,0);
+});
+test('tuberías de redes distintas no se conectan accidentalmente',()=>{
+ const {items,project,state}=fixture();
+ items.find(it=>it.id==='water').networkId='otra';
+ const sys=FH.createRuntime(project,state);
+ assert.equal(sys.waterStatus(0,items.find(it=>it.id==='tap')).water,false);
+});
+function roomNetworkFixture(withParcel=false){
+ const items=[
+  {id:'bottom',type:'wall',a:{x:0,y:0},b:{x:10,y:0}},
+  {id:'first',type:'wall',a:{x:3,y:0},b:{x:3,y:6}},
+  {id:'second',type:'wall',a:{x:6,y:0},b:{x:6,y:6}},
+  {id:'roomA',type:'room',roomId:'A',x:0,y:0,w:3,h:6},
+  {id:'roomB',type:'room',roomId:'B',x:3,y:0,w:3,h:6},
+  {id:'roomC',type:'room',roomId:'C',x:6,y:0,w:4,h:6},
+  {id:'r',type:'router',roomId:'A',x:2.5,y:.2,wifiRadiusFt:120,ethernetLeadFt:10,ethernetLengthFt:80},
+  {id:'b',type:'ethernet_port',roomId:'B',routerId:'r',x:3,y:4,cableLengthFt:80},
+  {id:'c',type:'ethernet_port',roomId:'C',routerId:'r',x:6,y:4,cableLengthFt:80}
+ ];
+ const properties=withParcel?[{id:'lot',floorId:'f0',polygon:[
+  {x:-1,y:-1},{x:11,y:-1},{x:11,y:7},{x:-1,y:7}]}]:[];
+ const project={schema:'forest-horror-map-v1',properties,units:{feetPerCell:5},floors:[{id:'f0',items}]};
+ return {items,project};
+}
+test('Ethernet sólo llega a habitaciones asignadas desde habitación de origen',()=>{
+ const {items,project}=roomNetworkFixture();
+ const router=items.find(it=>it.id==='r'),b=items.find(it=>it.id==='b'),c=items.find(it=>it.id==='c');
+ const sys=FH.createRuntime(project,{});
+ assert.equal(sys.wiredRoute(0,router,b,80),null);
+ router.assignedRoomIds=['B'];
+ const allowed=FH.createRuntime(project,{});
+ assert.ok(allowed.wiredRoute(0,router,b,80));
+ assert.equal(allowed.wiredRoute(0,router,c,80),null);
+});
+test('una parcela permite cablear sus paredes, pero no da Wi-Fi infinito',()=>{
+ const {items,project}=roomNetworkFixture(true);
+ const sys=FH.createRuntime(project,{}),router=items.find(it=>it.id==='r');
+ assert.ok(sys.wiredRoute(0,router,items.find(it=>it.id==='c'),80));
+ assert.equal(sys.wifiAt(0,650,1).length,0);
+});
+test('una pared ligera atenúa menos que una estructural y no corta todo el Wi-Fi',()=>{
+ const {items,project}=roomNetworkFixture();
+ const router=items.find(it=>it.id==='r');
+ const soft=FH.createRuntime(project,{}).wifiAt(0,4.4,.3)[0];
+ const partition=items.find(it=>it.id==='first');partition.type='red_wall';
+ const heavy=FH.createRuntime(project,{}).wifiAt(0,4.4,.3)[0];
+ assert.ok(soft&&heavy);
+ assert.ok(soft.dbm>heavy.dbm);
+ assert.ok(soft.bars>=2);
+});
+test('el Wi-Fi tiene tres barras y devuelve calidad para las aplicaciones',()=>{
+ const {items,project}=roomNetworkFixture();
+ const sys=FH.createRuntime(project,{}),router=items.find(it=>it.id==='r');
+ const close=sys.wifiAt(0,router.x,router.y)[0];
+ assert.equal(close.bars,3);assert.equal(close.speedFactor,1);
+ const distant=sys.wifiAt(0,10,5)[0];
+ assert.ok(!distant||distant.bars<=3);
+});
+test('pisos diferentes debilitan señal aunque sean la misma parcela',()=>{
+ const {project}=roomNetworkFixture();
+ project.floors.push({id:'f1',elevationFt:12,items:[]});
+ project.floors[0].elevationFt=0;
+ const sys=FH.createRuntime(project,{});
+ const ground=sys.wifiAt(0,2.5,.2)[0];
+ const upper=sys.wifiAt(1,2.5,.2)[0];
+ assert.ok(ground&&upper);
+ assert.ok(ground.dbm>upper.dbm);
+});
+test('una PC por Ethernet no se conecta si el router sólo cubre otra habitación',()=>{
+ const {items,project}=roomNetworkFixture();
+ const computer={id:'pc',type:'misc',roomId:'C',x:6,y:4,service:{internetMode:'ethernet'}};
+ items.push(computer);
+ const sys=FH.createRuntime(project,{});
+ assert.equal(sys.internetFor(0,computer).online,false);
 });
