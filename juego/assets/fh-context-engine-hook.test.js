@@ -24,8 +24,10 @@ function generateEngine(){
  const start=entry.indexOf('function addLiveTextToEngine(doc){');
  const end=entry.indexOf('let fhCharacterLaunchPending=false;',start);
  assert.ok(start>=0&&end>start);
+ const sharedStart=entry.indexOf('const ForestShared=(()=>{');
+ const sharedEnd=entry.indexOf("\n'use strict';",sharedStart);
  const factory=new Function('window','document','URL',
-  entry.slice(start,end)+';return prepareGLBEngineDoc;');
+  entry.slice(sharedStart,sharedEnd)+entry.slice(start,end)+';return prepareGLBEngineDoc;');
  return factory(window,document,URL)(original);
 }
 
@@ -117,3 +119,4 @@ test('solo muebles decorables, no puertas ni estructura',()=>{
  assert.equal(decoration.isMovable({id:'lector1',type:'card_reader'}),false);
  assert.equal(decoration.isMovable({id:'puerta2',type:'misc',modelId:'puerta_electronica'}),false);
 });
+
