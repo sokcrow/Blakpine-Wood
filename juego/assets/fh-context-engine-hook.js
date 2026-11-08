@@ -9,7 +9,7 @@
  function patch(doc) {
   // Conservar el movimiento del jugador aunque un mueble esté seleccionado.
   doc=one(doc,'if(!fhDeliveryUiActive&&!fhDecorationActive)moveUpdate(dt);else{user.vx=user.vz=0;}',
-              'if(!fhDeliveryUiActive)moveUpdate(dt);else{user.vx=user.vz=0;}','movimiento');
+              'if(!fhDeliveryUiActive&&!window.FHStorageRuntime?.isOpen)moveUpdate(dt);else{user.vx=user.vz=0;}','movimiento');
   // Solo el arrastre del mueble captura eventos. Los gestos restantes giran la cámara.
   const pointer="function fhDecorationPointer(event){\n const a=fhDecorationActive;if(!a)return;\n if(event.type==='pointerdown'){";
   const pointerNew="function fhDecorationPointer(event){\n const a=fhDecorationActive;if(!a)return;\n if(event.type==='pointerdown'){\n"+
@@ -60,6 +60,7 @@ window.FHSafeLock?.bind($('use'),{
 },{capture:true,suppressClick:true});
 // Click de teclado/accesibilidad: los punteros ya se resolvieron por Safe Lock.
 function fhUseButtonClick(event){
+ if(window.FHStorageRuntime?.isOpen)return;
  // Fallback para teclado, lectores de pantalla y navegadores sin Pointer Events.
  // Los clicks derivados de puntero son consumidos por FHSafeLock.
  if(playerPose.occupied)return toggleDoor();
@@ -68,7 +69,7 @@ function fhUseButtonClick(event){
 function fhContextRefresh(){
  const radial=window.FHInteractionRadial,t=window.FH_INTERACTION_STRINGS||{};
  if(!radial)return;
- if(peeking||breakerPanelItem||stairTravel||fhDeliveryUiActive||window.FHComputerRuntime?.isOpen||fhStoredUiActive
+ if(peeking||breakerPanelItem||stairTravel||fhDeliveryUiActive||window.FHComputerRuntime?.isOpen||window.FHStorageRuntime?.isOpen||fhStoredUiActive
   ||window.FHPlayerMenu?.isOpen()||$('inventoryPanel')?.classList.contains('open')
   ||$('noteOverlay')?.classList.contains('open')||$('fhLiveDialog')?.classList.contains('open')
   ||$('fhDeliveryDialog')?.classList.contains('open')){
@@ -148,6 +149,9 @@ function fhContextRefresh(){
       point=fhContextPoint(target.x,target.z);
      }
      actions.push({id:'primary',label:$('use').textContent||t.interact||'Interactuar',run:toggleDoor});
+     if(selected.kind==='furniture'&&window.FHStorageRuntime?.supports(target.item)&&target.item.interact?.verb!=='storage'){
+      actions.push({id:'storage',label:t.openStorage||'Abrir inventario',run:()=>window.FHStorageRuntime?.open(target.item,currentFloor)});
+     }
      if(selected.kind==='door'){
       const canLook=target.kind==='peephole_door'&&!target.open&&isInsideDoor(target);
       // Cuatro sectores constantes; las mecánicas pendientes permanecen deshabilitadas.
@@ -202,6 +206,22 @@ function fhContextRefresh(){
 }
 `;
   doc=one(doc,'function hudUpdate(){',code+'\nfunction hudUpdate(){','HUD');
+  doc=one(doc,'const GameEvents=createEventBus();',
+    'if(restored?.fhInventoryStorage)GameState.fhInventoryStorage=restored.fhInventoryStorage;\n'+
+    'window.FHStorageRuntime?.init({project:DATA,state:GameState,itemDefs,save:saveProgress,onInventoryChange:()=>renderInventory()});\n'+
+    'const GameEvents=createEventBus();','persistencia almacenamiento');
+  // El adaptador de computadoras ya añadió su propia cláusula al filtro.
+  // Ampliamos esa cláusula sin sustituir la prioridad de interacción de PC.
+  doc=one(doc,
+    "const interactableItems=DATA.floors.map(f=>(f.items||[]).filter(it=>it.interact||it.type==='light_switch'||it.type==='breaker_panel'||ForestShared.PROP_ACTIONS[it.type]||it.pcTerminal===true||it.modelId==='escritorio_pc'||window.FHComputer?.isPc(it,f.items,Number(DATA.units.feetPerCell)||5))",
+    "const interactableItems=DATA.floors.map(f=>(f.items||[]).filter(it=>it.interact||it.type==='light_switch'||it.type==='breaker_panel'||ForestShared.PROP_ACTIONS[it.type]||it.pcTerminal===true||it.modelId==='escritorio_pc'||window.FHComputer?.isPc(it,f.items,Number(DATA.units.feetPerCell)||5)||window.FHStorageRuntime?.supports(it))",
+    'detección almacenamiento');
+  doc=one(doc,":it.interact?it:{...it,interact:ForestShared.PROP_ACTIONS[it.type]?",
+    ":it.interact?it:{...it,interact:window.FHStorageRuntime?.supports(it)?{id:'storage_'+it.id,verb:'storage',label:window.FH_STORAGE_STRINGS?.open||'Abrir inventario',effects:[]}:ForestShared.PROP_ACTIONS[it.type]?",'acción almacenamiento');
+  doc=one(doc,'function useFurniture(item,selectedSeat=null){',
+    "function useFurniture(item,selectedSeat=null){\n if(item.interact?.verb==='storage')return window.FHStorageRuntime?.open(item,currentFloor);",'abrir almacenamiento');
+  doc=one(doc,'function toggleDoor(){',
+    'function toggleDoor(){if(window.FHStorageRuntime?.isOpen)return;','bloqueo con panel');
   const refresh="window.FHLocationHUD?.update(DATA,currentFloor,{x:user.x/CELL,y:user.z/CELL})";
   doc=one(doc,refresh,refresh+';fhContextRefresh()','refresco');
   doc=one(doc,"if((k==='e'||k===' ')&&!e.repeat)toggleDoor();",
@@ -215,9 +235,12 @@ function fhContextRefresh(){
   const strings='<script src="'+base+'fh-interaction-strings.js?v=20261107-door-four"></'+'script>';
   const safeLock='<script src="'+base+'fh-safe-lock.js?v=20261107-safe-lock-2"></'+'script>';
   const renderer='<script src="'+base+'fh-interaction-radial.js?v=20261107-hold-gate"></'+'script>';
+  const storageCss='<link rel="stylesheet" href="'+base+'fh-storage.css?v=20261108-storage-1">';
+  const storageStrings='<script src="'+base+'fh-storage-strings.js?v=20261108-storage-1"></'+'script>';
+  const storageRuntime='<script src="'+base+'fh-storage-runtime.js?v=20261108-storage-1"></'+'script>';
   const hide='<style>#actions,#fhDecorateBtn,#fhDecorStoredBtn{display:none!important}</style>';
   if(!doc.includes('</head>'))throw Error('Falta el cierre de cabecera del motor 3D');
-  return doc.replace('</head>',css+strings+safeLock+renderer+hide+'</head>');
+  return doc.replace('</head>',css+strings+safeLock+renderer+storageCss+storageStrings+storageRuntime+hide+'</head>');
  }
  global.FHContextEngine=Object.freeze({patch});
 })(typeof window!=='undefined'?window:globalThis);
