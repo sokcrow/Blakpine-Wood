@@ -12,6 +12,15 @@
   const strings='<script src="'+base+'fh-services-strings.js?v=20261108-service-core-1"></'+'script>';
   doc=once(doc,'</head>',core+strings+'</head>','carga');
 
+  const pc='window.FHComputerRuntime=window.FHComputer?.createRuntime({';
+  const pcOptions=[
+   'networkFor:(stationId,f)=>{',
+   ' const item=(DATA.floors[f]?.items||[]).find(v=>String(v.id)===String(stationId));',
+   ' return item?.service?.internetMode&&item.service.internetMode!=="none"?window.FHServicesRuntime?.internetFor(f,item):null;',
+   '},',
+   'powerAvailable:(item,f)=>item.service?.requiresPower!==true||window.FHServicesRuntime?.statusFor(f,item).power.powered!==false,'
+  ].join('\n');
+  doc=once(doc,pc,pc+'\n'+pcOptions,'computadoras');
   const phone='window.FHPhoneRuntime=window.FHPhone?.createRuntime({';
   const start=[
    'window.FHServicesRuntime=window.FHServices?.createRuntime(DATA,GameState,{phoneDrainPerHour:.5});',
