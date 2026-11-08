@@ -154,7 +154,7 @@
   const sizeX=clamp(finite(DATA.units?.columns,16),1,500)*CELL;
   const sizeZ=clamp(finite(DATA.units?.rows,22),1,500)*CELL;
   const uniformMask={value:null},uniformColor={value:new THREE.Color(0)};
-  let current=-1,lastSignature='',lastMinutes=NaN,daylightActive=false;
+  let current=-1,lastSignature='',lastMinutes=NaN,lastVisionReach=NaN,daylightActive=false;
   const empty=new THREE.DataTexture(new Uint8Array([0,0,0,255]),1,1,THREE.RGBAFormat);
   empty.magFilter=THREE.LinearFilter;empty.minFilter=THREE.LinearFilter;empty.needsUpdate=true;
   uniformMask.value=empty;
@@ -248,6 +248,10 @@
    const wasActive=daylightActive;
    daylightActive=!isBasement(DATA.floors[f])&&(light.sun>.025||light.moon>.009);
    if(daylightActive!==wasActive)changed=true;
+   // El radio cambia con la posición solar incluso cuando la máscara llega al
+   // blanco máximo. Forzar FOW para el jugador quieto al amanecer/anochecer.
+   const visionReach=daylightActive?naturalVisionRadius(minutes,19):19;
+   if(visionReach!==lastVisionReach){lastVisionReach=visionReach;changed=true;}
    uniformColor.value.setRGB(
     .92*light.sun+.32*light.moon,
     .82*light.sun+.46*light.moon,
