@@ -28,6 +28,21 @@
   payment:'Forma de pago',prepaid:'PAGADO / SIN COBRO',cash:'EFECTIVO AL RECIBIR',
   card:'TARJETA AL RECIBIR',addCart:'Añadir al carrito',added:'Añadido al carrito',
   invalidPurchase:'Comprueba la cantidad, el producto y el destino.',
+  app_calendar:'Calendario',app_weather:'Clima',
+  calendarLocale:'es-ES',calendarWeekdays:['Lu','Ma','Mi','Ju','Vi','Sá','Do'],
+  calendarGameTime:'Hora del juego',
+  weatherOpen:'Abrir clima actual',weatherNow:'CLIMA ACTUAL',
+  weatherUnavailable:'Clima no disponible',weatherUnavailableHelp:'Este mapa no tiene clima dinámico activado.',
+  weatherNoTemperature:'—',weatherSunny:'Soleado',weatherPartlyCloudy:'Parcialmente nublado',
+  weatherOvercast:'Nublado',weatherDrizzle:'Llovizna',weatherRain:'Lluvia',
+  weatherStorm:'Tormenta',weatherSnow:'Nevada',weatherSnowstorm:'Tormenta de nieve',
+  weatherSleet:'Aguanieve',weatherSeason:'Estación',season_primavera:'Primavera',
+  season_verano:'Verano',season_otono:'Otoño',season_invierno:'Invierno',
+  weatherFog:'Niebla',weatherFog0:'Sin niebla',weatherFog1:'Neblina',
+  weatherFog2:'Niebla',weatherFog3:'Niebla densa',
+  weatherSnowCoverage:'Cobertura de nieve',weatherWetness:'Humedad del suelo',
+  weatherNextChange:'Próxima evaluación',weatherUnknownChange:'Sin previsión',
+  weatherHours:'horas',weatherMinutes:'minutos',
   ordersCreated:'Pedidos registrados',failed:'No registrados',orderUpdate:'Pedido'
  });
 })(typeof window!=='undefined'?window:globalThis);

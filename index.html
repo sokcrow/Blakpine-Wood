@@ -1590,7 +1590,7 @@ function normalizeFurnitureFootprints(){const eps=.001,types=Object.keys(OBJECT_
 const $=s=>document.querySelector(s), $$=s=>Array.from(document.querySelectorAll(s));
 const clone=x=>JSON.parse(JSON.stringify(x));
 const floorDefault=(id,name,elev,index)=>({id,name,elevationFt:elev,ceilingHeightFt:11.5,lightingManual:true,reference:{name:`Referencia original ${name}`,data:IMAGES[index]||IMAGES[IMAGES.length-1],width:1145,height:1536,opacity:.73},items:[]});
-const newProject=()=>({schema:SCHEMA,version:ForestShared.CURRENT_VERSION,title:'Forest Horror · Edificio de apartamentos',createdAt:new Date().toISOString(),styleSystem:1,weather:{enabled:true,season:'calendar',minHours:3,maxHours:8,clockSpeed:1},buildingOwnerId:'',buildingOwners:{},properties:[],patterns:[],itemDefs:[{id:'flashlight_battery',kind:'consumable',name:'Batería de linterna',description:'Recarga el 50 % de la linterna.',stackable:true,icon:'▤'}],units:{gridPx:70,columns:16,rows:22,fitGridToImage:true,feetPerCell:5,metersPerCell:1.524,snapCell:1,originPx:{x:0,y:0}},floors:[floorDefault('floor1','Piso 1',0,0),floorDefault('floor2','Piso 2',12,1)],notes:'Coordenadas x/y en casillas; cada casilla equivale a 5 pies. El eje Y crece hacia abajo en la referencia. Cada mirilla tiene dirección peekTo. Los muebles guardan su rotación y el frente visual. También se exportan bardas medias, rejas y rellenos exteriores.'});
+const newProject=()=>({schema:SCHEMA,version:ForestShared.CURRENT_VERSION,title:'Forest Horror · Edificio de apartamentos',createdAt:new Date().toISOString(),styleSystem:1,initialGameState:{clock:{year:2016,month:6,day:1,minutes:480}},weather:{enabled:true,season:'calendar',minHours:3,maxHours:8,clockSpeed:1},buildingOwnerId:'',buildingOwners:{},properties:[],patterns:[],itemDefs:[{id:'flashlight_battery',kind:'consumable',name:'Batería de linterna',description:'Recarga el 50 % de la linterna.',stackable:true,icon:'▤'}],units:{gridPx:70,columns:16,rows:22,fitGridToImage:true,feetPerCell:5,metersPerCell:1.524,snapCell:1,originPx:{x:0,y:0}},floors:[floorDefault('floor1','Piso 1',0,0),floorDefault('floor2','Piso 2',12,1)],notes:'Coordenadas x/y en casillas; cada casilla equivale a 5 pies. El eje Y crece hacia abajo en la referencia. Cada mirilla tiene dirección peekTo. Los muebles guardan su rotación y el frente visual. También se exportan bardas medias, rejas y rellenos exteriores.'});
 let project=newProject(),floorIndex=0,selection=null,activeTool='wall',activeCategory='structure',activeLayer='architecture',gridVisible=true,jointsVisible=true,axisLock=true,snapEnabled=true,preview=null,anchor=null,cursorGridPoint=null,view={scale:1,tx:0,ty:0},canvas=$('#map'),ctx=canvas.getContext('2d',{alpha:false}),loadedImgs=project.floors.map(()=>null),pointerStates=new Map(),gesture=null,action=null,middlePan=null,dirty=false,history=[],historyIndex=-1,saveTimer=null,toastTimer=null;
 const current=()=>project.floors[floorIndex];
 // En modo ajustado, filas y columnas cubren la imagen exactamente;
@@ -2952,9 +2952,9 @@ function prepareGLBEngineDoc(source){
  const statusCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-status-hud.css?v=20261107-palette-feedback-1',document.baseURI).href+'">';
  const statusStrings='<script src="'+new URL('./juego/assets/fh-status-strings.js?v=20261107-palette-feedback-1',document.baseURI).href+'"></'+'script>';
  const statusScript='<script src="'+new URL('./juego/assets/fh-status-hud.js?v=20261107-palette-feedback-1',document.baseURI).href+'"></'+'script>';
- const phoneCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-phone.css?v=20261107-phone-1',document.baseURI).href+'">';
- const phoneStrings='<script src="'+new URL('./juego/assets/fh-phone-strings.js?v=20261107-phone-1',document.baseURI).href+'"></'+'script>';
- const phoneScript='<script src="'+new URL('./juego/assets/fh-phone.js?v=20261107-phone-1',document.baseURI).href+'"></'+'script>';
+ const phoneCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-phone.css?v=20261108-calendar-weather-1',document.baseURI).href+'">';
+ const phoneStrings='<script src="'+new URL('./juego/assets/fh-phone-strings.js?v=20261108-calendar-weather-1',document.baseURI).href+'"></'+'script>';
+ const phoneScript='<script src="'+new URL('./juego/assets/fh-phone.js?v=20261108-calendar-weather-1',document.baseURI).href+'"></'+'script>';
  const mobileCameraScript='<script src="'+new URL('./juego/assets/fh-mobile-camera.js?v=20261108-landscape20',document.baseURI).href+'"></'+'script>';
  const locationHudHook='if(now-lastHud>90){lastHud=now;hudUpdate()}';
  const locationHudAfter='if(now-lastHud>90){lastHud=now;hudUpdate();window.FHLocationHUD?.update(DATA,currentFloor,{x:user.x/CELL,y:user.z/CELL});window.FHStatusHUD?.update(window.FHCharacterRuntime?.character?.resources)}';
@@ -3544,6 +3544,7 @@ window.FHPhoneRuntime=window.FHPhone?.createRuntime({
  itemDefs,markNoteRead:id=>{ForestShared.markNoteRead(GameState,id,itemDefs);saveProgress();},
  delivery:()=>window.FHDeliveryRuntime,addresses:()=>fhDeliveryAddresses(),
  toggleTorch:()=>toggleFlashlight(),torchState:()=>({...lighting.state}),
+ weather:()=>window.FHWeatherRuntime?.view?.()||null,
  onCartChange:cart=>window.FHComputerRuntime?.terminalApi()?.setHamazonCart?.(cart)
 });
 window.FHPhoneRuntime?.syncCartToTerminal?.();`;
@@ -3827,6 +3828,7 @@ function fhRefreshActorVisibility(){
   const before='installVisibility();window.FHAssets?.setSightMaskInstaller(installVisibility);';
   const after=[
    "const fhWeather=DATA.weather?.enabled===true?window.FHWeatherCore?.createRuntime({gameState:GameState,config:DATA.weather}):null;",
+   "window.FHWeatherRuntime=fhWeather;",
    "const fhWeatherRenderer=fhWeather?window.FHWeatherRenderer?.createRuntime({THREE,scene,columns:GRID_X,rows:GRID_Z,cell:CELL,actor:()=>({x:user.x,z:user.z}),floorY:()=>floorElev[currentFloor]}):null;",
    "window.addEventListener('beforeunload',()=>fhWeatherRenderer?.dispose());",
    "const fhNatural=window.FHNaturalLight?.createRuntime({DATA,CELL,",

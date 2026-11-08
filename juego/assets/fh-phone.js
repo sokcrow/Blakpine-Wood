@@ -6,7 +6,7 @@
  else root.FHPhone=Object.freeze(api);
 })(typeof globalThis!=='undefined'?globalThis:this,function(root){
  'use strict';
- const BASE_APPS=Object.freeze(['directory','messages','notes','flashlight','store']);
+ const BASE_APPS=Object.freeze(['directory','messages','notes','calendar','weather','flashlight','store']);
  const AVAILABLE_APPS=Object.freeze([...BASE_APPS,'hamazon']);
  const CATEGORIES=Object.freeze(['person','business','service','player']);
  const EXTRA_APPS=new Map();
@@ -43,6 +43,23 @@
   const m=Number.isFinite(n)?((Math.floor(n)%1440)+1440)%1440:480;
   return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
  }
+ function calendarModel(clock){
+  const year=Math.max(100,Math.min(9999,Math.floor(Number(clock?.year)||2016)));
+  const month=Math.max(1,Math.min(12,Math.floor(Number(clock?.month)||6)));
+  const days=new Date(Date.UTC(year,month,0)).getUTCDate();
+  const day=Math.max(1,Math.min(days,Math.floor(Number(clock?.day)||1)));
+  const date=new Date(Date.UTC(year,month-1,day));
+  const firstDay=(new Date(Date.UTC(year,month-1,1)).getUTCDay()+6)%7;
+  return {year,month,day,date,days,firstDay,key:year+'-'+month+'-'+day};
+ }
+ function formatCalendarDate(clock,locale='es-ES'){
+  return new Intl.DateTimeFormat(locale,{timeZone:'UTC',
+   weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(calendarModel(clock).date);
+ }
+ function formatCalendarMonth(clock,locale='es-ES'){
+  return new Intl.DateTimeFormat(locale,{timeZone:'UTC',
+   month:'long',year:'numeric'}).format(calendarModel(clock).date);
+ }
  function installApp(state,id){
   const p=ensureState(state);if(!validApp(id))return false;
   if(!p.installedApps.includes(id))p.installedApps.push(id);
@@ -61,10 +78,27 @@
   const save=()=>{try{options.save?.()}catch(error){root.console?.warn?.('FHPhone: guardado',error)}};
   const clock=()=>formatClock(state.clock?.minutes);
   const commerce=()=>state.commerce.cart;
+   const locale=label('calendarLocale','es-ES');
+   const weatherState=()=>options.weather?.()||null;
+   const weatherNames={
+    soleado:'weatherSunny',parcial_nublado:'weatherPartlyCloudy',
+    nublado:'weatherOvercast',llovizna:'weatherDrizzle',
+    lluvia:'weatherRain',tormenta:'weatherStorm'
+   };
+   function weatherName(v){
+    if(!v)return label('weatherUnavailable');
+    if(v.phase==='nieve')return label(v.type==='tormenta'?'weatherSnowstorm':'weatherSnow');
+    if(v.phase==='aguanieve')return label('weatherSleet');
+    return label(weatherNames[v.type]||'weatherUnavailable');
+   }
+   function weatherTemperature(v){
+    return v&&Number.isFinite(Number(v.temp))
+     ?Math.round(Number(v.temp))+' °C':label('weatherNoTemperature');
+   }
   let opened=false,view='home',previous='home',filter='all',currentContact='',editingNote=null,currentDocument=null;
   let toggle=null,panel=null,content=null,clockNode=null,toastNode=null,topTitle=null;
   let statusChargeBar=null,statusChargeText=null,pendingNotice=false;
-  let elapsed=0,toastTimer=null,lastTorch='',orderSeen=new Map((state.delivery?.orders||[]).map(o=>[o.id,o.status]));
+  let elapsed=0,toastTimer=null,lastTorch='',lastCalendarKey='',lastWeatherKey='',orderSeen=new Map((state.delivery?.orders||[]).map(o=>[o.id,o.status]));
   const el=(tag,cls,txt)=>{
    const n=document.createElement(tag);if(cls)n.className=cls;
    if(txt!==undefined)n.textContent=String(txt);
@@ -84,6 +118,8 @@
    flashlight:'M9 3h6l1 5-2.5 3v9h-3v-9L8 8z M9 8h6',
    store:'M4 4h7v7H4z M14 4h6v7h-6z M4 14h7v6H4z M14 14h6v6h-6z',
    hamazon:'M4 8h16v13H4z M8 8V6a4 4 0 0 1 8 0v2 M4 12h16',
+   calendar:'M5 5h14v16H5z M8 3v4 M16 3v4 M5 10h14 M9 14h2 M13 14h2 M9 18h2',
+   weather:'M5 17h13a3 3 0 0 0 0-6h-1a5 5 0 0 0-9.4-1.3A3.5 3.5 0 0 0 5 17z M5 5V3 M2 7H1 M9 3l1-1',
    signal:'M3 19v-3 M8 19v-6 M13 19V9 M18 19V5',
    home:'M3 11l9-7 9 7 M6 10v10h12V10 M10 20v-6h4v6',
    back:'M15 18l-6-6 6-6',
@@ -134,15 +170,25 @@
    view=name;content.replaceChildren();toolbar(label('app_'+name,name),back);
    if(name==='messages'||name==='conversation'){pendingNotice=false;syncNotification()}
    const handlers={home:home,directory:directory,messages:messages,conversation:conversation,
-    notes:notes,editNote:editNote,document:readDocument,flashlight:flashlight,store:store,hamazon:hamazon};
+    notes:notes,editNote:editNote,document:readDocument,calendar:calendar,weather:weather,flashlight:flashlight,store:store,hamazon:hamazon};
    if(handlers[name])handlers[name]();
    else if(EXTRA_APPS.has(name))EXTRA_APPS.get(name).render({container:content,state,save,back:()=>screen('home')});
    else home();
   }
   function home(){
    const hero=container('fh-phone-clock-card');
-   hero.append(el('strong','fh-phone-big-clock',clock()));
+   append(hero,el('strong','fh-phone-big-clock',clock()),
+    el('span','fh-phone-home-date',formatCalendarDate(state.clock,locale)));
    content.append(hero);
+   const widget=button('',()=>screen('weather'),'fh-phone-weather-widget');
+   widget.setAttribute('aria-label',label('weatherOpen'));
+   const icon=container('fh-phone-weather-icon');icon.append(glyph('weather'));
+   const copy=container('fh-phone-weather-copy');
+   append(copy,el('span','fh-phone-weather-label',label('weatherNow')),
+    el('strong','fh-phone-weather-condition',weatherName(weatherState())),
+    el('small','fh-phone-weather-date',formatCalendarDate(state.clock,locale)));
+   append(widget,icon,copy,el('strong','fh-phone-weather-temp',weatherTemperature(weatherState())));
+   content.append(widget);
    const grid=container('fh-phone-app-grid');content.append(grid);
    for(const id of p.installedApps){
     const b=button('',()=>screen(id),'fh-phone-app');
@@ -151,6 +197,62 @@
     append(b,icon,el('span','fh-phone-app-label',label('app_'+id,EXTRA_APPS.get(id)?.name||id)));
     grid.append(b);
    }
+  }
+  function calendar(){
+   const model=calendarModel(state.clock);
+   lastCalendarKey=model.key;
+   content.append(el('h3','fh-phone-section',label('app_calendar')));
+   content.append(el('p','fh-phone-calendar-current',formatCalendarDate(state.clock,locale)));
+   content.append(el('strong','fh-phone-calendar-month',formatCalendarMonth(state.clock,locale)));
+   const grid=container('fh-phone-calendar-grid'),weekdays=label('calendarWeekdays',[]);
+   for(const day of weekdays)grid.append(el('span','fh-phone-calendar-weekday',day));
+   for(let i=0;i<model.firstDay;i++)grid.append(el('span','fh-phone-calendar-blank',''));
+   for(let day=1;day<=model.days;day++){
+    const cell=el('span','fh-phone-calendar-day',day);
+    if(day===model.day){cell.classList.add('is-today');cell.setAttribute('aria-current','date')}
+    grid.append(cell);
+   }
+   content.append(grid);
+   content.append(el('p','fh-phone-muted',label('calendarGameTime')+' · '+clock()));
+  }
+  function nextWeatherChange(){
+   const next=Number(state.weather?.nextAt);
+   const year=Number(state.clock?.year),month=Number(state.clock?.month),day=Number(state.clock?.day);
+   if(!Number.isFinite(next)||!Number.isFinite(year)||!Number.isFinite(month)||!Number.isFinite(day))
+    return label('weatherUnknownChange');
+   const minutes=Date.UTC(year,month-1,day)/60000+(Number(state.clock?.minutes)||0);
+   const left=Math.max(0,Math.ceil(next-minutes));
+   return left>=60?Math.ceil(left/60)+' '+label('weatherHours'):left+' '+label('weatherMinutes');
+  }
+  function weatherKey(v){
+   if(!v)return 'sin-clima';
+   return [v.type,v.phase,Math.round(Number(v.temp)||0),v.fog,
+    Math.round((Number(v.snow)||0)*100),Math.round((Number(v.wetness)||0)*100),
+    Math.floor((Number(state.clock?.minutes)||0)/5)].join('|');
+  }
+  function weather(){
+   const v=weatherState();
+   lastWeatherKey=weatherKey(v);
+   content.append(el('h3','fh-phone-section',label('app_weather')));
+   const hero=container('fh-phone-weather-detail');
+   append(hero,el('span','fh-phone-weather-label',label('weatherNow')),
+    el('strong','fh-phone-weather-detail-condition',weatherName(v)),
+    el('span','fh-phone-weather-detail-temp',weatherTemperature(v)));
+   content.append(hero);
+   if(!v){content.append(el('p','fh-phone-muted',label('weatherUnavailableHelp')));return}
+   const facts=container('fh-phone-weather-facts');
+   function fact(key,value){
+    const item=container('fh-phone-weather-fact');
+    append(item,el('small','',label(key)),el('strong','',value));
+    facts.append(item);
+   }
+   fact('weatherSeason',label('season_'+v.season));
+   const fog=Math.max(0,Math.min(3,Math.floor(Number(v.fog)||0)));
+   fact('weatherFog',label('weatherFog'+fog));
+   fact('weatherSnowCoverage',Math.round(Math.max(0,Math.min(1,Number(v.snow)||0))*100)+'%');
+   fact('weatherWetness',Math.round(Math.max(0,Math.min(1,Number(v.wetness)||0))*100)+'%');
+   content.append(facts);
+   content.append(el('p','fh-phone-muted',label('weatherNextChange')+': '+nextWeatherChange()));
   }
   function directory(){
    const tabs=container('fh-phone-tabs');
@@ -409,7 +511,16 @@
    updateStatus();
    if(opened&&view==='home'){
     const value=content?.querySelector('.fh-phone-big-clock');if(value)value.textContent=clock();
+    const date=formatCalendarDate(state.clock,locale);
+    for(const node of content.querySelectorAll('.fh-phone-home-date,.fh-phone-weather-date'))node.textContent=date;
+    const v=weatherState();
+    const condition=content.querySelector('.fh-phone-weather-condition');
+    const temperature=content.querySelector('.fh-phone-weather-temp');
+    if(condition)condition.textContent=weatherName(v);
+    if(temperature)temperature.textContent=weatherTemperature(v);
    }
+   if(opened&&view==='calendar'&&calendarModel(state.clock).key!==lastCalendarKey)screen('calendar');
+   if(opened&&view==='weather'&&weatherKey(weatherState())!==lastWeatherKey)screen('weather');
    if(opened&&view==='flashlight'){
     const state=options.torchState?.()||{},signature=String(state.enabled)+'/'+Math.ceil(Number(state.charge)||0);
     if(lastTorch!==signature){lastTorch=signature;screen('flashlight')}
@@ -493,5 +604,5 @@
    get cart(){return copy(commerce())}
   });
  }
- return {BASE_APPS,AVAILABLE_APPS,registerApp,ensureState,formatClock,installApp,uninstallApp,createRuntime};
+ return {BASE_APPS,AVAILABLE_APPS,registerApp,ensureState,formatClock,calendarModel,formatCalendarDate,formatCalendarMonth,installApp,uninstallApp,createRuntime};
 });
