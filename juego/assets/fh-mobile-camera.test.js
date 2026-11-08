@@ -11,11 +11,11 @@ const html=fs.readFileSync(path.resolve(__dirname,'../../index.html'),'utf8');
 
 test('el acercamiento de gameplay conserva la escala visual original del personaje',()=>{
  // El motor embebido trae un aumento visual de 1.15 y no debe reducirse a 1.
- assert.match(html,/const heroScaleBefore='const HERO_H=1\\.68,HERO_VISUAL_SCALE=1\\.15,'/);
- assert.doesNotMatch(html,/\\.replace\\(heroScaleBefore,/);
+ assert.match(html,/const heroScaleBefore='const HERO_H=1\.68,HERO_VISUAL_SCALE=1\.15,'/);
+ assert.doesNotMatch(html,/\.replace\(heroScaleBefore,/);
  assert.doesNotMatch(html,/HERO_VISUAL_SCALE=1,/);
  // El 30% de zoom sigue aplicado a la distancia, no al tamaño del jugador.
- assert.match(html,/const fhCameraDistance=window\\.FHMobileCamera\\?\\.distance\\(lightDistance,/);
+ assert.match(html,/const fhCameraDistance=window\.FHMobileCamera\?\.distance\(lightDistance,/);
 });
 
 test('celular vertical y horizontal se acercan exactamente 30%',()=>{
