@@ -140,10 +140,21 @@
    row.append(selection,amount,remove);initial.append(row);
   }
   if(defs.length){
-   const addButton=tag('button','＋ Agregar objeto');addButton.type='button';
-   addButton.onclick=()=>edit({initialItems:[...items,{id:defs[0].id,quantity:1}]});
-   initial.append(addButton);
-  } else {
+   const compatible=defs.filter(def=>validateConfig(item,{
+    ...settings,enabled:true,slots:profile.slots,
+    initialItems:[...items,{id:def.id,quantity:1}]
+   },defs,core).ok);
+   if(compatible.length){
+    const addRow=tag('div');addRow.className='fh-storage-item';
+    const picker=tag('select');picker.setAttribute('aria-label','Objeto para agregar');
+    for(const def of compatible){
+     const option=tag('option',def.name||def.id);option.value=def.id;picker.append(option);
+    }
+    const addButton=tag('button','＋ Agregar');addButton.type='button';
+    addButton.onclick=()=>edit({initialItems:[...items,{id:picker.value||compatible[0].id,quantity:1}]});
+    addRow.append(picker,addButton);initial.append(addRow);
+   }else initial.append(tag('p','No hay más objetos compatibles o espacios disponibles.'));
+  }else{
    const message=tag('p','No hay ítems definidos en el proyecto. Puedes configurar la capacidad y categorías.');
    message.className='fh-storage-hint';initial.append(message);
   }
