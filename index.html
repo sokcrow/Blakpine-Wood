@@ -3804,11 +3804,16 @@ function fhRefreshActorVisibility(){
 
  // Integra meteorología conservando el motor empaquetado Base64.
  function addWeatherToEngine(doc){
-  const oldState="stats:initial.stats&&typeof initial.stats==='object'?{...initial.stats}:null};";
-  const newState="stats:initial.stats&&typeof initial.stats==='object'?{...initial.stats}:null,clock:initial.clock&&typeof initial.clock==='object'?{...initial.clock}:null,weather:initial.weather&&typeof initial.weather==='object'?{...initial.weather}:null};";
-  const count=doc.split(oldState).length-1;
-  if(count!==1)throw Error('Hook de estado meteorológico incompatible ('+count+'/1)');
-  doc=doc.replace(oldState,newState);
+  // El adaptador de entregas ya conserva clock/phone/commerce. Añadir clima al final.
+  const deliveryState="commerce:initial.commerce&&typeof initial.commerce==='object'?JSON.parse(JSON.stringify(initial.commerce)):null};";
+  const bareState="stats:initial.stats&&typeof initial.stats==='object'?{...initial.stats}:null};";
+  const weatherTail=",weather:initial.weather&&typeof initial.weather==='object'?{...initial.weather}:null};";
+  if(doc.split(deliveryState).length===2){
+   doc=doc.replace(deliveryState,deliveryState.slice(0,-2)+weatherTail);
+  }else if(doc.split(bareState).length===2){
+   const withClock=bareState.slice(0,-2)+",clock:initial.clock&&typeof initial.clock==='object'?{...initial.clock}:null"+weatherTail;
+   doc=doc.replace(bareState,withClock);
+  }else throw Error('Hook de estado meteorológico incompatible con los adaptadores actuales');
   const scripts=[
    '<script src="'+new URL('./juego/assets/fh-weather-core.js?v=20261108-clima1',document.baseURI).href+'"></'+'script>',
    '<script src="'+new URL('./juego/assets/fh-weather-renderer.js?v=20261108-clima1',document.baseURI).href+'"></'+'script>'
