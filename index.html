@@ -1827,6 +1827,9 @@ function createObject(type,p){
   }
   if(type==='power_outlet')it.zoneId=selectedCircuit()||'main';
   if(type==='router'||type==='phone_charger')it.service={requiresPower:true};
+  // Reutiliza la interacción original del motor; no crea un verbo nuevo.
+  it.interact={id:'utility_'+it.id,verb:'use',
+   label:it.type==='phone_charger'?'Cargar / recoger celular':('Usar '+it.label),effects:[]};
  }
  if(type==='spawn'){it.heightFt=0;it.blocksMovement=false}if(type==='npc_portal'){it.heightFt=0;it.blocksMovement=false;it.label='Entrada / salida NPC'}if(type==='stairs'){const next=project.floors[floorIndex+1];const prev=project.floors[floorIndex-1];it.targetFloorId=(next||prev||current()).id;it.heightFt=Math.abs((next||prev||current()).elevationFt-current().elevationFt)||12;it.label=it.label||'Escalera'}if(type==='elevator'){it.enabled=true;it.doorsOpen=false;it.requiresPower=false;it.powerFlag='breaker_on';it.label='Ascensor'}
 if(type==='light_fixture'){
@@ -2520,8 +2523,8 @@ function attachServiceInspector(it,fields){
   breaker_panel:['breakerType','rangeFt'],power_outlet:['slots','capacityRayos','radiusFt','zoneId'],
   power_strip:['slots','capacityRayos','radiusFt','outletId'],
   phone_charger:['outletId','chargePerHour','rayos','watts'],
-  water_main:['rangeFt','flowLpm'],
-  water_valve:['opened'],water_outlet:['radiusFt','flowLpm'],drain_outlet:['radiusFt'],
+  water_main:['rangeFt','flowLpm','valveId','networkId'],
+  water_valve:['opened','networkId'],water_outlet:['radiusFt','flowLpm','valveId','networkId'],drain_outlet:['radiusFt','networkId'],
   router:['outletId','wifiRadiusFt','ethernetLengthFt','wifiPassword','rayos','watts'],
   ethernet_port:['routerId','cableLengthFt'],landline_phone:['routerId']
  };
@@ -3966,7 +3969,8 @@ async function start3DPreview(){
  // La vista se crea fresca en cada prueba: las puertas abiertas durante juego no editan el mapa.
  try{
   const originalEngineDoc=decodeEmbedded3DEngine(PREVIEW_ENGINE_DOC_B64);
-  const fhEngineDoc=window.FHServicesEngine?.patch(prepareGLBEngineDoc(originalEngineDoc))||prepareGLBEngineDoc(originalEngineDoc);
+  const preparedEngineDoc=prepareGLBEngineDoc(originalEngineDoc);
+   const fhEngineDoc=window.FHServicesEngine?.patch(preparedEngineDoc)||preparedEngineDoc;
   try{
    if(!window.FHArchitectureSkins?.patchEngineDoc)throw Error('Adaptador del kit no disponible');
    let architectureDoc=window.FHArchitectureSkins.patchEngineDoc(fhEngineDoc);
