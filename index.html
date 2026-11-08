@@ -1733,6 +1733,7 @@ for(const it of items){if(it.type==='parking_decal'){c.save();if(!opts.clean&&la
 for(const it of items){if(SEGMENT_TYPES.has(it.type)){c.save();if(!opts.clean&&layerForItem(it)!==activeLayer)c.globalAlpha=.5;drawSegment(c,it,z,it.id===selection);c.restore()}}
 if(jointsVisible&&!opts.clean&&activeLayer!=='lighting'){const g=graphCache[floorIndex];for(const n of g?.nodes||[]){const p=toPixel(n),r=(n.degree===1?5.3:3.1)/z;c.save();c.beginPath();c.arc(p.x,p.y,r,0,Math.PI*2);c.fillStyle=n.degree===1?'#ff916c':'#d3f8ff';c.strokeStyle='#102436';c.lineWidth=1.2/z;c.fill();c.stroke();c.restore()}}
 if(activeLayer==='lighting'&&!opts.clean)drawLightingOverlay(c,z);
+ if(['water','network'].includes(activeCategory)&&!opts.clean)drawUtilityNetworkOverlay(c,z);
 for(const it of items){if(!AREA_TYPES.has(it.type)&&!SEGMENT_TYPES.has(it.type)&&it.type!=='parking_decal'){c.save();if(!opts.clean&&layerForItem(it)!==activeLayer)c.globalAlpha=.5;drawBox(c,it,z,it.id===selection);if(it.id===selection&&activeLayer==='furniture'&&!opts.clean)drawPropAnchorMarkers(c,it,z);c.restore()}}
 if(preview&& !opts.clean){c.save();c.globalAlpha=.75;if(SEGMENT_TYPES.has(preview.type))drawSegment(c,preview,z,true);else if(AREA_TYPES.has(preview.type))drawArea(c,preview,z,true);else drawBox(c,preview,z,true);c.restore()}
 if(anchor&&!opts.clean){let a=toPixel(anchor);c.save();c.fillStyle='#fffd';c.strokeStyle='#9875fb';c.lineWidth=2/z;c.beginPath();c.arc(a.x,a.y,7/z,0,2*Math.PI);c.fill();c.stroke();c.restore()}
@@ -1760,34 +1761,103 @@ function refreshCircuits(focusZone){
  }
 }
 function setLayer(layer){activeLayer=layer;document.body.classList.toggle('layer-lighting',layer==='lighting');$$('#layerSwitch button').forEach(b=>b.classList.toggle('active',b.dataset.layer===layer));$('#circuitTools').hidden=layer!=='lighting';if(layer==='lighting')refreshCircuits();selection=null;anchor=null;preview=null;closeInspector();render()}
-// Dibujo no invasivo: solo contornos y cableado lógico, jamás relleno de habitaciones.
-const circuitOutlineCache=new WeakMap();
-function drawLightingOverlay(c,z){
- const items=current().items,zone=selectedCircuit(),all=$('#circuitShowAll')?.checked||false;
- c.save();c.lineCap='round';c.lineJoin='round';
- // Unión de fuentes + sombras de muros. No dibujar radios separados.
- window.FHLightEditorOverlay?.draw(c,z);
-
- for(const circ of availableCircuits()){
-  if(!all&&circ.zoneId!==zone)continue;
-  const active=circ.zoneId===zone,color=circ.circuitColor,owner=items.find(i=>i.id===circ.panelId),lineWidth=(active?2.3:1.15)/z;
-  c.globalAlpha=active?1:.35;c.strokeStyle=color;c.fillStyle=color;c.lineWidth=lineWidth;
-  const rooms=items.filter(it=>it.type==='room'&&it.zoneId===circ.zoneId);
-  for(const room of rooms){
-   // Solo perímetro EXTERIOR: no rayar el interior ni cubrir el dibujo de paredes.
-   let edges=circuitOutlineCache.get(room);if(!edges){edges=ForestShared.circuitRoomOutline(room);circuitOutlineCache.set(room,edges)}
-   c.beginPath();c.setLineDash([7/z,5/z]);for(const edge of edges){const p=toPixel({x:edge.x0,y:edge.y0}),q=toPixel({x:edge.x1,y:edge.y1});c.moveTo(p.x,p.y);c.lineTo(q.x,q.y)}c.stroke();c.setLineDash([]);
-   const center=toPixel(room.spans?.length?roomShapeCenter(room):areaCenter(room));
-   if(owner){const start=toPixel(owner);c.beginPath();c.setLineDash([5/z,7/z]);c.moveTo(start.x,start.y);c.lineTo(center.x,center.y);c.stroke();c.setLineDash([])}
-   if(active){const name=circ.name;c.font=`bold ${11/z}px ui-monospace,monospace`;c.textAlign='center';c.textBaseline='bottom';c.lineWidth=3/z;c.strokeStyle='#0b1524';c.strokeText(name,center.x,center.y-6/z,130/z);c.fillStyle=color;c.fillText(name,center.x,center.y-6/z,130/z);c.strokeStyle=color;c.fillStyle=color;c.lineWidth=lineWidth}
+// Grafo común: los cables se ven sobre las paredes, nunca cruzan habitaciones.
+const utilityVisualCache={signature:'',graph:null,runtime:null};
+function utilityVisual(){
+ const signature=JSON.stringify([floorIndex,project.units.feetPerCell,
+  current().items.filter(it=>['wall','red_wall','property_wall','room','breaker_panel',
+   'light_fixture','light_switch','power_outlet','water_main','water_outlet',
+   'drain_main','drain_outlet','router','ethernet_port','landline_phone'].includes(it.type)),
+  project.properties||[]]);
+ if(utilityVisualCache.signature!==signature){
+  utilityVisualCache.signature=signature;
+  utilityVisualCache.graph=window.FHServices?.wallGraph(current().items)||null;
+  utilityVisualCache.runtime=window.FHServices?.createRuntime(project,{});
+ }
+ return utilityVisualCache;
+}
+function drawWallPaths(c,z,paths,color,selected=true){
+ const shared=new Map();
+ for(const path of paths){
+  if(!path?.points?.length)continue;
+  for(let i=1;i<path.points.length;i++){
+   const a=path.points[i-1],b=path.points[i];
+   if(Math.hypot(a.x-b.x,a.y-b.y)<.0001)continue;
+   const ka=[a.x.toFixed(4),a.y.toFixed(4)].join(',');
+   const kb=[b.x.toFixed(4),b.y.toFixed(4)].join(',');
+   const key=[ka,kb].sort().join(':');
+   if(!shared.has(key))shared.set(key,{a,b,count:0});
+   shared.get(key).count++;
   }
-  for(const item of items.filter(i=>['light_fixture','light_switch'].includes(i.type)&&i.zoneId===circ.zoneId)){
-   const center=toPixel(item);if(owner){const start=toPixel(owner);c.beginPath();c.setLineDash([3/z,6/z]);c.moveTo(start.x,start.y);c.lineTo(center.x,center.y);c.stroke();c.setLineDash([])}
-   c.beginPath();c.arc(center.x,center.y,3/z,0,Math.PI*2);c.fill();
-  }
-  if(owner){const pt=toPixel(owner);c.beginPath();c.arc(pt.x,pt.y,6/z,0,Math.PI*2);c.lineWidth=2.5/z;c.stroke();}
+ }
+ c.save();c.strokeStyle=color;c.lineCap='round';c.lineJoin='round';c.globalAlpha=selected?.9:.3;
+ for(const {a,b,count} of shared.values()){
+  const p=toPixel(a),q=toPixel(b);c.lineWidth=(count>1?3:1.7)/z;
+  c.beginPath();c.moveTo(p.x,p.y);c.lineTo(q.x,q.y);c.stroke();
  }
  c.restore();
+}
+function drawLightingOverlay(c,z){
+ const items=current().items,zone=selectedCircuit(),all=$('#circuitShowAll')?.checked||false;
+ window.FHLightEditorOverlay?.draw(c,z);
+ const graph=utilityVisual().graph;
+ if(!graph)return;
+ const rooms=items.filter(it=>it.type==='room');
+ for(const circ of availableCircuits()){
+  if(!all&&circ.zoneId!==zone)continue;
+  const owner=items.find(it=>it.id===circ.panelId);
+  if(!owner)continue;
+  const color=circ.circuitColor||'#dfa65c',selected=circ.zoneId===zone,paths=[],terminals=[];
+  const sameCircuit=it=>{
+   if(it.zoneId)return it.zoneId===circ.zoneId;
+   const room=rooms.find(r=>(r.roomId||r.id)===it.roomId||r.id===it.roomId);
+   return room?.zoneId===circ.zoneId;
+  };
+  for(const target of items.filter(it=>['light_fixture','light_switch','power_outlet'].includes(it.type)&&sameCircuit(it))){
+   const gapFt=target.type==='light_fixture'&&!target.wallId?Math.max(0,Number(target.service?.maxWallDistanceFt)||30):3.25;
+   const path=graph.routeDetailed(owner,target,gapFt/Math.max(.1,Number(project.units.feetPerCell)||5));
+   if(path){paths.push(path);terminals.push(path.to)}
+  }
+  drawWallPaths(c,z,paths,color,selected);
+  c.save();c.globalAlpha=selected?.85:.32;c.fillStyle=color;
+  for(const point of terminals){const p=toPixel(point);c.beginPath();c.arc(p.x,p.y,2.2/z,0,Math.PI*2);c.fill()}
+  const origin=toPixel(owner);c.strokeStyle=color;c.lineWidth=2/z;
+  c.beginPath();c.arc(origin.x,origin.y,5/z,0,Math.PI*2);c.stroke();c.restore();
+ }
+}
+function drawUtilityNetworkOverlay(c,z){
+ const {graph,runtime}=utilityVisual();
+ if(!graph||!runtime)return;
+ const items=current().items,ft=Math.max(.1,Number(project.units.feetPerCell)||5);
+ const groups=activeCategory==='water'?
+  [{from:'water_main',to:'water_outlet',color:'#65bee9'},
+   {from:'drain_main',to:'drain_outlet',color:'#75bea6'}]:
+  activeCategory==='network'?
+  [{from:'router',to:'ethernet_port',color:'#d9ba72'},
+   {from:'router',to:'landline_phone',color:'#d9ba72'}]:[];
+ for(const group of groups){
+  const paths=[],invalid=[],sources=items.filter(it=>it.type===group.from);
+  for(const target of items.filter(it=>it.type===group.to)){
+   let path=null;
+   for(const source of sources){
+    if(target.networkId&&source.networkId&&target.networkId!==source.networkId)continue;
+    if(target.routerId&&source.type==='router'&&target.routerId!==source.id)continue;
+    if(source.type==='router'){
+     path=runtime.wiredRoute(floorIndex,source,target,Number(target.cableLengthFt)||Number(source.ethernetLengthFt)||60);
+    }else{
+     const candidate=graph.routeDetailed(source,target,3.25/ft);
+     if(candidate&&(candidate.length+candidate.fromGap+candidate.toGap)*ft<=(Number(source.rangeFt)||120))
+      path=candidate;
+    }
+    if(path)break;
+   }
+   if(path)paths.push(path);else invalid.push(target);
+  }
+  drawWallPaths(c,z,paths,group.color,true);
+  c.save();c.fillStyle='#d88478';c.globalAlpha=.85;
+  for(const item of invalid){const p=toPixel(item);c.beginPath();c.arc(p.x,p.y,3/z,0,2*Math.PI);c.fill()}
+  c.restore();
+ }
 }
 function setCategory(cat){setLayer(layerForCategory(cat));activeCategory=cat;$$('#categories button').forEach(b=>b.classList.toggle('active',b.dataset.cat===cat));const target=$('#tools');target.innerHTML='';for(const [id,label,symbol] of TOOL_GROUPS[cat]){let b=document.createElement('button');b.dataset.tool=id;b.title=label;const col=COLORS[id]||'#8090aa';b.innerHTML=`<span class="sym">${symbol}</span><span>${label}</span><span class="swatch" style="background:${col}"></span>`;b.onclick=()=>chooseTool(id);target.append(b)}chooseTool(TOOL_GROUPS[cat].some(v=>v[0]===activeTool)?activeTool:TOOL_GROUPS[cat][0][0]);target.scrollLeft=0}
 function chooseTool(tool){activeTool=tool;anchor=null;preview=null;if(window.FHParkingEditor?.isTool(tool))window.FHParkingEditor.settings(tool);$$('#tools button').forEach(b=>b.classList.toggle('active',b.dataset.tool===tool));const tips={...window.FH_SERVICES_TEXT?.tips,property_wall:'PARED AMARILLA: dibuja un contorno cerrado para delimitar una propiedad. Asígnale un dueño en Proyecto → Propiedades y dueños. No genera losa.',paint_wall:'PINTAR CARA: toca uno de los lados de una pared; sólo cambia el lado seleccionado. En Seleccionar también puedes elegir A o B.',red_wall:'PARED ROJA: al pintar sobre un muro azul, reemplaza únicamente el tramo cubierto (sin superposiciones). Cierra el contorno en Piso 1 para generar la losa. «Copiar muros ↑» es opcional.',wall:'Pared azul: si pintas sobre una roja, reemplaza el tramo cubierto y deja de ser estructural. Cierra paredes y agrega puertas para definir habitaciones.',half_wall:'Pared media: útil para bardas bajas, divisiones parciales o barras.',fence:'Reja: cerca o barandal; también deja claro su recorrido en el JSON.',door:'Puerta: dibuja sobre una pared para crear una salida. Al colocarla se detecta la habitación. Tócala para marcar la entrada al apartamento.',peephole_door:'Mirilla: dibuja la puerta; selecciónala para invertir hacia dónde mira.',window:'Ventana: traza su longitud. Se coloca una ventana individual por casilla y deja pasar la visión.',opening:'Hueco: paso libre sin puerta.',select:'Seleccionar: toca un elemento para editarlo o arrástralo para moverlo.',pan:'Mover mapa: arrastra para desplazar, pellizca para zoom.',erase:'Borrar: toca un elemento. Usa Deshacer si fue accidental.',room:'Zona manual: opcional; las habitaciones se reconocen automáticamente al colocar una puerta.',hall:'Pasillo: marca su área para identificarla.',outside:'Exterior: marca una zona exterior general.',building:'Edificio: relleno para masas de construcción o bloques vecinos.',pavement:'Banqueta o piso duro exterior.',parking:'Relleno de estacionamiento o asfalto.',grass:'Relleno de pasto o jardín.',dirt:'Relleno de tierra o patio.',bed:'Cama con flecha de frente para orientar el mueble.',sofa:'Sofá con flecha de frente.',tv:'Tele con flecha de frente.',dining:'Comedor orientable.',table:'Mesa orientable.',chair:'Silla orientable.',kitchen:'Cocina orientable.',bath:'Baño o tina orientable.',toilet:'WC orientable.',car:'Coche orientable.',misc:'Mueble libre orientable.',zone_assign:'Elige un circuito en la barra. Toca un cuarto para conectar sus lámparas e interruptores, o toca una lámpara para conectarla individualmente.',breaker_panel:'Coloca un tablero. Selecciónalo para crear circuitos con nombres, colores e IDs propios.',light_switch:'Sólo en pared. La flecha indica la cara visible y la habitación que controla. «Girar» cambia de lado.'};$('#stageHint').textContent=window.FH_PARKING_TEXT?.tips?.[tool]||tips[tool]||`${SHORT[tool]||tool}: toca el centro donde deseas colocarlo.`;render()}
