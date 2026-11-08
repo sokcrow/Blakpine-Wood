@@ -126,9 +126,9 @@
   switch(type){
    case 'power_outlet':return {slots:2,radiusFt:5,capacityRayos:6};
    case 'power_strip':return {slots:4,radiusFt:5,capacityRayos:6,rayos:0};
-   case 'water_main':return {rangeFt:120,flowLpm:50};
+   case 'water_main':return {rangeFt:120,flowLpm:50,networkId:'main'};
    case 'water_valve':return {opened:true};
-   case 'water_outlet':return {radiusFt:5,flowLpm:12};
+   case 'water_outlet':return {radiusFt:5,flowLpm:12,networkId:'main'};
    case 'drain_outlet':return {radiusFt:5,networkId:'main'};
    case 'drain_main':return {rangeFt:120,networkId:'main'};
    case 'router':return {wifiRadiusFt:120,ethernetLengthFt:60,wifiPassword:'',rayos:1,watts:18,assignedRoomIds:[],propertyId:''};
@@ -297,7 +297,8 @@
   function requiresWater(it){return it.service?.requiresWater===true;}
   function candidates(f,it,types){
    return (elements[f]||[]).filter(x=>types.includes(x.type)&&x.id!==it.id&&
-    (!it.outletId||String(it.outletId)===String(x.id))&&
+    (!((types.includes('water_outlet')?it.waterOutletId:types.includes('drain_outlet')?it.drainOutletId:it.outletId))||
+     String(types.includes('water_outlet')?it.waterOutletId:types.includes('drain_outlet')?it.drainOutletId:it.outletId)===String(x.id))&&
     dist(point(it),point(x))*feetPerCell<=Math.max(0,number(x.radiusFt,5))&&
     barriers(f,it,x)===0)
     .sort((a,b)=>dist(point(a),point(it))-dist(point(b),point(it))||id(a).localeCompare(id(b)));
@@ -355,7 +356,8 @@
     });
    };
    if(it.type==='water_outlet'){
-    const linked=mains.some(main=>valveOpen(main,it)&&route(f,main,it)<=Math.max(0,number(main.rangeFt,120)));
+    const linked=mains.some(main=>(!main.networkId||!it.networkId||main.networkId===it.networkId)&&
+     valveOpen(main,it)&&route(f,main,it)<=Math.max(0,number(main.rangeFt,120)));
     return {connected:linked,water:linked};
    }
    const ports=candidates(f,it,['water_outlet']);
@@ -364,6 +366,19 @@
   }
   // 2.4 GHz: modelo jugable dBm, sin prometer medidas físicas exactas.
   // La parcela restringe los CABLES, jamás amplifica la cobertura de radio.
+  // El drenaje necesita una salida principal unida físicamente a las tomas.
+  function drainStatus(f,it){
+   if(!it||it.service?.drains===false)return {connected:false,draining:false};
+   if(it.type==='drain_outlet'){
+    const connected=values(f,'drain_main').some(main=>active(main)&&
+     (!main.networkId||!it.networkId||main.networkId===it.networkId)&&
+     route(f,it,main)<=Math.max(0,number(main.rangeFt,120)));
+    return {connected,draining:connected};
+   }
+   for(const out of candidates(f,it,['drain_outlet']))
+    if(drainStatus(f,out).draining)return {connected:true,draining:true,via:id(out)};
+   return {connected:false,draining:false};
+  }
   function wifiAt(f,x,y,passwordById=s.wifiKeys){
    if(!floors[f])return [];
    const nearby=[],snap=electrical(),pos={x:number(x),y:number(y)};
@@ -400,28 +415,28 @@
   }
   function internetFor(f,it){
    if(s.contracts.internet!=='active')return {online:false,reason:'service'};
-   if(it.type==='router'){
+   if(it.type==='router')
     return {online:electricalStatus(f,it,electrical()).powered&&active(it),method:'router'};
-   }
    if(it.service?.internetMode==='wifi'){
-    const wifi=wifiAt(f,number(it.x),number(it.y));
-    return {online:wifi.some(w=>w.online),method:'wifi'};
+    const networks=wifiAt(f,number(it.x),number(it.y));
+    const best=networks.find(net=>net.online);
+    return best?{online:true,method:'wifi',routerId:best.routerId,
+     bars:best.bars,dbm:best.dbm,speedFactor:best.speedFactor,latencyMultiplier:best.latencyMultiplier}:
+     {online:false,reason:'noSignal'};
    }
-   if(it.service?.internetMode!=='ethernet'&&it.type!=='ethernet_port')return {online:false,reason:'noLink'};
+   if(it.service?.internetMode!=='ethernet'&&it.type!=='ethernet_port')
+    return {online:false,reason:'noLink'};
    const routers=values(f,'router').filter(r=>!it.routerId||id(r)===String(it.routerId));
    for(const router of routers){
     if(!electricalStatus(f,router,electrical()).powered||!active(router))continue;
-    const link=it.type==='ethernet_port'?route(f,router,it):dist(point(router),point(it))*feetPerCell;
-    const limit=Math.max(0,number(it.cableLengthFt,number(router.ethernetLengthFt,30)));
-    if(link<=limit&&(it.type==='ethernet_port'||barriers(f,it,router)===0))
-     return {online:true,method:'ethernet',routerId:id(router)};
+    const length=Math.max(0,number(it.cableLengthFt,number(router.ethernetLengthFt,60)));
+    if(wiredRoute(f,router,it,length))return {online:true,method:'ethernet',routerId:id(router),speedFactor:1};
     if(it.type==='ethernet_port')continue;
-    // Toma Ethernet en la pared: cable visible solo en datos, no en gameplay.
     for(const port of values(f,'ethernet_port')){
      if(port.routerId&&String(port.routerId)!==id(router))continue;
-     if(dist(point(port),point(it))*feetPerCell>limit||barriers(f,it,port)>0)continue;
-     if(route(f,router,port)<=Math.max(0,number(port.cableLengthFt,number(router.ethernetLengthFt,30))))
-      return {online:true,method:'ethernet',routerId:id(router),portId:id(port)};
+     if(dist(point(port),point(it))*feetPerCell>length||barriers(f,it,port)>0)continue;
+     if(wiredRoute(f,router,port,Math.max(0,number(router.ethernetLengthFt,60))))
+      return {online:true,method:'ethernet',routerId:id(router),portId:id(port),speedFactor:1};
     }
    }
    return {online:false,reason:'noLink'};
@@ -429,7 +444,8 @@
   function landlineFor(f,it){
    if(it.type!=='landline_phone'||s.contracts.landline!=='active')return false;
    const router=itemAt(f,it.routerId);
-   return !!router&&router.type==='router'&&internetFor(f,router).online;
+   return !!router&&router.type==='router'&&internetFor(f,router).online&&
+    !!wiredRoute(f,router,it,Math.max(0,number(it.cableLengthFt,number(router.ethernetLengthFt,60))));
   }
   function mobileFor(){
    return s.contracts.mobile==='active'&&state.phone.battery>0&&s.mobileSignal!==false&&!state.phone.placedAt;
@@ -473,7 +489,7 @@
    if(mode==='pulse'){
     const liters=Math.max(0,number(it.service?.litersPerUse,6));
     s.meters.waterLiters+=liters;
-    if(it.service?.drains!==false&&candidates(f,it,['drain_outlet']).length)s.meters.drainLiters+=liters;
+    if(it.service?.drains!==false&&drainStatus(f,it).draining)s.meters.drainLiters+=liters;
     return {ok:true,mode,liters};
    }
    s.usage[id(it)]=!s.usage[id(it)];
@@ -502,7 +518,7 @@
      if(requiresWater(it)&&active(it)&&s.usage[id(it)]===true&&waterStatus(f,it).water){
       const liters=Math.max(0,number(it.service?.flowLpm))*seconds/60;
       waterLiters+=liters;
-      if(it.service?.drains!==false&&candidates(f,it,['drain_outlet']).length)drainLiters+=liters;
+      if(it.service?.drains!==false&&drainStatus(f,it).draining)drainLiters+=liters;
      }
     }
    }
@@ -521,12 +537,12 @@
   }
   function statusFor(f,it){
    const snap=electrical(),power=electricalStatus(f,it,snap),water=waterStatus(f,it);
-   return {power,water,internet:internetFor(f,it),broken:number(s.damage[id(it)])>=100,
+   return {power,water,drain:drainStatus(f,it),internet:internetFor(f,it),broken:number(s.damage[id(it)])>=100,
     loadingRayos:snap.loads.get(f+':'+id(it))||0,usedSlots:snap.used.get(f+':'+id(it))||0};
   }
   function setService(name,active){if(!Object.prototype.hasOwnProperty.call(s.contracts,name))return false;s.contracts[name]=active?'active':'suspended';return true;}
-  return Object.freeze({state:s,phone:state.phone,graphs,point,itemAt,defaultsFor,sourceFor,
-   statusFor,electrical,waterStatus,wifiAt,connectWifi,internetFor,landlineFor,mobileFor,
+  return Object.freeze({state:s,phone:state.phone,graphs,point,itemAt,defaultsFor,sourceFor,wiredRoute,scopeFor,
+   statusFor,electrical,waterStatus,drainStatus,wifiAt,connectWifi,internetFor,landlineFor,mobileFor,
    chargePhone,takePhone,useWaterFixture,setUsage,dial,tick,setService,feetPerCell});
  }
  return Object.freeze({INFRA,defaultsFor,wallGraph,ensureState,createRuntime});
