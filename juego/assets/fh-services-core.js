@@ -161,7 +161,7 @@
    const circuits=[];
    for(const panel of values(f,'breaker_panel')){
     const list=Array.isArray(panel.circuits)&&panel.circuits.length?panel.circuits:[{zoneId:panel.zoneId||'main'}];
-    for(const c of list)circuits.push({panel,zoneId:String(c.zoneId||c.id||panel.zoneId||'main'),
+    for(const c of list)circuits.push({panel,powerFlag:String(c.powerFlag||panel.powerFlag||''),zoneId:String(c.zoneId||c.id||panel.zoneId||'main'),
      rangeFt:Math.max(0,number(c.rangeFt??panel.rangeFt,LIMITS[panel.breakerType||'medium']?.rangeFt||60)),
      capacityWatts:Math.max(0,number(c.capacityWatts??panel.capacityWatts,LIMITS[panel.breakerType||'medium']?.capacityWatts||2400))});
    }
@@ -173,7 +173,7 @@
    if(s.contracts.electricity!=='active'||!flagOn('power_global')||
      !flagOn('power_floor:'+String(floors[f]?.id||f))||
      !flagOn('power_zone:'+c.zoneId)||!flagOn(id(panel)))return false;
-   return !panel.powerFlag||flagOn(panel.powerFlag);
+   return !c.powerFlag||flagOn(c.powerFlag);
   }
   function sourceFor(f,it,zone=''){
    const candidates=powerScopes[f]||[];
