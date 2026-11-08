@@ -3772,12 +3772,11 @@ function fhRefreshActorVisibility(){
  function addNaturalLightToEngine(doc){
   const before='installVisibility();window.FHAssets?.setSightMaskInstaller(installVisibility);';
   const after=[
-   "const fhNatural=window.FHNaturalLight?.createRuntime({THREE,DATA,CELL,scene,ambient,",
+   "const fhNatural=window.FHNaturalLight?.createRuntime({DATA,CELL,",
    " clock:()=>GameState.clock?.minutes,floor:()=>currentFloor,",
    " doorOpen:(f,id,it)=>doorList[f]?.find(d=>d.id===id)?.open??it?.open,",
    " doorTransparent:it=>ForestShared.doorSpec(it)?.transparent===true});",
-   "fhNatural?.attach(scene);",
-   "installVisibility();window.FHAssets?.setSightMaskInstaller(root=>{fhNatural?.attach(root);installVisibility(root);});"
+   "installVisibility();window.FHAssets?.setSightMaskInstaller(installVisibility);"
   ].join('\n');
   const tickBefore='window.FHDeliveryRuntime?.update(dt);window.FHPhoneRuntime?.update(dt);';
   const tickAfter='window.FHDeliveryRuntime?.update(dt);window.FHPhoneRuntime?.update(dt);if(fhNatural?.update())visibilityDirty=true;';
@@ -3798,7 +3797,7 @@ function fhRefreshActorVisibility(){
    if(count!==expected)throw Error('Hook de luz natural incompatible ('+count+'/'+expected+'): '+oldText.slice(0,70));
    doc=doc.split(oldText).join(newText);
   }
-  const script='<script src="'+new URL('./juego/assets/fh-natural-light.js?v=20261107-daynight-1',document.baseURI).href+'"></'+'script>';
+  const script='<script src="'+new URL('./juego/assets/fh-natural-light.js?v=20261107-no-exterior-filter-1',document.baseURI).href+'"></'+'script>';
   return doc.replace('</head>',script+'</head>');
  }
 
