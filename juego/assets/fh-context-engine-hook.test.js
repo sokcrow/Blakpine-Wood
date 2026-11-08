@@ -76,7 +76,14 @@ test('el HTML generado integra radial y decoración sin afectar el editor 2D',()
  assert.match(output,/fh-interaction-strings\.js/);
  assert.match(output,/fh-interaction-radial\.css/);
  assert.match(output,/id:'knock',label:t\.knock\|\|'Llamar',disabled:true/);
- assert.match(output,/id:'examine',label:t\.examine\|\|'Examinar',disabled:true/);
+ assert.match(output,/id:'examine',label:t\.examine\|\|'Examinar',disabled:!canExamine/);
+ assert.match(output,/ForestHorrorStructureAPI\?\.inspect\(\{floorId:currentFloor,id:target\.id\}\)/);
+ assert.match(output,/ForestHorrorStructureAPI\?\.inspectSelected\(currentFloor,target\.id\)/);
+ assert.match(output,/ForestHorrorStructureAPI\?\.nearestWindow\?\.\(currentFloor,user\.x,user\.z,CELL\)/);
+ assert.match(output,/windowNear&&windowNear\.dist\+\.15<selectedDistance/);
+ assert.match(output,/key='window:'\+currentFloor\+':'\+it\.id/);
+ assert.match(output,/ForestHorrorStructureAPI\?\.inspect\(\{floorId:currentFloor,id:it\.id\}\)/);
+ assert.match(output,/ForestHorrorStructureAPI\?\.inspectSelected\(currentFloor,it\.id\)/);
  assert.match(output,/const canLook=target\.kind==='peephole_door'/);
  assert.match(output,/id='fhDecorModeBtn'/);
  assert.match(output,/if\(!fhDeliveryUiActive&&!window\.FHStorageRuntime\?\.isOpen\)moveUpdate\(dt\)/);

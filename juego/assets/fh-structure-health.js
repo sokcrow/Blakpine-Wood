@@ -31,12 +31,12 @@ function maxPG(it,part='structure'){
  if(part==='reader')return 10; // PIN y tarjetas son independientes de la puerta.
  if(isElectronic(it))return 500;
  const mul=MATERIAL[material(it)]??1;
- return (it.type==='window'?5:10)*mul;
+ return Math.ceil((it.type==='window'?5:10)*mul);
 }
 function initialPG(it,part='structure'){
  const max=maxPG(it,part);
  const value=part==='reader'?it.readerInitialPG:it.initialPG;
- return clamp(isFiniteNumber(value)?value:max,0,max);
+ return Math.ceil(clamp(isFiniteNumber(value)?value:max,0,max));
 }
 function validateItem(it,path='item'){
  const errors=[];
@@ -72,7 +72,7 @@ function stateFor(registry,floorId,it,part='structure'){
   item=floor&&Object.hasOwn(floor,it.id)?floor[it.id]:null,
   record=item&&Object.hasOwn(item,part)?item[part]:null;
  const amount=isFiniteNumber(record?.pg)?record.pg:initialPG(it,part);
- const pg=clamp(amount,0,max);
+ const pg=Math.ceil(clamp(amount,0,max));
  return {pg,maxPG:max,destroyed:pg===0,part,floorId,id:it.id,
   type:part==='reader'?(it.accessDevice==='pin'?'pin':'card'):it.type};
 }
@@ -80,7 +80,7 @@ function damage(registry,floorId,it,amount,kind='physical',part='structure'){
  if(!registry||typeof registry!=='object'||Array.isArray(registry))throw new TypeError('Registro de daño inválido');
  if(typeof floorId!=='string'||!floorId||!it?.id||!supports(it,part))
   return {ok:false,reason:'missing'};
- if(!isFiniteNumber(amount)||amount<0)throw new RangeError('El daño debe ser finito y no negativo');
+ if(!Number.isInteger(amount)||amount<0)throw new RangeError('El daño debe ser un entero no negativo');
  if(!DAMAGE_KINDS.includes(kind))throw new TypeError('Tipo de daño no admitido');
  const before=stateFor(registry,floorId,it,part);
  const vulnerable=(it.damageVulnerabilities||[]).includes(kind);
@@ -181,11 +181,11 @@ function createRuntime({data,state,doorList,blockers,save,refresh,events}){
   }
   return result;
  }
- function nearest(f,x,z,cell=1.524,maxDist=2.4){
+ function nearest(f,x,z,cell=1.524,maxDist=2.4,onlyType=null){
   if(!data.floors[f])return null;
   let best=null;
   for(const it of data.floors[f].items||[]){
-   if(!supports(it)||!it.id||!it.a||!it.b)continue;
+   if(!supports(it)||(onlyType&&it.type!==onlyType)||!it.id||!it.a||!it.b)continue;
    const mx=(it.a.x+it.b.x)*cell/2,mz=(it.a.y+it.b.y)*cell/2;
    const dist=Math.hypot(x-mx,z-mz);
    if(dist<=maxDist&&(!best||dist<best.dist))best={item:it,dist,f};
