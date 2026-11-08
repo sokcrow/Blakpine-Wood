@@ -46,10 +46,7 @@
  display:grid;grid-template-columns:minmax(0,1fr) 66px auto;gap:6px;
  align-items:center;margin:8px 0;
 }
-#inspector .fh-storage-editor .fh-storage-item:has(select:only-child){
- grid-template-columns:minmax(0,1fr);
-}
-#inspector .fh-storage-editor .fh-storage-item:last-child{
+#inspector .fh-storage-editor .fh-storage-add{
  grid-template-columns:minmax(0,1fr) auto;
 }
 #inspector .fh-storage-editor input[type=number],
