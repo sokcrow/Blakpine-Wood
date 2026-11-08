@@ -198,7 +198,7 @@ body.breaker-active #fhPhoneToggle,body.breaker-active #fhPhonePanel{
  #fhPhonePanel{
   top:calc(6px + env(safe-area-inset-top,0px));
   right:calc(80px + env(safe-area-inset-right,0px));
-  width:min(340px,calc(100vw - 80px - env(safe-area-inset-left,0px) - env(safe-area-inset-right,0px)));
+  width:min(228px,58dvh,calc(100vw - 80px - env(safe-area-inset-left,0px) - env(safe-area-inset-right,0px)));
   height:calc(100dvh - 12px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));
   max-height:100dvh;min-height:0;border-width:5px;border-radius:23px;
  }
