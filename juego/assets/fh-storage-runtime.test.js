@@ -122,3 +122,38 @@ test('encimera modular aparece como contenedor interactuable en 3D', () => {
   assert.equal(s.instance.world.furniture['F1:encimera-1'].items[0].id, 'lata');
   s.rt.close();
 });
+
+test('un armario comprado en Hamazon obtiene Abrir inventario al entrar al mapa', () => {
+  const s = mount();
+  const pedido = { id: 'delivered_hamazon_001', type: 'misc', modelId: 'encimera_simple',
+    runtimeDeliveryFurniture: { orderId: 'hamazon_001', productId: 'encimera_simple' } };
+  assert.equal(s.rt.prepareDeliveryItem(pedido), true);
+  assert.equal(pedido.interact.verb, 'storage');
+  assert.equal(pedido.interact.label, 'Abrir inventario');
+  s.instance.project.floors[0].items.push(pedido);
+  assert.equal(s.rt.open(pedido, 0), true);
+  const buttons = s.findAll(s.doc.body, el => el.className === 'fh-storage-move');
+  assert.ok(buttons.length);
+  buttons[0].click();
+  assert.equal(s.instance.world.furniture['F1:delivered_hamazon_001'].items[0].id, 'lata');
+  assert.equal(s.saves, 1);
+});
+
+test('muebles de Hamazon sin cajones se pueden seleccionar sin perder acciones originales', () => {
+  const s = mount();
+  const bought = { id:'delivered_hamazon_002', type:'misc', modelId:'mesa_pequena',
+    runtimeDeliveryFurniture:{orderId:'hamazon_002',productId:'mesa_pequena'} };
+  assert.equal(s.rt.prepareDeliveryItem(bought),true);
+  assert.equal(bought.interact.verb,'decorate');
+  assert.equal(s.rt.supports(bought),false);
+  assert.equal(s.rt.prepareDeliveryItem(bought),false,'no debe duplicar interacciones');
+  const chair = { id:'delivered_hamazon_003', type:'chair', modelId:'silla_madera',
+    runtimeDeliveryFurniture:{orderId:'hamazon_003',productId:'silla_madera'},
+    interact:{id:'sit_003',verb:'sit',label:'Sentarse',effects:[]} };
+  assert.equal(s.rt.prepareDeliveryItem(chair),false);
+  assert.equal(chair.interact.verb,'sit');
+  const packageItem = {id:'package_hamazon_004',modelId:'caja_carton_mediana',
+    runtimePackage:{orderId:'hamazon_004',productId:'mesa_pequena'}};
+  assert.equal(s.rt.prepareDeliveryItem(packageItem),false);
+  assert.equal(packageItem.interact,undefined);
+});
