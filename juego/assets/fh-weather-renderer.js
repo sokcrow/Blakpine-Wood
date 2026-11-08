@@ -136,7 +136,7 @@
     lastFloor=f;
     refreshGroundMask();
     refreshPuddleSites();
-    lastFog=-1;lastSnow=-1;lastWet=-1;
+    oldFog=-1;lastSnow=-1;lastWet=-1;
    }
    const y=Number(floorY?.())||0,where=actor?.()||{x:maxX/2,z:maxZ/2};
    const x=Number(where.x)||0,z=Number(where.z)||0;
