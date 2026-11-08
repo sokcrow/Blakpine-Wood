@@ -109,19 +109,32 @@ test('lluvia al aire libre se limita a posiciones exteriores',()=>{
  }finally{global.document=old}
 });
 
-test('al estar dentro ninguna gota exterior se proyecta sobre la habitación',()=>{
+test('la lluvia y la niebla exteriores se ven desde una ventana, sin invadir interiores',()=>{
  const {THREE,document,scene}=mockThree();
  const old=global.document;global.document=document;
  try{
+  const actorX=7;
   const r=Renderer.createRuntime({THREE,scene,columns:16,rows:20,cell:1.524,
-   actor:()=>({x:7,z:10}),floorY:()=>0,floorIndex:()=>0,
+   actor:()=>({x:actorX,z:10}),floorY:()=>0,floorIndex:()=>0,
    isOutside:(x)=>x>7.5});
   const group=scene.children.find(g=>g instanceof THREE.Group);
   r.update(.016,state());
-  assert.equal(group.children[0].visible,false);
-  assert.equal(scene.fog,null);
+  const rain=group.children[0],snow=group.children[1],mist=group.children[2];
+  assert.equal(rain.visible,true,'llueve afuera aunque el actor esté adentro');
+  assert.equal(scene.fog,null,'niebla global no empaña la habitación');
+  assert.equal(mist.visible,true,'se ve neblina exterior desde adentro');
+  for(const item of [rain,mist]){
+   const width=item===rain?6:3;
+   const amount=item.geometry.range.count/(item===rain?2:1);
+   const positions=item.geometry.attributes.position.array;
+   assert.ok(amount>0);
+   for(let i=0;i<amount;i++)
+    assert.ok(actorX+positions[i*width]>7.35,'efecto limitado al exterior');
+  }
   r.update(.016,state({phase:'nieve'}));
-  assert.equal(group.children[1].visible,false);
+  assert.equal(snow.visible,true,'también se ve la nevada exterior');
+  for(let i=0;i<snow.geometry.range.count;i++)
+   assert.ok(actorX+snow.geometry.attributes.position.array[i*3]>7.35);
   r.dispose();
  }finally{global.document=old}
 });
@@ -166,4 +179,28 @@ test('el puente 3D usa una sola exposición atmosférica, no el clasificador de 
  assert.match(html,/createExteriorExposure\(\{floors:DATA\.floors/);
  assert.match(html,/isOutside:\(x,z\)=>fhWeatherExposure\?\.\(currentFloor,x,z\)===true/);
  assert.doesNotMatch(html,/isOutside:\(x,z\)=>floorExteriorClassifiers/);
+});
+
+test('sin posiciones exteriores, la vista interior no muestra lluvia ni neblina',()=>{
+ const {THREE,document,scene}=mockThree();
+ const old=global.document;global.document=document;
+ try{
+  const r=Renderer.createRuntime({THREE,scene,columns:16,rows:20,cell:1.524,
+   actor:()=>({x:12,z:12}),floorY:()=>0,floorIndex:()=>0,isOutside:()=>false});
+  r.update(.016,state({fog:3}));
+  const group=scene.children.find(g=>g instanceof THREE.Group);
+  assert.equal(group.children[0].visible,false);
+  assert.equal(group.children[1].visible,false);
+  assert.equal(group.children[2].visible,false);
+  assert.equal(scene.fog,null);
+  r.dispose();
+ }finally{global.document=old}
+});
+test('la configuración de lluvia exterior no depende de que el personaje esté afuera',()=>{
+ const fs=require('node:fs'),path=require('node:path');
+ const src=fs.readFileSync(path.resolve(__dirname,'fh-weather-renderer.js'),'utf8');
+ assert.doesNotMatch(src,/rain\.visible=actorOutside/);
+ assert.doesNotMatch(src,/snow\.visible=actorOutside/);
+ assert.match(src,/if\(!outdoor\.outside\(x\+p\.x,z\+p\.z\)\)continue/);
+ assert.match(src,/mist\.visible=fogLevel>0&&mistVisible>0/);
 });

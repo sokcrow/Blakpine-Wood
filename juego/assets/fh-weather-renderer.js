@@ -26,6 +26,25 @@
   tex.needsUpdate=true;
   return tex;
  }
+ // Niebla exterior como sprites difusos: el vidrio deja verla desde dentro,
+ // sin aplicar scene.fog a muebles, paredes ni personaje en interiores.
+ function createMistTexture(THREE){
+  const canvas=document.createElement('canvas');
+  canvas.width=canvas.height=16;
+  const ctx=canvas.getContext('2d'),img=ctx.createImageData(16,16);
+  for(let y=0;y<16;y++)for(let x=0;x<16;x++){
+   const r=Math.hypot((x-7.5)/8,(y-7.5)/8);
+   const a=Math.max(0,1-r);
+   const i=(y*16+x)*4;
+   img.data[i]=223;img.data[i+1]=229;img.data[i+2]=232;
+   img.data[i+3]=Math.round(255*a*a);
+  }
+  ctx.putImageData(img,0,0);
+  const tex=new THREE.CanvasTexture(canvas);
+  tex.magFilter=THREE.LinearFilter;
+  tex.minFilter=THREE.LinearFilter;
+  return tex;
+ }
  // La máscara solar separa las celdas EXTERIORES de las celdas iluminadas
  // por ventanas. La exposición a la lluvia requiere cielo abierto, NO luz.
  function areaHasPoint(item,x,y){
@@ -104,6 +123,24 @@
   const rain=new THREE.LineSegments(rainGeometry,rainMat),snow=new THREE.Points(snowGeometry,snowMat);
   rain.frustumCulled=false;snow.frustumCulled=false;rain.visible=snow.visible=false;
   const particles=new THREE.Group();particles.add(rain,snow);scene.add(particles);
+  // Una sola llamada de dibujo para toda la neblina cercana; nunca genera
+  // geometría nueva durante la simulación. Se filtra por cielo abierto.
+  const mistCount=120,mistPos=new Float32Array(mistCount*3);
+  const mistGeometry=new THREE.BufferGeometry();
+  mistGeometry.setAttribute('position',new THREE.BufferAttribute(mistPos,3));
+  mistGeometry.setDrawRange(0,0);
+  const mistTexture=createMistTexture(THREE);
+  const mistMat=new THREE.PointsMaterial({
+   color:0x9da7ad,map:mistTexture,transparent:true,opacity:.2,
+   size:2.8,sizeAttenuation:true,depthWrite:false,depthTest:true,alphaTest:.015
+  });
+  const mist=new THREE.Points(mistGeometry,mistMat);
+  mist.frustumCulled=false;mist.visible=false;
+  particles.add(mist);
+  const mistSites=Array.from({length:mistCount},()=>({
+   x:rand(-10,10),z:rand(-10,10),y:rand(.9,3.8)
+  }));
+  let mistVisible=0,mistElapsed=1,lastMistX=NaN,lastMistZ=NaN,lastMistLevel=-1;
   const snowTex=createMaskTexture(THREE,'snow'),puddleTex=createMaskTexture(THREE,'puddle');
   // La máscara de intemperie es estática por piso. No se recalcula por fotograma.
   const imageSources=[snowTex,puddleTex].map(tex=>{
@@ -176,7 +213,7 @@
     lastFloor=f;
     refreshGroundMask();
     refreshPuddleSites();
-    oldFog=-1;lastSnow=-1;lastWet=-1;
+    oldFog=-1;lastSnow=-1;lastWet=-1;lastMistLevel=-1;
    }
    const y=Number(floorY?.())||0,where=actor?.()||{x:maxX/2,z:maxZ/2};
    const x=Number(where.x)||0,z=Number(where.z)||0;
@@ -188,7 +225,7 @@
    particles.position.set(x,y,z);
    const delta=clamp(Number(dt)||0,0,.06);
    let visibleRain=0;
-   if(rainN>0&&actorOutside){
+   if(rainN>0){
     const speed=v.type==='tormenta'?11:8;
     for(let i=0;i<rainN;i++){
      const p=rainPoints[i];p.y-=delta*speed;
@@ -204,11 +241,11 @@
      rainGeometry.attributes.position.needsUpdate=true;
     }
    }
-   // El techo se retira visualmente en vista cenital: nunca proyectar gotas
-   // exteriores encima de habitaciones desde una cámara situada dentro.
-   rain.visible=actorOutside&&visibleRain>0;
+   // Renderizar sólo las posiciones de cielo abierto, aunque el personaje
+   // observe desde una ventana. El depth-test evita atravesar paredes opacas.
+   rain.visible=visibleRain>0;
    let visibleSnow=0;
-   if(snowN>0&&actorOutside){
+   if(snowN>0){
     for(let i=0;i<snowN;i++){
      const p=snowPoints[i];p.y-=delta*(.65+p.s);
      p.x+=Math.sin(p.y*1.4+i)*delta*.12;
@@ -223,13 +260,36 @@
      snowGeometry.attributes.position.needsUpdate=true;
     }
    }
-   snow.visible=actorOutside&&visibleSnow>0;
-   // La niebla pertenece al exterior. No cubrir el corredor ni la cabina.
-   const fogLevel=actorOutside?clamp(Math.floor(Number(v.fog)||0),0,3):0;
-   if(fogLevel!==oldFog){
-    oldFog=fogLevel;
-    scene.fog=fogLevel?fogModes[fogLevel]:originalFog;
+   snow.visible=visibleSnow>0;
+   // FogExp2 es global a toda la escena: sólo se usa con el actor afuera.
+   // La neblina en sprites sí permanece visible al mirar al exterior desde
+   // habitaciones y ventanas, sin empañar el interior.
+   const fogLevel=clamp(Math.floor(Number(v.fog)||0),0,3);
+   const globalFog=actorOutside?fogLevel:0;
+   if(globalFog!==oldFog){
+    oldFog=globalFog;
+    scene.fog=globalFog?fogModes[globalFog]:originalFog;
    }
+   mistElapsed+=delta;
+   const mistRefresh=fogLevel!==lastMistLevel||lastFloor===f&&(
+    !Number.isFinite(lastMistX)||Math.hypot(x-lastMistX,z-lastMistZ)>.35||mistElapsed>.25);
+   if(fogLevel>0&&mistRefresh){
+    mistVisible=0;
+    const limit=[0,40,82,120][fogLevel];
+    for(let i=0;i<limit;i++){
+     const p=mistSites[i];
+     if(!outdoor.outside(x+p.x,z+p.z))continue;
+     const o=mistVisible*3;
+     mistPos[o]=p.x;mistPos[o+1]=p.y;mistPos[o+2]=p.z;
+     mistVisible++;
+    }
+    mistGeometry.setDrawRange(0,mistVisible);
+    mistGeometry.attributes.position.needsUpdate=true;
+    lastMistX=x;lastMistZ=z;mistElapsed=0;lastMistLevel=fogLevel;
+   }
+   mistMat.opacity=[0,.14,.19,.24][fogLevel];
+   mist.visible=fogLevel>0&&mistVisible>0;
+   if(!fogLevel){lastMistLevel=0;mistVisible=0;mist.visible=false;}
    snowGround.position.y=y+.032;puddles.position.y=y;
    const snowCoverage=clamp(Number(v.snow)||0,0,1),wet=clamp(Number(v.wetness)||0,0,1);
    if(Math.abs(snowCoverage-lastSnow)>.002){
@@ -247,6 +307,7 @@
    scene.remove(particles,snowGround,puddles);scene.fog=originalFog;
    rainGeometry.dispose();snowGeometry.dispose();rainMat.dispose();snowMat.dispose();
    groundGeometry.dispose();snowGroundMaterial.dispose();puddleGeometry.dispose();puddleMaterial.dispose();
+   mistGeometry.dispose();mistMat.dispose();mistTexture.dispose();
    snowTex.dispose();puddleTex.dispose();
   }
   return {update,dispose};
