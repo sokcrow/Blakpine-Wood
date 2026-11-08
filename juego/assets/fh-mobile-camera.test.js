@@ -9,16 +9,22 @@ const path=require('node:path');
 const camera=require('./fh-mobile-camera.js');
 const html=fs.readFileSync(path.resolve(__dirname,'../../index.html'),'utf8');
 
-test('el acercamiento de gameplay conserva la escala visual original del personaje',()=>{
- // El motor embebido trae un aumento visual de 1.15 y no debe reducirse a 1.
+test('gameplay móvil reduce 20% el sprite sin afectar PC ni colisiones',()=>{
+ assert.equal(camera.PHONE_HERO_SCALE,0.80);
+ assert.ok(Math.abs(camera.visualScale(1.15,844,390,true)-.92)<1e-10);
+ assert.ok(Math.abs(camera.visualScale(1.15,390,844,true)-.92)<1e-10);
+ assert.equal(camera.visualScale(1.15,1920,1080,false),1.15);
+ assert.equal(camera.visualScale(1.15,820,1180,true),1.15);
+ assert.equal(camera.visualScale(0,844,390,true),0);
+ assert.equal(camera.visualScale(Infinity,844,390,true),Infinity);
  assert.match(html,/const heroScaleBefore='const HERO_H=1\.68,HERO_VISUAL_SCALE=1\.15,'/);
- assert.doesNotMatch(html,/\.replace\(heroScaleBefore,/);
- assert.doesNotMatch(html,/HERO_VISUAL_SCALE=1,/);
- // El 30% de zoom sigue aplicado a la distancia, no al tamaño del jugador.
+ assert.match(html,/const heroScaleOnPhone="const HERO_H=1\.68,HERO_VISUAL_SCALE=\(window\.FHMobileCamera\?\.visualScale\(1\.15,/);
+ assert.match(html,/\.replace\(heroScaleBefore,heroScaleOnPhone\)/);
+ assert.doesNotMatch(html,/\.replace\(heroScaleBefore,'const HERO_H=1\.68,HERO_VISUAL_SCALE=1,'\)/);
  assert.match(html,/const fhCameraDistance=window\.FHMobileCamera\?\.distance\(lightDistance,/);
 });
 
-test('celular vertical y horizontal se acercan exactamente 30%',()=>{
+test('distancia de cámara conserva zoom 30% en móvil (el bloqueo impide jugar en vertical)',()=>{
  assert.equal(camera.PHONE_SCALE,.70);
  assert.ok(Math.abs(camera.distance(11.2,390,844,true)-7.84)<1e-10);
  assert.ok(Math.abs(camera.distance(6.6,844,390,true)-4.62)<1e-10);
@@ -39,7 +45,7 @@ test('distancias de cámara no válidas no se alteran',()=>{
  assert.equal(camera.distance(Infinity,390,844,true),Infinity);
 });
 test('adaptador integra distancia de celular sin tocar FOV ni la cámara cenital',()=>{
- assert.match(html,/fh-mobile-camera\.js\?v=20261107-phone30/);
+ assert.match(html,/fh-mobile-camera\.js\?v=20261108-landscape20/);
  assert.match(html,/const fhPhoneCameraPointer=window\.matchMedia\?\.\('\(pointer: coarse\)'\)/);
  assert.match(html,/FHMobileCamera\?\.distance\(lightDistance,innerWidth,innerHeight,!!fhPhoneCameraPointer\?\.matches\)/);
  assert.match(html,/FHMobileCamera\?\.distance\(camDistance,innerWidth,innerHeight,!!fhPhoneCameraPointer\?\.matches\)/);
