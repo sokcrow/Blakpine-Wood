@@ -45,7 +45,7 @@ test('breaker fuera de alcance: no alimenta enchufe',()=>{
 test('multiconector: ocupa un slot y propaga toda la carga al enchufe',()=>{
  const {sys,items}=fixture();
  assert.equal(sys.statusFor(0,items.find(it=>it.id==='plug')).usedSlots,1);
- assert.equal(sys.statusFor(0,items.find(it=>it.id==='plug')).loadingRayos,3);
+ assert.equal(sys.statusFor(0,items.find(it=>it.id==='plug')).loadingRayos,2); // El cargador vacío no consume carga
  assert.equal(sys.statusFor(0,items.find(it=>it.id==='strip')).usedSlots,2);
 });
 test('sobrecarga gradual: el daño se acumula, no se rompe inmediatamente',()=>{
