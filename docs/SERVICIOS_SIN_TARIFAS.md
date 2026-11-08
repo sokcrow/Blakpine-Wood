@@ -34,3 +34,16 @@ node --test tests/fh-services-core.test.js
 ```
 
 **Pendiente de prueba visual en navegador:** editor y gameplay 3D, especialmente 844×390 en horizontal y 1280×720. No considerar esta rama lista para fusionar sin esas capturas y un recorrido real de las interacciones.
+
+## Ampliación — infraestructura por paredes y Wi-Fi realista
+- **Electricidad, agua limpia, drenaje y Ethernet** comparten FHServices.wallGraph. Su routeDetailed proporciona los tramos que representa el editor: troncales compartidas en vez de diagonales atravesando habitaciones.
+- **Drenaje**: añadir drain_main en una pared y conectarlo a drain_outlet por recorrido físico y networkId. Sin salida principal no se mide agua evacuada. El suministro de agua continúa independiente.
+- **Router**: roomId es la habitación de origen y assignedRoomIds permite extender Ethernet a otras habitaciones. propertyId activa el recorrido dentro de un polígono de propiedad existente, si el router está dentro. Una parcela no autoriza usar muros de otras propiedades; las propiedades solapadas se rechazan.
+- **Longitud**: el cable Ethernet respeta ethernetLengthFt y el acceso del router a la pared respeta ethernetLeadFt; no existe conexión directa mágica por la habitación.
+- **Wi-Fi**: la parcela nunca amplía la radio. wifiAt calcula distancia tridimensional, wifiRadiusFt y pérdidas por tipo de pared, puerta, ventana y pisos, expresadas en dBm. Expone tres barras y speedFactor, sin confundir cobertura con suscripción de Internet.
+- **Celular**: la pantalla de redes muestra barras de intensidad y las aplicaciones online reciben una demora de carga proporcional a speedFactor. Las aplicaciones locales no dependen del Wi-Fi.
+- **Repetidores**: quedan expresamente pendientes para otra entrega; no se han añadido.
+
+Los coeficientes de propagación son parámetros de balance para el juego. El esquema sigue siendo forest-horror-map-v1. No hay tarifas ni facturas.
+
+Pruebas: node --test juego/assets/fh-services-core.test.js y node --test juego/assets/fh-services-engine-hook.test.js.
