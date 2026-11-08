@@ -3779,7 +3779,7 @@ function fhRefreshActorVisibility(){
    "fhNatural?.attach(scene);",
    "installVisibility();window.FHAssets?.setSightMaskInstaller(root=>{fhNatural?.attach(root);installVisibility(root);});"
   ].join('\n');
-  const tickBefore='window.FHDeliveryRuntime?.update(dt);window.FHPhoneRuntime?.update(dt);fhNatural?.update();';
+  const tickBefore='window.FHDeliveryRuntime?.update(dt);window.FHPhoneRuntime?.update(dt);';
   const tickAfter='window.FHDeliveryRuntime?.update(dt);window.FHPhoneRuntime?.update(dt);if(fhNatural?.update())visibilityDirty=true;';
   const pointBefore='if(dist<=radius&&ForestShared.pointInSight(x,z,at,opaque,radius))return true;';
   const pointAfter=pointBefore+'\n if(fhNatural?.illuminates(x,z)&&dist<=LOOK_RADIUS+.075&&ForestShared.pointInSight(x,z,at,opaque,LOOK_RADIUS))return true;';
