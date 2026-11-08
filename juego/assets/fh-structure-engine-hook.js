@@ -62,7 +62,8 @@ function fhInspectStructure(floorId,id){
 window.ForestHorrorStructureAPI=Object.freeze({
  takeDamage:args=>fhHealthRuntime.takeDamage(args),
  inspect:args=>fhHealthRuntime.getState(args?.floorId,args?.id,args?.part||'structure'),
- inspectDoor:(floorId,id)=>fhInspectStructure(floorId,id)
+ inspectSelected:(floorId,id)=>fhInspectStructure(floorId,id),
+ nearestWindow:(f,x,z,cell)=>fhHealthRuntime.nearest(f,x,z,cell,2.4,'window')
 });
 `;
  doc=one(doc,"window.ForestHorrorGame={source:'JSON arquitect",
