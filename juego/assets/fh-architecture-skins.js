@@ -106,6 +106,7 @@ function accessDeviceId(it){
  return it?.accessDevice==='pin'?'teclado_pin':it?.accessDevice==='card'?'lector_tarjeta':null;
 }
 function mountAccessDevice(fixed,it,THREE,sightMask,d){
+ if(d)d.accessMount={fixed,it,THREE,sightMask};
  const id=accessDeviceId(it);
  if(!id||!fixed?.parent)return;
  // El lector está sujeto al MARCO_FIJO, nunca a la hoja que gira.
@@ -132,11 +133,23 @@ function mountAccessDevice(fixed,it,THREE,sightMask,d){
   }
  });
 }
+function restoreAccessDevice(d){
+ const mount=d?.accessMount;
+ if(!mount||d.readerDestroyed)return false;
+ if((d.accessVisuals||[]).length>0)return true;
+ mountAccessDevice(mount.fixed,mount.it,mount.THREE,mount.sightMask,d);
+ return true;
+}
 function decorateDoor(d,it,THREE,sightMask){
  const model=chooseDoor(d,it);if(!model)return;
+ // Conservar el contexto incluso si la puerta empezó a 0 PG y fue retirada
+ // antes de que el motor intentara instalar el GLB.
+ d.architectureDecoration={it,THREE,sightMask};
+ if(d.skinId===model||d.skinLoadPending===model)return;
  const double=d.family==='double',count=double?2:1;
  if(!Array.isArray(d.animated)||d.animated.length!==count||!d.frame?.parent||!d.hinge?.parent)return;
  const parts=d.animated;
+ d.skinLoadPending=model;
  load(model).then(scene=>{
   if(!d.hinge?.parent||!d.frame?.parent||parts.some(p=>!p.group?.parent))return;
   const leaves=parts.map(()=>cloneNode(scene,'HOJA_PIVOTE'));
@@ -174,7 +187,14 @@ function decorateDoor(d,it,THREE,sightMask){
   // cada puerta simple conserva su marco completo.
   for(const visual of originalFrame)hideLegacyVisual(visual);
   d.skinId=model;
- }).catch(error=>reportFailure(model,error));
+ }).catch(error=>reportFailure(model,error))
+   .finally(()=>{if(d.skinLoadPending===model)d.skinLoadPending=null;});
+}
+function restoreDoorDecoration(d){
+ const context=d?.architectureDecoration;
+ if(!context)return false;
+ decorateDoor(d,context.it,context.THREE,context.sightMask);
+ return true;
 }
 function decorateWindow(args){
  const {it,container,built,a,b,angle,sightMask,floor}=args||{};
@@ -229,5 +249,5 @@ function patchEngineDoc(doc){
  // el primer cierre HTML real, sin exigir exclusividad global del texto.
  return out.slice(0,headEnd)+script+out.slice(headEnd);
 }
-global.FHArchitectureSkins=Object.freeze({chooseDoor,chooseWindow,splitWindow,accessDeviceId,decorateDoor,decorateWindow,patchEngineDoc,load});
+global.FHArchitectureSkins=Object.freeze({chooseDoor,chooseWindow,splitWindow,accessDeviceId,restoreAccessDevice,decorateDoor,restoreDoorDecoration,decorateWindow,patchEngineDoc,load});
 })(window);

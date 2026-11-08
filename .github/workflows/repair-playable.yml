@@ -1,0 +1,37 @@
+name: Blakpine-Wood — reparación jugable
+
+on:
+  push:
+    branches:
+      - feat/repair-playable-stacked-20261108
+  pull_request:
+    paths:
+      - 'juego/assets/fh-repair*.js'
+      - 'juego/assets/fh-structure-health.js'
+      - 'juego/assets/fh-structure-engine-hook.js'
+      - 'index.html'
+      - '.github/workflows/repair-playable.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  test-repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verificar sintaxis
+        run: |
+          node --check juego/assets/fh-repair.js
+          node --check juego/assets/fh-repair-runtime.js
+          node --check juego/assets/fh-structure-health.js
+          node --check juego/assets/fh-structure-engine-hook.js
+      - name: Tiradas, consumos, reconstrucción, PG y persistencia
+        run: node --test juego/assets/fh-repair.test.js juego/assets/fh-repair-runtime.test.js juego/assets/fh-structure-health.test.js
+      - name: Regresión integral
+        run: |
+          node --test juego/assets/*.test.js
+          node juego/assets/fh-skills.test.js

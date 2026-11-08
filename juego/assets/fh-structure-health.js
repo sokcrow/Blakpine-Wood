@@ -101,16 +101,26 @@ function damage(registry,floorId,it,amount,kind='physical',part='structure'){
 function createRuntime({data,state,doorList,blockers,save,refresh,events}){
  const registry=state.structures&&typeof state.structures==='object'&&!Array.isArray(state.structures)
   ?state.structures:(state.structures={});
- const doors=new Map(),windows=new Map(),exteriors=new Map();
+ const doors=new Map(),windows=new Map(),exteriors=new Map(),detached=new WeakMap();
  const floorKey=(f,id)=>String(f)+'\u0000'+String(id);
  const floorIndex=reference=>typeof reference==='number'&&Number.isInteger(reference)?
    reference:data.floors.findIndex(x=>x.id===reference);
  const get=(ref,id)=>{const f=floorIndex(ref);return {f,floor:data.floors[f],it:data.floors[f]?.items?.find(x=>x.id===id)};};
  function removeRoot(node){
-  if(node?.parent?.remove)node.parent.remove(node);
+  if(node?.parent?.remove){
+   detached.set(node,node.parent);
+   node.parent.remove(node);
+  }
+ }
+ function restoreRoot(node){
+  const parent=node&&detached.get(node);
+  if(parent&&!node.parent&&typeof parent.add==='function')parent.add(node);
  }
  function removeExterior(key){
   for(const root of exteriors.get(key)||[])removeRoot(root);
+ }
+ function restoreExterior(key){
+  for(const root of exteriors.get(key)||[])restoreRoot(root);
  }
  function registerExteriorProxy(f,it,clone){
   if(!supports(it)||!it.id||!clone)return;
@@ -124,6 +134,15 @@ function createRuntime({data,state,doorList,blockers,save,refresh,events}){
   d.destroyed=true;d.passable=true;
   removeRoot(d.hinge);removeRoot(d.frame);
  }
+ function restoreDoor(d){
+  if(!d||!d.destroyed)return;
+  d.destroyed=false;
+  d.passable=!!d.open&&(d.family!=='garage'||d.angle>=.85);
+  restoreRoot(d.hinge);restoreRoot(d.frame);
+  // registerDoor() puede haber retirado los nodos antes de decorateDoor().
+  // Reintentar el GLB y el lector sólo después de reconstruir la puerta.
+  global.FHArchitectureSkins?.restoreDoorDecoration?.(d);
+ }
  function destroyWindow(entry){
   if(!entry||entry.destroyed)return;
   entry.destroyed=true;
@@ -134,10 +153,28 @@ function createRuntime({data,state,doorList,blockers,save,refresh,events}){
   }
   for(const root of entry.roots)removeRoot(root);
  }
+ function restoreWindow(entry){
+  if(!entry||!entry.destroyed)return;
+  entry.destroyed=false;
+  const list=blockers[entry.f];
+  for(const ref of entry.colliders){
+   if(!list.includes(ref))list.push(ref);
+  }
+  for(const root of entry.roots)restoreRoot(root);
+ }
  function destroyReader(d){
   if(!d||d.readerDestroyed)return;
   d.readerDestroyed=true;
   for(const node of d.accessVisuals||[])removeRoot(node);
+ }
+ function restoreReader(d){
+  if(!d||!d.readerDestroyed)return;
+  d.readerDestroyed=false;
+  for(const node of d.accessVisuals||[])restoreRoot(node);
+  // Si el GLB terminó de cargar durante la destrucción, aún no hay nodos:
+  // recuperarlos exclusivamente después de un resultado exitoso.
+  if(!(d.accessVisuals||[]).length)
+   global.FHArchitectureSkins?.restoreAccessDevice?.(d);
  }
  function registerWindowVisual(f,id,node){
   const entry=windows.get(floorKey(f,id));
@@ -181,6 +218,39 @@ function createRuntime({data,state,doorList,blockers,save,refresh,events}){
   }
   return result;
  }
+ /** Sólo el orquestador de Reparación invoca esto después de tirada y gasto válido.
+  * Sin allowRebuild, una barrera a 0 PG nunca reaparece.
+  */
+ function restorePG({floorId,id,amount,part='structure',allowRebuild=false}={}){
+  const {f,floor,it}=get(floorId,id);
+  if(!floor||!it||!supports(it,part))return {ok:false,reason:'missing'};
+  if(!isFiniteNumber(amount)||amount<=0)return {ok:false,reason:'invalid-amount'};
+  const before=stateFor(registry,floor.id,it,part);
+  if(before.destroyed&&!allowRebuild)return {ok:false,reason:'requires-success',...before};
+  const pg=clamp(before.pg+amount,0,before.maxPG);
+  if(pg===before.pg)return {ok:false,reason:'full',...before};
+  if(!Object.hasOwn(registry,floor.id))
+   Object.defineProperty(registry,floor.id,{value:{},enumerable:true,writable:true,configurable:true});
+  if(!Object.hasOwn(registry[floor.id],id))
+   Object.defineProperty(registry[floor.id],id,{value:{},enumerable:true,writable:true,configurable:true});
+  registry[floor.id][id][part]={pg,destroyed:false};
+  const rebuilt=before.destroyed&&pg>0;
+  if(rebuilt){
+   const key=floorKey(f,id);
+   if(part==='reader')restoreReader(doors.get(key));
+   else{
+    if(DOORS.has(it.type))restoreDoor(doors.get(key));
+    else restoreWindow(windows.get(key));
+    restoreExterior(key);
+   }
+  }
+  const result={ok:true,pg,maxPG:before.maxPG,recovered:pg-before.pg,
+   rebuilt,destroyed:false,floorId:floor.id,id,part};
+  if(typeof refresh==='function')refresh();
+  if(events?.emit)events.emit('structure:repair',result);
+  if(typeof save==='function')save();
+  return result;
+ }
  function nearest(f,x,z,cell=1.524,maxDist=2.4){
   if(!data.floors[f])return null;
   let best=null;
@@ -192,7 +262,7 @@ function createRuntime({data,state,doorList,blockers,save,refresh,events}){
   }
   return best;
  }
- return Object.freeze({getState,isDestroyed,takeDamage,registerDoor,registerWindow,registerWindowVisual,registerExteriorProxy,nearest});
+ return Object.freeze({getState,isDestroyed,takeDamage,restorePG,registerDoor,registerWindow,registerWindowVisual,registerExteriorProxy,nearest});
 }
 global.FHStructureHealth=Object.freeze({MATERIAL,DAMAGE_KINDS,isElectronic,material,
  supports,maxPG,initialPG,validateItem,validateMap,stateFor,damage,createRuntime});

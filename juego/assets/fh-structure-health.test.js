@@ -143,6 +143,10 @@ test('hook 3D compone contra el motor Base64 y el adaptador de GLB real',()=>{
  assert.match(patched,/FHStructureHealthRuntime\?\.registerDoor/);
  assert.match(patched,/const fhHealthRuntime=window\.FHStructureHealth\.createRuntime/);
  assert.match(patched,/window\.ForestHorrorStructureAPI=Object\.freeze/);
+ assert.match(patched,/repairReceipts:Array\.isArray\(initial\.repairReceipts\)/);
+ assert.match(patched,/window\.ForestHorrorRepairAPI=Object\.freeze/);
+ assert.match(patched,/FHRepairRuntime\.perform/);
+ assert.match(patched,/fh-repair-runtime\.js\?v=/);
  assert.match(patched,/structures:structuredClone\(initial\.structures\|\|\{\}\)/);
  assert.match(patched,/d\.passable=d\.destroyed===true\|\|/);
  assert.match(patched,/fh-structure-health\.js\?v=/);
@@ -189,4 +193,84 @@ test('al destruir fachada se retiran también sus copias exteriores; al recargar
  const rt2=H.createRuntime({data:map,state:{structures:registry},doorList:[[]],blockers:[[]]});
  rt2.registerExteriorProxy(0,item,sceneGraph.root('facade-late'));
  assert.ok(sceneGraph.removed.includes('facade-late'));
+});
+
+function electronicDoorDecorationFixture(initialPG){
+ class Node{
+  constructor(name=''){
+   this.name=name;this.parent=null;this.children=[];this.visible=true;
+   this.position={x:0,y:0,z:0,set(x,y,z){this.x=x;this.y=y;this.z=z;}};
+   this.rotation={y:0};this.scale={x:1};
+  }
+  add(node){if(node.parent)node.parent.remove(node);this.children.push(node);node.parent=this;}
+  remove(node){this.children=this.children.filter(child=>child!==node);node.parent=null;}
+  clone(){return new Node(this.name);}
+ }
+ const source=new Node('GLB');
+ source.traverse=()=>{};
+ source.getObjectByName=name=>new Node(name);
+ let loads=0;
+ const THREE={Group:Node,GLTFLoader:class{
+  load(_url,onLoad){loads++;onLoad({scene:source});}
+ }};
+ const window={THREE};
+ const document={baseURI:'https://example.test/',currentScript:{
+  src:'https://example.test/juego/assets/fh-architecture-skins.js'}};
+ vm.runInNewContext(fs.readFileSync(path.join(__dirname,'fh-architecture-skins.js'),'utf8'),
+  {window,document,URL,console});
+ vm.runInNewContext(code,{window,console,structuredClone});
+ const it=door('metal',{architectureSkin:'puerta_electronica_opaca',
+  accessDevice:'pin',initialPG});
+ const map={floors:[{id:'f1',items:[it]}]};
+ const world=new Node('world'),hinge=new Node('hinge'),frame=new Node('frame');
+ const animated=new Node('animated');
+ world.add(hinge);world.add(frame);hinge.add(animated);
+ const d={f:0,family:'single',variant:'metal',transparent:false,
+  hinge,frame,animated:[{group:animated,base:0}],accessVisuals:[],
+  open:false,angle:0,passable:false};
+ const health=window.FHStructureHealth.createRuntime({
+  data:map,state:{},doorList:[[d]],blockers:[[]]
+ });
+ window.FHStructureHealthRuntime=health;
+ health.registerDoor(d,it);
+ const settle=()=>new Promise(resolve=>setImmediate(resolve));
+ return {window,it,d,health,world,hinge,frame,animated,THREE,settle,
+  loads:()=>loads};
+}
+
+test('puerta electrónica con 0 PG inicial reintenta GLB y lector tras reconstrucción, sin duplicar',async()=>{
+ const t=electronicDoorDecorationFixture(0);
+ assert.equal(t.hinge.parent,null);
+ t.window.FHArchitectureSkins.decorateDoor(t.d,t.it,t.THREE);
+ assert.equal(t.loads(),0,'no se cargan modelos con la puerta desconectada');
+ assert.equal(t.d.skinId,undefined);
+ const repaired=t.health.restorePG({floorId:'f1',id:'d1',amount:5,allowRebuild:true});
+ assert.equal(repaired.ok,true);assert.equal(repaired.rebuilt,true);
+ await t.settle();
+ assert.equal(t.hinge.parent,t.world);assert.equal(t.frame.parent,t.world);
+ assert.equal(t.d.skinId,'puerta_electronica_opaca');
+ assert.equal(t.animated.children.length,1,'una sola hoja GLB');
+ assert.equal(t.frame.children.length,1,'un solo marco GLB');
+ assert.equal(t.d.accessVisuals.length,1,'un solo lector PIN');
+ assert.equal(t.loads(),2,'se carga el modelo de puerta y el lector');
+ t.window.FHArchitectureSkins.restoreDoorDecoration(t.d);
+ await t.settle();
+ assert.equal(t.frame.children.length,1,'no se vuelve a decorar una puerta instalada');
+ assert.equal(t.d.accessVisuals.length,1,'no se duplican lectores');
+ assert.equal(t.loads(),2);
+});
+
+test('GLB pendiente durante destrucción se reintenta si terminó desconectado',async()=>{
+ const t=electronicDoorDecorationFixture(5);
+ t.window.FHArchitectureSkins.decorateDoor(t.d,t.it,t.THREE);
+ t.health.takeDamage({floorId:'f1',id:'d1',amount:5});
+ await t.settle();
+ assert.equal(t.d.skinId,undefined,'la carga no debe instalar modelos en una puerta destruida');
+ const repaired=t.health.restorePG({floorId:'f1',id:'d1',amount:5,allowRebuild:true});
+ assert.equal(repaired.rebuilt,true);
+ await t.settle();
+ assert.equal(t.d.skinId,'puerta_electronica_opaca');
+ assert.equal(t.frame.children.length,1);
+ assert.equal(t.d.accessVisuals.length,1);
+ assert.equal(t.loads(),2,'el GLB en caché se reutiliza, sin cargas duplicadas');
 });
