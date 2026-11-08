@@ -3819,7 +3819,6 @@ function fhRefreshActorVisibility(){
   .replace(fowStart,'const fhSightMaskedMaterials=new WeakSet();function installVisibility(root=scene){root.traverse(mesh=>{')
   .replace(fowMaterials,'if(!m||fhSightMaskedMaterials.has(m)||m.userData?.fhWholeDoor)continue;fhSightMaskedMaterials.add(m);const previous=m.onBeforeCompile;')
   .replace(fowReady,'installVisibility();window.FHAssets?.setSightMaskInstaller(installVisibility);\nconst tex={}')
-  .replace(heroScaleBefore,'const HERO_H=1.68,HERO_VISUAL_SCALE=1,')
   .replace('const restored=readGameSave(localSave,SAVE_KEY,DATA.__runtimeSave);',
     'const fhSavedState=readGameSave(localSave,SAVE_KEY,DATA.__runtimeSave);\nconst fhBackupState=readGameSave(null,SAVE_KEY,DATA.__runtimeSave);\nconst restored=DATA.__runtimeCharacter?.id?(fhSavedState?.characterId===DATA.__runtimeCharacter.id?fhSavedState:fhBackupState?.characterId===DATA.__runtimeCharacter.id?fhBackupState:null):fhSavedState;')
   .replace('const GameState=createGameState(restored||DATA.initialGameState);',
