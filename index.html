@@ -43,6 +43,16 @@ button,select,input{font:inherit}button{color:var(--text);border:1px solid var(-
 #play3dBack{position:absolute;z-index:3;top:calc(env(safe-area-inset-top) + 8px);left:max(8px,env(safe-area-inset-left));min-height:40px;padding:8px 12px;background:#1b293df0;color:#fff;border:1px solid #a4b6cc;border-radius:10px;font-size:12px;font-weight:700}
 #play3dState{position:absolute;z-index:2;left:50%;top:43%;transform:translate(-50%,-50%);max-width:min(85vw,350px);padding:15px 20px;background:#0b1326e6;border:1px solid #758ba8;border-radius:12px;text-align:center;color:#e8f3ff;font-size:14px;line-height:1.6;pointer-events:none}
 #play3dState.hide{display:none}
+#play3dLandscapeGate[hidden]{display:none}
+#play3dLandscapeGate{position:absolute;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;background:#071019;padding:max(18px,env(safe-area-inset-top)) max(18px,env(safe-area-inset-right)) max(18px,env(safe-area-inset-bottom)) max(18px,env(safe-area-inset-left));touch-action:manipulation}
+#play3dLandscapeCard{width:min(100%,410px);border:2px solid #75837d;background:#151e27;padding:22px;box-shadow:5px 5px 0 #000;display:grid;gap:14px;text-align:center}
+#play3dLandscapeTitle{font:800 clamp(19px,4vw,27px) ui-monospace,monospace;color:#f0e6c8;margin:0}
+#play3dLandscapeMessage{font:500 14px/1.5 system-ui,sans-serif;color:#e1e8eb;margin:0}
+#play3dLandscapeStart,#play3dLandscapeCancel{min-height:48px;padding:10px 16px;border-radius:0;font:800 13px ui-monospace,monospace;touch-action:manipulation}
+#play3dLandscapeStart{background:#245e4b;border:2px solid #79e0ba;color:#fff}
+#play3dLandscapeCancel{background:#1b293d;border:2px solid #75837d;color:#fff}
+#play3dLandscapeStart:focus-visible,#play3dLandscapeCancel:focus-visible{outline:3px solid #e6c27a;outline-offset:3px}
+#play3dLayer.fh-landscape-gate-open #play3dBack,#play3dLayer.fh-landscape-gate-open #play3dFullscreen,#play3dLayer.fh-landscape-gate-open #play3dState{display:none!important}
 
 /* Acceso a pantalla completa desde el propio editor, fuera del iframe. */
 #play3dFullscreen{position:absolute;z-index:4;top:max(8px,env(safe-area-inset-top));left:174px;right:auto;min-height:44px;border:2px solid #d6a55c;background:#151e27;color:#d6cfb5;border-radius:0;font:800 12px ui-monospace,monospace;box-shadow:4px 4px 0 #000;padding:7px 12px;touch-action:manipulation}
@@ -140,8 +150,17 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
  <iframe id="play3dFrame" title="Forest Horror · Probar mapa actual en 3D" allow="fullscreen; gamepad" allowfullscreen referrerpolicy="no-referrer"></iframe>
  <div id="play3dState">Construyendo tu mapa 3D…</div>
  <button type="button" id="play3dBack">← Editor</button><button type="button" id="play3dFullscreen" aria-label="Pantalla completa horizontal">⛶ Horizontal</button>
+ <div id="play3dLandscapeGate" role="dialog" aria-modal="true" aria-labelledby="play3dLandscapeTitle" aria-describedby="play3dLandscapeMessage" hidden>
+  <div id="play3dLandscapeCard">
+   <h2 id="play3dLandscapeTitle"></h2>
+   <p id="play3dLandscapeMessage" role="status"></p>
+   <button type="button" id="play3dLandscapeStart"></button>
+   <button type="button" id="play3dLandscapeCancel"></button>
+  </div>
+ </div>
 </div>
 <script src="./juego/assets/fh-preview-strings.js"></script>
+<script src="./juego/assets/fh-mobile-camera.js?v=20261108-landscape20"></script>
 <script src="./juego/assets/images.js"></script>
 <script src="./juego/assets/engine-00.js"></script>
 <script src="./juego/assets/engine-01.js"></script>
@@ -2700,7 +2719,7 @@ function playPaint(){const c=playCtx,w=playCanvas.clientWidth,h=playCanvas.clien
  document.querySelector('#playCoords').textContent=`X ${playState.x.toFixed(1)} · Y ${playState.y.toFixed(1)} · ${Math.round(playState.x*project.units.feetPerCell)} / ${Math.round(playState.y*project.units.feetPerCell)} pies`;
 }
 function playStickPoint(e){const el=document.querySelector('#playJoystick'),r=el.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,rad=r.width*.31,dx=e.clientX-cx,dy=e.clientY-cy,len=Math.hypot(dx,dy);const scale=Math.min(1,rad/Math.max(len,.01));const px=dx*scale,py=dy*scale;playState.stick={x:px/rad,y:py/rad};document.querySelector('#playKnob').style.transform=`translate(calc(-50% + ${px}px),calc(-50% + ${py}px))`}
-function setupPlayMode(){$('#testBtn').onclick=start3DPreview;document.querySelector('#spawnQuickBtn').onclick=()=>{setCategory('areas');chooseTool('spawn');toast('Punto inicial: toca la casilla donde aparecerá el jugador.');const b=document.querySelector('#tools button[data-tool="spawn"]');b?.scrollIntoView({inline:'center',block:'nearest'})};document.querySelector('#playClose').onclick=stopPlay;document.querySelector('#playReset').onclick=()=>{const spawn=playFloor().items.find(it=>it.type==='spawn');if(spawn)playSetFloor(playState.floorIndex,spawn);else playSetFloor(playState.floorIndex,{x:playState.x,y:playState.y})};document.querySelector('#playVision').onclick=()=>{playState.vision=!playState.vision;document.querySelector('#playVision').textContent=playState.vision?'Visión: limitada':'Visión: libre'};document.querySelector('#playAction').onclick=playAction;
+function setupPlayMode(){$('#testBtn').onclick=launch3DPreview;document.querySelector('#spawnQuickBtn').onclick=()=>{setCategory('areas');chooseTool('spawn');toast('Punto inicial: toca la casilla donde aparecerá el jugador.');const b=document.querySelector('#tools button[data-tool="spawn"]');b?.scrollIntoView({inline:'center',block:'nearest'})};document.querySelector('#playClose').onclick=stopPlay;document.querySelector('#playReset').onclick=()=>{const spawn=playFloor().items.find(it=>it.type==='spawn');if(spawn)playSetFloor(playState.floorIndex,spawn);else playSetFloor(playState.floorIndex,{x:playState.x,y:playState.y})};document.querySelector('#playVision').onclick=()=>{playState.vision=!playState.vision;document.querySelector('#playVision').textContent=playState.vision?'Visión: limitada':'Visión: libre'};document.querySelector('#playAction').onclick=playAction;
  const joy=document.querySelector('#playJoystick');joy.addEventListener('pointerdown',e=>{e.preventDefault();joy.setPointerCapture(e.pointerId);playState.stickPointer=e.pointerId;playStickPoint(e)});joy.addEventListener('pointermove',e=>{if(playState.stickPointer===e.pointerId){e.preventDefault();playStickPoint(e)}});const release=e=>{if(playState.stickPointer===e.pointerId){playState.stickPointer=null;playState.stick={x:0,y:0};document.querySelector('#playKnob').style.transform='translate(-50%,-50%)'}};joy.addEventListener('pointerup',release);joy.addEventListener('pointercancel',release);
  window.addEventListener('resize',playResize);window.addEventListener('keydown',e=>{if(!playState.running)return;const k=e.key.toLowerCase();if(['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d','e','escape'].includes(k)){e.preventDefault();e.stopImmediatePropagation();if(k==='escape')stopPlay();else if(k==='e'&&!e.repeat)playAction();else playState.keys.add(k)}},true);window.addEventListener('keyup',e=>{if(playState.running){playState.keys.delete(e.key.toLowerCase());if(['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d'].includes(e.key.toLowerCase()))e.preventDefault()}},true);window.addEventListener('blur',()=>{playState.keys.clear();playState.stick={x:0,y:0}});
 }
@@ -2876,6 +2895,7 @@ function prepareGLBEngineDoc(source){
  const fowReady='installVisibility();\nconst tex={}';
  for(const required of [fowStart,fowMaterials,fowReady])if(!source.includes(required))throw Error('El motor 3D no tiene los puntos de FOW esperados');
  const heroScaleBefore='const HERO_H=1.68,HERO_VISUAL_SCALE=1.15,';
+ const heroScaleOnPhone="const HERO_H=1.68,HERO_VISUAL_SCALE=(window.FHMobileCamera?.visualScale(1.15,innerWidth,innerHeight,!!window.matchMedia?.('(pointer: coarse)')?.matches)??1.15),";
  if(!source.includes(heroScaleBefore))throw Error('No se encontró el multiplicador visual original del personaje');
  if(!source.includes('ForestShared.loadProject(DATA);'))throw Error('No se encontró la validación del mapa del motor');
 
@@ -2933,7 +2953,7 @@ function prepareGLBEngineDoc(source){
  const phoneCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-phone.css?v=20261107-phone-1',document.baseURI).href+'">';
  const phoneStrings='<script src="'+new URL('./juego/assets/fh-phone-strings.js?v=20261107-phone-1',document.baseURI).href+'"></'+'script>';
  const phoneScript='<script src="'+new URL('./juego/assets/fh-phone.js?v=20261107-phone-1',document.baseURI).href+'"></'+'script>';
- const mobileCameraScript='<script src="'+new URL('./juego/assets/fh-mobile-camera.js?v=20261107-phone30',document.baseURI).href+'"></'+'script>';
+ const mobileCameraScript='<script src="'+new URL('./juego/assets/fh-mobile-camera.js?v=20261108-landscape20',document.baseURI).href+'"></'+'script>';
  const locationHudHook='if(now-lastHud>90){lastHud=now;hudUpdate()}';
  const locationHudAfter='if(now-lastHud>90){lastHud=now;hudUpdate();window.FHLocationHUD?.update(DATA,currentFloor,{x:user.x/CELL,y:user.z/CELL});window.FHStatusHUD?.update(window.FHCharacterRuntime?.character?.resources)}';
  if(source.split(locationHudHook).length!==2)throw Error('El HUD original cambió: actualiza el adaptador de ubicación.');
@@ -3819,6 +3839,7 @@ function fhRefreshActorVisibility(){
   .replace(fowStart,'const fhSightMaskedMaterials=new WeakSet();function installVisibility(root=scene){root.traverse(mesh=>{')
   .replace(fowMaterials,'if(!m||fhSightMaskedMaterials.has(m)||m.userData?.fhWholeDoor)continue;fhSightMaskedMaterials.add(m);const previous=m.onBeforeCompile;')
   .replace(fowReady,'installVisibility();window.FHAssets?.setSightMaskInstaller(installVisibility);\nconst tex={}')
+  .replace(heroScaleBefore,heroScaleOnPhone)
   .replace('const restored=readGameSave(localSave,SAVE_KEY,DATA.__runtimeSave);',
     'const fhSavedState=readGameSave(localSave,SAVE_KEY,DATA.__runtimeSave);\nconst fhBackupState=readGameSave(null,SAVE_KEY,DATA.__runtimeSave);\nconst restored=DATA.__runtimeCharacter?.id?(fhSavedState?.characterId===DATA.__runtimeCharacter.id?fhSavedState:fhBackupState?.characterId===DATA.__runtimeCharacter.id?fhBackupState:null):fhSavedState;')
   .replace('const GameState=createGameState(restored||DATA.initialGameState);',
@@ -3846,6 +3867,10 @@ async function start3DPreview(){
  }catch(err){console.error('[Blakpine personaje]',err);toast(err.message||window.FH_CHARACTER_TEXT?.storageError);return}
  finally{fhCharacterLaunchPending=false}
  if(preview3DActive)return;
+ // Si el celular se giró durante la selección de personaje, no cargar en vertical.
+ if(window.FHMobileCamera?.isPhone?.(innerWidth,innerHeight,!!window.matchMedia?.('(pointer: coarse)')?.matches)&&innerWidth<=innerHeight){
+  show3DLandscapeGate();return;
+ }
  closeInspector();closeModal();anchor=null;preview=null;
  document.activeElement?.blur?.();
  preview3DActive=true;preview3DSent=false;preview3DRunning=false;preview3DArchitectureError='';
@@ -3880,6 +3905,73 @@ function close3DPreview(){
  play3DFrame.removeAttribute('srcdoc');play3DFrame.src='about:blank';
  show3DStatus(PREVIEW_TEXT.preparing);render();
 }
+const play3DLandscapeGate=document.getElementById('play3dLandscapeGate');
+const play3DLandscapeMessage=document.getElementById('play3dLandscapeMessage');
+const play3DLandscapeStart=document.getElementById('play3dLandscapeStart');
+let preview3DGateAuthorized=false,preview3DGateStarting=false;
+function preview3DIsPhone(){
+ return !!window.FHMobileCamera?.isPhone(innerWidth,innerHeight,!!window.matchMedia?.('(pointer: coarse)')?.matches);
+}
+function preview3DIsLandscape(){return innerWidth>innerHeight}
+function show3DLandscapeGate(){
+ if(preview3DActive||preview3DGateStarting)return;
+ preview3DGateAuthorized=false;
+ document.getElementById('play3dLandscapeTitle').textContent=PREVIEW_TEXT.landscapeTitle;
+ play3DLandscapeStart.textContent=PREVIEW_TEXT.landscapeStart;
+ document.getElementById('play3dLandscapeCancel').textContent=PREVIEW_TEXT.landscapeCancel;
+ play3DLandscapeMessage.textContent=preview3DIsLandscape()?PREVIEW_TEXT.landscapeReady:PREVIEW_TEXT.landscapeBefore;
+ play3DLandscapeGate.hidden=false;
+ play3DLayer.classList.add('show','fh-landscape-gate-open');
+ play3DLayer.setAttribute('aria-hidden','false');
+ play3DLandscapeStart.disabled=false;
+ play3DLandscapeStart.focus();
+}
+function hide3DLandscapeGate(){
+ preview3DGateAuthorized=false;
+ play3DLandscapeGate.hidden=true;
+ play3DLayer.classList.remove('fh-landscape-gate-open');
+ if(!preview3DActive){
+  play3DLayer.classList.remove('show');
+  play3DLayer.setAttribute('aria-hidden','true');
+ }
+}
+function launch3DPreview(){
+ if(preview3DActive||fhCharacterLaunchPending||preview3DGateStarting||!play3DLandscapeGate.hidden)return;
+ if(preview3DIsPhone())show3DLandscapeGate();
+ else void start3DPreview();
+}
+function continue3DPreviewInLandscape(){
+ if(!preview3DGateAuthorized||!preview3DIsLandscape()||play3DLandscapeGate.hidden||preview3DGateStarting)return;
+ preview3DGateStarting=true;
+ hide3DLandscapeGate();
+ Promise.resolve(start3DPreview()).finally(()=>{preview3DGateStarting=false});
+}
+async function confirm3DLandscape(){
+ if(play3DLandscapeGate.hidden||preview3DGateStarting)return;
+ preview3DGateAuthorized=true;
+ play3DLandscapeStart.disabled=true;
+ // El gesto de este botón permite solicitar fullscreen antes del bloqueo horizontal.
+ try{
+  const request=play3DLayer.requestFullscreen||play3DLayer.webkitRequestFullscreen;
+  if(!document.fullscreenElement&&request)await request.call(play3DLayer);
+ }catch{}
+ try{if(screen.orientation?.lock)await screen.orientation.lock('landscape')}catch{}
+ play3DLandscapeStart.disabled=false;
+ if(play3DLandscapeGate.hidden)return;
+ if(preview3DIsLandscape())continue3DPreviewInLandscape();
+ else play3DLandscapeMessage.textContent=PREVIEW_TEXT.landscapeRotate;
+}
+function handle3DPreviewOrientation(){
+ if(!preview3DIsPhone())return;
+ if(!preview3DIsLandscape()){
+  if(preview3DActive){close3DPreview();show3DLandscapeGate()}
+  else if(!play3DLandscapeGate.hidden)play3DLandscapeMessage.textContent=PREVIEW_TEXT.landscapeRotate;
+ }else if(preview3DGateAuthorized)continue3DPreviewInLandscape();
+}
+play3DLandscapeStart.addEventListener('click',confirm3DLandscape);
+document.getElementById('play3dLandscapeCancel').addEventListener('click',hide3DLandscapeGate);
+window.addEventListener('resize',handle3DPreviewOrientation);
+screen.orientation?.addEventListener?.('change',handle3DPreviewOrientation);
 window.addEventListener('message',e=>{
  if(!preview3DActive||e.source!==play3DFrame.contentWindow||!e.data)return;
  if(e.data.type==='FOREST_PREVIEW_READY'&&!preview3DSent){
