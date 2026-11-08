@@ -168,6 +168,10 @@ function createRuntime({data,state,doorList,blockers,save,refresh,events}){
   if(!d||!d.readerDestroyed)return;
   d.readerDestroyed=false;
   for(const node of d.accessVisuals||[])restoreRoot(node);
+  // Si el GLB terminó de cargar durante la destrucción, aún no hay nodos:
+  // recuperarlos exclusivamente después de un resultado exitoso.
+  if(!(d.accessVisuals||[]).length)
+   global.FHArchitectureSkins?.restoreAccessDevice?.(d);
  }
  function registerWindowVisual(f,id,node){
   const entry=windows.get(floorKey(f,id));
