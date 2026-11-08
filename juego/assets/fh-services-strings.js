@@ -16,7 +16,7 @@
    rangeFt:'Recorrido por pared (pies)',flowLpm:'Caudal (litros/min)',opened:'Válvula abierta',
    wifiRadiusFt:'Radio Wi-Fi (pies)',wifiPassword:'Contraseña Wi-Fi',
    ethernetLengthFt:'Largo del cable Ethernet (pies)',routerId:'ID del router',
-   cableLengthFt:'Cable disponible (pies)',chargePerHour:'Carga de batería por hora (%)',
+   cableLengthFt:'Cable disponible (pies)',phoneNumber:'Número de teléfono fijo',chargePerHour:'Carga de batería por hora (%)',
    rayos:'Consumo (rayos)',watts:'Potencia (vatios)',
    powerRequired:'Necesita electricidad',waterRequired:'Necesita agua',
    internetMode:'Conexión de internet',waterFlow:'Consumo de agua (litros/min)',
