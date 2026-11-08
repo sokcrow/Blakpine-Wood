@@ -28,7 +28,7 @@
    if(!Object.hasOwn(CATEGORIES,cat)||!Number.isInteger(value)||value<0||value>512)
     return {ok:false,reason:'limit'};
   }
-  const contents=settings.initialItems||[];
+  const contents=settings.initialItems||settings.items||[];
   if(!Array.isArray(contents))return {ok:false,reason:'invalidContents'};
   const known=new Set(defs.map(def=>def.id));
   if(contents.some(entry=>!entry||!known.has(entry.id)||!Number.isInteger(entry.quantity)||entry.quantity<1||entry.quantity>999))
@@ -72,6 +72,7 @@
    const result=validateConfig(item,draft,defs,core);
    if(!result.ok){options.toast?.(error(result.reason));options.openInspector?.();return;}
    draft.initialItems=result.items;
+   delete draft.items; // El editor migra el alias antiguo sin perder objetos.
    item.storage=draft;
    refresh();
   };
@@ -117,7 +118,7 @@
   section.append(limits);
   const initial=tag('fieldset');initial.className='fh-storage-items';
   initial.append(tag('legend','Contenido inicial'));
-  const items=Array.isArray(settings.initialItems)?settings.initialItems:[];
+  const items=Array.isArray(settings.initialItems)?settings.initialItems:Array.isArray(settings.items)?settings.items:[];
   for(const [index,entry] of items.entries()){
    const row=tag('div');row.className='fh-storage-item';
    const selection=tag('select');selection.setAttribute('aria-label','Objeto inicial '+(index+1));
