@@ -124,7 +124,7 @@
  function ensureState(state){
   if(!state||typeof state!=='object')throw Error('El estado de partida es obligatorio');
   const s=state.services&&typeof state.services==='object'?state.services:{};
-  for(const prop of ['damage','enabled','wifiKeys','connections','meters']){
+  for(const prop of ['damage','enabled','wifiKeys','connections','meters','usage']){
    if(!s[prop]||typeof s[prop]!=='object'||Array.isArray(s[prop]))s[prop]={};
   }
   if(!s.contracts||typeof s.contracts!=='object')s.contracts={};
@@ -193,6 +193,11 @@
   function active(it){return s.enabled[id(it)]!==false&&it.enabled!==false&&it.on!==false;}
   function rayos(it){return Math.max(0,number(it.rayos,it.service?.rayos??0));}
   function watts(it){return Math.max(0,number(it.watts,it.service?.watts??rayos(it)*200));}
+  function drawingPower(it){
+   if(!active(it))return false;
+   if(it.type==='phone_charger'&&state.phone.placedAt!==id(it))return false;
+   return it.service?.onDemand!==true||s.usage[id(it)]===true;
+  }
   function requiresPower(it){return POWER_NEEDS.has(it.type)||it.service?.requiresPower===true;}
   function requiresWater(it){return it.service?.requiresWater===true;}
   function candidates(f,it,types){
@@ -215,7 +220,7 @@
       if(number(s.damage[id(source)])>=100)continue;
       bindings.set(f+':'+id(it),source);
       used.set(k,count+1);
-      if(active(it))loads.set(k,(loads.get(k)||0)+rayos(it));
+      if(drawingPower(it))loads.set(k,(loads.get(k)||0)+rayos(it));
       return source;
      }
      return null;
@@ -329,6 +334,21 @@
    if(!state.phone.placedAt)return false;
    state.phone.placedAt='';delete state.phone.placedFloor;return true;
   }
+  function useWaterFixture(f,it){
+   if(!it||!requiresWater(it)||!waterStatus(f,it).water)return {ok:false,reason:'noWater'};
+   const mode=String(it.service?.waterMode|| (it.type==='toilet'?'pulse':'continuous'));
+   if(mode==='pulse'){
+    const liters=Math.max(0,number(it.service?.litersPerUse,6));
+    s.meters.waterLiters+=liters;
+    if(it.service?.drains!==false&&candidates(f,it,['drain_outlet']).length)s.meters.drainLiters+=liters;
+    return {ok:true,mode,liters};
+   }
+   s.usage[id(it)]=!s.usage[id(it)];
+   return {ok:true,mode,opened:!!s.usage[id(it)]};
+  }
+  function setUsage(itemId,using){
+   if(!itemId)return false;s.usage[String(itemId)]=!!using;return true;
+  }
   function tick(realSeconds=0,minutesPerSecond=1){
    const seconds=clamp(number(realSeconds),0,60)*Math.max(0,number(minutesPerSecond,1))*60;
    if(!seconds)return;
@@ -345,8 +365,8 @@
       }
       continue;
      }
-     if(requiresPower(it)&&active(it)&&electricalStatus(f,it,snap).powered)usedWatts+=watts(it);
-     if(requiresWater(it)&&active(it)&&waterStatus(f,it).water){
+     if(requiresPower(it)&&drawingPower(it)&&electricalStatus(f,it,snap).powered)usedWatts+=watts(it);
+     if(requiresWater(it)&&active(it)&&s.usage[id(it)]===true&&waterStatus(f,it).water){
       const liters=Math.max(0,number(it.service?.flowLpm))*seconds/60;
       waterLiters+=liters;
       if(it.service?.drains!==false&&candidates(f,it,['drain_outlet']).length)drainLiters+=liters;
@@ -374,7 +394,7 @@
   function setService(name,active){if(!Object.prototype.hasOwnProperty.call(s.contracts,name))return false;s.contracts[name]=active?'active':'suspended';return true;}
   return Object.freeze({state:s,phone:state.phone,graphs,point,itemAt,defaultsFor,sourceFor,
    statusFor,electrical,waterStatus,wifiAt,connectWifi,internetFor,landlineFor,mobileFor,
-   chargePhone,takePhone,tick,setService,feetPerCell});
+   chargePhone,takePhone,useWaterFixture,setUsage,tick,setService,feetPerCell});
  }
  return Object.freeze({INFRA,defaultsFor,wallGraph,ensureState,createRuntime});
 });
