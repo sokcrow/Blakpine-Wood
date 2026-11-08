@@ -18,7 +18,8 @@ test('multiplicadores aprobados, 500 PG electrónicos, 10 PG lectores, doble con
  const H=api();
  const expected={wood:10,metal:20,glass:5,grille:15,reinforced:30};
  for(const [m,pg] of Object.entries(expected))assert.equal(H.maxPG(door('wood',{doorMaterial:m})),pg);
- assert.equal(H.maxPG(win()),2.5);
+ assert.equal(H.maxPG(win()),3);
+ assert.equal(H.maxPG(win({windowMaterial:'grille'})),8);
  assert.equal(H.maxPG(win({windowMaterial:'reinforced'})),15);
  assert.equal(H.maxPG(door('metal',{architectureSkin:'puerta_electronica_opaca'})),500);
  assert.equal(H.maxPG(door('glass',{architectureSkin:'puerta_electronica_reja'})),500);
@@ -90,7 +91,7 @@ test('ventana destruida elimina colisión y geometría, sin borrar el registro n
  let dirty=0,saveCount=0;
  const rt=H.createRuntime({data:map,state:{},doorList:[[]],blockers,refresh:()=>dirty++,save:()=>saveCount++});
  rt.registerWindow(0,it,[own],roots);
- assert.equal(H.maxPG(it),2.5);
+ assert.equal(H.maxPG(it),3);
  const result=rt.takeDamage({floorId:'f1',id:'w1',amount:10,kind:'physical'});
  assert.equal(result.pg,0);
  assert.equal(result.destroyed,true);
@@ -144,6 +145,8 @@ test('hook 3D compone contra el motor Base64 y el adaptador de GLB real',()=>{
  assert.match(patched,/FHStructureHealthRuntime\?\.registerDoor/);
  assert.match(patched,/const fhHealthRuntime=window\.FHStructureHealth\.createRuntime/);
  assert.match(patched,/window\.ForestHorrorStructureAPI=Object\.freeze/);
+ assert.match(patched,/inspectDoor:\(floorId,id\)=>fhInspectStructure\(floorId,id\)/);
+ assert.doesNotMatch(patched,/fhStructureHealthInspect/);
  assert.match(patched,/structures:structuredClone\(initial\.structures\|\|\{\}\)/);
  assert.match(patched,/d\.passable=d\.destroyed===true\|\|/);
  assert.match(patched,/fh-structure-health\.js\?v=/);
@@ -166,8 +169,20 @@ test('colisión real compartida: puerta abierta por destrucción y ventanal sin 
  const rt=H.createRuntime({data:map,state:{},doorList:[[]],blockers:walls});
  rt.registerWindow(0,w,[barrier],[]);
  assert.equal(solidAt(2,2,{...position,doors:[],walls:walls[0]}),true);
- rt.takeDamage({floorId:'f1',id:'w1',amount:2.5});
+ rt.takeDamage({floorId:'f1',id:'w1',amount:3});
  assert.equal(solidAt(2,2,{...position,doors:[],walls:walls[0]}),false);
+});
+test('los PG se redondean hacia arriba y un golpe sólo admite daño entero',()=>{
+ const H=api(),it=win({initialPG:2.5}),registry={f1:{w1:{structure:{pg:1.2}}}};
+ assert.equal(H.initialPG(it),3,'los mapas previos con PG fraccionarios cargan normalizados');
+ assert.equal(H.stateFor(registry,'f1',it).pg,2,'los guardados anteriores conservan PG sin fracciones');
+ assert.equal(H.damage(registry,'f1',it,1).pg,1);
+ assert.equal(registry.f1.w1.structure.pg,1);
+ assert.throws(()=>H.damage(registry,'f1',it,0.5),/entero/);
+ assert.equal(H.maxPG(win({windowMaterial:'grille'})),8);
+ const editor=fs.readFileSync(path.join(__dirname,'fh-structure-editor.js'),'utf8');
+ assert.match(editor,/input\.step='1'/);
+ assert.match(editor,/Number\.isInteger\(value\)/);
 });
 test('IDs de mapas arbitrarios siguen siendo claves JSON, nunca prototipos',()=>{
  const H=api(),it=door('wood',{id:'__proto__'}),registry={};
