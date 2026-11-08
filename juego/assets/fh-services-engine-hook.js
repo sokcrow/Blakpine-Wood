@@ -119,7 +119,12 @@
   const phoneOptions=[
    'networks:()=>{',
    ' const f=currentFloor,px=user.x/CELL,pz=user.z/CELL;',
-   ' return (window.FHServicesRuntime?.wifiAt(f,px,pz)||[]).map(n=>({...n,name:window.FHServicesRuntime.itemAt(f,n.routerId)?.label||n.routerId}));',
+   ' return (window.FHServicesRuntime?.wifiAt(f,px,pz)||[]).map(n=>({...n,name:window.FHServicesRuntime.itemAt(n.floor,n.routerId)?.label||n.routerId}));',
+   '},',
+   'networkDelayMs:()=>{',
+   ' const service=window.FHServicesRuntime;',
+   ' const best=(service?.wifiAt(currentFloor,user.x/CELL,user.z/CELL)||[]).find(n=>n.online);',
+   ' return best?Math.round(Math.min(1800,Math.max(0,(1/Math.max(.1,best.speedFactor)-1)*500))):0;',
    '},',
    'connectWifi:(id,password)=>window.FHServicesRuntime?.connectWifi(id,password)===true,',
    'mobileAvailable:()=>window.FHServicesRuntime?.mobileFor()===true,',
