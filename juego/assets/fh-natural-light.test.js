@@ -77,6 +77,35 @@ test('la luz natural se suma a la linterna y se atenúa de forma espacial',()=>{
   runtime.dispose();
  }finally{if(backup===undefined)delete global.document;else global.document=backup}
 });
+test('Codex P2: actualizar FOW al cambiar alcance solar aunque el brillo siga al máximo',()=>{
+ const THREE={
+  Color:class{setRGB(){}},
+  DataTexture:class{dispose(){}},
+  RGBAFormat:1,LinearFilter:2
+ };
+ let minutes=7*60+25; // 07:25, jugador inmóvil
+ const start=minutes,end=7*60+45;
+ assert.equal(Natural.sightStrength(start),1);
+ assert.equal(Natural.sightStrength(end),1);
+ assert.notEqual(Natural.naturalVisionRadius(start,19),Natural.naturalVisionRadius(end,19));
+ const runtime=Natural.createRuntime({
+  THREE,DATA:{floors:[level(roomWithWestWindow())],units},CELL:1,
+  scene:{traverse(){}},floor:()=>0,clock:()=>minutes
+ });
+ try{
+  assert.equal(runtime.update(),false,'sin avanzar reloj no hay que regenerar FOW');
+  const before=runtime.visionRadius(19);
+  minutes=end;
+  assert.ok(runtime.visionRadius(19)<Natural.naturalVisionRadius(end,19));
+  assert.equal(runtime.update(),true,'el radio cambió aunque el brillo sea idéntico');
+  assert.ok(runtime.visionRadius(19)>before);
+  assert.equal(runtime.update(),false,'la misma hora no fuerza nuevos redibujados');
+  minutes=18*60+40;
+  assert.equal(runtime.update(),true,'al anochecer se reduce el alcance');
+  assert.ok(runtime.visionRadius(19)<Natural.naturalVisionRadius(end,19));
+ }finally{runtime.dispose();}
+});
+
 test('un exterior sin barreras recibe luz natural de cobertura total',()=>{
  const m=Natural.computeAccess(level([]),units);
  assert.equal(m.exterior,m.width*m.height);
