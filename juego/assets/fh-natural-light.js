@@ -146,12 +146,12 @@
   return {width:w,height:h,scale,access,exterior:tail,portals:activePortals};
  }
  function itIsDoor(type){return type!=='window'}
- function createRuntime({DATA,CELL,clock,floor,doorOpen,doorTransparent}={}){
+ function createRuntime({DATA,CELL,clock,floor,doorOpen,doorTransparent,weather}={}){
   if(!DATA||!Array.isArray(DATA.floors)||!DATA.floors.length)return null;
   // La luz exterior modifica SOLO la máscara de visibilidad, no el brillo
   // ambiental ni los materiales de Three.js. Conserva luces artificiales.
   const atlasMasks=new Map(),atlasCanvas=new Map(),atlasSignature=new Map();
-  let current=-1,lastSignature='',lastMinutes=NaN,lastVisionReach=NaN,daylightActive=false;
+  let current=-1,lastSignature='',lastMinutes=NaN,lastVisionReach=NaN,daylightActive=false,lastWeatherKey='';
   function signature(f){
    const fl=DATA.floors[f],doors=(fl?.items||[]).filter(it=>PORTALS.has(it.type)&&it.type!=='window');
    return doors.map(it=>String(it.id||'')+':'+String(!!(doorOpen?.(f,it.id,it)??it.open))).join('|');
@@ -176,16 +176,24 @@
    }
    return mask;
   }
-  function refreshSightCanvas(f,minutes){
+  function refreshSightCanvas(f,minutes,sky){
    const mask=atlasMasks.get(f),layer=atlasCanvas.get(f);
    if(!mask||!layer)return false;
    const level=Math.round(sightStrength(minutes)*255);
-   if(layer.level===level)return false;
-   layer.level=level;
+   const weatherKey=sky?(sky.type+'|'+Math.round(sky.light*100)+'|'+Math.floor(sky.cloudPhase*5)):'';
+   if(layer.level===level&&layer.weatherKey===weatherKey)return false;
+   layer.level=level;layer.weatherKey=weatherKey;
    // Blanco al mediodía en el exterior. La penumbra lunar nunca equivale al sol.
    // El valor de cada píxel sigue la distancia real a una abertura.
    for(let i=0;i<mask.access.length;i++){
-    const strength=Math.round(mask.access[i]*level/255),p=i*4;
+    let factor=sky?Math.max(0,Math.min(1,Number(sky.light)||0)):1;
+    if(sky?.type==='parcial_nublado'){
+     const x=i%mask.width,y=(i-x)/mask.width,phase=Number(sky.cloudPhase)||0;
+     const wave=Math.sin(x*.27+y*.13+phase)+Math.cos(y*.19-x*.11-phase*.65);
+     const t=Math.max(0,Math.min(1,(wave+.85)/1.7));
+     factor=.6+.4*t*t*(3-2*t);
+    }
+    const strength=Math.round(mask.access[i]*level*factor/255),p=i*4;
     layer.image.data[p]=layer.image.data[p+1]=layer.image.data[p+2]=strength;
     layer.image.data[p+3]=strength?255:0;
    }
@@ -201,7 +209,10 @@
     current=f;lastSignature=signatureNow;changed=true;
    }
    const minutes=Math.floor(finite(clock?.(),480));
-   if(minutes===lastMinutes&&!changed)return changed;
+   const sky=weather?.()||null;
+   const weatherKey=sky?(sky.type+'|'+Math.round(sky.light*100)+'|'+Math.floor(sky.cloudPhase*5)):'';
+   if(minutes===lastMinutes&&!changed&&weatherKey===lastWeatherKey)return changed;
+   lastWeatherKey=weatherKey;
    lastMinutes=minutes;
    const light=lightAt(minutes);
    const wasActive=daylightActive;
@@ -211,7 +222,7 @@
    // blanco máximo. Forzar FOW para el jugador quieto al amanecer/anochecer.
    const visionReach=daylightActive?naturalVisionRadius(minutes,19):19;
    if(visionReach!==lastVisionReach){lastVisionReach=visionReach;changed=true;}
-   return refreshSightCanvas(f,minutes)||changed;
+   return refreshSightCanvas(f,minutes,sky)||changed;
   }
   function illuminates(x,z){
    if(!daylightActive)return false;
