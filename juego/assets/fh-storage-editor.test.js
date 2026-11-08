@@ -110,3 +110,27 @@ test('mueble sin inventario predeterminado puede habilitarse individualmente',()
  assert.equal(Core.furnitureProfile(item.modelId,item.storage).slots,6);
  assert.equal(saves,1);
 });
+
+test('el inspector preserva storage.items de mapas antiguos y lo migra a initialItems',()=>{
+ const item={id:'a',type:'misc',modelId:'alacena_superior',storage:{
+  slots:6,items:[{id:'lata',quantity:3}]
+ }};
+ const {root,descendants}=fakeDOM();
+ let saves=0;
+ Editor.attachInspector(item,root,{project:{itemDefs:defs},record(){saves++},openInspector(){}});
+ const capacity=descendants(root,el=>el.tagName==='INPUT'&&el.type==='number')[0];
+ capacity.value='9';capacity.onchange();
+ assert.equal(saves,1);
+ assert.equal(item.storage.slots,9);
+ assert.deepEqual(item.storage.initialItems,[{id:'lata',quantity:3}]);
+ assert.equal(Object.hasOwn(item.storage,'items'),false);
+});
+
+test('el editor principal conecta el nuevo inspector sin cambiar el esquema JSON',()=>{
+ const fs=require('node:fs'),path=require('node:path');
+ const index=fs.readFileSync(path.join(__dirname,'../../index.html'),'utf8');
+ assert.match(index,/FHStorageEditor\?\.attachInspector\(it,fields/);
+ assert.match(index,/fh-storage-editor\.js\?v=20261108-storage-editor-1/);
+ assert.match(index,/fh-inventory-core\.js\?v=20261108-encimera-1/);
+ assert.match(index,/const MAP_SCHEMA='forest-horror-map-v1'/);
+});
