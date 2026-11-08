@@ -3783,10 +3783,10 @@ function fhRefreshActorVisibility(){
   const tickAfter='window.FHDeliveryRuntime?.update(dt);window.FHPhoneRuntime?.update(dt);if(fhNatural?.update())visibilityDirty=true;';
   const pointBefore='if(dist<=radius&&ForestShared.pointInSight(x,z,at,opaque,radius))return true;';
   const pointAfter=pointBefore+'\n if(fhNatural?.illuminates(x,z)&&dist<=LOOK_RADIUS+.075&&ForestShared.pointInSight(x,z,at,opaque,LOOK_RADIUS))return true;';
-  const rangeBefore='const range=params.sources?.length?LOOK_RADIUS:Math.max(params.base,params.beam);';
-  const rangeAfter='const range=params.sources?.length||fhNatural?.hasLight()?LOOK_RADIUS:Math.max(params.base,params.beam);';
-  const radiusBefore='const radius=params.sources?.length?LOOK_RADIUS:Math.max(params.base,params.beam);';
-  const radiusAfter='const radius=params.sources?.length||fhNatural?.hasLight()?LOOK_RADIUS:Math.max(params.base,params.beam);';
+  const rangeBefore='const range=params.sources?.length?LOOK_RADIUS:Math.max(params.dim||2.4384,params.beam);';
+  const rangeAfter='const range=params.sources?.length||fhNatural?.hasLight()?LOOK_RADIUS:Math.max(params.dim||2.4384,params.beam);';
+  const radiusBefore='const radius=params.sources?.length?LOOK_RADIUS:Math.max(params.dim||2.4384,params.beam);';
+  const radiusAfter='const radius=params.sources?.length||fhNatural?.hasLight()?LOOK_RADIUS:Math.max(params.dim||2.4384,params.beam);';
   const sightBefore=' q.restore();sightTexture.needsUpdate=true;';
   const sightAfter=' fhNatural?.paintSight(q,sightCanvas.width,sightCanvas.height);\n'+sightBefore;
   for(const [oldText,newText,expected] of [[before,after,1],[tickBefore,tickAfter,1],
