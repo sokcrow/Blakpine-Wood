@@ -143,6 +143,10 @@ test('hook 3D compone contra el motor Base64 y el adaptador de GLB real',()=>{
  assert.match(patched,/FHStructureHealthRuntime\?\.registerDoor/);
  assert.match(patched,/const fhHealthRuntime=window\.FHStructureHealth\.createRuntime/);
  assert.match(patched,/window\.ForestHorrorStructureAPI=Object\.freeze/);
+ assert.match(patched,/repairReceipts:Array\.isArray\(initial\.repairReceipts\)/);
+ assert.match(patched,/window\.ForestHorrorRepairAPI=Object\.freeze/);
+ assert.match(patched,/FHRepairRuntime\.perform/);
+ assert.match(patched,/fh-repair-runtime\.js\?v=/);
  assert.match(patched,/structures:structuredClone\(initial\.structures\|\|\{\}\)/);
  assert.match(patched,/d\.passable=d\.destroyed===true\|\|/);
  assert.match(patched,/fh-structure-health\.js\?v=/);
