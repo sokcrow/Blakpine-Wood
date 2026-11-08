@@ -3914,7 +3914,7 @@ function preview3DIsPhone(){
 }
 function preview3DIsLandscape(){return innerWidth>innerHeight}
 function show3DLandscapeGate(){
- if(preview3DActive||preview3DGateStarting)return;
+ if(preview3DActive)return;
  preview3DGateAuthorized=false;
  document.getElementById('play3dLandscapeTitle').textContent=PREVIEW_TEXT.landscapeTitle;
  play3DLandscapeStart.textContent=PREVIEW_TEXT.landscapeStart;
@@ -3934,6 +3934,10 @@ function hide3DLandscapeGate(){
   play3DLayer.classList.remove('show');
   play3DLayer.setAttribute('aria-hidden','true');
  }
+}
+function cancel3DLandscapeGate(){
+ hide3DLandscapeGate();
+ if(document.fullscreenElement===play3DLayer&&document.exitFullscreen)void document.exitFullscreen();
 }
 function launch3DPreview(){
  if(preview3DActive||fhCharacterLaunchPending||preview3DGateStarting||!play3DLandscapeGate.hidden)return;
@@ -3969,7 +3973,7 @@ function handle3DPreviewOrientation(){
  }else if(preview3DGateAuthorized)continue3DPreviewInLandscape();
 }
 play3DLandscapeStart.addEventListener('click',confirm3DLandscape);
-document.getElementById('play3dLandscapeCancel').addEventListener('click',hide3DLandscapeGate);
+document.getElementById('play3dLandscapeCancel').addEventListener('click',cancel3DLandscapeGate);
 window.addEventListener('resize',handle3DPreviewOrientation);
 screen.orientation?.addEventListener?.('change',handle3DPreviewOrientation);
 window.addEventListener('message',e=>{
