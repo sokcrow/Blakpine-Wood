@@ -10,7 +10,12 @@
   const base=new URL('./juego/assets/',root.document.baseURI).href;
   const core='<script src="'+base+'fh-services-core.js?v=20261108-service-core-1"></'+'script>';
   const strings='<script src="'+base+'fh-services-strings.js?v=20261108-service-core-1"></'+'script>';
-  doc=once(doc,'</head>',core+strings+'</head>','carga');
+  // El motor incrusta subdocumentos HTML como cadenas: hay varios </head>.
+  // Insertar en el primer cierre (cabecera del documento exterior), como
+  // hacen los otros adaptadores, y no exigir una ocurrencia única.
+  const outerHead=doc.indexOf('</head>');
+  if(outerHead<0)throw Error('Hook de servicios incompatible: falta cabecera exterior');
+  doc=doc.slice(0,outerHead)+core+strings+doc.slice(outerHead);
 
   const pc='window.FHComputerRuntime=window.FHComputer?.createRuntime({';
   const pcOptions=[
@@ -23,6 +28,10 @@
   doc=once(doc,pc,pc+'\n'+pcOptions,'computadoras');
   const phone='window.FHPhoneRuntime=window.FHPhone?.createRuntime({';
   const start=[
+   // createGameState enumera propiedades y descarta services al cargar un guardado.
+   // Recuperar la instancia seleccionada por readGameSave ANTES de crear runtime.
+   'const fhServicesSaved=(restored||DATA.initialGameState)?.services;',
+   'if(fhServicesSaved&&typeof fhServicesSaved==="object"&&!Array.isArray(fhServicesSaved))GameState.services=structuredClone(fhServicesSaved);',
    'window.FHServicesRuntime=window.FHServices?.createRuntime(DATA,GameState,{phoneDrainPerHour:.5});',
    'let fhServicesSaveAccum=0;',
    'window.FHServicesGame={',
