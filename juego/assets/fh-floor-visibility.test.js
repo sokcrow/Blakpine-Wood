@@ -40,4 +40,18 @@ test('el editor integra la regla en las fachadas y conserva el FOW original',()=
  assert.match(html,/FHFloorVisibility\.facadeCandidate\(currentFloor,f,inside,inCameraVolume\(bounds\)\)/);
  assert.match(html,/return addFloorVisibilityToEngine\(addNaturalLightToEngine\(assembled\)\)/);
  assert.match(html,/\.\/juego\/assets\/fh-floor-visibility\.js/);
+ assert.match(html,/const inside=outside!==true;/);
+});
+
+test('los dos hooks siguen presentes una sola vez en el motor embebido',()=>{
+ const parts=Array.from({length:13},(_,i)=>{
+  const name='engine-'+String(i).padStart(2,'0')+'.js';
+  const file=fs.readFileSync(path.join(__dirname,name),'utf8');
+  const start=file.indexOf('+"')+2,end=file.lastIndexOf('";');
+  assert.ok(start>1&&end>start,name+' debe contener su bloque Base64');
+  return file.slice(start,end);
+ });
+ const original=Buffer.from(parts.join(''),'base64').toString('utf8');
+ assert.equal(original.split(' if(!inCameraVolume(bounds))return false;').length-1,1);
+ assert.equal(original.split('const inside=!peeking&&outside!==true;').length-1,1);
 });
