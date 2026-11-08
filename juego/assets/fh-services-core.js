@@ -195,7 +195,7 @@
   function watts(it){return Math.max(0,number(it.watts,it.service?.watts??rayos(it)*200));}
   function drawingPower(it){
    if(!active(it))return false;
-   if(it.type==='phone_charger'&&state.phone.placedAt!==id(it))return false;
+   if(it.type==='phone_charger'&&(state.phone.placedAt!==id(it)||state.phone.battery>=100))return false;
    return it.service?.onDemand!==true||s.usage[id(it)]===true;
   }
   function requiresPower(it){return POWER_NEEDS.has(it.type)||it.service?.requiresPower===true;}
