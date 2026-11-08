@@ -7,6 +7,7 @@ on:
       - 'juego/assets/fh-hud-*'
       - 'juego/assets/fh-game-ui*'
       - 'juego/assets/fh-location-hud.*'
+      - 'juego/assets/fh-mobile-camera.*'
       - 'juego/assets/fh-player-menu.*'
       - '.github/workflows/hud-ui.yml'
   push:
@@ -32,4 +33,4 @@ jobs:
       - name: Comprobar marco y ubicación
         run: |
           node juego/assets/fh-player-menu.js
-          node --test juego/assets/fh-player-menu.test.js juego/assets/fh-hud-frame.test.js juego/assets/fh-game-ui.test.js juego/assets/fh-location-hud.test.js juego/assets/fh-status-hud.test.js
+          node --test juego/assets/fh-player-menu.test.js juego/assets/fh-hud-frame.test.js juego/assets/fh-game-ui.test.js juego/assets/fh-location-hud.test.js juego/assets/fh-status-hud.test.js juego/assets/fh-mobile-camera.test.js

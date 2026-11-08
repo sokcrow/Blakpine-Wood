@@ -33,7 +33,7 @@ test('los menús móviles usan 75%; el radial permanece exactamente al 50%', () 
 test('la hoja móvil se carga tanto en creación como dentro del juego, con versión actualizada', () => {
   assert.match(page, /href="\.\/juego\/assets\/fh-mobile-menus\.css\?v=20261107-mobile-ui-75"/);
   assert.match(page, /const mobileMenusCss=/);
-  assert.match(page, /\+hudFrameScript\+mobileMenusCss\+statusCss\+statusStrings\+statusScript\+phoneCss\+phoneStrings\+phoneScript\+'<\/head>'/);
+  assert.match(page, /\+hudFrameScript\+mobileMenusCss\+statusCss\+statusStrings\+statusScript\+phoneCss\+phoneStrings\+phoneScript\+mobileCameraScript\+'<\/head>'/);
   assert.equal((page.match(/fh-mobile-menus\.css\?v=20261107-mobile-ui-75/g) || []).length, 2);
 });
 

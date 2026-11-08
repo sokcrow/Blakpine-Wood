@@ -2830,6 +2830,10 @@ function prepareGLBEngineDoc(source){
  const computerModule='<script src="'+new URL('./juego/assets/fh-computer.js?v=20261107-raven-16x10',document.baseURI).href+'"></'+'script>';
  const computerStrings='<script src="'+new URL('./juego/assets/fh-computer-strings.js',document.baseURI).href+'"></'+'script>';
  const cameraBefore=" const desired=new THREE.Vector3(user.x+behind.x*camDistance,y+.88+camDistance*Math.tan(Math.PI/6),user.z+behind.z*camDistance);";
+ const cameraStartBefore="const camPosition=new THREE.Vector3(user.x,floorElev[currentFloor]+.88+camDistance*Math.tan(Math.PI/6),user.z+camDistance),camAim=new THREE.Vector3(user.x,floorElev[currentFloor]+.88,user.z);";
+ const cameraStartAfter="const fhPhoneCameraPointer=window.matchMedia?.('(pointer: coarse)');\n" +
+  "const initialCameraDistance=window.FHMobileCamera?.distance(camDistance,innerWidth,innerHeight,!!fhPhoneCameraPointer?.matches)??camDistance;\n" +
+  "const camPosition=new THREE.Vector3(user.x,floorElev[currentFloor]+.88+initialCameraDistance*Math.tan(Math.PI/6),user.z+initialCameraDistance),camAim=new THREE.Vector3(user.x,floorElev[currentFloor]+.88,user.z);";
  const sleepCameraBefore="function cameraUpdate(dt){let d=";
  const sleepCameraAfter="function cameraUpdate(dt){\n" +
   " // La cámara se fija en vertical durante toda la postura acostada.\n" +
@@ -2843,7 +2847,8 @@ function prepareGLBEngineDoc(source){
   " // Corte limpio al ponerse de pie: nunca interpolar con el eje vertical degenerado.\n" +
   " if(cam.up.y!==1){\n" +
   "  cam.up.set(0,1,0);\n" +
-  "  camPosition.set(user.x+Math.sin(yaw)*camDistance,floorElev[currentFloor]+.88+camDistance*Math.tan(Math.PI/6),user.z+Math.cos(yaw)*camDistance);\n" +
+  "  const restoreDistance=window.FHMobileCamera?.distance(camDistance,innerWidth,innerHeight,!!fhPhoneCameraPointer?.matches)??camDistance;\n" +
+  "  camPosition.set(user.x+Math.sin(yaw)*restoreDistance,floorElev[currentFloor]+.88+restoreDistance*Math.tan(Math.PI/6),user.z+Math.cos(yaw)*restoreDistance);\n" +
   "  camAim.set(user.x,floorElev[currentFloor]+.88,user.z);\n" +
   " }\n" +
   " let d=";
@@ -2851,6 +2856,7 @@ function prepareGLBEngineDoc(source){
  if(sleepCameraCount!==1)throw Error('Hook cámara cenital incompatible: '+sleepCameraCount);
  const cameraCount=source.split(cameraBefore).length-1;
  if(cameraCount!==1)throw Error('Hook de sueño camera: '+cameraCount);
+ if(source.split(cameraStartBefore).length!==2)throw Error('Hook de cámara inicial incompatible.');
  const loopBefore=" cameraUpdate(dt);updateCabinIsolation();",loopAfter=" window.FHSleep?.update(dt,playerPose.state.phase,playerPose.state.verb,playerPoseItem?.type,GameEvents);\n cameraUpdate(dt);updateCabinIsolation();";
  const loopCount=source.split(loopBefore).length-1;
  if(loopCount!==1)throw Error('Hook de sueño loop: '+loopCount);
@@ -2927,6 +2933,7 @@ function prepareGLBEngineDoc(source){
  const phoneCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-phone.css?v=20261107-phone-1',document.baseURI).href+'">';
  const phoneStrings='<script src="'+new URL('./juego/assets/fh-phone-strings.js?v=20261107-phone-1',document.baseURI).href+'"></'+'script>';
  const phoneScript='<script src="'+new URL('./juego/assets/fh-phone.js?v=20261107-phone-1',document.baseURI).href+'"></'+'script>';
+ const mobileCameraScript='<script src="'+new URL('./juego/assets/fh-mobile-camera.js?v=20261107-phone30',document.baseURI).href+'"></'+'script>';
  const locationHudHook='if(now-lastHud>90){lastHud=now;hudUpdate()}';
  const locationHudAfter='if(now-lastHud>90){lastHud=now;hudUpdate();window.FHLocationHUD?.update(DATA,currentFloor,{x:user.x/CELL,y:user.z/CELL});window.FHStatusHUD?.update(window.FHCharacterRuntime?.character?.resources)}';
  if(source.split(locationHudHook).length!==2)throw Error('El HUD original cambió: actualiza el adaptador de ubicación.');
@@ -3698,7 +3705,7 @@ for(const pair of [[elevatorPortalsBefore,elevatorPortalsAfter],[elevatorWalkBef
  if(matches!==1)throw Error('Hook de colisión del ascensor incompatible: '+matches);
  source=source.replace(pair[0],pair[1]);
 }
-const cameraLightAfter=" const lightDistance=camDistance+(window.FHLights?.cameraBonus(roomLampEntries,lighting,currentFloor,user.x,user.z)||0);\n const ahead=lighting.state.enabled?0.80:0;target.x+=flashDir.x*ahead;target.z+=flashDir.z*ahead;\n const desired=new THREE.Vector3(user.x+behind.x*lightDistance,y+.88+lightDistance*Math.tan(Math.PI/6),user.z+behind.z*lightDistance);";
+const cameraLightAfter=" const lightDistance=camDistance+(window.FHLights?.cameraBonus(roomLampEntries,lighting,currentFloor,user.x,user.z)||0);\n const fhCameraDistance=window.FHMobileCamera?.distance(lightDistance,innerWidth,innerHeight,!!fhPhoneCameraPointer?.matches)??lightDistance;\n const ahead=lighting.state.enabled?0.80:0;target.x+=flashDir.x*ahead;target.z+=flashDir.z*ahead;\n const desired=new THREE.Vector3(user.x+behind.x*fhCameraDistance,y+.88+fhCameraDistance*Math.tan(Math.PI/6),user.z+behind.z*fhCameraDistance);";
  function addActorPresentationToEngine(doc){
   const oldPose="function fhSetDeliveryNpcPose(pose){\n if(!fhDeliveryNpc)return;const material=fhDeliveryNpc.material,loader=new THREE.TextureLoader();\n material.map?.dispose?.();const texture=loader.load(fhDeliverySpriteUrl(pose),()=>{visibilityDirty=true},undefined,()=>{material.map=fhDeliveryNpcTexture(pose);material.needsUpdate=true;visibilityDirty=true});\n texture.encoding=THREE.sRGBEncoding;texture.magFilter=texture.minFilter=THREE.NearestFilter;material.map=texture;material.needsUpdate=true;\n}";
   const newPose=String.raw`const fhNpcWalkCycle=window.FHActorPresentation.createCycle();
@@ -3805,7 +3812,7 @@ function fhRefreshActorVisibility(){
   return doc.replace('</head>',script+'</head>');
  }
 
- const assembled=(window.FHContextEngine?.patch||((doc)=>doc))(addActorPresentationToEngine(addLiveTextToEngine(addDeliveryToEngine(addParkingToEngine(addStylesToEngine(addLightToEngine(source.replace('const MAX_INVENTORY_SLOTS=8;','const MAX_INVENTORY_SLOTS=10;'))))).replace(furnitureVisibilityHook,furnitureRenderHook).replace(cameraBefore,cameraLightAfter).replace(sleepCameraBefore,sleepCameraAfter).replace(loopBefore,loopAfter)
+ const assembled=(window.FHContextEngine?.patch||((doc)=>doc))(addActorPresentationToEngine(addLiveTextToEngine(addDeliveryToEngine(addParkingToEngine(addStylesToEngine(addLightToEngine(source.replace('const MAX_INVENTORY_SLOTS=8;','const MAX_INVENTORY_SLOTS=10;'))))).replace(furnitureVisibilityHook,furnitureRenderHook).replace(cameraBefore,cameraLightAfter).replace(cameraStartBefore,cameraStartAfter).replace(sleepCameraBefore,sleepCameraAfter).replace(loopBefore,loopAfter)
   .replace(maskBefore,maskAfter).replace(wakeHUDBefore,wakeHUDAfter).replace(locationHudHook,locationHudAfter)
   .split(wakeBefore).join(wakeAfter)
   .replace(chairSelection," const poseReachable=(item,anchor)=>canWalk(user.x,user.z)&&safePoseRoute(item,{x:user.x,z:user.z},anchor);\n const stockSeat=selectSeatInteractable(visible,user,yaw,CELL,poseReachable);\n const glbChair=window.FHFurnitureRules?.findReachableChair(visible,user,yaw,CELL,poseReachable,ForestShared);\n const sitting=glbChair&&(!stockSeat||glbChair.score<stockSeat.score)?glbChair:stockSeat;")
@@ -3824,7 +3831,7 @@ function fhRefreshActorVisibility(){
   .replace(attachBefore,' window.FHAssets?.attach(g,a);\n'+attachBefore)
   .replace(cloneBefore,'const clone=source.clone(true);\n   window.FHAssets?.mirror(source,clone);\n   clone.position.y+=floorElev[f];')
   .replace(engineSuccessBefore,engineSuccessAfter).replace(engineFailBefore,engineFailAfter).replace(loadFailBefore,loadFailAfter)
-  .replace('</head>',localThree+coverageScript+lightsModule+surfaceScript+decorationScript+ruleScript+inventoryCoreScript+bridge+sleepCss+sleepStrings+sleepModule+pcAssemblyModule+computerStrings+computerModule+npcGoapModule+npcCourierModule+deliveryStrings+deliveryModule+styleCore+styleRender+parkingScript+playerMenuCss+playerMenuStrings+skillsModule+skillsStrings+helpCss+helpStrings+helpScript+playerMenuScript+locationCss+locationStrings+locationScript+hudRedesignCss+gameUiCss+hudFrameScript+mobileMenusCss+statusCss+statusStrings+statusScript+phoneCss+phoneStrings+phoneScript+'</head>'))));
+  .replace('</head>',localThree+coverageScript+lightsModule+surfaceScript+decorationScript+ruleScript+inventoryCoreScript+bridge+sleepCss+sleepStrings+sleepModule+pcAssemblyModule+computerStrings+computerModule+npcGoapModule+npcCourierModule+deliveryStrings+deliveryModule+styleCore+styleRender+parkingScript+playerMenuCss+playerMenuStrings+skillsModule+skillsStrings+helpCss+helpStrings+helpScript+playerMenuScript+locationCss+locationStrings+locationScript+hudRedesignCss+gameUiCss+hudFrameScript+mobileMenusCss+statusCss+statusStrings+statusScript+phoneCss+phoneStrings+phoneScript+mobileCameraScript+'</head>'))));
  return addNaturalLightToEngine(assembled);
 }
 let fhCharacterLaunchPending=false;
