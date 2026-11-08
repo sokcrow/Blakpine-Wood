@@ -2526,7 +2526,7 @@ function attachServiceInspector(it,fields){
   water_main:['rangeFt','flowLpm','valveId','networkId'],
   water_valve:['opened','networkId'],water_outlet:['radiusFt','flowLpm','valveId','networkId'],drain_outlet:['radiusFt','networkId'],
   router:['outletId','wifiRadiusFt','ethernetLengthFt','wifiPassword','rayos','watts'],
-  ethernet_port:['routerId','cableLengthFt'],landline_phone:['routerId']
+  ethernet_port:['routerId','cableLengthFt'],landline_phone:['routerId','phoneNumber']
  };
  const configurable=['tv','kitchen','bath','toilet','misc','light_fixture','car','elevator'];
  if(!names[it.type]&&!configurable.includes(it.type))return;
