@@ -36,8 +36,10 @@ window.FHStructureHealthRuntime=fhHealthRuntime;`);
   "window.FHStructureHealthRuntime?.registerDoor(d,it);window.FHArchitectureSkins?.decorateDoor(d,it,THREE,installVisibility);return d;");
  doc=one(doc," d.passable=!!d.open&&(d.family!=='garage'||d.angle>=.85);\n}\n\nfunction debugGrid",
   " d.passable=d.destroyed===true||!!d.open&&(d.family!=='garage'||d.angle>=.85);\n}\n\nfunction debugGrid");
- doc=one(doc," if(d.stairBlockFlag&&GameState.flags[d.stairBlockFlag])return notice(",
-  " if(d.destroyed)return notice(window.FH_STRUCTURE_TEXT.destroyed,1800);\n if(d.stairBlockFlag&&GameState.flags[d.stairBlockFlag])return notice(");
+ // El adaptador de cómics puede envolver el aviso en un bloque. El guard
+ // de la puerta no depende de cómo se presenta ese aviso.
+ doc=one(doc," if(d.stairBlockFlag&&GameState.flags[d.stairBlockFlag])",
+  " if(d.destroyed)return notice(window.FH_STRUCTURE_TEXT.destroyed,1800);\n if(d.stairBlockFlag&&GameState.flags[d.stairBlockFlag])");
  doc=one(doc,"if(!d||d.kind!=='peephole_door')return notice(",
   "if(!d||d.destroyed||d.kind!=='peephole_door')return notice(");
  const button=`// Inspector de PG dentro del juego (ratón, toque y teclado), sin golpes automáticos.
@@ -88,3 +90,4 @@ window.ForestHorrorStructureAPI=Object.freeze({
 }
 global.FHStructureHealthEngine=Object.freeze({patch});
 })(window);
+

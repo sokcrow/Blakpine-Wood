@@ -1,5 +1,6 @@
 /* Forest Horror — texto de PG estructurales visible al jugador. */
 window.FH_STRUCTURE_TEXT=Object.freeze({
+ integrationFailure:'No se pudo iniciar el sistema de daño estructural. Los modelos 3D siguen disponibles.',
  button:'PG',
  buttonTitle:'Inspeccionar resistencia cercana',
  noTarget:'No hay puertas ni ventanas cerca.',
@@ -14,3 +15,4 @@ window.FH_STRUCTURE_TEXT=Object.freeze({
  reader:'Lector',
  hint:'Pulsa PG o la tecla P para inspeccionar.'
 });
+

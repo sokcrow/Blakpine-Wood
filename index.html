@@ -3858,7 +3858,14 @@ async function start3DPreview(){
   const fhEngineDoc=prepareGLBEngineDoc(originalEngineDoc);
   try{
    if(!window.FHArchitectureSkins?.patchEngineDoc)throw Error('Adaptador del kit no disponible');
-   play3DFrame.srcdoc=window.FHStructureHealthEngine.patch(window.FHArchitectureSkins.patchEngineDoc(fhEngineDoc));
+   let architectureDoc=window.FHArchitectureSkins.patchEngineDoc(fhEngineDoc);
+   try{
+    architectureDoc=window.FHStructureHealthEngine.patch(architectureDoc);
+   }catch(structureError){
+    console.error('[Forest PG] Falló la integración estructural:',structureError);
+    preview3DArchitectureError=window.FH_STRUCTURE_TEXT.integrationFailure;
+   }
+   play3DFrame.srcdoc=architectureDoc;
   }catch(architectureError){
    console.error('[Forest Arquitectura] Falló la integración visual:',architectureError);
    preview3DArchitectureError=window.FH_ARCHITECTURE_TEXT.patchFailure;
@@ -3963,8 +3970,10 @@ init();
 <script src="./juego/assets/fh-architecture-editor-catalog.js?v=20261105-visual-models"></script>
 <script src="./juego/assets/fh-access-editor.js?v=20261107-map-v1"></script>
 <script src="./juego/assets/fh-structure-editor.js?v=20261107-structure-pg"></script>
-<script src="./juego/assets/fh-structure-engine-hook.js?v=20261107-structure-pg"></script>
+<script src="./juego/assets/fh-structure-strings.js?v=20261108-architecture-load"></script>
+<script src="./juego/assets/fh-structure-engine-hook.js?v=20261108-architecture-load"></script>
 <script src="./juego/assets/fh-comic-action-engine-hook.js?v=20261107-comic-actions-1"></script>
 <script src="./juego/assets/fh-context-engine-hook.js?v=20261108-elevator-comfort-1"></script>
 </body>
 </html>
+

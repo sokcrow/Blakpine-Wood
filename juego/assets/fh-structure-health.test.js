@@ -120,7 +120,8 @@ test('editor y motor comparten una sola función de colisión y preservan mapas 
  assert.match(index,/ForestShared\.solidAt\(x,y,/);
  assert.match(index,/FHStructureHealth\?\.validateMap\(doc\)/);
  assert.match(index,/FHStructureHealth\?\.validateMap\(obj\)/);
- assert.match(index,/FHStructureHealthEngine\.patch\(window\.FHArchitectureSkins\.patchEngineDoc/);
+ assert.match(index,/architectureDoc=window\.FHArchitectureSkins\.patchEngineDoc\(fhEngineDoc\)/);
+ assert.match(index,/architectureDoc=window\.FHStructureHealthEngine\.patch\(architectureDoc\)/);
  assert.match(index,/fh-structure-editor\.js/);
  assert.doesNotMatch(index,/const MAP_SCHEMA='forest-horror-map-v2'/);
 });
@@ -190,3 +191,4 @@ test('al destruir fachada se retiran también sus copias exteriores; al recargar
  rt2.registerExteriorProxy(0,item,sceneGraph.root('facade-late'));
  assert.ok(sceneGraph.removed.includes('facade-late'));
 });
+
