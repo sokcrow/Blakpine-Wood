@@ -1321,7 +1321,7 @@ function findFacingTVCombo(seatItem,tvItems,options={}){
 // shared/progression.js
 /** Catálogo e inventario: API sin DOM y sin Three.js. */
 const ITEM_KINDS=['key','note','tool','consumable'];
-const MAX_INVENTORY_SLOTS=8;
+const MAX_INVENTORY_SLOTS=10;
 function itemDefById(defs,id){return (defs||[]).find(d=>d.id===id)||null;}
 function inventorySlots(inventory){return [...new Set(inventory||[])];}
 function grantItem(state,id,defs=[]){
@@ -2552,7 +2552,7 @@ modal(`<h2>⌂ Habitaciones del ${escapeAttr(current().name)}</h2><p>${rooms.len
 });
 }
 function modalItemCatalog(){
- modal(`<h2>Catálogo de objetos</h2><p>Define llaves, notas, herramientas y consumibles en el JSON raíz. Máximo 8 espacios distintos en el inventario del juego.</p><label>itemDefs (JSON)<textarea id="itemDefsJSON" rows="12" style="width:100%;resize:vertical;background:#080e1a;border:1px solid #66758b;border-radius:8px;color:#f4eddb;padding:10px;font:12px/1.45 monospace"></textarea></label><p><small>Una nota necesita text; para una llave de entrada agrega apartmentId. Las llaves se conservan salvo consumeOnUnlock:true.</small></p><div class="actions"><button id="saveItemDefs" class="primary">Guardar catálogo</button><button id="cancelItemDefs">Cancelar</button></div>`,()=>{
+ modal(`<h2>Catálogo de objetos</h2><p>Define llaves, notas, herramientas y consumibles en el JSON raíz. Máximo 10 espacios distintos en el inventario del juego.</p><label>itemDefs (JSON)<textarea id="itemDefsJSON" rows="12" style="width:100%;resize:vertical;background:#080e1a;border:1px solid #66758b;border-radius:8px;color:#f4eddb;padding:10px;font:12px/1.45 monospace"></textarea></label><p><small>Una nota necesita text; para una llave de entrada agrega apartmentId. Las llaves se conservan salvo consumeOnUnlock:true.</small></p><div class="actions"><button id="saveItemDefs" class="primary">Guardar catálogo</button><button id="cancelItemDefs">Cancelar</button></div>`,()=>{
   $('#itemDefsJSON').value=JSON.stringify(project.itemDefs||[],null,2);
   $('#cancelItemDefs').onclick=closeModal;
   $('#saveItemDefs').onclick=()=>{try{
@@ -2812,6 +2812,7 @@ function prepareGLBEngineDoc(source){
  const surfaceScript='<script src="'+new URL('./juego/assets/fh-surface-placement.js',document.baseURI).href+'"></'+'script>';
  const decorationScript='<script src="'+new URL('./juego/assets/fh-decoration.js?v=20261106-interiores-1',document.baseURI).href+'"></'+'script>';
  const ruleScript='<script src="'+new URL('./juego/assets/fh-furniture-rules.js',document.baseURI).href+'"></'+'script>';
+ const inventoryCoreScript='<script src="'+new URL('./juego/assets/fh-inventory-core.js?v=20261107-inventory-1',document.baseURI).href+'"></'+'script>';
  const bridge='<script src="'+new URL('./juego/assets/fh-glb-bridge.js',document.baseURI).href+'"></'+'script>';
  const localThree='<script src="'+new URL('./juego/assets/vendor/three.min.js',document.baseURI).href+'"></'+'script>';
  const sleepStrings='<script src="'+new URL('./juego/assets/fh-sleep-strings.js',document.baseURI).href+'"></'+'script>';
@@ -3801,7 +3802,7 @@ function fhRefreshActorVisibility(){
   return doc.replace('</head>',script+'</head>');
  }
 
- const assembled=(window.FHContextEngine?.patch||((doc)=>doc))(addActorPresentationToEngine(addLiveTextToEngine(addDeliveryToEngine(addParkingToEngine(addStylesToEngine(addLightToEngine(source)))).replace(furnitureVisibilityHook,furnitureRenderHook).replace(cameraBefore,cameraLightAfter).replace(sleepCameraBefore,sleepCameraAfter).replace(loopBefore,loopAfter)
+ const assembled=(window.FHContextEngine?.patch||((doc)=>doc))(addActorPresentationToEngine(addLiveTextToEngine(addDeliveryToEngine(addParkingToEngine(addStylesToEngine(addLightToEngine(source.replace('const MAX_INVENTORY_SLOTS=8;','const MAX_INVENTORY_SLOTS=10;'))))).replace(furnitureVisibilityHook,furnitureRenderHook).replace(cameraBefore,cameraLightAfter).replace(sleepCameraBefore,sleepCameraAfter).replace(loopBefore,loopAfter)
   .replace(maskBefore,maskAfter).replace(wakeHUDBefore,wakeHUDAfter).replace(locationHudHook,locationHudAfter)
   .split(wakeBefore).join(wakeAfter)
   .replace(chairSelection," const poseReachable=(item,anchor)=>canWalk(user.x,user.z)&&safePoseRoute(item,{x:user.x,z:user.z},anchor);\n const stockSeat=selectSeatInteractable(visible,user,yaw,CELL,poseReachable);\n const glbChair=window.FHFurnitureRules?.findReachableChair(visible,user,yaw,CELL,poseReachable,ForestShared);\n const sitting=glbChair&&(!stockSeat||glbChair.score<stockSeat.score)?glbChair:stockSeat;")
@@ -3820,7 +3821,7 @@ function fhRefreshActorVisibility(){
   .replace(attachBefore,' window.FHAssets?.attach(g,a);\n'+attachBefore)
   .replace(cloneBefore,'const clone=source.clone(true);\n   window.FHAssets?.mirror(source,clone);\n   clone.position.y+=floorElev[f];')
   .replace(engineSuccessBefore,engineSuccessAfter).replace(engineFailBefore,engineFailAfter).replace(loadFailBefore,loadFailAfter)
-  .replace('</head>',localThree+coverageScript+lightsModule+surfaceScript+decorationScript+ruleScript+bridge+sleepCss+sleepStrings+sleepModule+pcAssemblyModule+computerStrings+computerModule+npcGoapModule+npcCourierModule+deliveryStrings+deliveryModule+styleCore+styleRender+parkingScript+playerMenuCss+playerMenuStrings+skillsModule+skillsStrings+helpCss+helpStrings+helpScript+playerMenuScript+locationCss+locationStrings+locationScript+hudRedesignCss+gameUiCss+hudFrameScript+mobileMenusCss+statusCss+statusStrings+statusScript+phoneCss+phoneStrings+phoneScript+'</head>'))));
+  .replace('</head>',localThree+coverageScript+lightsModule+surfaceScript+decorationScript+ruleScript+inventoryCoreScript+bridge+sleepCss+sleepStrings+sleepModule+pcAssemblyModule+computerStrings+computerModule+npcGoapModule+npcCourierModule+deliveryStrings+deliveryModule+styleCore+styleRender+parkingScript+playerMenuCss+playerMenuStrings+skillsModule+skillsStrings+helpCss+helpStrings+helpScript+playerMenuScript+locationCss+locationStrings+locationScript+hudRedesignCss+gameUiCss+hudFrameScript+mobileMenusCss+statusCss+statusStrings+statusScript+phoneCss+phoneStrings+phoneScript+'</head>'))));
  return addNaturalLightToEngine(assembled);
 }
 let fhCharacterLaunchPending=false;
