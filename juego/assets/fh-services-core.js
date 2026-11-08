@@ -142,7 +142,17 @@
   const feetPerCell=Math.max(.1,number(project?.units?.feetPerCell,5));
   const graphs=floors.map(f=>wallGraph(f.items||[]));
   const elements=floors.map(f=>f.items||[]);
-  const route=(f,a,b)=>graphs[f]?graphs[f].route(point(a),point(b))*feetPerCell:Infinity;
+  const routeCache=floors.map(()=>new Map());
+  const route=(f,a,b,maxGapFt=3.25)=>{
+   if(!graphs[f])return Infinity;
+   const p=point(a),q=point(b),key=[p.x,p.y,q.x,q.y,maxGapFt].join(':');
+   const cache=routeCache[f];
+   if(cache.has(key))return cache.get(key);
+   const result=graphs[f].route(p,q,maxGapFt/feetPerCell)*feetPerCell;
+   if(cache.size>4000)cache.clear();
+   cache.set(key,result);
+   return result;
+  };
   const barriers=(f,a,b)=>graphs[f]?.wallsBetween(point(a),point(b))||0;
   const values=(f,type)=>elements[f]?.filter(it=>it.type===type)||[];
   const itemAt=(f,itemId)=>(elements[f]||[]).find(it=>id(it)===String(itemId))||null;
@@ -170,7 +180,9 @@
    for(const c of candidates){
     if(zone&&c.zoneId!==zone)continue;
     if(!circuitOn(f,c))continue;
-    const feet=route(f,c.panel,it);
+    const gapFt=it.type==='light_fixture'&&it.service?.requiresPower===true?
+     Math.max(0,number(it.service.maxWallDistanceFt,30)):3.25;
+    const feet=route(f,c.panel,it,gapFt);
     if(feet<=c.rangeFt&&feet<d){d=feet;best=c;}
    }
    return best;
@@ -239,7 +251,7 @@
     return valves.every(v=>{
      if(assigned&&id(v)!==assigned)return true;
      if(!assigned&&(!port.networkId||!v.networkId||v.networkId!==port.networkId))return true;
-     return v.opened!==false&&s.enabled[id(v)]!==false;
+     return (s.enabled[id(v)]??v.opened)!==false;
     });
    };
    if(it.type==='water_outlet'){
@@ -347,7 +359,8 @@
    if(state.phone.placedAt){
     const f=Math.floor(number(state.phone.placedFloor,-1));
     const charger=itemAt(f,state.phone.placedAt);
-    if(charger?.type==='phone_charger'&&electricalStatus(f,charger,snap).powered)
+    if(!charger){takePhone();}
+    else if(charger.type==='phone_charger'&&electricalStatus(f,charger,snap).powered)
      state.phone.battery=clamp(state.phone.battery+Math.max(0,number(charger.chargePerHour,25))*seconds/3600,0,100);
    }else{
     state.phone.battery=clamp(state.phone.battery-Math.max(0,number(options.phoneDrainPerHour,0.5))*seconds/3600,0,100);
