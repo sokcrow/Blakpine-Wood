@@ -136,9 +136,11 @@ test('el overlay eléctrico continúa por ventanas, puertas y aberturas',()=>{
 });
 test('editor y motor 3D cargan la misma versión corregida del grafo',()=>{
  const hook=fs.readFileSync(path.join(__dirname,'fh-services-engine-hook.js'),'utf8');
- const version='fh-services-core.js?v=20261109-cable-range-3x-1';
- assert.ok(editor.includes(version));assert.ok(hook.includes(version));
- assert.ok(editor.includes('fh-services-engine-hook.js?v=20261109-cable-range-3x-1'));
+ const coreVersion=editor.match(/fh-services-core\.js\?v=([a-zA-Z0-9-]+)/)?.[1];
+ const hookVersion=editor.match(/fh-services-engine-hook\.js\?v=([a-zA-Z0-9-]+)/)?.[1];
+ assert.ok(coreVersion,'el editor debe cargar FHServices');
+ assert.equal(hookVersion,coreVersion,'editor y puente 3D deben compartir versión');
+ assert.ok(hook.includes('fh-services-core.js?v='+coreVersion),'el puente 3D debe cargar la versión del editor');
 });
 test('el plano omite las lámparas del otro tramo y las que superan el alcance',()=>{
  const {project,breaker}=network('door');
