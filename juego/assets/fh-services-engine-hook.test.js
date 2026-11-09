@@ -40,8 +40,8 @@ function exampleEngine(){
   '</script></body></html>'
  ].join('\n');
 }
-function runEngine(saved){
- const win={__saved:saved,FHServices:Services};
+function runEngine(saved,overrides={}){
+ const win={__saved:saved,FHServices:Services,...overrides};
  const patched=loadHook().patch(exampleEngine());
  const match=patched.match(/<script>\s*([\s\S]*?)<\/script>/);
  assert.ok(match,'el parche mantiene el script principal');
@@ -95,3 +95,12 @@ test('un mapa antiguo sin services sigue inicializando medidores a cero',()=>{
  assert.equal(win.FHServicesRuntime.state.meters.waterLiters,0);
  assert.equal(win.FHServicesRuntime.state.contracts.internet,'active');
 });
+test('una computadora antigua sin requiresPower también debe tener suministro; proveedor ausente bloquea',()=>{
+ let options;
+ const {win}=runEngine({}, {FHComputer:{createRuntime:input=>{options=input;return {}}}});
+ const item={id:'legacy',modelId:'escritorio_pc'};
+ win.FHServicesRuntime=undefined;assert.equal(options.powerAvailable(item,0),false);
+ win.FHServicesRuntime={statusFor:()=>({power:{powered:false}})};assert.equal(options.powerAvailable(item,0),false);
+ win.FHServicesRuntime={statusFor:()=>({power:{powered:true}})};assert.equal(options.powerAvailable(item,0),true);
+});
+

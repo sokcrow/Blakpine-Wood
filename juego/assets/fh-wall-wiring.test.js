@@ -52,10 +52,10 @@ for(const type of ['door','peephole_door','opening']){
   const graph=FH.wallGraph(wallRun(type));
   assert.equal(graph.routeDetailed(origin,target,0),null);
  });
- test(type+': no hay alimentación ni conexión cableada a través del hueco',()=>{
+ test(type+': la puerta no interfiere con electricidad; las otras redes conservan su trazado',()=>{
   const {project,socket,router,port}=network(type),runtime=FH.createRuntime(project,{});
-  assert.equal(runtime.sourceFor(0,socket,'a'),null);
-  assert.equal(runtime.statusFor(0,socket).power.powered,false);
+  assert.ok(runtime.sourceFor(0,socket,'a'));
+  assert.equal(runtime.statusFor(0,socket).power.powered,true);
   assert.equal(runtime.wiredRoute(0,router,port,30),null);
  });
 }
@@ -118,40 +118,40 @@ test('la caché se reconstruye al editar una ventana o convertirla en puerta/abe
   portal.a.y=1;portal.b.y=1;assert.equal(route(),null);
   portal.a.y=0;portal.b.y=0;assert.ok(route());
   for(const blockedType of ['door','peephole_door','opening']){
-   portal.type=blockedType;assert.equal(route(),null);
+   portal.type=blockedType;assert.ok(route());
    portal.type='window';assert.ok(route());
   }
  }
 });
-test('el overlay pasa por ventanas y no dibuja conexiones a través de puertas/aberturas',()=>{
+test('el overlay eléctrico continúa por ventanas, puertas y aberturas',()=>{
  for(const type of ['window','door','peephole_door','opening']){
   const {project}=network(type),ctx=overlayEnvironment(project),lines=[];
   let from=null,to=null;
   const canvas={save(){},restore(){},beginPath(){from=to=null},
    moveTo(x,y){from={x,y}},lineTo(x,y){to={x,y}},stroke(){if(from&&to)lines.push({from,to})},arc(){},fill(){}};
   ctx.drawLightingOverlay(canvas,1);
-  if(type!=='window'){assert.equal(lines.length,0);continue}
   assert.ok(lines.some(l=>l.from.x===1&&Math.abs(l.to.x-1.66)<1e-6&&l.from.y===0&&l.to.y===0));
   assert.equal(lines.reduce((sum,l)=>sum+Math.hypot(l.to.x-l.from.x,l.to.y-l.from.y),0),5);
  }
 });
 test('editor y motor 3D cargan la misma versión corregida del grafo',()=>{
  const hook=fs.readFileSync(path.join(__dirname,'fh-services-engine-hook.js'),'utf8');
- const version='fh-services-core.js?v=20261109-routed-breaker-5';
+ const version='fh-services-core.js?v=20261109-cable-length-6';
  assert.ok(editor.includes(version));assert.ok(hook.includes(version));
- assert.ok(editor.includes('fh-services-engine-hook.js?v=20261109-routed-breaker-5'));
+ assert.ok(editor.includes('fh-services-engine-hook.js?v=20261109-cable-length-6'));
 });
 test('el plano omite las lámparas del otro tramo y las que superan el alcance',()=>{
  const {project,breaker}=network('door');
+ breaker.circuits[0].rangeFt=8;
  project.floors[0].items.push(...[.3,.7,2,2.5].map((x,i)=>({id:'lamp-'+i,type:'light_fixture',zoneId:'a',x,y:.2})));
  const ctx=overlayEnvironment(project),lines=[];
  let from=null,to=null;
  const canvas={save(){},restore(){},beginPath(){from=to=null},
   moveTo(x,y){from={x,y}},lineTo(x,y){to={x,y}},stroke(){if(from&&to)lines.push({from,to})},arc(){},fill(){}};
  ctx.drawLightingOverlay(canvas,1);
- assert.equal(lines.length,2);
- assert.ok(lines.every(l=>l.to.x<=1&&l.to.y===0));
- breaker.circuits[0].rangeFt=2;
+ assert.equal(lines.length,4);
+ assert.ok(lines.every(l=>l.to.x<=1&&l.to.y<=.2));
+ breaker.circuits[0].rangeFt=3;
  lines.length=0;ctx.drawLightingOverlay(canvas,1);
- assert.equal(lines.length,1);assert.equal(lines[0].to.x,.3);
+ assert.equal(lines.length,2);assert.equal(lines[0].to.x,.3);
 });

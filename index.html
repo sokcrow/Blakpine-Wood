@@ -188,9 +188,9 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
 <script src="./juego/assets/fh-access-config.js?v=20261107-map-v1"></script>
 <script src="./juego/assets/fh-weather-strings.js?v=20261108-clima1"></script>
 <script src="./juego/assets/fh-weather-editor.js?v=20261108-clima1"></script>
-<script src="./juego/assets/fh-services-strings.js?v=20261108-service-core-1"></script>
-<script src="./juego/assets/fh-services-core.js?v=20261109-routed-breaker-5"></script>
-<script src="./juego/assets/fh-light-strings.js?v=20261108-breaker-groups-1"></script>
+<script src="./juego/assets/fh-services-strings.js?v=20261109-cable-length-6"></script>
+<script src="./juego/assets/fh-services-core.js?v=20261109-cable-length-6"></script>
+<script src="./juego/assets/fh-light-strings.js?v=20261109-zones-2"></script>
 <script>// /shared + /editor. Motor empaquetado y aislado en iframe.
 const ForestShared=(()=>{
 // shared/geometry.js
@@ -624,7 +624,7 @@ function createLightingSystem(floors,state,config={}){
      Number.isInteger(spec.floorIndex)?spec.floorIndex:panelFloor;
     if(!circuitsByFloor[target])continue;
     const zone=str(spec.zoneId)||(spec===panel?'':str(spec.id))||'main';
-    const circuit={...spec,zoneId:zone,powerScope:spec.powerScope||'zone'};
+    const circuit={...spec,zoneId:zone,powerScope:spec.powerScope||'zone',breakerFlag:'power_breaker:'+panel.id+':'+(spec===panel?zone:str(spec.id)||zone)};
     const sources=circuitsByFloor[target].get(zone)||[];
     sources.push({panel,circuit});circuitsByFloor[target].set(zone,sources);
    }
@@ -658,6 +658,7 @@ function createLightingSystem(floors,state,config={}){
   return {ok:true,key,value:state.flags[key],lit:state.flags[key]&&roomLit(floor,room)};
  }
  function breakerKey(floor,item={}){
+  if(str(item.breakerFlag))return item.breakerFlag;
   return item.powerScope==='global'?'power_global':item.powerScope==='zone'?zoneKey(str(item.zoneId)||'main'):powerKey(floor);
  }
  function breakerPower(floor,item={}){
@@ -704,7 +705,7 @@ function circuitsForPanel(floors,floorIndex,panel={}){
  const push=(id,name,scope='zone',zoneId='',powerFlag='',completionFlag='',targetFloor=floorIndex)=>{
   id=nonempty(id);if(!id||used.has(id))return;
   used.add(id);
-  circuits.push({id,name:nonempty(name)||labelFor(id),powerScope:allowedScopes.has(scope)?scope:'zone',zoneId:nonempty(zoneId)||'main',powerFlag:nonempty(powerFlag),floorIndex:targetFloor,completionFlag:nonempty(completionFlag)||`section_complete:${id}`});
+  circuits.push({id,name:nonempty(name)||labelFor(id),powerScope:allowedScopes.has(scope)?scope:'zone',zoneId:nonempty(zoneId)||'main',powerFlag:nonempty(powerFlag),floorIndex:targetFloor,completionFlag:nonempty(completionFlag)||`section_complete:${id}`,breakerFlag:'power_breaker:'+panel.id+':'+(Array.isArray(panel.circuits)&&panel.circuits.length?id:nonempty(panel.zoneId)||'main')});
  };
  // Configuración de circuitos opcional para un tablero concreto. No obliga a migrar mapas viejos.
  if(Array.isArray(panel.circuits)&&panel.circuits.length){
@@ -757,7 +758,7 @@ function editorCircuits(floor){
  return all;
 }
 function nextCircuit(floor,panel){
- const used=new Set(editorCircuits(floor).map(c=>c.zoneId));
+ const used=new Set(editorCircuits(floor).flatMap(c=>[c.id,c.zoneId]));
  const source=String(floor?.id||'piso').replace(/[^a-z0-9_-]/gi,'_');
  const owner=String(panel?.id||'panel').replace(/[^a-z0-9_-]/gi,'_').slice(-12);
  let index=1;while(used.has(`${source}_${owner}_c${index}`))index++;
@@ -1499,7 +1500,7 @@ function validate(project){
      if(!c||typeof c!=='object'||Array.isArray(c)){err(cp,'debe ser un circuito');continue}
      const zone=c.zoneId||c.id;
      if(typeof zone!=='string'||!zone.trim())err(`${cp}.zoneId`,'ID único obligatorio');
-     else if(circuitIds.has(zone))err(`${cp}.zoneId`,'otro breaker ya usa este ID');else circuitIds.add(zone);
+     else{const owner=f.id+':'+it.id+':'+zone;if(circuitIds.has(owner))err(`${cp}.zoneId`,'este panel ya usa esta zona');else circuitIds.add(owner);}
      if(c.id!==undefined&&(typeof c.id!=='string'||!c.id.trim()))err(`${cp}.id`,'ID obligatorio');
      if(c.name!==undefined&&(typeof c.name!=='string'||!c.name.trim()))err(`${cp}.name`,'etiqueta obligatoria');
      if(c.powerScope!==undefined&&!['global','floor','zone'].includes(c.powerScope))err(`${cp}.powerScope`,'alcance no válido');
@@ -1778,30 +1779,35 @@ function availableCircuits(){return ForestShared.editorCircuits(current())}
 function selectedCircuit(){return $('#circuitChooser')?.value||''}
 function circuitInfo(zone){return availableCircuits().find(c=>c.zoneId===zone)}
 function circuitColorFor(zone){return circuitInfo(zone)?.circuitColor||'#93a0ad'}
-function breakerCircuitGroups(circuits=availableCircuits()){
+function electricalZoneGroups(circuits=availableCircuits()){
  const groups=new Map();
  for(const circuit of circuits){
-  if(!groups.has(circuit.panelId))groups.set(circuit.panelId,{panelId:circuit.panelId,panelLabel:circuit.panelLabel,circuits:[]});
-  groups.get(circuit.panelId).circuits.push(circuit);
+  if(!groups.has(circuit.zoneId))groups.set(circuit.zoneId,{zoneId:circuit.zoneId,name:circuit.name,circuits:[]});
+  groups.get(circuit.zoneId).circuits.push(circuit);
  }
  return [...groups.values()];
+}
+function setZoneColor(zone,color){
+ for(const c of availableCircuits().filter(c=>c.zoneId===zone)){
+  const panel=current().items.find(it=>it.id===c.panelId);
+  const spec=panel?.circuits?.find(spec=>(spec.id||spec.zoneId)===c.id);
+  if(spec)spec.circuitColor=color;else if(panel)panel.circuitColor=color;
+ }
 }
 function refreshCircuits(focusZone){
  const T=window.FH_LIGHT_TEXT;
  const choice=$('#circuitChooser'),color=$('#circuitColor'),message=$('#circuitStatus');if(!choice)return;
  const old=focusZone||choice.value||'',circuits=availableCircuits();
- const empty=document.createElement('option');empty.value='';empty.textContent=T.chooseBreaker;
- const groups=breakerCircuitGroups(circuits).map(panel=>{
-  const group=document.createElement('optgroup');group.label=T.breakerIdentity(panel.panelLabel,panel.panelId);
-  for(const c of panel.circuits){const option=document.createElement('option');option.value=c.zoneId;option.textContent=T.breakerIdentity(c.panelLabel,c.panelId)+' · '+T.circuitIdentity(c.name,c.zoneId);group.append(option)}
-  return group;
+ const empty=document.createElement('option');empty.value='';empty.textContent=T.chooseZone;
+ const groups=electricalZoneGroups(circuits).map(zone=>{
+  const option=document.createElement('option');option.value=zone.zoneId;option.textContent=T.circuitIdentity(zone.name,zone.zoneId);return option;
  });
  choice.replaceChildren(empty,...groups);
  choice.value=circuits.some(c=>c.zoneId===old)?old:circuits[0]?.zoneId||'';
  const selected=circuitInfo(choice.value);color.disabled=!selected;color.value=selected?.circuitColor||'#93a0ad';
  if(message){if(!selected){message.textContent=T.noBreaker;}
   else{const n=ForestShared.circuitCounts(current().items,selected.zoneId);
-   message.textContent=T.connectionSummary(T.breakerIdentity(selected.panelLabel,selected.panelId),T.circuitIdentity(selected.name,selected.zoneId),n);
+   message.textContent=T.zoneSummary(T.circuitIdentity(selected.name,selected.zoneId),n,new Set(circuits.filter(c=>c.zoneId===selected.zoneId).map(c=>c.panelId)).size);
   }
  }
 }
@@ -1816,7 +1822,7 @@ function utilityVisual(){
   project.properties||[]]);
  if(utilityVisualCache.signature!==signature){
   utilityVisualCache.signature=signature;
-  utilityVisualCache.graph=window.FHServices?.wallGraph(current().items)||null;
+  utilityVisualCache.graph=window.FHServices?.wallGraph(current().items,{doorways:true})||null;
   utilityVisualCache.runtime=window.FHServices?.createRuntime(project,{});
  }
  return utilityVisualCache;
@@ -1859,9 +1865,9 @@ function drawLightingOverlay(c,z){
    return room?.zoneId===circ.zoneId;
   };
   for(const target of items.filter(it=>['light_fixture','light_switch','power_outlet'].includes(it.type)&&sameCircuit(it))){
-   if(runtime?.sourceFor(floorIndex,target,circ.zoneId)?.panel.id!==owner.id)continue;
-   const gapFt=target.type==='light_fixture'&&!target.wallId?Math.max(0,Number(target.service?.maxWallDistanceFt)||30):3.25;
-   const path=graph.routeDetailed(owner,target,gapFt/Math.max(.1,Number(project.units.feetPerCell)||5));
+   const source=runtime?.sourceFor(floorIndex,target,circ.zoneId);
+   if(source?.panel.id!==owner.id)continue;
+   const path=source.route;
    if(path){paths.push(path);terminals.push(path.to)}
   }
   drawWallPaths(c,z,paths,color,selected);
@@ -2538,18 +2544,20 @@ function renderInteractionInspector(it,fields){
  fields.append(sec);
 }
 function modalCircuitAudit(){
- const T=window.FH_LIGHT_TEXT,circuits=availableCircuits(),groups=breakerCircuitGroups(circuits),items=current().items,known=new Set(circuits.map(c=>c.zoneId));
- modal('<h2>'+T.connectionTitle+'</h2><p>'+T.connectionIntro+'</p><div id="circuitAuditList"></div><div class="actions"><button id="closeCircuitAudit" class="primary">'+T.backToMap+'</button></div>',()=>{
+ const T=window.FH_LIGHT_TEXT,circuits=availableCircuits(),groups=electricalZoneGroups(circuits),items=current().items,known=new Set(circuits.map(c=>c.zoneId));
+ modal('<h2>'+T.zoneTitle+'</h2><p>'+T.zoneIntro+'</p><div id="circuitAuditList"></div><div class="actions"><button id="closeCircuitAudit" class="primary">'+T.backToMap+'</button></div>',()=>{
   const list=$('#circuitAuditList');list.style.cssText='display:grid;gap:9px;max-height:48vh;overflow:auto';
-  for(const panel of groups){
+  for(const zone of groups){
    const section=document.createElement('section');section.style.cssText='border:1px solid #687b86;padding:10px;background:#15232d;overflow-wrap:anywhere';
-   const heading=document.createElement('h3');heading.style.cssText='font-size:15px;margin:0 0 8px';heading.textContent=T.breakerIdentity(panel.panelLabel,panel.panelId);section.append(heading);
-   for(const circ of panel.circuits){
+   const heading=document.createElement('h3');heading.style.cssText='font-size:15px;margin:0 0 8px';heading.textContent=T.circuitIdentity(zone.name,zone.zoneId);section.append(heading);
+   const zoneCounts=document.createElement('small');zoneCounts.textContent=T.connectionCounts(ForestShared.circuitCounts(items,zone.zoneId));section.append(zoneCounts);
+   const zoneRooms=items.filter(it=>it.type==='room'&&it.zoneId===zone.zoneId);
+   if(zoneRooms.length){const labels=document.createElement('small');labels.textContent=T.assignedRooms(zoneRooms.map(r=>r.label||r.roomId||r.id));section.append(labels)}
+   for(const circ of zone.circuits){
    const card=document.createElement('div');card.style.cssText='padding:8px 10px;margin-top:6px;background:#1b2b35';card.style.borderLeft='3px solid '+circ.circuitColor;
-   const h=document.createElement('strong');h.textContent=T.circuitIdentity(circ.name,circ.zoneId);card.append(h);
-   const rooms=items.filter(it=>it.type==='room'&&it.zoneId===circ.zoneId),lights=items.filter(it=>it.type==='light_fixture'&&it.zoneId===circ.zoneId),switches=items.filter(it=>it.type==='light_switch'&&it.zoneId===circ.zoneId);
-   const info=document.createElement('div');info.textContent=T.connectionCounts({rooms:rooms.length,lamps:lights.length,switches:switches.length});card.append(info);
-   if(rooms.length){const labels=document.createElement('small');labels.textContent=T.assignedRooms(rooms.map(r=>r.label||r.roomId||r.id));card.append(labels)}
+   const h=document.createElement('strong');h.textContent=T.breakerIdentity(circ.panelLabel,circ.panelId);card.append(h);
+   const owner=items.find(it=>it.id===circ.panelId),spec=owner?.circuits?.find(c=>(c.id||c.zoneId)===circ.id),type=owner?.breakerType||'medium';
+   const info=document.createElement('div');info.textContent=T.breakerRange(T.breakerTypes[type]||type,window.FHServices?.rangeFor(owner||{},spec)??60);card.append(info);
    section.append(card);
    }
    list.append(section);
@@ -2562,7 +2570,7 @@ function modalCircuitAudit(){
 }
 function circuitSelectOptions(zone){
  const T=window.FH_LIGHT_TEXT;
- const options=[['main',T.noCircuit],...availableCircuits().map(c=>[c.zoneId,T.breakerIdentity(c.panelLabel,c.panelId)+' · '+T.circuitIdentity(c.name,c.zoneId)])];
+ const options=[['main',T.noCircuit],...electricalZoneGroups().map(c=>[c.zoneId,T.circuitIdentity(c.name,c.zoneId)])];
  if(zone&&!options.some(o=>o[0]===zone))options.push([zone,T.missingBreaker(zone)]);
  return options;
 }
@@ -2585,16 +2593,22 @@ function renderBreakerCircuits(panel,fields){
   const card=document.createElement('section');card.className='breaker-circuit-card';card.style.cssText='grid-column:1/-1;display:grid;gap:7px;padding:10px;border:1px solid #687b86;background:#15232d;';
   const n=ForestShared.circuitCounts(current().items,circ.zoneId);
   const head=document.createElement('strong');head.textContent=`Palanca ${index+1} · ${circ.name}`;card.append(head);
-  const id=document.createElement('small');id.style.cssText='overflow-wrap:anywhere;color:#a4c4ce';id.textContent=`ID permanente: ${circ.zoneId}`;card.append(id);
+   const id=document.createElement('small');id.style.cssText='overflow-wrap:anywhere;color:#a4c4ce';id.textContent=`ID permanente: ${circ.id}`;card.append(id);
   const counts=document.createElement('small');counts.textContent=`Conectado: ${n.rooms} habitaciones, ${n.lamps} lámparas y ${n.switches} interruptores`;card.append(counts);
   if(legacy){fields.append(card);return}
   const spec=panel.circuits.find(c=>c.zoneId===circ.zoneId);
+  const zoneLabel=document.createElement('label');zoneLabel.textContent=window.FH_LIGHT_TEXT.zoneLabel;
+  const zoneChoice=document.createElement('select');
+  for(const zone of electricalZoneGroups()){const option=document.createElement('option');option.value=zone.zoneId;option.textContent=window.FH_LIGHT_TEXT.circuitIdentity(zone.name,zone.zoneId);zoneChoice.append(option)}
+  zoneChoice.value=spec.zoneId||spec.id;
+  zoneChoice.onchange=()=>{const zone=circuitInfo(zoneChoice.value);spec.zoneId=zoneChoice.value;if(zone){spec.name=zone.name;spec.circuitColor=zone.circuitColor}if(panel.circuits[0]===spec)panel.zoneId=spec.zoneId;record();refreshCircuits(spec.zoneId);openInspector()};
+  zoneLabel.append(zoneChoice);card.append(zoneLabel);
   const row=(label,type,value,change)=>{const holder=document.createElement('label');holder.textContent=label;const input=document.createElement('input');input.type=type;input.value=value;input.onchange=()=>{change(input.value);record();refreshCircuits(circ.zoneId);openInspector()};holder.append(input);card.append(holder)};
   row('Etiqueta (Apartamento 1, Pasillo...)','text',spec.name||'',v=>spec.name=v.trim()||'Zona');
-  row('Color del circuito','color',spec.circuitColor||CIRCUIT_COLORS[0],v=>spec.circuitColor=v);
+  row('Color del circuito','color',spec.circuitColor||CIRCUIT_COLORS[0],v=>setZoneColor(circ.zoneId,v));
   const scope=document.createElement('label');scope.textContent='Alcance de esta palanca';const select=document.createElement('select');
-  for(const [val,name] of [['zone','Solo dispositivos conectados'],['floor','Todo el piso'],['global','Todo el edificio']]){const option=document.createElement('option');option.value=val;option.textContent=name;select.append(option)}
-  select.value=spec.powerScope||'zone';select.onchange=()=>{spec.powerScope=select.value;record();openInspector()};scope.append(select);card.append(scope);
+  for(const [val,name] of [['zone',window.FH_LIGHT_TEXT.zoneScope]]){const option=document.createElement('option');option.value=val;option.textContent=name;select.append(option)}
+  select.value='zone';select.onchange=()=>{spec.powerScope=select.value;record();openInspector()};scope.append(select);card.append(scope);
   const btns=document.createElement('div');btns.style.cssText='display:flex;gap:6px;flex-wrap:wrap';
   const choose=document.createElement('button');choose.type='button';choose.textContent='Asignar esta zona';choose.onclick=()=>{refreshCircuits(circ.zoneId);setCategory('lighting');$('#circuitChooser').value=circ.zoneId;refreshCircuits(circ.zoneId);chooseTool('zone_assign');closeInspector();toast(`Toca los cuartos o lámparas para conectarlos a ${circ.name}`)};btns.append(choose);
   const remove=document.createElement('button');remove.type='button';remove.textContent='Eliminar circuito';remove.disabled=panel.circuits.length<=1;remove.title='Conserva al menos una palanca por panel';remove.onclick=()=>{if(n.rooms+n.lamps+n.switches){toast('Primero cambia de circuito sus habitaciones y dispositivos.');return}panel.circuits=panel.circuits.filter(c=>c.zoneId!==circ.zoneId);record();refreshCircuits();openInspector()};btns.append(remove);card.append(btns);fields.append(card);
@@ -2659,7 +2673,7 @@ function attachServiceInspector(it,fields){
  sec.style.cssText='grid-column:1/-1;border-top:1px solid var(--line);padding-top:8px;display:grid;grid-template-columns:repeat(auto-fit,minmax(138px,1fr));gap:7px';
  const title=document.createElement('strong');title.textContent='Servicios y conexiones';title.style.gridColumn='1/-1';sec.append(title);
  for(const name of names[it.type]||[]){
-  if(name==='breakerType'){sec.append(makeField(T[name]||name,name,it.breakerType||'medium','select',[['small','Pequeño'],['medium','Mediano'],['large','Grande']]));continue;}
+  if(name==='breakerType'){sec.append(makeField(T[name]||name,name,it.breakerType||'medium','select',[['small','Pequeño'],['medium','Mediano'],['large','Grande']]));const note=document.createElement('small');note.textContent=window.FH_LIGHT_TEXT.breakerRange(it.breakerType||'medium',window.FHServices.LIMITS[it.breakerType||'medium']?.rangeFt||60);sec.append(note);continue;}
   if(name==='propertyId'){
    sec.append(makeField(T[name]||name,name,it.propertyId||'','select',
     [['','Automática (posición)'],...(project.properties||[]).filter(p=>p.floorId===current().id).map(p=>[p.id,p.name||p.id])]));continue;
@@ -2673,9 +2687,11 @@ function attachServiceInspector(it,fields){
   sec.append(makeField(T[name]||name,name,value,flag?'checkbox':numeric?'number':'text'));
  }
  if(configurable.includes(it.type)){
-  sec.append(makeField(T.powerRequired||'Necesita electricidad','service.requiresPower',it.service?.requiresPower===true,'checkbox'));
+  const intrinsic=window.FHServices?.requiresPower({...it,requiresPower:false,service:{...it.service,requiresPower:false}});
+  const powerField=makeField(T.powerRequired||'Necesita electricidad','service.requiresPower',intrinsic||it.service?.requiresPower===true,'checkbox');
+  if(intrinsic)powerField.querySelector('input').disabled=true;sec.append(powerField);
   sec.append(makeField(T.waterRequired||'Necesita agua','service.requiresWater',it.service?.requiresWater===true,'checkbox'));
-  if(it.service?.requiresPower===true){
+  if(intrinsic||it.service?.requiresPower===true){
    sec.append(makeField(T.rayos||'Consumo (rayos)','service.rayos',it.service?.rayos??1,'number'));
    sec.append(makeField(T.watts||'Potencia (vatios)','service.watts',it.service?.watts??200,'number'));
    sec.append(makeField('Consumo solamente durante uso','service.onDemand',it.service?.onDemand===true,'checkbox'));
@@ -2845,7 +2861,7 @@ function importProject(obj){
 function imageFile(f){if(!f)return;if(!f.type.startsWith('image/')){toast('Selecciona una imagen PNG, JPG o WebP');return}const url=URL.createObjectURL(f),im=new Image();im.onload=()=>{let w=im.naturalWidth,h=im.naturalHeight;if(!w||!h){URL.revokeObjectURL(url);return}const max=2400,factor=Math.min(1,max/Math.max(w,h)),c=document.createElement('canvas');c.width=Math.round(w*factor);c.height=Math.round(h*factor);c.getContext('2d').drawImage(im,0,0,c.width,c.height);let data=c.toDataURL('image/jpeg',.84);current().reference={name:f.name,data,width:c.width,height:c.height,opacity:.78};setupImage(floorIndex);URL.revokeObjectURL(url);saveSoon();setTimeout(fitMap,100);toast(`Imagen importada a ${current().name}. Comprueba la cuadrícula.`)};im.onerror=()=>{toast('No se pudo abrir la imagen');URL.revokeObjectURL(url)};im.src=url}
 function modalImage(){const r=current().reference;modal(`<h2>Plantilla de ${current().name}</h2><p>La imagen original está incluida. También puedes cargar tu propio mapa de D&D como JPG, PNG o WebP.</p><div class="tip">Se dibuja <b>encima de la imagen</b>. No se transforma la imagen en colisiones automáticamente; tú decides dónde hay paredes y puertas.</div><p>Imagen actual: <b>${escapeAttr(r.name||'Sin nombre')}</b> · ${r.width} × ${r.height} px.</p><div class="actions"><button class="primary" id="chooseImage">▧ Importar imagen del dispositivo</button><button id="useOriginal">Restaurar imagen original</button><button id="cancelImage">Cerrar</button></div>`,()=>{$('#chooseImage').onclick=()=>$('#imageInput').click();$('#useOriginal').onclick=()=>{current().reference={name:`Referencia original ${current().name}`,data:IMAGES[Math.min(floorIndex,IMAGES.length-1)],width:1145,height:1536,opacity:.73};setupImage(floorIndex);saveSoon();closeModal();setTimeout(fitMap,120)};$('#cancelImage').onclick=closeModal})}
 function wire(){canvas.addEventListener('pointerdown',pointerDown);canvas.addEventListener('pointermove',pointerMove);canvas.addEventListener('pointerup',pointerUp);canvas.addEventListener('pointercancel',e=>{if(middlePan?.id===e.pointerId){middlePan=null;canvas.style.cursor='';render();return}pointerStates.delete(e.pointerId);action=null;preview=null;gesture=null;cursorGridPoint=null;render()});canvas.addEventListener('lostpointercapture',e=>{if(middlePan?.id===e.pointerId){middlePan=null;canvas.style.cursor='';render()}});canvas.addEventListener('auxclick',e=>{if(e.button===1)e.preventDefault()});canvas.addEventListener('wheel',e=>{e.preventDefault();let p=toLocal(e);zoomAt(e.deltaY<0?1.15:1/1.15,p.x,p.y)},{passive:false});canvas.addEventListener('contextmenu',e=>e.preventDefault());canvas.addEventListener('pointerleave',()=>{cursorGridPoint=null;render()});$('#plusBtn').onclick=()=>zoomAt(1.3);$('#minusBtn').onclick=()=>zoomAt(1/1.3);$('#fitBtn').onclick=fitMap;$('#addFloorBtn').onclick=addFloor;$('#editFloorBtn').onclick=editFloorInfo;$('#undoBtn').onclick=undo;$('#redoBtn').onclick=redo;$('#gridBtn').onclick=()=>{gridVisible=!gridVisible;$('#gridBtn').classList.toggle('active',gridVisible);render()};$('#jointsBtn').onclick=()=>{jointsVisible=!jointsVisible;$('#jointsBtn').classList.toggle('active',jointsVisible);render()};$('#roomsBtn').onclick=modalRoomList;$('#copyFloorWallsBtn').onclick=confirmCopyInteriorLayout;$('#snapCheck').onchange=e=>{snapEnabled=e.target.checked;syncSnapUi();toast(snapEnabled?'Imán de cuadrícula activo':'Ajuste fino libre');render()};$('#snap1Btn').onclick=()=>{project.units.snapCell=1;snapEnabled=true;syncSnapUi();saveSoon();render();toast('Snap a esquinas de la cuadrícula')};$('#snapHalfBtn').onclick=()=>{project.units.snapCell=.5;snapEnabled=true;syncSnapUi();saveSoon();render();toast('Snap a media casilla')};$('#snapQuarterBtn').onclick=()=>{project.units.snapCell=.25;snapEnabled=true;syncSnapUi();saveSoon();render();toast('Snap a cuarto de casilla')};$('#axisCheck').onchange=e=>axisLock=e.target.checked;$$('#categories button').forEach(b=>b.onclick=()=>setCategory(b.dataset.cat));$$('#layerSwitch button').forEach(b=>b.onclick=()=>setCategory(({architecture:'structure',furniture:'furniture',lighting:'lighting'})[b.dataset.layer]));$('#circuitChooser').onchange=()=>{refreshCircuits();render()};$('#circuitShowAll').onchange=render;$('#circuitAudit').onclick=modalCircuitAudit;
- $('#circuitColor').onchange=e=>{const c=circuitInfo(selectedCircuit());if(!c){toast('Selecciona un circuito real.');return}const br=current().items.find(it=>it.id===c.panelId);if(!br)return;const spec=br.circuits?.find(v=>v.zoneId===c.zoneId);if(spec)spec.circuitColor=e.target.value;else br.circuitColor=e.target.value;record();refreshCircuits(c.zoneId);if(selection===br.id)openInspector()};$('#parkingConfigBtn').onclick=()=>{if(!window.FHParkingEditor?.isTool(activeTool)){setCategory('parking_marks');chooseTool('parking_stall')}else window.FHParkingEditor.settings(activeTool)};$('#optionsBtn').onclick=modalScale;$('#gridDimensionsBtn').onclick=modalScale;$('#applyQuickGrid').onclick=applyQuickGrid;for(const id of ['quickColumns','quickRows']){const el=$('#'+id);el.addEventListener('change',()=>{if($('#quickColumns').value&&$('#quickRows').value)applyQuickGrid()});el.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();applyQuickGrid();el.blur()}})}$('#fileBtn').onclick=modalImage;$('#menuBtn').onclick=modalProject;$('#helpBtn').onclick=modalHelp;$('#inspClose').onclick=closeInspector;$('#deleteBtn').onclick=()=>{if(!selection)return;if(current().items.find(it=>it.id===selection)?.autoGenerated||current().items.find(it=>it.id===selection)?.autoLanding){toast('Edita la escalera desde el piso inferior, o las paredes que forman la habitación.');return}const target=current().items.find(it=>it.id===selection);
+ $('#circuitColor').onchange=e=>{const c=circuitInfo(selectedCircuit());if(!c){toast('Selecciona un circuito real.');return}const br=current().items.find(it=>it.id===c.panelId);if(!br)return;setZoneColor(c.zoneId,e.target.value);record();refreshCircuits(c.zoneId);if(selection===br.id)openInspector()};$('#parkingConfigBtn').onclick=()=>{if(!window.FHParkingEditor?.isTool(activeTool)){setCategory('parking_marks');chooseTool('parking_stall')}else window.FHParkingEditor.settings(activeTool)};$('#optionsBtn').onclick=modalScale;$('#gridDimensionsBtn').onclick=modalScale;$('#applyQuickGrid').onclick=applyQuickGrid;for(const id of ['quickColumns','quickRows']){const el=$('#'+id);el.addEventListener('change',()=>{if($('#quickColumns').value&&$('#quickRows').value)applyQuickGrid()});el.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();applyQuickGrid();el.blur()}})}$('#fileBtn').onclick=modalImage;$('#menuBtn').onclick=modalProject;$('#helpBtn').onclick=modalHelp;$('#inspClose').onclick=closeInspector;$('#deleteBtn').onclick=()=>{if(!selection)return;if(current().items.find(it=>it.id===selection)?.autoGenerated||current().items.find(it=>it.id===selection)?.autoLanding){toast('Edita la escalera desde el piso inferior, o las paredes que forman la habitación.');return}const target=current().items.find(it=>it.id===selection);
  if(target&&window.FHStyleEditor&&!window.FHStyleEditor.canEditItem(target)){toast('No tienes permiso para borrar este objeto');return}
  if(target&&current().items.some(s=>s.type==='light_switch'&&s.wallId===target.id)){toast('Esa pared tiene un interruptor. Muévelo o bórralo primero.');return}
  if(target?.type==='breaker_panel'&&availableCircuits().filter(c=>c.panelId===target.id).some(c=>{const n=ForestShared.circuitCounts(current().items,c.zoneId);return n.rooms+n.lamps+n.switches>0;})){toast('Desconecta sus habitaciones y luces antes de borrar el breaker.');return}
@@ -3051,6 +3067,9 @@ function prepareGLBEngineDoc(source){
  const lightingEnd=source.indexOf('\n// shared/breakers.js',lightingStart);
  if(lightingStart<0||lightingEnd<=lightingStart)throw Error('No se encontró el sistema compartido de iluminación');
  source=source.slice(0,lightingStart)+ForestShared.createLightingSystem.toString()+'\n\n'+source.slice(lightingEnd);
+ const breakerStart=source.indexOf('function circuitsForPanel('),breakerEnd=source.indexOf('\nfunction circuitHUDState(',breakerStart);
+ if(breakerStart<0||breakerEnd<=breakerStart)throw Error('No se encontró el control de breakers');
+ source=source.slice(0,breakerStart)+ForestShared.circuitsForPanel.toString()+'\n'+source.slice(breakerEnd);
  const attachBefore=' return g;\n}\nfunction windowModel(f,it){';
  const cloneBefore='const clone=source.clone(true);\n   clone.position.y+=floorElev[f];';
  const surfacePositionBefore='g.position.set(a.x*CELL,.03,a.y*CELL);';
@@ -4346,7 +4365,7 @@ init();
 <script src="./juego/assets/fh-structure-engine-hook.js?v=20261108-architecture-load"></script>
 <script src="./juego/assets/fh-comic-action-engine-hook.js?v=20261107-comic-actions-1"></script>
 <script src="./juego/assets/fh-context-engine-hook.js?v=20261108-elevator-comfort-1"></script>
-<script src="./juego/assets/fh-services-engine-hook.js?v=20261109-routed-breaker-5"></script>
+<script src="./juego/assets/fh-services-engine-hook.js?v=20261109-cable-length-6"></script>
 </body>
 </html>
 

@@ -13,7 +13,7 @@
   fields:Object.freeze({
    zoneId:'Circuito eléctrico',slots:'Conexiones disponibles',capacityRayos:'Límite eléctrico (rayos)',
    radiusFt:'Radio de conexión (pies)',outletId:'ID del enchufe o multiconector',
-   rangeFt:'Recorrido por pared (pies)',flowLpm:'Caudal (litros/min)',opened:'Válvula abierta',
+   rangeFt:'Cable disponible (pies)',flowLpm:'Caudal (litros/min)',opened:'Válvula abierta',
    wifiRadiusFt:'Radio Wi-Fi (pies)',wifiPassword:'Contraseña Wi-Fi',
    ethernetLengthFt:'Largo del cable Ethernet (pies)',ethernetLeadFt:'Cable del router a pared (pies)',
    roomId:'Habitación de origen',propertyId:'Parcela del router (opcional)',routerId:'Router asignado',
@@ -26,7 +26,7 @@
   }),
   tips:Object.freeze({
    power_outlet:'Coloca el enchufe sobre una pared energizada. Admite dos conexiones por defecto.',
-   power_strip:'El multiconector amplía tomas, no la capacidad eléctrica de la pared.',
+   power_strip:'El multiconector amplía tomas. Su cable y el de cada aparato cuentan dentro del alcance del breaker.',
    phone_charger:'El celular se retira del inventario y su menú desaparece durante la carga.',
    water_main:'Distribuye suministro por los tramos conectados de pared.',
    water_valve:'Cierra o abre el flujo de la tubería asociada.',
@@ -48,3 +48,4 @@
   serviceActive:'Servicio activo',serviceSuspended:'Servicio suspendido'
  });
 })(typeof window!=='undefined'?window:globalThis);
+
