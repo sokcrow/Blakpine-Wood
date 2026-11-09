@@ -52,10 +52,11 @@
   if(!Number.isFinite(penalty)||penalty<0||penalty>100)
    throw Error('Penalización de dificultad inválida.');
   const coins=Math.max(1,1+advantage-disadvantage);
-  const headsPercent=Math.min(100,Math.max(0,100+5*points-penalty*difficulty-10*disadvantage));
+  const sanityPenaltyPct=global.FHSurvival?.penaltySP?.(character?.resources)||0;
+  const headsPercent=Math.min(100,Math.max(0,100+5*points-penalty*difficulty-10*disadvantage-sanityPenaltyPct));
   const heads=headsPercent/100;
   return {
-   skill:id,points,difficulty,advantage,disadvantage,difficultyPenaltyPerPoint:penalty,
+   skill:id,points,difficulty,advantage,disadvantage,sanityPenaltyPct,difficultyPenaltyPerPoint:penalty,
    coinCount:coins,headsPercent,
    successPercent:100*(1-Math.pow(1-heads,coins)),
    criticalSuccessPercent:coins>=2?100*Math.pow(heads,coins):0,

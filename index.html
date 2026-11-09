@@ -4172,7 +4172,61 @@ function fhRefreshActorVisibility(){
    doc=doc.replace(before,after);
   }
   const script='<script src="'+new URL('./juego/assets/fh-floor-visibility.js?v=20261108-floor-vis-2',document.baseURI).href+'"></'+'script>';
-  return doc.replace('</head>',script+'</head>');
+  return addSurvivalToEngine(doc.replace('</head>',script+'</head>'));
+ }
+ // Recursos y estados de personaje: adaptador del motor, no del editor.
+ function addSurvivalToEngine(doc){
+  const edits=[
+   ["weather:initial.weather&&typeof initial.weather==='object'?{...initial.weather}:null};",
+    "weather:initial.weather&&typeof initial.weather==='object'?{...initial.weather}:null,survival:initial.survival&&typeof initial.survival==='object'?JSON.parse(JSON.stringify(initial.survival)):null};"],
+   ["window.FHCharacterRuntime=Object.freeze({get character(){return GameState.character||null},die:fhNotifyCharacterDeath});",
+    "window.FHCharacterRuntime=Object.freeze({get character(){return GameState.character||null},die:fhNotifyCharacterDeath});\n"+
+    "const fhSurvivalMinute=()=>{const c=GameState.clock||{};\n"+
+    " const clock={year:Number.isFinite(c.year)?c.year:2016,month:Number.isFinite(c.month)?c.month:6,day:Number.isFinite(c.day)?c.day:1,minutes:Number.isFinite(c.minutes)?c.minutes:480};\n"+
+    " return window.FHWeatherCore?.absoluteMinute(clock)??clock.minutes;\n"+
+    "};\n"+
+    "let fhSurvivalDirty=false,fhSurvivalLastSave=fhSurvivalMinute();\n"+
+    "const fhSurvival=GameState.character?.resources&&window.FHSurvival?.createRuntime(GameState,{\n"+
+    " onChange:()=>{fhSurvivalDirty=true},onCritical:()=>{fhSurvivalDirty=true},\n"+
+    " onDeath:()=>GameEvents.emit('character:death')\n"+
+    "},fhSurvivalMinute());\n"+
+    "window.FHSurvivalRuntime=fhSurvival;\n"+
+    "const fhSurvivalUI=window.FHSurvivalUI?.mount(fhSurvival,saveProgress);"],
+   ["window.FHDeliveryRuntime?.update(dt);window.FHPhoneRuntime?.update(dt);",
+    "window.FHDeliveryRuntime?.update(dt);window.FHPhoneRuntime?.update(dt);\n"+
+    "if(fhSurvival){\n"+
+    " const fhNow=fhSurvivalMinute();\n"+
+    " const fhPoseState=playerPose.state;\n"+
+    " const fhSleeping=window.FHSleep?.status()?.stage==='asleep';\n"+
+    " const fhSitting=fhPoseState.phase==='sitting'&&fhPoseState.verb==='sit';\n"+
+    " let fhDark=false;\n"+
+    " if(!fhSleeping&&!lighting.state?.enabled&&!fhNatural?.illuminates(user.x,user.z)){\n"+
+    "  const lamps=window.FHLights?.sourcesNear(roomLampEntries,lighting,currentFloor,user.x,user.z,1,16)||[];\n"+
+    "  fhDark=!window.FHLights?.sourcesIlluminate(lamps,user.x,user.z,lightBlockers,ForestShared.pointInSight);\n"+
+    " }\n"+
+    " fhSurvival.update(fhNow,{mode:fhSleeping?'sleeping':fhSitting?'sitting':'awake',\n"+
+    "  stressed:fhDark,relaxing:fhSitting&&!!watchingTvId});\n"+
+    " window.FHSleep?.setUnconscious(!!fhSurvival.state.critical);\n"+
+    " fhSurvivalUI?.update();\n"+
+    " if(fhSurvivalDirty||fhNow-fhSurvivalLastSave>=10){fhSurvivalDirty=false;fhSurvivalLastSave=fhNow;saveProgress();}\n"+
+    "}"]
+  ];
+  for(const [before,after] of edits){
+   const occurrences=doc.split(before).length-1;
+   if(occurrences!==1)throw Error('Hook supervivencia incompatible ('+occurrences+'): '+before.slice(0,64));
+   doc=doc.replace(before,after);
+  }
+  // Mantener intacta la condición de movimiento de los adaptadores existentes.
+  const movement='function moveUpdate(dt){';
+  if(doc.split(movement).length!==2)throw Error('Función de movimiento no localizada');
+  doc=doc.replace(movement,movement+
+   '\n if(fhSurvival?.state.critical){user.walking=false;user.vx=user.vz=0;return;}');
+  const tags=[
+   'fh-survival-strings.js?v=20261109-survival1',
+   'fh-survival-core.js?v=20261109-survival1',
+   'fh-survival-ui.js?v=20261109-survival1'
+  ].map(file=>'<script src="'+new URL('./juego/assets/'+file,document.baseURI).href+'"></'+'script>').join('');
+  return doc.replace('</head>',tags+'</head>');
  }
  const assembled=(window.FHContextEngine?.patch||((doc)=>doc))(addActorPresentationToEngine(addLiveTextToEngine(addDeliveryToEngine(addParkingToEngine(addStylesToEngine(addLightToEngine(source.replace('const MAX_INVENTORY_SLOTS=8;','const MAX_INVENTORY_SLOTS=10;'))))).replace(furnitureVisibilityHook,furnitureRenderHook).replace(cameraBefore,cameraLightAfter).replace(cameraStartBefore,cameraStartAfter).replace(sleepCameraBefore,sleepCameraAfter).replace(loopBefore,loopAfter)
   .replace(maskBefore,maskAfter).replace(wakeHUDBefore,wakeHUDAfter).replace(locationHudHook,locationHudAfter)

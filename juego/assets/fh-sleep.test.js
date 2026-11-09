@@ -128,3 +128,17 @@ test('integración utiliza iris único y texto cómic con su propio fade',()=>{
  assert.match(live,/@keyframes fh-sleep-breath/);
  assert.match(live,/sleep\?2600:580/);
 });
+
+test('inconsciencia reutiliza iris pero no respira Zzz ni permite despertar manual',()=>{
+ const {sleep,classes}=controller();
+ sleep.setUnconscious(true);
+ advance(sleep,3);
+ assert.equal(sleep.status().stage,'unconscious');
+ assert.equal(sleep.status().vulnerable,true);
+ assert.ok(classes.has('fh-sleep-masking'));
+ assert.equal(sleep.needsBreath(),false);
+ assert.equal(sleep.requestWake(()=>({ok:true})).ok,false);
+ sleep.setUnconscious(false);
+ advance(sleep,.1,'standing',null,null);
+ assert.equal(sleep.status().stage,'awake');
+});
