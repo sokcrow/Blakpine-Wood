@@ -100,7 +100,7 @@
    }
   let opened=false,view='home',previous='home',filter='all',currentContact='',editingNote=null,currentDocument=null;
   let toggle=null,panel=null,content=null,clockNode=null,toastNode=null,topTitle=null;
-  let statusChargeBar=null,statusChargeText=null,pendingNotice=false;
+  let statusChargeBar=null,statusChargeText=null,statusWifiIcon=null,pendingNotice=false;
   let elapsed=0,toastTimer=null,lastTorch='',lastCalendarKey='',lastWeatherKey='',networkHost=null,networkEmpty=null,networkRows=new Map(),orderSeen=new Map((state.delivery?.orders||[]).map(o=>[o.id,o.status]));
   const el=(tag,cls,txt)=>{
    const n=document.createElement(tag);if(cls)n.className=cls;
@@ -179,6 +179,22 @@
    return bars===3?label('wifiExcellent','Excelente'):
     bars===2?label('wifiGood','Buena'):
     bars===1?label('wifiWeak','Débil'):label('wifiNoSignal','Sin señal');
+  }
+  function updateWifiStatus(){
+   if(!statusWifiIcon)return;
+   // El Wi-Fi aparece al estar asociado a un router, aunque el proveedor no tenga Internet.
+   const nets=options.networks?.()||[];
+   let best=null;
+   for(const net of nets){
+    if(net?.authenticated!==true||!(Number(net.bars)>0))continue;
+    if(!best||Number(net.bars)>Number(best.bars)||
+      (Number(net.bars)===Number(best.bars)&&Number(net.dbm)>Number(best.dbm)))best=net;
+   }
+   statusWifiIcon.hidden=!best;
+   if(!best)return;
+   const bars=Math.max(1,Math.min(3,Math.floor(Number(best.bars)||1)));
+   updateWifiSignal(statusWifiIcon,bars);
+   statusWifiIcon.setAttribute('aria-label','Wi-Fi: '+wifiQuality(bars));
   }
   function updateStatus(){
    if(!statusChargeBar||!statusChargeText)return;
@@ -339,11 +355,18 @@
   }
   function networkCard(net){
    const row=container('fh-phone-entry fh-phone-network-card');
-   const heading=container('fh-phone-network-heading');
+   const protectedNetwork=net.requiresPassword===true||
+    (net.requiresPassword===undefined&&net.authenticated===false);
+   let form=null,password=null,connect=null;
+   const heading=button('',()=>{
+    if(!form)return;
+    form.hidden=!form.hidden;
+    heading.setAttribute('aria-expanded',String(!form.hidden));
+   },'fh-phone-network-heading');
+   heading.setAttribute('aria-label',safe(net.name||net.routerId,80)+
+    (protectedNetwork?' · '+label('wifiProtected','Red protegida'):''));
    const identity=container('fh-phone-network-identity');
    identity.append(el('strong','fh-phone-network-name',safe(net.name||net.routerId,80)));
-   // El candado depende de la contraseña configurada, no de la sesión activa.
-   const protectedNetwork=net.requiresPassword===true||(net.requiresPassword===undefined&&net.authenticated===false);
    if(protectedNetwork){
     const lock=glyph('lock');
     lock.classList.add('fh-phone-network-lock');
@@ -352,18 +375,11 @@
     lock.setAttribute('aria-label',label('wifiProtected','Red protegida'));
     identity.append(lock);
    }
-   const bars=Math.max(0,Math.min(3,Math.floor(Number(net.bars)||0)));
-   const strength=container('fh-phone-network-strength');
-   const signal=wifiSignalIcon(bars),quality=el('small','',wifiQuality(bars));
-   strength.append(signal,quality);
-   heading.append(identity,strength);row.append(heading);
-   let status=null,password=null,connect=null;
-   if(net.authenticated){
-    status=el('small','fh-phone-network-status',net.online?
-     label('wifiConnectedStatus','Conectado'):label('offlineNet','Sin servicio'));
-    row.append(status);
-   }else{
-    const form=el('form','fh-phone-network-form');
+   heading.append(identity);row.append(heading);
+   heading.setAttribute('aria-expanded','false');
+   if(!net.authenticated&&protectedNetwork){
+    form=el('form','fh-phone-network-form');
+    form.hidden=true;
     const field=container('fh-phone-network-password-field');
     password=el('input');
     password.type='password';password.maxLength=100;
@@ -383,8 +399,7 @@
     visibility.append(glyph('eye'));
     field.append(password,visibility);
     connect=el('button','fh-phone-primary',label('connect','Conectar'));
-    connect.type='submit';
-    connect.disabled=true;
+    connect.type='submit';connect.disabled=true;
     password.addEventListener('input',()=>{connect.disabled=!password.value||row.dataset.inRange==='false'});
     form.addEventListener('submit',event=>{
      event.preventDefault();
@@ -392,16 +407,15 @@
      if(row.dataset.inRange==='false'){notice(label('wifiNoSignal','Sin señal'));return;}
      const ok=options.connectWifi?.(net.routerId,password.value)===true;
      notice(label(ok?'wifiConnected':'wifiRejected',ok?'Conectado':'Clave incorrecta'));
-     if(ok){save();screen('network');}
+     if(ok){save();screen('network');updateWifiStatus();}
     });
     form.append(field,connect);row.append(form);
    }
-   row.dataset.routerId=String(net.routerId);
-   row.dataset.inRange='true';
-   return {row,signal,quality,status,password,connect,
+   row.dataset.routerId=String(net.routerId);row.dataset.inRange='true';
+   return {row,heading,form,password,connect,
     authenticated:net.authenticated===true,protectedNetwork};
   }
-  // Actualizar nodos existentes: escribir una contraseña no debe perder el foco ni su valor.
+  // Mantener la fila y el formulario mientras cambia la señal: no borrar contraseñas.
   function refreshNetworks(){
    if(!networkHost)return;
    const latest=options.networks?.()||[];
@@ -409,9 +423,11 @@
    for(const net of latest){
     if(!net?.routerId||discovered.has(String(net.routerId)))continue;
     const id=String(net.routerId);discovered.add(id);
-    const protectedNetwork=net.requiresPassword===true||(net.requiresPassword===undefined&&net.authenticated===false);
+    const protectedNetwork=net.requiresPassword===true||
+     (net.requiresPassword===undefined&&net.authenticated===false);
     let entry=networkRows.get(id);
-    if(entry&&(entry.authenticated!== (net.authenticated===true)||entry.protectedNetwork!==protectedNetwork)){
+    if(entry&&(entry.authenticated!==(net.authenticated===true)||
+       entry.protectedNetwork!==protectedNetwork)){
      const replacement=networkCard(net);
      entry.row.replaceWith(replacement.row);
      entry=replacement;networkRows.set(id,entry);
@@ -419,19 +435,13 @@
      entry=networkCard(net);networkRows.set(id,entry);networkHost.append(entry.row);
     }
     const bars=Math.max(0,Math.min(3,Math.floor(Number(net.bars)||0)));
-    updateWifiSignal(entry.signal,bars);
-    entry.quality.textContent=wifiQuality(bars);
     entry.row.dataset.inRange=bars?'true':'false';
-    if(entry.status)entry.status.textContent=net.online?
-     label('wifiConnectedStatus','Conectado'):label('offlineNet','Sin servicio');
     if(entry.connect)entry.connect.disabled=!entry.password.value||!bars;
    }
    for(const [id,entry] of networkRows){
     if(discovered.has(id))continue;
-    // Durante un corte breve se conserva la contraseña en curso y la red muestra 'Sin señal'.
-    if(entry.password&&(entry.password.value||document.activeElement===entry.password)){
-     updateWifiSignal(entry.signal,0);
-     entry.quality.textContent=wifiQuality(0);
+    // Si hay un formulario abierto, conservar su contenido durante cortes breves.
+    if(entry.form&&!entry.form.hidden){
      entry.row.dataset.inRange='false';
      entry.connect.disabled=true;
      continue;
@@ -729,6 +739,7 @@
    if(blocked()&&opened)close();
    if(clockNode)clockNode.textContent=clock();
    updateStatus();
+   updateWifiStatus();
    if(opened&&view==='home'){
     const value=content?.querySelector('.fh-phone-big-clock');if(value)value.textContent=clock();
     const date=formatCalendarDate(state.clock,locale);
@@ -763,7 +774,7 @@
   function open(){
    if(!panel||blocked()||!syncAvailability()||p.battery<=0)return false;
    opened=true;panel.hidden=false;toggle.setAttribute('aria-expanded','true');
-   document.body.classList.add('fh-phone-open');updateStatus();screen('home');return true;
+   document.body.classList.add('fh-phone-open');updateStatus();updateWifiStatus();screen('home');return true;
   }
   function togglePhone(){return opened?(close(),true):open()}
   function onKeydown(event){
@@ -791,10 +802,16 @@
    const bar=container('fh-phone-statusbar');
    clockNode=el('strong','fh-phone-status-clock',clock());
    const indicators=container('fh-phone-status-icons');
+   statusWifiIcon=wifiSignalIcon(0);
+   statusWifiIcon.classList.add('fh-phone-status-wifi');
+   statusWifiIcon.hidden=true;
+   statusWifiIcon.setAttribute('aria-hidden','false');
+   statusWifiIcon.setAttribute('role','img');
    const battery=container('fh-phone-status-battery');
    statusChargeBar=container('fh-phone-status-battery-fill');statusChargeText=el('span','fh-phone-status-percent','0%');
-   battery.append(statusChargeBar);indicators.append(glyph('signal'),battery,statusChargeText);
-   indicators.setAttribute('aria-label',label('phoneBattery','Batería del celular'));
+   battery.append(statusChargeBar);indicators.append(glyph('signal'),statusWifiIcon,battery,statusChargeText);
+   indicators.setAttribute('role','group');
+   indicators.setAttribute('aria-label',label('phoneIndicators','Indicadores del celular'));
    append(bar,clockNode,indicators);
    const head=container('fh-phone-header');
    topTitle=el('strong','fh-phone-title',label('phone','Celular'));
