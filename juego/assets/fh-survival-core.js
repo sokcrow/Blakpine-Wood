@@ -19,12 +19,13 @@
  function recoveryPG(resources){
   return finite(resources?.pgMax)?whole(resources.pgMax*.10):0;
  }
- function createRuntime(gameState,callbacks={}){
+ function createRuntime(gameState,callbacks={},initialMinute){
   if(!gameState||!gameState.character?.resources)throw Error('Faltan recursos del personaje.');
   const resources=gameState.character.resources;
+  const startMinute=finite(initialMinute)?initialMinute:finite(gameState.clock?.minutes)?gameState.clock.minutes:0;
   const saved=gameState.survival&&typeof gameState.survival==='object'?gameState.survival:{};
   const state=Object.assign({
-   version:1,lastMinute:finite(gameState.clock?.minutes)?gameState.clock.minutes:0,
+   version:2,lastMinute:startMinute,
    mode:'awake',sleepMinutes:0,sitCarry:0,sleepPECarry:0,
    sleepSPCarry:0,stressCarry:0,relaxCarry:0,
    pgRecoveredDay:-1,fatigue:{active:false,initialApplied:false,minutes:0},
@@ -33,7 +34,11 @@
   if(!state.fatigue||typeof state.fatigue!=='object')state.fatigue={active:false,initialApplied:false,minutes:0};
   state.fatigue=Object.assign({active:false,initialApplied:false,minutes:0},state.fatigue);
   if(!['awake','sitting','sleeping','unconscious'].includes(state.mode))state.mode='awake';
-  if(!finite(state.lastMinute))state.lastMinute=finite(gameState.clock?.minutes)?gameState.clock.minutes:0;
+  if(!finite(state.lastMinute))state.lastMinute=startMinute;
+  // Las partidas guardadas por el primer adaptador usaban minutos del día.
+  if(state.version===1&&finite(initialMinute)&&initialMinute>=DAY&&state.lastMinute>=0&&state.lastMinute<DAY)
+   state.lastMinute=startMinute;
+  state.version=2;
   for(const key of ['sleepMinutes','sitCarry','sleepPECarry','sleepSPCarry','stressCarry','relaxCarry']){
    if(!finite(state[key])||state[key]<0)state[key]=0;
   }
