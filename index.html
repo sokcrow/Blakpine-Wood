@@ -4081,7 +4081,7 @@ function fhRefreshActorVisibility(){
   if(doc.split(marker).length!==2)throw Error('Hook de presentación de Sombras incompatible');
   const baseUrl=new URL('./juego/assets/enemigos/Sombras/',document.baseURI).href;
   const bridge='window.FHShadowActors=window.FHShadowVisuals?.createManager?.({'+
-   'THREE,stories,floorElev,baseUrl:'+JSON.stringify(baseUrl)+','+
+   'THREE,stories,floorElev,playerHeight:HERO_H*HERO_VISUAL_SCALE,baseUrl:'+JSON.stringify(baseUrl)+','+
    'registerVisibility:window.FHActorVisibility.register,'+
    'unregisterVisibility:window.FHActorVisibility.unregister,'+
    'invalidate:()=>{visibilityDirty=true;}})||null;';
