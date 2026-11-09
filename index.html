@@ -4154,7 +4154,9 @@ async function start3DPreview(){
  try{
   const originalEngineDoc=decodeEmbedded3DEngine(PREVIEW_ENGINE_DOC_B64);
   const preparedEngineDoc=prepareGLBEngineDoc(originalEngineDoc);
-   let fhEngineDoc=preparedEngineDoc;
+   const fhEconomyScripts=['fh-economy-strings.js','fh-economy-core.js'].map(name=>
+    '<script src="'+new URL('./juego/assets/'+name+'?v=20261109-economy1',document.baseURI).href+'"></'+'script>').join('');
+   let fhEngineDoc=preparedEngineDoc.replace('</head>',fhEconomyScripts+'</head>');
    try{if(window.FHServicesEngine?.patch)fhEngineDoc=window.FHServicesEngine.patch(preparedEngineDoc)||preparedEngineDoc;}
    catch(serviceError){console.error('[Forest servicios] No pudo instalarse el adaptador:',serviceError);
     toast('Servicios temporalmente no disponibles en la vista 3D.');}
@@ -4324,6 +4326,8 @@ init();
 <script src="./juego/assets/fh-character-strings.js?v=20261106-phase1"></script>
 <script src="./juego/assets/fh-skills.js?v=20261106-skills"></script>
 <script src="./juego/assets/fh-character-core.js?v=20261106-skills"></script>
+<script src="./juego/assets/fh-economy-strings.js?v=20261109-economy1"></script>
+<script src="./juego/assets/fh-economy-core.js?v=20261109-economy1"></script>
 <script src="./juego/assets/fh-character-creation.js?v=20261107-help"></script>
 <script src="./juego/assets/fh-strings.js"></script>
 <script src="./juego/assets/fh-light-coverage.js?v=20261105-light-ui2"></script>
