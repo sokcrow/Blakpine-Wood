@@ -32,7 +32,7 @@ function scene({fail=false}={}){
   }
  };
  const manager=shadow.createManager({
-  THREE,stories,floorElev:[0,3],baseUrl:'https://ejemplo.test/juego/assets/enemigos/Sombras/',
+  THREE,stories,floorElev:[0,3],playerHeight:1.68,baseUrl:'https://ejemplo.test/juego/assets/enemigos/Sombras/',
   registerVisibility(sprite,getFloor){
    events.registered.push(sprite);sprite.visible=false;sprite.getFloor=getFloor;return true;
   },
@@ -45,7 +45,9 @@ const flush=()=>new Promise(resolve=>setImmediate(resolve));
 
 test('los recursos corresponden a los PNG originales sin inventar otras poses',()=>{
  assert.equal(shadow.CATALOG.el_alto.pg,15);
+ assert.equal(shadow.CATALOG.el_alto.relativeScale,1.5);
  assert.equal(shadow.CATALOG.la_nina.pg,5);
+ assert.equal(shadow.CATALOG.la_nina.relativeScale,.7);
  const {manager}=scene();
  assert.equal(manager.spriteUrl('el_alto'),'https://ejemplo.test/juego/assets/enemigos/Sombras/el_alto/idle.png');
  assert.equal(manager.spriteUrl('la_nina'),'https://ejemplo.test/juego/assets/enemigos/Sombras/la_nina/idle.png');
@@ -63,11 +65,23 @@ test('crea sprites 2.5D y conserva el registro compartido de visibilidad',async(
  await flush();
  assert.equal(sprite.material.opacity,1);
  assert.equal(sprite.material.map.magFilter,'nearest');
- assert.equal(sprite.scale.y,2.7);
- assert.equal(sprite.scale.x,1.35);
+ assert.equal(sprite.scale.y,1.68*1.5);
+ assert.equal(sprite.scale.x,1.68*1.5*.5);
  assert.equal(events.registered.length,1);
  assert.equal(manager.size,1);
  assert.equal(events.loads.length,1);
+});
+test('las Sombras respetan la escala del jugador sin alturas absolutas',async()=>{
+ const {manager,stories}=scene();
+ const alto=manager.spawn('el_alto',0,0,0);
+ const nina=manager.spawn('la_nina',1,1,1);
+ await flush();
+ const tall=stories[0].children[0],small=stories[1].children[0];
+ assert.equal(tall.scale.y/1.68,1.5);
+ assert.equal(small.scale.y/1.68,.7);
+ assert.equal(tall.position.y,(1.68*1.5)/2);
+ assert.equal(small.position.y,3+(1.68*.7)/2);
+ assert.ok(manager.get(alto));assert.ok(manager.get(nina));
 });
 test('movimiento y cambio de piso no crean navegación ni modifican colisiones',async()=>{
  const {manager,stories,events}=scene();
@@ -77,7 +91,7 @@ test('movimiento y cambio de piso no crean navegación ni modifican colisiones',
  assert.equal(stories[1].children.length,1);
  assert.equal(stories[1].children[0].getFloor(),1);
  assert.equal(manager.get(id).floor,1);
- assert.equal(stories[1].children[0].position.y,3+1.25/2);
+ assert.equal(stories[1].children[0].position.y,3+(1.68*.7)/2);
  assert.equal(manager.move(id,3,2,3),false);
  assert.equal(manager.despawn(id),true);
  assert.equal(manager.size,0);
