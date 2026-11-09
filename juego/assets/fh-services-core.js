@@ -434,10 +434,11 @@
     if(drainStatus(f,out).draining)return {connected:true,draining:true,via:id(out)};
    return {connected:false,draining:false};
   }
-  function wifiAt(f,x,y,passwordById=s.wifiKeys){
+  function wifiAt(f,x,y,passwordById=s.wifiKeys,sharedElectrical=null,onlyRouterId=""){
    if(!floors[f])return [];
-   const nearby=[],snap=electrical(),pos={x:number(x),y:number(y)};
+   const nearby=[],snap=sharedElectrical||electrical(),pos={x:number(x),y:number(y)};
    for(let level=0;level<floors.length;level++)for(const r of values(level,'router')){
+    if(onlyRouterId&&id(r)!==onlyRouterId)continue;
     if(!electricalStatus(level,r,snap).powered||!active(r))continue;
     const ft=feetPerCell*dist(pos,point(r));
     const floorFeet=Math.abs(number(floors[level]?.elevationFt,level*12)-
@@ -458,6 +459,12 @@
      authenticated,online:authenticated&&s.contracts.internet==='active'});
    }
    return nearby.sort((a,b)=>b.dbm-a.dbm||a.routerId.localeCompare(b.routerId));
+  }
+  // Vista del editor: un único cálculo eléctrico para todas las muestras del mapa.
+  function wifiSampler(routerId){
+   const selectedId=String(routerId||""),sharedElectrical=electrical();
+   return (f,x,y)=>wifiAt(f,x,y,s.wifiKeys,sharedElectrical,selectedId)
+    .find(network=>network.routerId===selectedId)||null;
   }
   function connectWifi(routerId,password){
    for(let f=0;f<floors.length;f++){
@@ -597,7 +604,7 @@
   }
   function setService(name,active){if(!Object.prototype.hasOwnProperty.call(s.contracts,name))return false;s.contracts[name]=active?'active':'suspended';return true;}
   return Object.freeze({state:s,phone:state.phone,graphs,powerGraphs,powerRoute,zoneFor,requiresPower,point,itemAt,defaultsFor,sourceFor,wiredRoute,scopeFor,
-   statusFor,electrical,waterStatus,drainStatus,wifiAt,connectWifi,internetFor,landlineFor,mobileFor,
+   statusFor,electrical,waterStatus,drainStatus,wifiAt,wifiSampler,connectWifi,internetFor,landlineFor,mobileFor,
    chargePhone,takePhone,useWaterFixture,setUsage,dial,tick,setService,feetPerCell});
  }
  return Object.freeze({INFRA,defaultsFor,wallGraph,ensureState,createRuntime,requiresPower:needsElectricity,LIMITS,rangeFor});
