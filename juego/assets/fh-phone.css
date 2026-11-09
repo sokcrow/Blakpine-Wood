@@ -379,7 +379,7 @@ body.breaker-active #fhPhoneToggle,body.breaker-active #fhPhonePanel{
 .fh-phone-network-lock{display:block;flex:none;width:14px;height:14px;color:#c6c5c3}
 .fh-phone-network-strength{display:inline-flex;align-items:center;gap:4px;flex:none;white-space:nowrap;color:#c9c8c5}
 .fh-phone-network-strength small{font-size:11px}
-.fh-phone-network-signal{display:block;flex:none;width:19px;height:17px}
+.fh-phone-network-signal{display:block;flex:none;width:23px;height:21px}
 .fh-phone-network-status{font-size:11px;color:#bab9b6}
 #fhPhonePanel .fh-phone-network-form{display:flex;flex-direction:column;gap:8px;width:100%;min-width:0}
 #fhPhonePanel .fh-phone-network-password-field{position:relative;width:100%;min-width:0}
