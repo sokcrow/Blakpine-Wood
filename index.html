@@ -190,6 +190,7 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
 <script src="./juego/assets/fh-weather-editor.js?v=20261108-clima1"></script>
 <script src="./juego/assets/fh-services-strings.js?v=20261108-service-core-1"></script>
 <script src="./juego/assets/fh-services-core.js?v=20261108-sectioned-lighting-4"></script>
+<script src="./juego/assets/fh-light-strings.js?v=20261108-breaker-groups-1"></script>
 <script>// /shared + /editor. Motor empaquetado y aislado en iframe.
 const ForestShared=(()=>{
 // shared/geometry.js
@@ -1777,16 +1778,30 @@ function availableCircuits(){return ForestShared.editorCircuits(current())}
 function selectedCircuit(){return $('#circuitChooser')?.value||''}
 function circuitInfo(zone){return availableCircuits().find(c=>c.zoneId===zone)}
 function circuitColorFor(zone){return circuitInfo(zone)?.circuitColor||'#93a0ad'}
+function breakerCircuitGroups(circuits=availableCircuits()){
+ const groups=new Map();
+ for(const circuit of circuits){
+  if(!groups.has(circuit.panelId))groups.set(circuit.panelId,{panelId:circuit.panelId,panelLabel:circuit.panelLabel,circuits:[]});
+  groups.get(circuit.panelId).circuits.push(circuit);
+ }
+ return [...groups.values()];
+}
 function refreshCircuits(focusZone){
+ const T=window.FH_LIGHT_TEXT;
  const choice=$('#circuitChooser'),color=$('#circuitColor'),message=$('#circuitStatus');if(!choice)return;
  const old=focusZone||choice.value||'',circuits=availableCircuits();
- const empty=document.createElement('option');empty.value='';empty.textContent='— Elige un breaker —';
- choice.replaceChildren(empty,...circuits.map((c,i)=>{const o=document.createElement('option');o.value=c.zoneId;o.textContent=`${String(i+1).padStart(2,'0')} · ${c.name} (${c.panelLabel})`;return o}));
+ const empty=document.createElement('option');empty.value='';empty.textContent=T.chooseBreaker;
+ const groups=breakerCircuitGroups(circuits).map(panel=>{
+  const group=document.createElement('optgroup');group.label=T.breakerIdentity(panel.panelLabel,panel.panelId);
+  for(const c of panel.circuits){const option=document.createElement('option');option.value=c.zoneId;option.textContent=T.breakerIdentity(c.panelLabel,c.panelId)+' · '+T.circuitIdentity(c.name,c.zoneId);group.append(option)}
+  return group;
+ });
+ choice.replaceChildren(empty,...groups);
  choice.value=circuits.some(c=>c.zoneId===old)?old:circuits[0]?.zoneId||'';
  const selected=circuitInfo(choice.value);color.disabled=!selected;color.value=selected?.circuitColor||'#93a0ad';
- if(message){if(!selected){message.textContent='Coloca un breaker para crear circuitos';}
+ if(message){if(!selected){message.textContent=T.noBreaker;}
   else{const n=ForestShared.circuitCounts(current().items,selected.zoneId);
-   message.textContent=`${selected.name}: ${n.rooms} habitaciones · ${n.lamps} lámparas · ${n.switches} interruptores`;
+   message.textContent=T.connectionSummary(T.breakerIdentity(selected.panelLabel,selected.panelId),T.circuitIdentity(selected.name,selected.zoneId),n);
   }
  }
 }
@@ -2523,27 +2538,32 @@ function renderInteractionInspector(it,fields){
  fields.append(sec);
 }
 function modalCircuitAudit(){
- const groups=availableCircuits(),items=current().items,known=new Set(groups.map(c=>c.zoneId));
- modal('<h2>Conexiones eléctricas</h2><p>Estos son los circuitos que alimenta cada breaker de este piso. Los IDs no cambian al renombrarlos.</p><div id="circuitAuditList"></div><div class="actions"><button id="closeCircuitAudit" class="primary">Volver al plano</button></div>',()=>{
+ const T=window.FH_LIGHT_TEXT,circuits=availableCircuits(),groups=breakerCircuitGroups(circuits),items=current().items,known=new Set(circuits.map(c=>c.zoneId));
+ modal('<h2>'+T.connectionTitle+'</h2><p>'+T.connectionIntro+'</p><div id="circuitAuditList"></div><div class="actions"><button id="closeCircuitAudit" class="primary">'+T.backToMap+'</button></div>',()=>{
   const list=$('#circuitAuditList');list.style.cssText='display:grid;gap:9px;max-height:48vh;overflow:auto';
-  for(const circ of groups){
-   const card=document.createElement('section');card.style.cssText='border-left:5px solid '+circ.circuitColor+';padding:8px 10px;background:#1b2b35';
-   const h=document.createElement('strong');h.textContent=`${circ.name} · ${circ.panelLabel}`;card.append(h);
-   const id=document.createElement('div');id.style.cssText='font:11px ui-monospace,monospace;color:#adc3d1;overflow-wrap:anywhere;margin-top:4px';id.textContent=circ.zoneId;card.append(id);
+  for(const panel of groups){
+   const section=document.createElement('section');section.style.cssText='border:1px solid #687b86;padding:10px;background:#15232d;overflow-wrap:anywhere';
+   const heading=document.createElement('h3');heading.style.cssText='font-size:15px;margin:0 0 8px';heading.textContent=T.breakerIdentity(panel.panelLabel,panel.panelId);section.append(heading);
+   for(const circ of panel.circuits){
+   const card=document.createElement('div');card.style.cssText='padding:8px 10px;margin-top:6px;background:#1b2b35';card.style.borderLeft='3px solid '+circ.circuitColor;
+   const h=document.createElement('strong');h.textContent=T.circuitIdentity(circ.name,circ.zoneId);card.append(h);
    const rooms=items.filter(it=>it.type==='room'&&it.zoneId===circ.zoneId),lights=items.filter(it=>it.type==='light_fixture'&&it.zoneId===circ.zoneId),switches=items.filter(it=>it.type==='light_switch'&&it.zoneId===circ.zoneId);
-   const info=document.createElement('div');info.textContent=`${rooms.length} habitaciones · ${lights.length} lámparas · ${switches.length} interruptores`;card.append(info);
-   if(rooms.length){const labels=document.createElement('small');labels.textContent='Habitaciones: '+rooms.map(r=>r.label||r.roomId||r.id).join(', ');card.append(labels)}
-   list.append(card);
+   const info=document.createElement('div');info.textContent=T.connectionCounts({rooms:rooms.length,lamps:lights.length,switches:switches.length});card.append(info);
+   if(rooms.length){const labels=document.createElement('small');labels.textContent=T.assignedRooms(rooms.map(r=>r.label||r.roomId||r.id));card.append(labels)}
+   section.append(card);
+   }
+   list.append(section);
   }
-  if(!groups.length){const empty=document.createElement('p');empty.textContent='Aún no hay breakers en este piso. Coloca uno en la capa Luz.';list.append(empty)}
+  if(!groups.length){const empty=document.createElement('p');empty.textContent=T.noBreakers;list.append(empty)}
   const orphan=items.filter(it=>['room','light_fixture','light_switch'].includes(it.type)&&!known.has(it.zoneId||'main'));
-  if(orphan.length){const msg=document.createElement('p');msg.className='tip';msg.textContent=`Sin breaker asignado: ${orphan.length} elementos (incluye circuitos antiguos «main»). Selecciona un circuito y usa «Conectar zona» para vincularlos.`;list.append(msg)}
+  if(orphan.length){const msg=document.createElement('p');msg.className='tip';msg.textContent=T.unassignedConnections(orphan.length);list.append(msg)}
   $('#closeCircuitAudit').onclick=closeModal;
  });
 }
 function circuitSelectOptions(zone){
- const options=[['main','Sin circuito (main)'],...availableCircuits().map(c=>[c.zoneId,`${c.name} · ${c.panelLabel}`])];
- if(zone&&!options.some(o=>o[0]===zone))options.push([zone,`${zone} (sin breaker)`]);
+ const T=window.FH_LIGHT_TEXT;
+ const options=[['main',T.noCircuit],...availableCircuits().map(c=>[c.zoneId,T.breakerIdentity(c.panelLabel,c.panelId)+' · '+T.circuitIdentity(c.name,c.zoneId)])];
+ if(zone&&!options.some(o=>o[0]===zone))options.push([zone,T.missingBreaker(zone)]);
  return options;
 }
 function renderBreakerCircuits(panel,fields){
@@ -4306,7 +4326,6 @@ init();
 <script src="./juego/assets/fh-character-core.js?v=20261106-skills"></script>
 <script src="./juego/assets/fh-character-creation.js?v=20261107-help"></script>
 <script src="./juego/assets/fh-strings.js"></script>
-<script src="./juego/assets/fh-light-strings.js?v=20261105-light-ui2"></script>
 <script src="./juego/assets/fh-light-coverage.js?v=20261105-light-ui2"></script>
 <script src="./juego/assets/fh-lights.js?v=20261105-light-ui2"></script>
 <script src="./juego/assets/fh-light-editor-overlay.js?v=20261105-light-ui2"></script>
