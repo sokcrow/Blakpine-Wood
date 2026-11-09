@@ -10,6 +10,11 @@
    water_outlet:'Toma de agua',drain_outlet:'Desagüe',drain_main:'Salida principal de drenaje',
    router:'Router Wi-Fi',ethernet_port:'Toma Ethernet',landline_phone:'Teléfono de pared'
   }),
+  wifiCoverage:Object.freeze({
+   title:'Cobertura Wi-Fi',bars3:'3 barras',bars2:'2 barras',bars1:'1 barra',
+   noPower:'Sin cobertura: el router no tiene electricidad.',
+   none:'Sin señal en las casillas visibles.'
+  }),
   fields:Object.freeze({
    zoneId:'Circuito eléctrico',slots:'Conexiones disponibles',capacityRayos:'Límite eléctrico (rayos)',
    radiusFt:'Radio de conexión (pies)',outletId:'ID del enchufe o multiconector',
