@@ -134,7 +134,7 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
 <body>
 <div id="app">
  <header id="head"><div id="brand"><strong>FOREST HORROR</strong><small>EDITOR DE MAPAS · CUADRÍCULA LIBRE</small></div><div id="headActions"><button id="fileBtn" title="Poner una imagen como plantilla">▧ Imagen</button><button id="editorLandscapeBtn" title="Solicitar pantalla completa horizontal">⛶ Horizontal</button><button id="menuBtn" class="primary">☰ Proyecto</button><button id="helpBtn" aria-label="Ayuda">?</button></div></header>
- <div id="subbar"><div id="floorTabs"><button id="floor1Btn" class="selected">Piso 1</button><button id="floor2Btn">Piso 2</button></div><button id="addFloorBtn" title="Añadir nivel">+ Piso</button><button id="editFloorBtn" title="Nombre y elevación del piso">⚙ Piso</button><div id="quickGrid" aria-label="Editar cuadrícula"><label for="quickColumns">Columnas<input id="quickColumns" type="number" inputmode="numeric" min="1" max="500" step="1" aria-label="Número de columnas"></label><label for="quickRows">Filas<input id="quickRows" type="number" inputmode="numeric" min="1" max="500" step="1" aria-label="Número de filas"></label><button id="applyQuickGrid" aria-label="Aplicar columnas y filas" title="Aplicar cuadrícula">✓</button></div><span id="floorElevation">Altura: 0 pies</span><button id="undoBtn" title="Deshacer">↶</button><button id="redoBtn" title="Rehacer">↷</button><button id="fitBtn">⛶ Ajustar</button><button id="gridBtn" class="active">▦ Cuadrícula</button><button id="jointsBtn" class="active" title="Mostrar uniones de paredes y extremos abiertos">◎ Uniones</button><button id="roomsBtn" title="Lista para renombrar habitaciones">⌂ Cuartos</button><button id="copyFloorWallsBtn" title="Copiar perímetro rojo, paredes y accesos al piso superior, respetando muros existentes">▥ Copiar muros ↑</button><button id="spawnQuickBtn" title="Poner punto de aparición">📍 Spawn</button><button id="testBtn" title="Probar este mismo mapa con el sprite en 3D">▶ Probar 3D</button><button id="gridDimensionsBtn" title="Ajustes avanzados de cuadrícula">⚙ Cuadrícula</button><button id="parkingConfigBtn" title="Configurar medidas y símbolos de marcas de estacionamiento">▤ Marcas</button><button id="optionsBtn">⚙ Escala</button></div>
+ <div id="subbar"><div id="floorTabs"><button id="floor1Btn" class="selected">Piso 1</button><button id="floor2Btn">Piso 2</button></div><button id="addFloorBtn" title="Crear piso arriba o sótano abajo">+ Nivel</button><button id="editFloorBtn" title="Administrar niveles y planta principal">⚙ Niveles</button><div id="quickGrid" aria-label="Editar cuadrícula"><label for="quickColumns">Columnas<input id="quickColumns" type="number" inputmode="numeric" min="1" max="500" step="1" aria-label="Número de columnas"></label><label for="quickRows">Filas<input id="quickRows" type="number" inputmode="numeric" min="1" max="500" step="1" aria-label="Número de filas"></label><button id="applyQuickGrid" aria-label="Aplicar columnas y filas" title="Aplicar cuadrícula">✓</button></div><span id="floorElevation">Altura: 0 pies</span><button id="undoBtn" title="Deshacer">↶</button><button id="redoBtn" title="Rehacer">↷</button><button id="fitBtn">⛶ Ajustar</button><button id="gridBtn" class="active">▦ Cuadrícula</button><button id="jointsBtn" class="active" title="Mostrar uniones de paredes y extremos abiertos">◎ Uniones</button><button id="roomsBtn" title="Lista para renombrar habitaciones">⌂ Cuartos</button><button id="copyFloorWallsBtn" title="Copiar perímetro rojo, paredes y accesos al piso superior, respetando muros existentes">▥ Copiar muros ↑</button><button id="spawnQuickBtn" title="Poner punto de aparición">📍 Spawn</button><button id="testBtn" title="Probar este mismo mapa con el sprite en 3D">▶ Probar 3D</button><button id="gridDimensionsBtn" title="Ajustes avanzados de cuadrícula">⚙ Cuadrícula</button><button id="parkingConfigBtn" title="Configurar medidas y símbolos de marcas de estacionamiento">▤ Marcas</button><button id="optionsBtn">⚙ Escala</button></div>
  <main id="stage"><canvas id="map" aria-label="Editor de mapa con cuadrícula"></canvas><div id="wifiCoverageLegend" role="status" aria-live="polite" hidden></div><div id="stageHint">Pared: toca inicio y final, o arrastra. Usa Imán en Esquina para colocar exacto. Cierra paredes y coloca una puerta: el cuarto se reconoce solo. Entra a la puerta para marcarla como entrada de apartamento.</div><div id="stageBadge">● Piso 1</div><div id="coords">Casilla —, —</div><div id="zoomControls"><button id="plusBtn" aria-label="Acercar">+</button><div id="zoomLabel">100%</div><button id="minusBtn" aria-label="Alejar">−</button></div></main>
  <section id="palette"><div id="layerSwitch" aria-label="Capas de edición"><button type="button" data-layer="architecture" class="active">▥ Plano</button><button type="button" data-layer="furniture">▣ Muebles</button><button type="button" data-layer="lighting">⚡ Electricidad</button></div><div id="circuitTools" hidden><label for="circuitChooser">Circuito</label><select id="circuitChooser" aria-label="Circuito activo"></select><label for="circuitColor">Color</label><input type="color" id="circuitColor" value="#dc5656" aria-label="Color del circuito"><label class="circuit-all"><input type="checkbox" id="circuitShowAll"> Todos</label><button type="button" id="circuitAudit" title="Verificar habitaciones y dispositivos conectados">▤ Conexiones</button><span id="circuitStatus" role="status" aria-live="polite">Crea un breaker</span></div><button type="button" id="paletteCategoriesToggle" aria-expanded="false">≡ Categorías</button><div id="categories"><button data-cat="structure" class="active">▥ Estructura</button><button data-cat="furniture">▧ Muebles</button><button data-cat="lighting">⚡ Electricidad</button><button data-cat="water">◉ Agua</button><button data-cat="network">⌁ Redes</button><button data-cat="areas">◇ Áreas y accesos</button><button data-cat="parking_marks">▤ Estacionamiento</button><button data-cat="navigate">✋ Editar / mover</button></div><div id="tools"></div><div id="paletteFoot"><label><input id="snapCheck" type="checkbox" checked> Imán</label><div class="snapModes"><button id="snap1Btn" class="active" type="button">Esquina</button><button id="snapHalfBtn" type="button">½</button><button id="snapQuarterBtn" type="button">¼</button></div><label><input id="axisCheck" type="checkbox" checked> Recto H/V</label><span id="autosave">Borrador local</span></div></section>
 </div>
@@ -197,6 +197,7 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
 <script src="./juego/assets/fh-weather-editor.js?v=20261108-clima1"></script>
 <script src="./juego/assets/fh-services-strings.js?v=20261109-review-fixes-7"></script>
 <script src="./juego/assets/fh-services-core.js?v=20261109-wifi-protection-1"></script>
+<script src="./juego/assets/fh-floor-levels.js?v=20261109-basements1"></script>
 <script src="./juego/assets/fh-wifi-editor-overlay.js?v=20261109-wifi-editor-1"></script>
 <script src="./juego/assets/fh-light-strings.js?v=20261109-zones-3"></script>
 <script>// /shared + /editor. Motor empaquetado y aislado en iframe.
@@ -1648,6 +1649,9 @@ const floorDefault=(id,name,elev,index)=>({id,name,elevationFt:elev,ceilingHeigh
 const newProject=()=>({schema:SCHEMA,version:ForestShared.CURRENT_VERSION,title:'Forest Horror · Edificio de apartamentos',createdAt:new Date().toISOString(),styleSystem:1,initialGameState:{clock:{year:2016,month:6,day:1,minutes:480}},weather:{enabled:true,season:'calendar',minHours:3,maxHours:8,clockSpeed:1},buildingOwnerId:'',buildingOwners:{},properties:[],patterns:[],itemDefs:[{id:'flashlight_battery',kind:'consumable',name:'Batería de linterna',description:'Recarga el 50 % de la linterna.',stackable:true,icon:'▤'}],units:{gridPx:70,columns:16,rows:22,fitGridToImage:true,feetPerCell:5,metersPerCell:1.524,snapCell:1,originPx:{x:0,y:0}},floors:[floorDefault('floor1','Piso 1',0,0),floorDefault('floor2','Piso 2',12,1)],notes:'Coordenadas x/y en casillas; cada casilla equivale a 5 pies. El eje Y crece hacia abajo en la referencia. Cada mirilla tiene dirección peekTo. Los muebles guardan su rotación y el frente visual. También se exportan bardas medias, rejas y rellenos exteriores.'});
 let project=newProject(),floorIndex=0,selection=null,activeTool='wall',activeCategory='structure',activeLayer='architecture',gridVisible=true,jointsVisible=true,axisLock=true,snapEnabled=true,preview=null,anchor=null,cursorGridPoint=null,view={scale:1,tx:0,ty:0},canvas=$('#map'),ctx=canvas.getContext('2d',{alpha:false}),loadedImgs=project.floors.map(()=>null),pointerStates=new Map(),gesture=null,action=null,middlePan=null,dirty=false,history=[],historyIndex=-1,saveTimer=null,toastTimer=null;
 const current=()=>project.floors[floorIndex];
+const floorRefArchive=new Map();
+function rememberFloorRefs(){for(const f of project.floors)floorRefArchive.set(f.id,f.reference)}
+function floorCode(i){return project.mainFloorId?window.FHFloorLevels.code(project,i):''}
 // En modo ajustado, filas y columnas cubren la imagen exactamente;
 // las posiciones JSON siguen siendo casillas de 5 pies, aunque la referencia haya sido redimensionada.
 function syncQuickGrid(){const a=$('#quickColumns'),b=$('#quickRows');if(a&&document.activeElement!==a)a.value=project.units.columns;if(b&&document.activeElement!==b)b.value=project.units.rows}
@@ -1706,19 +1710,31 @@ function syncPropertyDoorRoles(){
   }
  }
 }
-function record(){syncStairLinks();normalizeArchitecture(floorIndex);const created=rebuildFloorSpaces(floorIndex);syncPropertyDoorRoles();history=history.slice(0,historyIndex+1);history.push(JSON.stringify({floors:project.floors.map(f=>({id:f.id,name:f.name,items:f.items,elevationFt:f.elevationFt,ceilingHeightFt:f.ceilingHeightFt,lightingManual:!!f.lightingManual,apartments:f.apartments||[]})),properties:project.properties||[],locationZones:project.locationZones||[],buildingNames:project.buildingNames||{},patterns:project.patterns||[],buildingOwnerId:project.buildingOwnerId||"",buildingOwners:project.buildingOwners||{},styleSystem:project.styleSystem||0}));if(history.length>75)history.shift();historyIndex=history.length-1;saveSoon();if(activeLayer==='lighting')refreshCircuits();render();return created}
+function record(){rememberFloorRefs();syncStairLinks();normalizeArchitecture(floorIndex);const created=rebuildFloorSpaces(floorIndex);syncPropertyDoorRoles();history=history.slice(0,historyIndex+1);history.push(JSON.stringify({floors:project.floors.map(f=>({id:f.id,name:f.name,items:f.items,elevationFt:f.elevationFt,ceilingHeightFt:f.ceilingHeightFt,lightingManual:!!f.lightingManual,apartments:f.apartments||[]})),properties:project.properties||[],locationZones:project.locationZones||[],buildingNames:project.buildingNames||{},patterns:project.patterns||[],buildingOwnerId:project.buildingOwnerId||"",buildingOwners:project.buildingOwners||{},styleSystem:project.styleSystem||0,mainFloorId:project.mainFloorId||''}));if(history.length>75)history.shift();historyIndex=history.length-1;saveSoon();if(activeLayer==='lighting')refreshCircuits();render();return created}
 function undo(){if(historyIndex<=0)return;historyIndex--;restoreHistory()}
 function redo(){if(historyIndex>=history.length-1)return;historyIndex++;restoreHistory()}
 function restoreHistory(){
- const saved=JSON.parse(history[historyIndex]);const states=Array.isArray(saved)?saved:saved.floors;if(!Array.isArray(saved)){project.properties=saved.properties||[];project.locationZones=saved.locationZones||[];project.buildingNames=saved.buildingNames||{};project.patterns=saved.patterns||[];project.buildingOwnerId=saved.buildingOwnerId||'';project.buildingOwners=saved.buildingOwners||{};project.styleSystem=saved.styleSystem||0;}
+ const saved=JSON.parse(history[historyIndex]),states=Array.isArray(saved)?saved:saved.floors;
+ const previousImages=new Map(project.floors.map((f,i)=>[f.id,loadedImgs[i]]));
+ if(!Array.isArray(saved)){
+  project.properties=saved.properties||[];project.locationZones=saved.locationZones||[];
+  project.buildingNames=saved.buildingNames||{};project.patterns=saved.patterns||[];
+  project.buildingOwnerId=saved.buildingOwnerId||'';project.buildingOwners=saved.buildingOwners||{};
+  project.styleSystem=saved.styleSystem||0;
+  if(saved.mainFloorId)project.mainFloorId=saved.mainFloorId;else delete project.mainFloorId;
+ }
+ const selectedId=current()?.id;
  project.floors=states.map((state,i)=>{
-  const old=project.floors.find(f=>f.id===state.id)||project.floors[i]||floorDefault(state.id||`floor${i+1}`,state.name||`Piso ${i+1}`,state.elevationFt??i*12,i);
-  return {...old,id:state.id||old.id,name:state.name||old.name,items:state.items,elevationFt:state.elevationFt,
-   ceilingHeightFt:state.ceilingHeightFt,lightingManual:!!state.lightingManual,apartments:state.apartments||[]};
+  const old=project.floors.find(f=>f.id===state.id)||floorDefault(state.id||'floor'+(i+1),state.name||'Piso '+(i+1),state.elevationFt??i*12,i);
+  return {...old,reference:floorRefArchive.get(state.id)||old.reference,
+   id:state.id||old.id,name:state.name||old.name,items:state.items||[],
+   elevationFt:state.elevationFt,ceilingHeightFt:state.ceilingHeightFt,
+   lightingManual:!!state.lightingManual,apartments:state.apartments||[]};
  });
- floorIndex=Math.min(floorIndex,project.floors.length-1);
- project.floors.forEach((_,i)=>{normalizeArchitecture(i);rebuildFloorSpaces(i)});
- syncStairLinks();refreshFloorTabs();selection=null;closeInspector();saveSoon();setupImage(floorIndex);render();
+ floorIndex=Math.max(0,project.floors.findIndex(f=>f.id===selectedId));
+ loadedImgs=project.floors.map(f=>previousImages.get(f.id)||null);
+ recalcAllSpaces();syncStairLinks();refreshFloorTabs();selection=null;closeInspector();saveSoon();
+ project.floors.forEach((_,i)=>{if(!loadedImgs[i])setupImage(i)});render();
 }
 function numId(){return 'obj_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8)}
 function setupImage(index){const ref=project.floors[index].reference;const im=new Image();im.onload=()=>{loadedImgs[index]=im;ref.width=im.naturalWidth;ref.height=im.naturalHeight;if(index===floorIndex){render()}};im.onerror=()=>{loadedImgs[index]=null;render();toast('La imagen no pudo abrirse: puedes cargar otra')};im.src=ref.data||IMAGES[Math.min(index,IMAGES.length-1)]||''}
@@ -1796,7 +1812,7 @@ if(preview&& !opts.clean){c.save();c.globalAlpha=.75;if(SEGMENT_TYPES.has(previe
 if(anchor&&!opts.clean){let a=toPixel(anchor);c.save();c.fillStyle='#fffd';c.strokeStyle='#9875fb';c.lineWidth=2/z;c.beginPath();c.arc(a.x,a.y,7/z,0,2*Math.PI);c.fill();c.stroke();c.restore()}
 if(cursorGridPoint&&!opts.clean){let h=toPixel(cursorGridPoint);c.save();c.strokeStyle=snapEnabled?'#ffd36f':'#8ea6cf';c.fillStyle=snapEnabled?'#ffe39e':'#c9d5e6';c.lineWidth=2/z;c.beginPath();c.arc(h.x,h.y,5.5/z,0,2*Math.PI);c.fill();c.stroke();c.beginPath();c.moveTo(h.x-10/z,h.y);c.lineTo(h.x+10/z,h.y);c.moveTo(h.x,h.y-10/z);c.lineTo(h.x,h.y+10/z);c.stroke();c.restore()}
 c.restore()}
-function render(){const r=canvas.getBoundingClientRect();let d=canvas.width/Math.max(1,r.width);if(d&&r.width)renderOn(ctx,r.width,r.height,view,{dpr:d});$('#zoomLabel').textContent=`${Math.round(view.scale*100)}%`;$('#floorElevation').textContent=Number(current().elevationFt)?`Altura: ${current().elevationFt} pies`:'';$('#stageBadge').textContent=`● ${current().name} · ${project.units.columns} × ${project.units.rows} · ${(spaceCache[floorIndex]?.rooms||[]).length} hab. · ${(spaceCache[floorIndex]?.pending||[]).length} sell. · ${(graphCache[floorIndex]?.nodes||[]).filter(n=>n.degree===1).length} puntas`;syncQuickGrid();syncSnapUi();$('#undoBtn').disabled=historyIndex<=0;$('#redoBtn').disabled=historyIndex>=history.length-1}
+function render(){const r=canvas.getBoundingClientRect();let d=canvas.width/Math.max(1,r.width);if(d&&r.width)renderOn(ctx,r.width,r.height,view,{dpr:d});$('#zoomLabel').textContent=`${Math.round(view.scale*100)}%`;$('#floorElevation').textContent=Number(current().elevationFt)?`Altura: ${current().elevationFt} pies`:'';$('#stageBadge').textContent=`● ${floorCode(floorIndex)?floorCode(floorIndex)+' · ':''}${current().name} · ${project.units.columns} × ${project.units.rows} · ${(spaceCache[floorIndex]?.rooms||[]).length} hab. · ${(spaceCache[floorIndex]?.pending||[]).length} sell. · ${(graphCache[floorIndex]?.nodes||[]).filter(n=>n.degree===1).length} puntas`;syncQuickGrid();syncSnapUi();$('#undoBtn').disabled=historyIndex<=0;$('#redoBtn').disabled=historyIndex>=history.length-1}
 function zoomAt(mult,cx=canvas.clientWidth/2,cy=canvas.clientHeight/2){let s=Math.max(.1,Math.min(7,view.scale*mult));let world=toWorld({x:cx,y:cy});view.scale=s;view.tx=cx-world.x*s;view.ty=cy-world.y*s;render()}
 function layerForCategory(cat){return cat==='lighting'?'lighting':['furniture','water','network'].includes(cat)?'furniture':'architecture'}
 function layerForItem(it){return LIGHTING_TYPES.has(it.type)?'lighting':SEGMENT_TYPES.has(it.type)||AREA_TYPES.has(it.type)||it.type==='parking_decal'||['stairs','elevator','spawn','npc_portal'].includes(it.type)?'architecture':'furniture'}
@@ -1941,19 +1957,64 @@ function chooseTool(tool){activeTool=tool;anchor=null;preview=null;if(window.FHP
 function changeFloor(i){if(!Number.isInteger(i)||i<0||i>=project.floors.length||i===floorIndex)return;floorIndex=i;selection=null;anchor=null;preview=null;closeInspector();if(activeLayer==='lighting')refreshCircuits();refreshFloorTabs();if(!loadedImgs[i])setupImage(i);fitMap()}
 function refreshFloorTabs(){
  const el=$('#floorTabs');if(!el)return;
- el.replaceChildren(...project.floors.map((f,i)=>{const b=document.createElement('button');b.textContent=f.name;b.className=i===floorIndex?'selected':'';b.title=`${f.name}: ${f.elevationFt} pies`;b.onclick=()=>changeFloor(i);return b}));
- const title=$('#stageBadge');if(title)title.textContent=`● ${current().name}`;
+ el.replaceChildren(...project.floors.map((f,i)=>{const b=document.createElement('button');b.textContent=(floorCode(i)?floorCode(i)+' · ':'')+f.name;b.className=i===floorIndex?'selected':'';b.title=`${f.name}: ${f.elevationFt} pies`;b.onclick=()=>changeFloor(i);return b}));
+ const title=$('#stageBadge');if(title)title.textContent=`● ${floorCode(floorIndex)?floorCode(floorIndex)+' · ':''}${current().name}`;
  const height=$('#floorElevation');if(height)height.textContent=Number(current().elevationFt)?`Altura: ${current().elevationFt} pies`:'';
 }
-function addFloor(){const i=project.floors.length;const last=project.floors[i-1];const elevation=(last?.elevationFt||0)+12;
- const id='floor'+(i+1);project.floors.push(floorDefault(id,`Piso ${i+1}`,elevation,i));loadedImgs.push(null);recalcAllSpaces();record();refreshFloorTabs();changeFloor(i);toast(`${current().name} añadido.`)}
-function editFloorInfo(){const f=current(),idx=floorIndex;modal(`<h2>Propiedades de ${escapeAttr(f.name)}</h2><label>Nombre<input id="floorNameField" type="text" value="${escapeAttr(f.name)}"></label><label>Elevación (pies)<input id="floorHeightField" type="number" step="0.1" value="${f.elevationFt}"></label><div class="actions"><button id="saveFloorField" class="primary">Guardar</button><button id="cancelFloorField">Cancelar</button></div>`,()=>{
- $('#cancelFloorField').onclick=closeModal;$('#saveFloorField').onclick=()=>{
-  const name=$('#floorNameField').value.trim(),elev=Number($('#floorHeightField').value);
-  if(!name||!Number.isFinite(elev)){toast('Introduce nombre y elevación válida.');return}
-  f.name=name;f.elevationFt=elev;refreshFloorTabs();record();closeModal();toast('Piso actualizado.');
- }})}
-
+function commitFloorLayout(index,previousImages){
+ floorIndex=index;
+ loadedImgs=project.floors.map(f=>previousImages.get(f.id)||null);
+ recalcAllSpaces();selection=null;anchor=null;preview=null;closeInspector();closeModal();
+ record();refreshFloorTabs();
+ if(!loadedImgs[index])setupImage(index);
+ fitMap();
+}
+function insertFloor(direction){
+ const selectedId=current().id,oldImages=new Map(project.floors.map((f,i)=>[f.id,loadedImgs[i]]));
+ const id=numId().replace('obj_','floor_');
+ const floor=floorDefault(id,'Nivel nuevo',0,project.floors.length);
+ const result=window.FHFloorLevels.insert(project,selectedId,direction,floor);
+ if(!result.ok){toast(result.reason);return}
+ floor.name=result.index<window.FHFloorLevels.mainIndex(project)?'Sótano '+(window.FHFloorLevels.mainIndex(project)-result.index):'Piso nuevo';
+ commitFloorLayout(result.index,oldImages);
+ toast('Nivel '+window.FHFloorLevels.code(project,result.index)+' creado.');
+}
+function addFloor(){
+ modal(`<h2>Crear nivel</h2><p>Seleccionado: <b>${escapeAttr(current().name)}</b> · ${current().elevationFt} pies.</p><p>El nuevo piso se coloca respecto al actual, sin cambiar los identificadores de los existentes.</p><div class="actions"><button id="insertAbove" class="primary">↑ Crear encima</button><button id="insertBelow">↓ Crear debajo / Basement</button><button id="cancelNewFloor">Cancelar</button></div>`,()=>{
+  $('#insertAbove').onclick=()=>insertFloor('above');
+  $('#insertBelow').onclick=()=>insertFloor('below');
+  $('#cancelNewFloor').onclick=closeModal;
+ });
+}
+function editFloorInfo(){
+ const f=current(),idx=floorIndex,code=floorCode(idx),isMain=window.FHFloorLevels.mainId(project)===f.id;
+ modal(`<h2>Niveles · ${escapeAttr(f.name)}</h2><p>${code?code+' · ':''}Posición ${idx+1} de ${project.floors.length}. ${isMain?'Nivel de referencia del edificio.':''}</p><label>Nombre<input id="floorNameField" type="text" maxlength="80" value="${escapeAttr(f.name)}"></label><label>Elevación (pies)<input id="floorHeightField" type="number" step="0.1" value="${f.elevationFt}" ${project.mainFloorId&&isMain?'readonly':''}></label><div class="actions"><button id="saveFloorField" class="primary">Guardar datos</button><button id="setMainFloor">⌂ Establecer planta principal</button><button id="moveFloorUp">↑ Subir nivel</button><button id="moveFloorDown">↓ Bajar nivel</button><button id="cancelFloorField">Cerrar</button></div><p><small>Mover un nivel cambia su altura física. Los niveles conectados por escaleras no se reordenan hasta ajustar sus conexiones.</small></p>`,()=>{
+  $('#cancelFloorField').onclick=closeModal;
+  $('#saveFloorField').onclick=()=>{
+   const name=$('#floorNameField').value.trim(),raw=$('#floorHeightField').value,elev=Number(raw);
+   const below=project.floors[idx-1],above=project.floors[idx+1];
+   if(!name||!raw||!Number.isFinite(elev)||name.length>80){toast('Introduce nombre y elevación válidos.');return}
+   if((below&&elev<=below.elevationFt)||(above&&elev>=above.elevationFt)){toast('La elevación debe quedar entre los niveles vecinos.');return}
+   if(project.mainFloorId&&isMain&&elev!==0){toast('La planta principal debe permanecer a 0 pies.');return}
+   f.name=name;f.elevationFt=elev;record();refreshFloorTabs();closeModal();toast('Nivel actualizado.');
+  };
+  $('#setMainFloor').onclick=()=>{
+   const result=window.FHFloorLevels.setMain(project,f.id);
+   if(!result.ok){toast(result.reason);return}
+   record();refreshFloorTabs();closeModal();toast('Planta principal establecida: '+f.name);
+  };
+  const move=dir=>{
+   const oldImages=new Map(project.floors.map((item,i)=>[item.id,loadedImgs[i]]));
+   const result=window.FHFloorLevels.reorder(project,f.id,dir);
+   if(!result.ok){toast(result.reason);return}
+   commitFloorLayout(result.index,oldImages);toast('Nivel reordenado.');
+  };
+  $('#moveFloorUp').onclick=()=>move('up');
+  $('#moveFloorDown').onclick=()=>move('down');
+  $('#moveFloorUp').disabled=idx===project.floors.length-1;
+  $('#moveFloorDown').disabled=idx===0;
+ });
+}
 const toLocal=e=>{let r=canvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}};
 function getPoint(s){return snap(toGrid(toWorld(s)))}
 function createSegment(type,a,b){if(Math.hypot(b.x-a.x,b.y-a.y)<.08)return null;const h=['wall','red_wall','property_wall'].includes(type)?9:type==='half_wall'?4.5:type==='fence'?4:7;let s={id:numId(),type,a,b,heightFt:h,widthFt:type==='door'||type==='peephole_door'?3:0,open:false,locked:false,peekSide:1,doorRole:'auto',apartmentId:'',label:''};if(type==='peephole_door')s.open=false;return s}
@@ -2884,7 +2945,7 @@ function importProject(obj){
   if(!next.floors[i].reference)next.floors[i].reference=clone(project.floors[i]?.reference||floorDefault(next.floors[i].id,next.floors[i].name,next.floors[i].elevationFt,i).reference);
   if(!next.floors[i].reference.data)next.floors[i].reference.data=project.floors[i]?.reference?.data||IMAGES[Math.min(i,IMAGES.length-1)];
  }
- project=next;ensureGridConfig(true);recalcAllSpaces();floorIndex=0;selection=null;history=[];historyIndex=-1;closeInspector();closeModal();loadedImgs=next.floors.map(()=>null);refreshFloorTabs();next.floors.forEach((_,i)=>setupImage(i));record();setTimeout(fitMap,140);toast('Proyecto cargado correctamente');
+ project=next;floorRefArchive.clear();rememberFloorRefs();ensureGridConfig(true);recalcAllSpaces();floorIndex=0;selection=null;history=[];historyIndex=-1;closeInspector();closeModal();loadedImgs=next.floors.map(()=>null);refreshFloorTabs();next.floors.forEach((_,i)=>setupImage(i));record();setTimeout(fitMap,140);toast('Proyecto cargado correctamente');
 }
 function imageFile(f){if(!f)return;if(!f.type.startsWith('image/')){toast('Selecciona una imagen PNG, JPG o WebP');return}const url=URL.createObjectURL(f),im=new Image();im.onload=()=>{let w=im.naturalWidth,h=im.naturalHeight;if(!w||!h){URL.revokeObjectURL(url);return}const max=2400,factor=Math.min(1,max/Math.max(w,h)),c=document.createElement('canvas');c.width=Math.round(w*factor);c.height=Math.round(h*factor);c.getContext('2d').drawImage(im,0,0,c.width,c.height);let data=c.toDataURL('image/jpeg',.84);current().reference={name:f.name,data,width:c.width,height:c.height,opacity:.78};setupImage(floorIndex);URL.revokeObjectURL(url);saveSoon();setTimeout(fitMap,100);toast(`Imagen importada a ${current().name}. Comprueba la cuadrícula.`)};im.onerror=()=>{toast('No se pudo abrir la imagen');URL.revokeObjectURL(url)};im.src=url}
 function modalImage(){const r=current().reference;modal(`<h2>Plantilla de ${current().name}</h2><p>La imagen original está incluida. También puedes cargar tu propio mapa de D&D como JPG, PNG o WebP.</p><div class="tip">Se dibuja <b>encima de la imagen</b>. No se transforma la imagen en colisiones automáticamente; tú decides dónde hay paredes y puertas.</div><p>Imagen actual: <b>${escapeAttr(r.name||'Sin nombre')}</b> · ${r.width} × ${r.height} px.</p><div class="actions"><button class="primary" id="chooseImage">▧ Importar imagen del dispositivo</button><button id="useOriginal">Restaurar imagen original</button><button id="cancelImage">Cerrar</button></div>`,()=>{$('#chooseImage').onclick=()=>$('#imageInput').click();$('#useOriginal').onclick=()=>{current().reference={name:`Referencia original ${current().name}`,data:IMAGES[Math.min(floorIndex,IMAGES.length-1)],width:1145,height:1536,opacity:.73};setupImage(floorIndex);saveSoon();closeModal();setTimeout(fitMap,120)};$('#cancelImage').onclick=closeModal})}
@@ -2908,7 +2969,7 @@ function init(){
  const raw=readStorage(key());let error=null;
  if(raw){try{const draft=JSON.parse(raw);window.FHStructureHealth?.validateMap(draft);window.FHAccessConfig?.validateMap(draft);project=ForestShared.loadProject(draft);status('✓ Borrador restaurado')}catch(err){error=err;project=newProject();status('⚠ Borrador incompatible; mapa nuevo')}}
  else status('Nuevo borrador');
- ensureGridConfig(!!raw);window.FHStyleEditor?.install({project:()=>project,current,record,modal,closeModal,toast});window.FHParkingEditor?.install({project:()=>project,current,record,modal,closeModal,toast,newId:numId,canEditAt:item=>{const p=window.FHStyleEditor;if(!p?.hasActor())return true;const a=Number(item.rotation||0)*Math.PI/180,points=[[0,0],[-.5,-.5],[.5,-.5],[-.5,.5],[.5,.5]];return points.every(([u,v])=>p.canEditAt({x:item.x+Math.cos(a)*item.w*u-Math.sin(a)*item.h*v,y:item.y+Math.sin(a)*item.w*u+Math.cos(a)*item.h*v}));},canEditItem:item=>window.FHStyleEditor?.canEditItem(item)!==false});window.FHWeatherEditor?.install({project:()=>project,record,modal,closeModal,toast});wire();refreshFloorTabs();setCategory('structure');loadedImgs=project.floors.map(()=>null);
+ ensureGridConfig(!!raw);rememberFloorRefs();window.FHStyleEditor?.install({project:()=>project,current,record,modal,closeModal,toast});window.FHParkingEditor?.install({project:()=>project,current,record,modal,closeModal,toast,newId:numId,canEditAt:item=>{const p=window.FHStyleEditor;if(!p?.hasActor())return true;const a=Number(item.rotation||0)*Math.PI/180,points=[[0,0],[-.5,-.5],[.5,-.5],[-.5,.5],[.5,.5]];return points.every(([u,v])=>p.canEditAt({x:item.x+Math.cos(a)*item.w*u-Math.sin(a)*item.h*v,y:item.y+Math.sin(a)*item.w*u+Math.cos(a)*item.h*v}));},canEditItem:item=>window.FHStyleEditor?.canEditItem(item)!==false});window.FHWeatherEditor?.install({project:()=>project,record,modal,closeModal,toast});wire();refreshFloorTabs();setCategory('structure');loadedImgs=project.floors.map(()=>null);
  project.floors.forEach((_,i)=>setupImage(i));
  const migratedFurniture=normalizeFurnitureFootprints();recalcAllSpaces();record();resize();
  if(error)toast(`Error al restaurar borrador: ${error.message}`);
