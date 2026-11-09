@@ -158,3 +158,40 @@ test('el inspector muestra el alcance real al crear un breaker, sin alterar JSON
  context.attachServiceInspector(legacy,new Element('div'));
  assert.equal(seen.rangeFt,24,'conservar alcance personalizado');
 });
+
+test('cambiar tipo de breaker refresca el alcance en el inspector sin reescribir valores explícitos',()=>{
+ const FH=require('./fh-services-core.js'),displayed=[],floor={items:[]};
+ const ctx=vm.createContext({
+  window:{FHServices:FH,FH_SERVICES_TEXT:{fields:{}},FH_LIGHT_TEXT:{breakerRange:(type,feet)=>type+': '+feet}},
+  document:{createElement:tag=>new Element(tag)},
+  current:()=>floor,AREA_TYPES:new Set(),DOOR_TYPES:new Set(),
+  clone:value=>JSON.parse(JSON.stringify(value)),
+  record(){},refreshCircuits(){},render(){},
+  makeField:(label,key,value)=>{if(key==='rangeFt')displayed.push(value);return new Element('label')},
+  openInspector:()=>ctx.attachServiceInspector(floor.items[0],new Element('div'))
+ });
+ const editStart=editor.indexOf('function setItemField(');
+ const editEnd=editor.indexOf('function makeField(',editStart);
+ const attachStart=editor.indexOf('function attachServiceInspector(');
+ const attachEnd=editor.indexOf('function openInspector()',attachStart);
+ assert.ok(editStart>=0&&editEnd>editStart&&attachStart>=0&&attachEnd>attachStart);
+ vm.runInContext(editor.slice(editStart,editEnd)+editor.slice(attachStart,attachEnd),ctx);
+ const panel={id:'new',type:'breaker_panel',breakerType:'medium'};
+ floor.items=[panel];
+ ctx.openInspector();
+ ctx.setItemField('new','breakerType','small');
+ ctx.setItemField('new','breakerType','large');
+ assert.deepEqual(displayed,[180,90,360]);
+ assert.equal(Object.hasOwn(panel,'rangeFt'),false,'cambiar tipo no graba un alcance explícito');
+
+ const existing={id:'saved',type:'breaker_panel',breakerType:'medium',rangeFt:42};
+ floor.items=[existing];
+ ctx.openInspector();ctx.setItemField('saved','breakerType','large');
+ assert.deepEqual(displayed.slice(-2),[42,42]);
+ assert.equal(existing.rangeFt,42);
+
+ existing.rangeFt=0;
+ ctx.openInspector();ctx.setItemField('saved','breakerType','small');
+ assert.deepEqual(displayed.slice(-2),[0,0],'mantener los 0 ft guardados');
+ assert.equal(existing.rangeFt,0);
+});
