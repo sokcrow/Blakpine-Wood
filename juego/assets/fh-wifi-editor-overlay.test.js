@@ -48,7 +48,7 @@ test('pared estructural y puerta cerrada reducen la cobertura; puerta abierta re
 });
 test('cobertura sin electricidad queda vacía; no simula un router desconectado',()=>{
  const project=fixture();
- project.floors[0].items=project.floors[0].items.filter(it=>it.type!=='breaker');
+ project.floors[0].items=project.floors[0].items.filter(it=>it.type!=='breaker_panel');
  const coverage=WiFi.computeCoverage(project,0,'router');
  assert.equal(coverage.powered,false);
  assert.equal(coverage.covered,0);
