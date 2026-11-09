@@ -452,11 +452,12 @@
     const dbm=Math.round((-40-22*Math.log10(meters)-materialLoss-floorsLost)*10)/10;
     const bars=dbm>=-67?3:dbm>=-75?2:dbm>=-82?1:0;
     if(!bars)continue;
-    const authenticated=!String(r.wifiPassword||'')||passwordById[id(r)]===r.wifiPassword;
+    const requiresPassword=!!String(r.wifiPassword||'');
+    const authenticated=!requiresPassword||passwordById[id(r)]===r.wifiPassword;
     const speedFactor=bars===3?1:bars===2?.65:.25;
     nearby.push({routerId:id(r),floor:level,bars,dbm,
      signal:bars/3,speedFactor,latencyMultiplier:bars===3?1:bars===2?1.6:3.5,
-     authenticated,online:authenticated&&s.contracts.internet==='active'});
+     requiresPassword,authenticated,online:authenticated&&s.contracts.internet==='active'});
    }
    return nearby.sort((a,b)=>b.dbm-a.dbm||a.routerId.localeCompare(b.routerId));
   }
