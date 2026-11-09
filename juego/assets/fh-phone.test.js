@@ -147,6 +147,71 @@ function fakePhoneDocument(){
    visit(body);return result;
   }};
 }
+test('Wi-Fi protegido: entrada usable, iconos y candado permanente tras conectar',()=>{
+ require('./fh-phone-strings.js');
+ const doc=fakePhoneDocument(),net={
+  routerId:'router-test',name:'Router Wi-Fi',bars:3,requiresPassword:true,authenticated:false,online:false
+ };
+ let attempts=0,saves=0;
+ const phone=Phone.createRuntime({state:{},document:doc,strings:globalThis.FH_PHONE_TEXT,
+  networks:()=>[net],save:()=>saves++,
+  connectWifi:(id,password)=>{
+   attempts++;assert.equal(id,'router-test');
+   if(password!=='sok')return false;
+   net.authenticated=true;net.online=true;return true;
+  }});
+ assert.equal(phone.open(),true);
+ const app=doc.body.querySelectorAll('.fh-phone-app').find(x=>x.dataset.app==='network');
+ assert.ok(app);app.listeners.click();
+ const card=doc.body.querySelector('.fh-phone-network-card');
+ assert.ok(card);
+ assert.ok(card.querySelector('.fh-phone-network-lock'),'la red protegida tiene candado');
+ assert.equal(card.querySelector('.fh-phone-network-strength').children[1].textContent,'Excelente');
+ assert.equal(card.querySelector('.fh-phone-network-signal').children.length,3);
+ const form=card.querySelector('.fh-phone-network-form');
+ const field=card.querySelector('.fh-phone-network-password-field');
+ const password=field.children[0],visibility=field.children[1],connect=form.children[1];
+ assert.equal(password.type,'password');
+ assert.equal(password.attributes['aria-label'],'Contraseña Wi-Fi');
+ assert.equal(connect.disabled,true);
+ password.value='equivocada';password.listeners.input();assert.equal(connect.disabled,false);
+ visibility.listeners.click();
+ assert.equal(password.type,'text');
+ assert.equal(visibility.attributes['aria-pressed'],'true');
+ visibility.listeners.click();
+ assert.equal(password.type,'password');
+ form.listeners.submit({preventDefault(){}});
+ assert.equal(attempts,1);assert.equal(saves,0);
+ password.value='sok';password.listeners.input();
+ form.listeners.submit({preventDefault(){}});
+ assert.equal(attempts,2);assert.equal(saves,1);
+ const connected=doc.body.querySelector('.fh-phone-network-card');
+ assert.ok(connected.querySelector('.fh-phone-network-lock'),'el candado persiste al autenticar');
+ assert.equal(connected.querySelector('.fh-phone-network-status').textContent,'Conectado');
+ assert.equal(connected.querySelector('.fh-phone-network-form'),null);
+});
+test('Wi-Fi abierto: sin candado ni formulario, calidad sin contador de barras',()=>{
+ require('./fh-phone-strings.js');
+ const doc=fakePhoneDocument();
+ const phone=Phone.createRuntime({state:{},document:doc,strings:globalThis.FH_PHONE_TEXT,
+  networks:()=>[{routerId:'abierto',name:'Red libre',bars:2,requiresPassword:false,authenticated:true,online:true}]});
+ assert.equal(phone.open(),true);
+ doc.body.querySelectorAll('.fh-phone-app').find(x=>x.dataset.app==='network').listeners.click();
+ const card=doc.body.querySelector('.fh-phone-network-card');
+ assert.ok(card);
+ assert.equal(card.querySelector('.fh-phone-network-lock'),null);
+ assert.equal(card.querySelector('.fh-phone-network-form'),null);
+ assert.equal(card.querySelector('.fh-phone-network-strength').children[1].textContent,'Buena');
+ assert.equal(card.querySelector('.fh-phone-network-status').textContent,'Conectado');
+});
+test('Wi-Fi móvil: formulario apilado y targets táctiles de ancho completo',()=>{
+ const css=fs.readFileSync(path.resolve(__dirname,'fh-phone.css'),'utf8');
+ assert.match(css,/#fhPhonePanel \.fh-phone-network-card\{\s*flex-direction:column/);
+ assert.match(css,/#fhPhonePanel \.fh-phone-network-form\{display:flex;flex-direction:column/);
+ assert.match(css,/#fhPhonePanel \.fh-phone-network-password-field input\{[\s\S]*?width:100%/);
+ assert.match(css,/#fhPhonePanel \.fh-phone-network-form \.fh-phone-primary\{[\s\S]*?width:100%/);
+ assert.match(css,/#fhPhonePanel \.fh-phone-network-visibility\{[\s\S]*?width:44px;height:44px/);
+});
 test('widget muestra el estado del juego y el calendario se abre',()=>{
  require('./fh-phone-strings.js');
  const doc=fakePhoneDocument();
