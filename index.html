@@ -189,7 +189,7 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
 <script src="./juego/assets/fh-weather-strings.js?v=20261108-clima1"></script>
 <script src="./juego/assets/fh-weather-editor.js?v=20261108-clima1"></script>
 <script src="./juego/assets/fh-services-strings.js?v=20261108-service-core-1"></script>
-<script src="./juego/assets/fh-services-core.js?v=20261108-service-core-1"></script>
+<script src="./juego/assets/fh-services-core.js?v=20261108-wall-openings-2"></script>
 <script>// /shared + /editor. Motor empaquetado y aislado en iframe.
 const ForestShared=(()=>{
 // shared/geometry.js
@@ -1794,7 +1794,7 @@ function setLayer(layer){activeLayer=layer;document.body.classList.toggle('layer
 const utilityVisualCache={signature:'',graph:null,runtime:null};
 function utilityVisual(){
  const signature=JSON.stringify([floorIndex,project.units.feetPerCell,
-  current().items.filter(it=>['wall','red_wall','property_wall','room','breaker_panel',
+  current().items.filter(it=>['wall','red_wall','property_wall','window','door','peephole_door','opening','room','breaker_panel',
    'light_fixture','light_switch','power_outlet','water_main','water_outlet',
    'drain_main','drain_outlet','router','ethernet_port','landline_phone'].includes(it.type)),
   project.properties||[]]);
@@ -4322,7 +4322,7 @@ init();
 <script src="./juego/assets/fh-structure-engine-hook.js?v=20261108-architecture-load"></script>
 <script src="./juego/assets/fh-comic-action-engine-hook.js?v=20261107-comic-actions-1"></script>
 <script src="./juego/assets/fh-context-engine-hook.js?v=20261108-elevator-comfort-1"></script>
-<script src="./juego/assets/fh-services-engine-hook.js?v=20261108-service-core-1"></script>
+<script src="./juego/assets/fh-services-engine-hook.js?v=20261108-wall-openings-2"></script>
 </body>
 </html>
 

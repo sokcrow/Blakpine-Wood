@@ -9,6 +9,8 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
  'use strict';
  const WALLS=new Set(['wall','red_wall','property_wall']);
+ // El dintel/antepecho conserva la instalación aunque el portal recorte el muro.
+ const WALL_PATHS=new Set([...WALLS,'window','door','peephole_door','opening']);
  const INFRA=new Set(['power_outlet','power_strip','water_main','water_valve','water_outlet','drain_outlet','drain_main','router','ethernet_port','landline_phone','phone_charger']);
  const POWER_NEEDS=new Set(['router','phone_charger']);
  const WATER_NEEDS=new Set(['bath','toilet','kitchen']);
@@ -39,7 +41,7 @@
   return {x:a.x+dx*t,y:a.y+dy*t,t};
  }
  function wallGraph(items){
-  const walls=(items||[]).filter(it=>WALLS.has(it.type)&&it.a&&it.b&&dist(it.a,it.b)>0.001);
+  const walls=(items||[]).filter(it=>WALL_PATHS.has(it.type)&&it.a&&it.b&&dist(it.a,it.b)>0.001);
   const cuts=walls.map(w=>[w.a,w.b]);
   for(let i=0;i<walls.length;i++)for(let j=i+1;j<walls.length;j++){
    const a=walls[i],b=walls[j],hit=intersection(a.a,a.b,b.a,b.b);
@@ -70,7 +72,7 @@
    }
    return best;
   };
-  // Una ruta compartida entre simulación y overlay: sólo tramos de pared.
+  // Ruta compartida entre simulación y overlay, continua por los huecos del muro.
   function routeDetailed(a,b,maxGap=.65,allowed=()=>true){
    const start=anchor(a,allowed),end=anchor(b,allowed);
    if(!start||!end||start.gap>maxGap||end.gap>maxGap)return null;
@@ -115,12 +117,13 @@
   function wallsBetween(a,b){
    let count=0;
    for(const w of walls){
+    if(!WALLS.has(w.type))continue;
     const hit=intersection(a,b,w.a,w.b);
     if(hit&&dist(hit,a)>.12&&dist(hit,b)>.12)count++;
    }
    return count;
   }
-  return {route,routeDetailed,wallsBetween,wallCount:walls.length};
+  return {route,routeDetailed,wallsBetween,wallCount:walls.filter(w=>WALLS.has(w.type)).length};
  }
  function defaultsFor(type){
   switch(type){
