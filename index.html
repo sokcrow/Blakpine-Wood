@@ -1768,7 +1768,8 @@ function renderOn(c,w,h,cam,opts={}){let d=opts.dpr||1;c.setTransform(d,0,0,d,0,
 if(im){c.save();c.globalAlpha=ref.opacity??.75;c.drawImage(im,0,0,ref.width,ref.height);c.restore()}
 else {c.fillStyle='#253244';c.fillRect(0,0,ref.width,ref.height)}
 // El mapa de intensidad se pinta bajo las paredes, muebles y la cuadrícula.
-if(!opts.clean&&activeCategory==='network'){
+// Mientras se arrastra el router, evitar un cálculo costoso en cada evento táctil.
+if(!opts.clean&&activeCategory==='network'&&!(action?.tool==='select'&&action.moved&&action.hit===selection)){
  const selectedRouter=current().items.find(it=>it.id===selection&&it.type==='router')||null;
  window.FHWifiEditorOverlay?.draw(c,{project,floorIndex,router:selectedRouter,toPixel,gridX:gridX(),gridY:gridY()});
 }else window.FHWifiEditorOverlay?.hide();
