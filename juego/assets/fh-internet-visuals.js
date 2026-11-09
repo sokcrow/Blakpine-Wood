@@ -10,6 +10,12 @@
 })(typeof window!=='undefined'?window:globalThis,function(global){
  'use strict';
  const FT=.3048, HALF_WALL=.065, GAP=.012;
+ // currentScript sólo es fiable mientras se evalúa ESTE módulo; una llamada
+ // posterior puede ejecutarse desde el motor u otro script del documento.
+ const moduleUrl=global.document?.currentScript?.src||new URL('./juego/assets/fh-internet-visuals.js',
+  global.document?.baseURI||'https://localhost/').href;
+ const modelBase=new URL('../../forest-horror/biblioteca/internet/',moduleUrl);
+ const loaderUrl=new URL('./vendor/GLTFLoader.js',moduleUrl).href;
  const INTERNET_TYPES=new Set(['router','ethernet_port','landline_phone']);
  const DEFAULT=Object.freeze({router:'router_wifi',ethernet_port:'toma_rj45',landline_phone:'telefono_pared'});
  const models=()=>global.FHInternetCatalog?.models||[];
@@ -46,18 +52,16 @@
   if(!loaderPromise)loaderPromise=new Promise((resolve,reject)=>{
    if(THREE.GLTFLoader)return resolve(new THREE.GLTFLoader());
    const script=document.createElement('script');
-   script.src=new URL('./vendor/GLTFLoader.js',scriptUrl()).href;
+   script.src=loaderUrl;
    script.onload=()=>THREE.GLTFLoader?resolve(new THREE.GLTFLoader()):reject(Error('Falta GLTFLoader'));
    script.onerror=()=>reject(Error('GLTFLoader no disponible'));document.head.appendChild(script);
   });
   return loaderPromise;
  }
- function scriptUrl(){return global.document?.currentScript?.src||new URL('./juego/assets/fh-internet-visuals.js',global.document?.baseURI||'https://localhost/').href;}
  function load(meta,THREE){
   if(!cache.has(meta.id)){
    const req=getLoader(THREE).then(loader=>new Promise((resolve,reject)=>{
-    const root=new URL('../../forest-horror/biblioteca/internet/',scriptUrl());
-    loader.load(new URL(meta.glb,root).href,glb=>{
+    loader.load(new URL(meta.glb,modelBase).href,glb=>{
      glb.scene.traverse(node=>{
       if(!node.isMesh)return;
       node.castShadow=false;node.receiveShadow=true;
