@@ -4174,6 +4174,53 @@ function fhRefreshActorVisibility(){
   const script='<script src="'+new URL('./juego/assets/fh-floor-visibility.js?v=20261108-floor-vis-2',document.baseURI).href+'"></'+'script>';
   return doc.replace('</head>',script+'</head>');
  }
+ // Recursos y estados de personaje: adaptador del motor, no del editor.
+ function addSurvivalToEngine(doc){
+  const edits=[
+   ["weather:initial.weather&&typeof initial.weather==='object'?{...initial.weather}:null};",
+    "weather:initial.weather&&typeof initial.weather==='object'?{...initial.weather}:null,survival:initial.survival&&typeof initial.survival==='object'?JSON.parse(JSON.stringify(initial.survival)):null};"],
+   ["window.FHCharacterRuntime=Object.freeze({get character(){return GameState.character||null},die:fhNotifyCharacterDeath});",
+    "window.FHCharacterRuntime=Object.freeze({get character(){return GameState.character||null},die:fhNotifyCharacterDeath});\n"+
+    "let fhSurvivalDirty=false,fhSurvivalLastSave=GameState.clock?.minutes||0;\n"+
+    "const fhSurvival=GameState.character?.resources&&window.FHSurvival?.createRuntime(GameState,{\n"+
+    " onChange:()=>{fhSurvivalDirty=true},onCritical:()=>{fhSurvivalDirty=true},\n"+
+    " onDeath:()=>GameEvents.emit('character:death')\n"+
+    "});\n"+
+    "window.FHSurvivalRuntime=fhSurvival;\n"+
+    "const fhSurvivalUI=window.FHSurvivalUI?.mount(fhSurvival,saveProgress);"],
+   ["if(!fhDeliveryUiActive&&!fhDecorationActive)moveUpdate(dt);",
+    "if(!fhDeliveryUiActive&&!fhDecorationActive&&!fhSurvival?.state.critical)moveUpdate(dt);"],
+   ["window.FHDeliveryRuntime?.update(dt);window.FHPhoneRuntime?.update(dt);",
+    "window.FHDeliveryRuntime?.update(dt);window.FHPhoneRuntime?.update(dt);\n"+
+    "if(fhSurvival){\n"+
+    " const fhNow=GameState.clock?.minutes||0;\n"+
+    " const fhPoseState=playerPose.state;\n"+
+    " const fhSleeping=window.FHSleep?.status()?.stage==='asleep';\n"+
+    " const fhSitting=fhPoseState.phase==='sitting'&&fhPoseState.verb==='sit';\n"+
+    " let fhDark=false;\n"+
+    " if(!fhSleeping&&!lighting.state?.enabled&&!fhNatural?.illuminates(user.x,user.z)){\n"+
+    "  const lamps=window.FHLights?.sourcesNear(roomLampEntries,lighting,currentFloor,user.x,user.z,1,16)||[];\n"+
+    "  fhDark=!window.FHLights?.sourcesIlluminate(lamps,user.x,user.z,lightBlockers,ForestShared.pointInSight);\n"+
+    " }\n"+
+    " fhSurvival.update(fhNow,{mode:fhSleeping?'sleeping':fhSitting?'sitting':'awake',\n"+
+    "  stressed:fhDark,relaxing:fhSitting&&!!watchingTvId});\n"+
+    " window.FHSleep?.setUnconscious(!!fhSurvival.state.critical);\n"+
+    " fhSurvivalUI?.update();\n"+
+    " if(fhSurvivalDirty||fhNow-fhSurvivalLastSave>=10){fhSurvivalDirty=false;fhSurvivalLastSave=fhNow;saveProgress();}\n"+
+    "}"]
+  ];
+  for(const [before,after] of edits){
+   const occurrences=doc.split(before).length-1;
+   if(occurrences!==1)throw Error('Hook supervivencia incompatible ('+occurrences+'): '+before.slice(0,64));
+   doc=doc.replace(before,after);
+  }
+  const tags=[
+   'fh-survival-strings.js?v=20261109-survival1',
+   'fh-survival-core.js?v=20261109-survival1',
+   'fh-survival-ui.js?v=20261109-survival1'
+  ].map(file=>'<script src="'+new URL('./juego/assets/'+file,document.baseURI).href+'"></'+'script>').join('');
+  return doc.replace('</head>',tags+'</head>');
+ }
  const assembled=(window.FHContextEngine?.patch||((doc)=>doc))(addActorPresentationToEngine(addLiveTextToEngine(addDeliveryToEngine(addParkingToEngine(addStylesToEngine(addLightToEngine(source.replace('const MAX_INVENTORY_SLOTS=8;','const MAX_INVENTORY_SLOTS=10;'))))).replace(furnitureVisibilityHook,furnitureRenderHook).replace(cameraBefore,cameraLightAfter).replace(cameraStartBefore,cameraStartAfter).replace(sleepCameraBefore,sleepCameraAfter).replace(loopBefore,loopAfter)
   .replace(maskBefore,maskAfter).replace(wakeHUDBefore,wakeHUDAfter).replace(locationHudHook,locationHudAfter)
   .split(wakeBefore).join(wakeAfter)
@@ -4194,7 +4241,7 @@ function fhRefreshActorVisibility(){
   .replace(cloneBefore,'const clone=source.clone(true);\n   window.FHAssets?.mirror(source,clone);\n   clone.position.y+=floorElev[f];')
   .replace(engineSuccessBefore,engineSuccessAfter).replace(engineFailBefore,engineFailAfter).replace(loadFailBefore,loadFailAfter)
   .replace('</head>',localThree+coverageScript+lightsModule+surfaceScript+decorationScript+ruleScript+inventoryCoreScript+bridge+sleepCss+sleepStrings+sleepModule+pcAssemblyModule+computerStrings+computerModule+npcGoapModule+npcCourierModule+deliveryStrings+deliveryModule+styleCore+styleRender+parkingScript+playerMenuCss+playerMenuStrings+skillsModule+skillsStrings+helpCss+helpStrings+helpScript+playerMenuScript+locationCss+locationStrings+locationScript+hudRedesignCss+gameUiCss+hudFrameScript+mobileMenusCss+statusCss+statusStrings+statusScript+phoneCss+phoneStrings+phoneScript+mobileCameraScript+'</head>'))));
- return addFloorVisibilityToEngine(addNaturalLightToEngine(assembled));
+ return addSurvivalToEngine(addFloorVisibilityToEngine(addNaturalLightToEngine(assembled)));
 }
 let fhCharacterLaunchPending=false;
 async function start3DPreview(){
