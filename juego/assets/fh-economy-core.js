@@ -3,7 +3,7 @@
   const api = factory();
   if (typeof module === 'object' && module.exports) module.exports = api;
   if (root) root.FHEconomyCore = api;
-})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+})(typeof window !== 'undefined' ? window : globalThis, function () {
   'use strict';
 
   const VERSION = 1;
