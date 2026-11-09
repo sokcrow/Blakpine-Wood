@@ -5,6 +5,7 @@ window.FH_LIGHT_TEXT=Object.freeze({
  chooseBreaker:'— Elige breaker y circuito —',
  chooseZone:'— Elige una zona eléctrica —',
  zoneLabel:'Zona eléctrica compartida',
+ zoneAlreadyUsed:'Otra palanca de este panel ya usa esa zona. Puedes compartirla con otro breaker.',
  zoneSummary:(zone,n,count)=>zone+' · '+count+' breakers: '+n.rooms+' habitaciones · '+n.lamps+' lámparas · '+n.switches+' interruptores',
  zoneTitle:'Conexiones por zona',
  zoneIntro:'Una zona puede necesitar varios breakers. Cada aparato requiere una conexión dentro del recorrido disponible; puertas y ventanas no interrumpen el cableado eléctrico.',

@@ -71,6 +71,35 @@ for(const [name,factory] of [
  ['motor 3D con servicios',factoryFrom(engine.patched)]
 ]){
  const create=withWiring(factory);
+ test(name+': un control de piso restaura también la bandera antigua del servicio',()=>{
+  const floors=[floor([room,lamp,panel])],state={flags:{'power_floor:f0':false},services:{enabled:{'power_floor:f0':false}}};
+  const lighting=create(floors,state);
+  assert.equal(lighting.fixtureLit(0,room,lamp),false);
+  lighting.restoreBreaker(0,{powerScope:'floor',breakerFlag:'old_floor_control'});
+  assert.equal(state.flags['power_floor:f0'],true);assert.equal(state.services.enabled['power_floor:f0'],true);
+  assert.equal(lighting.fixtureLit(0,room,lamp),true);
+ });
+ test(name+': restaurar los controles del demo recupera los cortes globales, de piso y de zona',()=>{
+  const project=JSON.parse(fs.readFileSync(path.join(__dirname,'../../forest-horror/maps/DEMO_Circuitos_Identificados.json'),'utf8'));
+  const state=structuredClone(project.initialGameState),lighting=create(project.floors,state);
+  project.floors.forEach((floor,f)=>{
+   for(const panel of floor.items.filter(it=>it.type==='breaker_panel')){
+    for(const circuit of shared.circuitsForPanel(project.floors,f,panel))lighting.restoreBreaker(circuit.floorIndex,circuit);
+   }
+  });
+  for(const flag of ['power_global','breaker_on','power_floor:floor1','power_zone:zona_roja','power_zone:zona_azul'])assert.equal(state.flags[flag],true,flag);
+  assert.equal(lighting.powered(0,'zona_roja'),true);
+ });
+ test(name+': restaurar un corte antiguo de zona no enciende el otro breaker de la zona',()=>{
+  const {floors,room,lamps,panel}=hallway();panel.breakerType='small';panel.circuits[0].rangeFt=20;
+  const second={id:'second',type:'breaker_panel',x:10,y:0,breakerType:'small',zoneId:'a',powerScope:'zone',circuits:[{zoneId:'a'}]};
+  floors[0].items.push(second);const state={flags:{'power_zone:a':false}},lighting=create(floors,state);
+  assert.deepEqual(lamps.map(l=>lighting.fixtureLit(0,room,l)),[false,false,false,false]);
+  lighting.restoreBreaker(0,shared.circuitsForPanel(floors,0,panel)[0]);
+  assert.deepEqual(lamps.map(l=>lighting.fixtureLit(0,room,l)),[true,true,false,false]);
+  lighting.restoreBreaker(0,shared.circuitsForPanel(floors,0,second)[0]);
+  assert.deepEqual(lamps.map(l=>lighting.fixtureLit(0,room,l)),[true,true,true,true]);
+ });
  test(name+': dos breakers de la misma zona cubren tramos distintos y se apagan por separado',()=>{
   const {floors,room,lamps,panel}=hallway();panel.breakerType='small';panel.circuits[0].rangeFt=20;
   const second={id:'second',type:'breaker_panel',x:10,y:0,breakerType:'small',zoneId:'a',powerScope:'zone',circuits:[{zoneId:'a'}]};

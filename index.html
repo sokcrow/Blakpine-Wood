@@ -188,9 +188,9 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
 <script src="./juego/assets/fh-access-config.js?v=20261107-map-v1"></script>
 <script src="./juego/assets/fh-weather-strings.js?v=20261108-clima1"></script>
 <script src="./juego/assets/fh-weather-editor.js?v=20261108-clima1"></script>
-<script src="./juego/assets/fh-services-strings.js?v=20261109-cable-length-6"></script>
-<script src="./juego/assets/fh-services-core.js?v=20261109-cable-length-6"></script>
-<script src="./juego/assets/fh-light-strings.js?v=20261109-zones-2"></script>
+<script src="./juego/assets/fh-services-strings.js?v=20261109-review-fixes-7"></script>
+<script src="./juego/assets/fh-services-core.js?v=20261109-review-fixes-7"></script>
+<script src="./juego/assets/fh-light-strings.js?v=20261109-zones-3"></script>
 <script>// /shared + /editor. Motor empaquetado y aislado en iframe.
 const ForestShared=(()=>{
 // shared/geometry.js
@@ -658,7 +658,7 @@ function createLightingSystem(floors,state,config={}){
   return {ok:true,key,value:state.flags[key],lit:state.flags[key]&&roomLit(floor,room)};
  }
  function breakerKey(floor,item={}){
-  if(str(item.breakerFlag))return item.breakerFlag;
+  if(str(item.breakerFlag)&&!['global','floor'].includes(item.powerScope))return item.breakerFlag;
   return item.powerScope==='global'?'power_global':item.powerScope==='zone'?zoneKey(str(item.zoneId)||'main'):powerKey(floor);
  }
  function breakerPower(floor,item={}){
@@ -666,8 +666,19 @@ function createLightingSystem(floors,state,config={}){
  }
  function setBreakerPower(floor,item={},power=true){
   const value=!!power,scope=['global','floor','zone'].includes(item.powerScope)?item.powerScope:'floor';
-  const changed=[breakerKey(floor,item)];state.flags[changed[0]]=value;
-  if(str(item.powerFlag)&&item.powerFlag!==changed[0]){state.flags[item.powerFlag]=value;changed.push(item.powerFlag)}
+  const key=breakerKey(floor,item),changed=[key];
+  const write=(flag,value)=>{state.flags[flag]=value;if(Object.prototype.hasOwnProperty.call(state.services?.enabled||{},flag))state.services.enabled[flag]=value;if(!changed.includes(flag))changed.push(flag)};
+  const zone=zoneKey(str(item.zoneId)||'main');
+  if(value&&scope==='zone'&&str(item.breakerFlag)&&(state.flags[zone]===false||state.services?.enabled?.[zone]===false)){
+   // Trasladar el corte común a las otras palancas antes de restaurar sólo ésta.
+   for(const {circuit} of circuitsByFloor[floor]?.get(str(item.zoneId)||'main')||[]){
+    if(circuit.breakerFlag&&circuit.breakerFlag!==key)write(circuit.breakerFlag,false);
+   }
+   write(zone,true);
+  }
+  write(key,value);
+  if(str(item.breakerFlag)&&item.breakerFlag!==key)write(item.breakerFlag,value);
+  if(str(item.powerFlag)&&item.powerFlag!==key)write(item.powerFlag,value);
   return {ok:true,scope,changed,value};
  }
  function restoreBreaker(floor,item={}){return setBreakerPower(floor,item,true)}
@@ -2596,12 +2607,15 @@ function renderBreakerCircuits(panel,fields){
    const id=document.createElement('small');id.style.cssText='overflow-wrap:anywhere;color:#a4c4ce';id.textContent=`ID permanente: ${circ.id}`;card.append(id);
   const counts=document.createElement('small');counts.textContent=`Conectado: ${n.rooms} habitaciones, ${n.lamps} lámparas y ${n.switches} interruptores`;card.append(counts);
   if(legacy){fields.append(card);return}
-  const spec=panel.circuits.find(c=>c.zoneId===circ.zoneId);
+  const spec=panel.circuits.find(c=>String(c.id||c.zoneId)===circ.id);
   const zoneLabel=document.createElement('label');zoneLabel.textContent=window.FH_LIGHT_TEXT.zoneLabel;
   const zoneChoice=document.createElement('select');
-  for(const zone of electricalZoneGroups()){const option=document.createElement('option');option.value=zone.zoneId;option.textContent=window.FH_LIGHT_TEXT.circuitIdentity(zone.name,zone.zoneId);zoneChoice.append(option)}
+  for(const zone of electricalZoneGroups()){
+   if(panel.circuits.some(other=>other!==spec&&(other.zoneId||other.id)===zone.zoneId))continue;
+   const option=document.createElement('option');option.value=zone.zoneId;option.textContent=window.FH_LIGHT_TEXT.circuitIdentity(zone.name,zone.zoneId);zoneChoice.append(option);
+  }
   zoneChoice.value=spec.zoneId||spec.id;
-  zoneChoice.onchange=()=>{const zone=circuitInfo(zoneChoice.value);spec.zoneId=zoneChoice.value;if(zone){spec.name=zone.name;spec.circuitColor=zone.circuitColor}if(panel.circuits[0]===spec)panel.zoneId=spec.zoneId;record();refreshCircuits(spec.zoneId);openInspector()};
+  zoneChoice.onchange=()=>{if(panel.circuits.some(other=>other!==spec&&(other.zoneId||other.id)===zoneChoice.value)){zoneChoice.value=spec.zoneId||spec.id;toast(window.FH_LIGHT_TEXT.zoneAlreadyUsed);return}const zone=circuitInfo(zoneChoice.value);spec.id ||= circ.id;spec.zoneId=zoneChoice.value;if(zone){spec.name=zone.name;spec.circuitColor=zone.circuitColor}if(panel.circuits[0]===spec)panel.zoneId=spec.zoneId;record();refreshCircuits(spec.zoneId);openInspector()};
   zoneLabel.append(zoneChoice);card.append(zoneLabel);
   const row=(label,type,value,change)=>{const holder=document.createElement('label');holder.textContent=label;const input=document.createElement('input');input.type=type;input.value=value;input.onchange=()=>{change(input.value);record();refreshCircuits(circ.zoneId);openInspector()};holder.append(input);card.append(holder)};
   row('Etiqueta (Apartamento 1, Pasillo...)','text',spec.name||'',v=>spec.name=v.trim()||'Zona');
@@ -2611,7 +2625,7 @@ function renderBreakerCircuits(panel,fields){
   select.value='zone';select.onchange=()=>{spec.powerScope=select.value;record();openInspector()};scope.append(select);card.append(scope);
   const btns=document.createElement('div');btns.style.cssText='display:flex;gap:6px;flex-wrap:wrap';
   const choose=document.createElement('button');choose.type='button';choose.textContent='Asignar esta zona';choose.onclick=()=>{refreshCircuits(circ.zoneId);setCategory('lighting');$('#circuitChooser').value=circ.zoneId;refreshCircuits(circ.zoneId);chooseTool('zone_assign');closeInspector();toast(`Toca los cuartos o lámparas para conectarlos a ${circ.name}`)};btns.append(choose);
-  const remove=document.createElement('button');remove.type='button';remove.textContent='Eliminar circuito';remove.disabled=panel.circuits.length<=1;remove.title='Conserva al menos una palanca por panel';remove.onclick=()=>{if(n.rooms+n.lamps+n.switches){toast('Primero cambia de circuito sus habitaciones y dispositivos.');return}panel.circuits=panel.circuits.filter(c=>c.zoneId!==circ.zoneId);record();refreshCircuits();openInspector()};btns.append(remove);card.append(btns);fields.append(card);
+  const remove=document.createElement('button');remove.type='button';remove.textContent='Eliminar circuito';remove.disabled=panel.circuits.length<=1;remove.title='Conserva al menos una palanca por panel';remove.onclick=()=>{if(n.rooms+n.lamps+n.switches){toast('Primero cambia de circuito sus habitaciones y dispositivos.');return}panel.circuits=panel.circuits.filter(c=>String(c.id||c.zoneId)!==circ.id);record();refreshCircuits();openInspector()};btns.append(remove);card.append(btns);fields.append(card);
  });
  const add=document.createElement('button');add.type='button';add.textContent='＋ Añadir palanca / circuito';add.style.cssText='grid-column:1/-1;min-height:44px;border:1px solid #d9b876';
  add.onclick=()=>{
@@ -4365,7 +4379,7 @@ init();
 <script src="./juego/assets/fh-structure-engine-hook.js?v=20261108-architecture-load"></script>
 <script src="./juego/assets/fh-comic-action-engine-hook.js?v=20261107-comic-actions-1"></script>
 <script src="./juego/assets/fh-context-engine-hook.js?v=20261108-elevator-comfort-1"></script>
-<script src="./juego/assets/fh-services-engine-hook.js?v=20261109-cable-length-6"></script>
+<script src="./juego/assets/fh-services-engine-hook.js?v=20261109-review-fixes-7"></script>
 </body>
 </html>
 

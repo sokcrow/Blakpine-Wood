@@ -74,3 +74,18 @@ test('dos breakers en el mismo punto conservan su alcance propio en la caché',(
  const system=run([line({x:0,y:0},{x:1,y:0}),small,medium,lamp]);
  assert.equal(system.sourceFor(0,lamp).panel.id,'medium');assert.equal(system.sourceFor(0,lamp).feet,45);
 });
+for(const withStrip of [false,true]){
+ test('el aparato elige un breaker que cubre todo el cable, con multiconector='+withStrip,()=>{
+  const small=panel('small',5,0,'small'),large=panel('large',0,0,'large');
+  const outlet={id:'plug',type:'power_outlet',zoneId:'a',x:5,y:0,radiusFt:40,slots:2};
+  const strip={id:'strip',type:'power_strip',x:5,y:1,outletId:'plug',radiusFt:40,slots:3};
+  const tv={id:'tv',type:'tv',x:5,y:7,outletId:withStrip?'strip':'plug'};
+  const items=[line({x:0,y:0},{x:6,y:0}),small,large,outlet,...(withStrip?[strip]:[]),tv];
+  const system=run(items);
+  assert.equal(system.sourceFor(0,outlet).panel.id,'small','el panel cercano llega al enchufe');
+  assert.equal(system.statusFor(0,tv).power.powered,true);
+  assert.equal(system.statusFor(0,tv).power.breakerId,'large');assert.equal(system.statusFor(0,tv).power.feet,60);
+  assert.equal(run(items.filter(it=>it!==small)).statusFor(0,tv).power.powered,true);
+  system.state.enabled.large=false;assert.equal(system.statusFor(0,tv).power.powered,false);
+ });
+}

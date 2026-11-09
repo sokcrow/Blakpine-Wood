@@ -82,7 +82,7 @@ test('mapa sin breakers conserva estado vacío y alerta de conexiones huérfanas
  assert.match(state.html,/Conexiones por zona/);
 });
 test('los textos del menú se cargan antes de inicializar el editor',()=>{
- const script=editor.indexOf('fh-light-strings.js?v=20261109-zones-2');
+ const script=editor.indexOf('fh-light-strings.js?v=20261109-zones-3');
  assert.ok(script>=0&&script<editor.indexOf('const ForestShared=(()=>{'));
 });
 test('varios breakers de una zona aparecen una sola vez en el selector y juntos en el resumen',()=>{
@@ -118,4 +118,18 @@ test('el color se mantiene coherente entre breakers de una zona, sin unir zonas 
  assert.equal(items[0].circuits[0].circuitColor,'#56a9e6');assert.equal(items[1].circuits[0].circuitColor,'#56a9e6');
  assert.equal(items[0].circuits[1].circuitColor,'#dc5656');
  assert.deepEqual(Array.from(ctx.electricalZoneGroups(),z=>z.zoneId),['a1','a2']);
+});
+test('el inspector no permite elegir la zona de otro circuito del mismo panel',()=>{
+ const {ctx,items}=setup();let warning='';ctx.toast=text=>{warning=text};
+ ctx.CIRCUIT_COLORS=['#dc5656'];ctx.record=()=>{};ctx.openInspector=()=>{};
+ const start=editor.indexOf('function renderBreakerCircuits('),end=editor.indexOf('function renderAnchorInspector(',start);
+ vm.runInContext(editor.slice(start,end),ctx);
+ const fields=new Element('div');ctx.renderBreakerCircuits(items[0],fields);
+ const descendants=node=>[node,...node.children.flatMap(descendants)];
+ const labels=descendants(fields).filter(node=>node.tagName==='label'&&node.textContent.startsWith('Zona eléctrica compartida'));
+ const second=labels[1].children[0];
+ assert.equal(second.children.some(option=>option.value==='a1'),false);
+ second.value='a1';second.onchange();
+ assert.equal(items[0].circuits[1].zoneId,'a2');assert.equal(second.value,'a2');assert.ok(warning);
+ second.value='b1';second.onchange();assert.equal(items[0].circuits[1].zoneId,'b1');assert.equal(items[0].circuits[1].id,'a2');
 });

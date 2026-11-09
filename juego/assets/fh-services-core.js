@@ -311,19 +311,20 @@
      !flagOn('power_zone:'+c.zoneId)||!flagOn(id(panel))||!flagOn(c.breakerFlag))return false;
    return (!panel.powerFlag||flagOn(panel.powerFlag))&&(!c.powerFlag||flagOn(c.powerFlag));
   }
-  function sourceFor(f,it,zone=''){
+  function sourcesFor(f,it,zone=''){
    zone=zone||zoneFor(f,it);
-   if(!zone)return null;
+   if(!zone)return [];
    const candidates=powerScopes[f]||[];
-   let best=null,d=Infinity;
+   const sources=[];
    for(const c of candidates){
     if(zone&&c.zoneId!==zone)continue;
     if(!circuitOn(f,c))continue;
     const path=powerRoute(f,c.panel,it);
-    if(path&&path.feet<=c.rangeFt+1e-7&&path.feet<d){d=path.feet;best={...c,route:path,feet:path.feet};}
+    if(path&&path.feet<=c.rangeFt+1e-7)sources.push({...c,route:path,feet:path.feet});
    }
-   return best;
+   return sources.sort((a,b)=>a.feet-b.feet);
   }
+  function sourceFor(f,it,zone=''){return sourcesFor(f,it,zone)[0]||null}
   function active(it){return s.enabled[id(it)]!==false&&it.enabled!==false&&it.on!==false;}
   function rayos(it){return Math.max(0,number(it.rayos,it.service?.rayos??0));}
   function watts(it){return Math.max(0,number(it.watts,it.service?.watts??rayos(it)*200));}
@@ -343,7 +344,7 @@
     .sort((a,b)=>dist(point(a),point(it))-dist(point(b),point(it))||id(a).localeCompare(id(b)));
   }
   function electrical(){
-   const bindings=new Map(),used=new Map(),loads=new Map(),supplies=new Map();
+   const bindings=new Map(),used=new Map(),loads=new Map(),supplies=new Map(),supplyOptions=new Map();
    for(let f=0;f<floors.length;f++){
     const outlets=values(f,'power_outlet'),strips=values(f,'power_strip');
     const claim=(it,sources)=>{
@@ -352,13 +353,15 @@
       if(count>=Math.max(1,Math.floor(number(source.slots,2))))continue;
       if(source.type==='power_strip'&&(!bindings.has(k)||!active(source)))continue;
       if(source.type==='power_outlet'&&!active(source))continue;
-      const supply=source.type==='power_outlet'?sourceFor(f,source,zoneFor(f,source)):supplies.get(k);
-      if(!supply)continue;
-      const zone=zoneFor(f,it),feet=supply.feet+cableDistance(point(source),point(it))*feetPerCell;
-      if(zone&&zone!==supply.zoneId||feet>supply.rangeFt+1e-7)continue;
+      const choices=source.type==='power_outlet'?sourcesFor(f,source,zoneFor(f,source)):supplyOptions.get(k)||[];
+      const zone=zoneFor(f,it),cableFeet=cableDistance(point(source),point(it))*feetPerCell;
+      const eligible=choices.map(supply=>({...supply,feet:supply.feet+cableFeet}))
+       .filter(supply=>(!zone||zone===supply.zoneId)&&supply.feet<=supply.rangeFt+1e-7)
+       .sort((a,b)=>a.feet-b.feet);
+      const supply=eligible[0];if(!supply)continue;
       if(number(s.damage[id(source)])>=100)continue;
       bindings.set(f+':'+id(it),source);
-      supplies.set(f+':'+id(it),{...supply,feet});
+      supplies.set(f+':'+id(it),supply);supplyOptions.set(f+':'+id(it),eligible);
       used.set(k,count+1);
       if(drawingPower(it))loads.set(k,(loads.get(k)||0)+rayos(it));
       return source;
