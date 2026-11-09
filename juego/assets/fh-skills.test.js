@@ -1,5 +1,6 @@
 /* node juego/assets/fh-skills.test.js */
 const assert=require('node:assert/strict');
+require('./fh-survival-core.js');
 const S=require('./fh-skills.js');
 assert.equal(S.IDS.length,32);
 assert.equal(new Set(S.IDS).size,32);
@@ -34,3 +35,9 @@ assert.throws(()=>S.odds(char,'informatica',{difficulty:-1}));
 assert.throws(()=>S.odds(char,'informatica',{advantage:1.5}));
 assert.throws(()=>S.setPoints(char,'informatica',-1));
 console.log('PASS fh-skills: catálogo, porcentajes, ventajas, desventajas y críticos');
+
+const stressed={skills:{informatica:0},resources:{spMax:20,sp:8}};
+o=S.odds(stressed,'informatica',{difficulty:2});
+assert.equal(o.sanityPenaltyPct,15);
+assert.equal(o.headsPercent,65,'20% de SP faltante son 5 puntos porcentuales');
+assert.equal(S.roll(stressed,'informatica',{difficulty:2,rng:()=>.66}).success,false);
