@@ -402,3 +402,23 @@ body.breaker-active #fhPhoneToggle,body.breaker-active #fhPhonePanel{
  #fhPhonePanel .fh-phone-network-password-field input{font-size:12px}
  #fhPhonePanel .fh-phone-network-form .fh-phone-primary{font-size:10px}
 }
+
+/* Redes compactas: solo SSID y candado; formulario al tocar una red protegida. */
+#fhPhonePanel .fh-phone-network-card{gap:0;padding:5px 9px}
+#fhPhonePanel .fh-phone-network-heading{
+ display:flex;align-items:center;justify-content:space-between;
+ width:100%;min-height:44px;padding:7px 5px;
+ border:0;border-radius:6px;background:transparent;color:inherit;
+ text-align:left;cursor:pointer;box-shadow:none;
+}
+#fhPhonePanel .fh-phone-network-heading:active{background:#ffffff12}
+#fhPhonePanel .fh-phone-network-name{font-size:13px}
+#fhPhonePanel .fh-phone-network-form{margin:4px 3px 8px}
+#fhPhonePanel .fh-phone-network-form[hidden]{display:none!important}
+#fhPhonePanel .fh-phone-status-wifi{width:16px;height:15px;flex:none}
+#fhPhonePanel .fh-phone-status-wifi[hidden]{display:none!important}
+@media(max-height:480px) and (orientation:landscape){
+ #fhPhonePanel .fh-phone-network-card{padding:3px 6px}
+ #fhPhonePanel .fh-phone-network-name{font-size:10px}
+ #fhPhonePanel .fh-phone-status-wifi{width:12px;height:11px}
+}
