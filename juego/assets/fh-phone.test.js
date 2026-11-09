@@ -123,8 +123,10 @@ function fakePhoneDocument(){
   e.classList={contains(c){return e.className.split(/\s+/).includes(c)},
    add(c){if(!this.contains(c))e.className=(e.className+' '+c).trim()},
    remove(c){e.className=e.className.split(/\s+/).filter(x=>x!==c).join(' ')}};
-  e.append=(...kids)=>{e.children.push(...kids)};
-  e.replaceChildren=(...kids)=>{e.children=[...kids]};
+  e.append=(...kids)=>{for(const kid of kids){if(kid.parentNode)kid.remove();kid.parentNode=e;e.children.push(kid)}};
+  e.replaceChildren=(...kids)=>{for(const old of e.children)old.parentNode=null;e.children=[];e.append(...kids)};
+  e.remove=()=>{if(e.parentNode){const siblings=e.parentNode.children;const i=siblings.indexOf(e);if(i>=0)siblings.splice(i,1);e.parentNode=null}};
+  e.replaceWith=next=>{if(!e.parentNode)return;const p=e.parentNode,i=p.children.indexOf(e);if(i<0)return;next.parentNode=p;p.children.splice(i,1,next);e.parentNode=null};
   e.setAttribute=(key,value)=>{e.attributes[key]=String(value)};
   e.addEventListener=(name,fn)=>{e.listeners[name]=fn};
   e.querySelectorAll=selector=>{
@@ -167,7 +169,8 @@ test('Wi-Fi protegido: entrada usable, iconos y candado permanente tras conectar
  assert.ok(card);
  assert.ok(card.querySelector('.fh-phone-network-lock'),'la red protegida tiene candado');
  assert.equal(card.querySelector('.fh-phone-network-strength').children[1].textContent,'Excelente');
- assert.equal(card.querySelector('.fh-phone-network-signal').children.length,3);
+ assert.equal(card.querySelector('.fh-phone-network-signal').children.length,4);
+ assert.equal(card.querySelector('.fh-phone-network-signal').children[0].tagName,'PATH');
  const form=card.querySelector('.fh-phone-network-form');
  const field=card.querySelector('.fh-phone-network-password-field');
  const password=field.children[0],visibility=field.children[1],connect=form.children[1];
@@ -203,6 +206,77 @@ test('Wi-Fi abierto: sin candado ni formulario, calidad sin contador de barras',
  assert.equal(card.querySelector('.fh-phone-network-form'),null);
  assert.equal(card.querySelector('.fh-phone-network-strength').children[1].textContent,'Buena');
  assert.equal(card.querySelector('.fh-phone-network-status').textContent,'Conectado');
+});
+test('ondas Wi-Fi cambian en tiempo real sin perder contraseña ni foco',()=>{
+ require('./fh-phone-strings.js');
+ const doc=fakePhoneDocument();
+ const net={routerId:'radio1',name:'Red protegida',requiresPassword:true,bars:3,authenticated:false,online:false};
+ const phone=Phone.createRuntime({state:{},document:doc,strings:globalThis.FH_PHONE_TEXT,networks:()=>[net]});
+ assert.equal(phone.open(),true);
+ doc.body.querySelectorAll('.fh-phone-app').find(x=>x.dataset.app==='network').listeners.click();
+ const row=doc.body.querySelector('.fh-phone-network-card');
+ const input=row.querySelector('.fh-phone-network-password-field').children[0];
+ const icon=row.querySelector('.fh-phone-network-signal');
+ input.value='contrasena-en-progreso';input.listeners.input();
+ doc.activeElement=input;
+ const bar=i=>icon.children[i].attributes.opacity;
+ assert.deepEqual([bar(0),bar(1),bar(2)],['1','1','1']);
+ net.bars=1;phone.update(.55);
+ assert.equal(doc.body.querySelector('.fh-phone-network-card'),row);
+ assert.equal(input.value,'contrasena-en-progreso');
+ assert.equal(doc.activeElement,input);
+ assert.deepEqual([bar(0),bar(1),bar(2)],['1','.2','.2']);
+ assert.equal(row.querySelector('.fh-phone-network-strength').children[1].textContent,'Débil');
+ net.bars=2;phone.update(.55);
+ assert.deepEqual([bar(0),bar(1),bar(2)],['1','1','.2']);
+ assert.equal(row.querySelector('.fh-phone-network-strength').children[1].textContent,'Buena');
+ net.bars=3;phone.update(.55);
+ assert.deepEqual([bar(0),bar(1),bar(2)],['1','1','1']);
+ assert.equal(row.querySelector('.fh-phone-network-strength').children[1].textContent,'Excelente');
+});
+test('pérdida temporal de señal conserva la contraseña y recupera Conectar',()=>{
+ require('./fh-phone-strings.js');
+ const doc=fakePhoneDocument();
+ let networks=[{routerId:'radio1',name:'Router',requiresPassword:true,bars:3,authenticated:false}];
+ const phone=Phone.createRuntime({state:{},document:doc,strings:globalThis.FH_PHONE_TEXT,networks:()=>networks});
+ assert.equal(phone.open(),true);
+ doc.body.querySelectorAll('.fh-phone-app').find(x=>x.dataset.app==='network').listeners.click();
+ const row=doc.body.querySelector('.fh-phone-network-card');
+ const input=row.querySelector('.fh-phone-network-password-field').children[0];
+ const submit=row.querySelector('.fh-phone-network-form').children[1];
+ input.value='clave';input.listeners.input();assert.equal(submit.disabled,false);
+ networks=[];phone.update(.55);
+ assert.equal(doc.body.querySelector('.fh-phone-network-card'),row);
+ assert.equal(input.value,'clave');
+ assert.equal(row.querySelector('.fh-phone-network-strength').children[1].textContent,'Sin señal');
+ assert.equal(submit.disabled,true);
+ networks=[{routerId:'radio1',name:'Router',requiresPassword:true,bars:2,authenticated:false}];
+ phone.update(.55);
+ assert.equal(doc.body.querySelector('.fh-phone-network-card'),row);
+ assert.equal(input.value,'clave');
+ assert.equal(submit.disabled,false);
+});
+test('redes nuevas, desaparecidas y cortes de internet se actualizan sin reabrir Redes',()=>{
+ require('./fh-phone-strings.js');
+ const doc=fakePhoneDocument();
+ const a={routerId:'a',name:'Red A',bars:2,authenticated:true,requiresPassword:false,online:true};
+ const b={routerId:'b',name:'Red B',bars:1,authenticated:true,requiresPassword:true,online:false};
+ let networks=[a];
+ const phone=Phone.createRuntime({state:{},document:doc,strings:globalThis.FH_PHONE_TEXT,networks:()=>networks});
+ assert.equal(phone.open(),true);
+ doc.body.querySelectorAll('.fh-phone-app').find(x=>x.dataset.app==='network').listeners.click();
+ const original=doc.body.querySelector('.fh-phone-network-card');
+ a.online=false;phone.update(.55);
+ assert.equal(original.querySelector('.fh-phone-network-status').textContent,'Red Wi-Fi sin internet');
+ networks=[a,b];phone.update(.55);
+ assert.equal(doc.body.querySelectorAll('.fh-phone-network-card').length,2);
+ assert.equal(doc.body.querySelectorAll('.fh-phone-network-lock').length,1);
+ networks=[b];phone.update(.55);
+ assert.equal(doc.body.querySelectorAll('.fh-phone-network-card').length,1);
+ assert.equal(doc.body.querySelector('.fh-phone-network-name').textContent,'Red B');
+ networks=[];phone.update(.55);
+ assert.equal(doc.body.querySelectorAll('.fh-phone-network-card').length,0);
+ assert.equal(doc.body.querySelector('.fh-phone-empty').hidden,false);
 });
 test('Wi-Fi móvil: formulario apilado y targets táctiles de ancho completo',()=>{
  const css=fs.readFileSync(path.resolve(__dirname,'fh-phone.css'),'utf8');
