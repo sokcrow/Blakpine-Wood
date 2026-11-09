@@ -1,0 +1,35 @@
+name: Servicios — conexiones y compatibilidad
+
+on:
+  pull_request:
+    paths:
+      - 'juego/assets/fh-services-core.js'
+      - 'juego/assets/fh-services-engine-hook.js'
+      - 'juego/assets/fh-services-strings.js'
+      - 'juego/assets/fh-electric-visuals.js'
+      - 'juego/assets/fh-internet-visuals.js'
+      - 'juego/assets/fh-water-visuals.js'
+      - 'tests/fh-services-core.test.js'
+      - 'juego/assets/fh-services-engine-hook.test.js'
+      - '.github/workflows/services-contract.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'juego/assets/fh-services-core.js'
+      - 'juego/assets/fh-services-engine-hook.js'
+      - 'tests/fh-services-core.test.js'
+      - '.github/workflows/services-contract.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  services:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Pruebas de redes y servicios
+        run: node --test tests/fh-services-core.test.js juego/assets/fh-services-engine-hook.test.js

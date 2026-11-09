@@ -30,7 +30,7 @@
    damage:'Estado de desgaste',serviceNote:'Solo se configurarán tarifas en una etapa posterior.'
   }),
   tips:Object.freeze({
-   power_outlet:'Coloca el enchufe sobre una pared energizada. Admite dos conexiones por defecto.',
+   power_outlet:'Admite dos conexiones. Cada aparato puede conectarse si su cable alcanza hasta 5 pies, salvo configuración específica.',
    power_strip:'El multiconector amplía tomas. Su cable y el de cada aparato cuentan dentro del alcance del breaker.',
    phone_charger:'El celular se retira del inventario y su menú desaparece durante la carga.',
    water_main:'Distribuye suministro por los tramos conectados de pared.',
