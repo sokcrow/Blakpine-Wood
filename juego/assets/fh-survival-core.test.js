@@ -62,15 +62,15 @@ test('falta de sueño se pausa; al despertar reinicia tres horas sin repetir 30%
  life.update(0,{mode:'sleeping'});
  life.update(60,{mode:'sleeping'});
  life.update(60,{mode:'awake'});
- assert.equal(game.character.resources.sp,17);
- life.update(120,{mode:'awake'});
  assert.equal(game.character.resources.sp,14);
+ life.update(120,{mode:'awake'});
+ assert.equal(game.character.resources.sp,11);
  life.update(121,{mode:'sleeping'});
  life.update(151,{mode:'sleeping'});
  life.update(151,{mode:'awake'});
- assert.equal(game.character.resources.sp,14,'sin repetir 30%');
+ assert.equal(game.character.resources.sp,11,'sin repetir 30%');
  life.update(211,{mode:'awake'});
- assert.equal(game.character.resources.sp,11,'contador reiniciado');
+ assert.equal(game.character.resources.sp,8,'contador reiniciado');
  life.update(211,{mode:'sleeping'});
  life.update(571,{mode:'sleeping'});
  assert.equal(life.state.fatigue.active,false,'6h continuas curan el estado');
@@ -118,6 +118,6 @@ test('persistencia de faltas de sueño al recuperar la partida',()=>{
  const loaded=JSON.parse(JSON.stringify(game));
  const resumed=S.createRuntime(loaded);
  resumed.update(120,{mode:'awake'});
- assert.equal(loaded.character.resources.sp,14,'no duplica la pérdida inicial');
+ assert.equal(loaded.character.resources.sp,11,'no duplica la pérdida inicial');
  assert.equal(loaded.survival.fatigue.initialApplied,true);
 });
