@@ -5,13 +5,19 @@
  const clamp=x=>Math.min(1,Math.max(0,x));
  const ease=x=>x*x*(3-2*x);
  function createController(){
-  let elapsed=0,depth=0,stage='awake',holdAwake=false,wakeLeft=0,wakeAction=null,asleepTime=0,nextBreath=CONFIG.breathDelay,comfortShown=false;
-  function status(){return {stage,depth,vulnerable:stage==='asleep',
-   vulnerability:stage==='asleep'?2.5:stage==='waking'?1.75:stage==='drowsy'?1+depth*.9:stage==='resting'?1.2:1,
+  let elapsed=0,depth=0,stage='awake',holdAwake=false,wakeLeft=0,wakeAction=null,asleepTime=0,nextBreath=CONFIG.breathDelay,comfortShown=false,unconscious=false;
+  function status(){return {stage,depth,vulnerable:stage==='asleep'||stage==='unconscious',
+   vulnerability:stage==='asleep'||stage==='unconscious'?2.5:stage==='waking'?1.75:stage==='drowsy'?1+depth*.9:stage==='resting'?1.2:1,
    wakeDelayRemaining:wakeLeft};}
   function update(dt,phase,verb,type,bus){
    const active=type==='bed'&&verb==='lie'&&phase==='lying';
    const previous=stage,step=Math.max(0,Math.min(.1,Number(dt)||0));
+   if(unconscious){
+    stage='unconscious';depth=1;nextBreath=CONFIG.breathDelay;
+    global.document?.body?.classList?.toggle('fh-sleep-masking',true);
+    global.document?.body?.classList?.remove('fh-sleeping');syncIris();
+    return status();
+   }
    if(active){
     if(wakeLeft>0){
      stage='waking';wakeLeft=Math.max(0,wakeLeft-step);
@@ -39,7 +45,17 @@
    }
    return status();
   }
+  function setUnconscious(value){
+   const next=!!value;
+   if(unconscious===next)return;
+   unconscious=next;
+   if(next){stage='unconscious';depth=1;wakeLeft=0;wakeAction=null;holdAwake=false;
+    global.document?.body?.classList?.remove('fh-sleeping');}
+   else{stage='awake';depth=0;elapsed=0;asleepTime=0;holdAwake=false;}
+   syncIris();
+  }
   function requestWake(action){
+   if(unconscious)return {ok:false,reason:'unconscious'};
    if(typeof action!=='function')return {ok:false,reason:'missing_action'};
    if(wakeLeft>0)return {ok:true,waking:true};
    if(stage==='asleep'||depth>=.75){
@@ -110,7 +126,7 @@
    if(emitted)nextBreath=asleepTime+CONFIG.breathCycle;
    return emitted;
   }
-  return Object.freeze({status,update,requestWake,viewWeight,cameraPose,irisRadius,needsComfort,emitComfort,needsBreath,emitBreath});
+  return Object.freeze({status,update,requestWake,setUnconscious,viewWeight,cameraPose,irisRadius,needsComfort,emitComfort,needsBreath,emitBreath});
  }
  global.FHSleep=global.FHSleep||createController();
  global.FHCreateSleepController=createController;
