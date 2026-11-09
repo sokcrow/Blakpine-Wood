@@ -1,0 +1,75 @@
+name: Integrar 24 modelos de servicios
+on:
+  push:
+    branches:
+      - feat/servicios24-modelos-20261109
+permissions:
+  contents: write
+jobs:
+  integracion:
+    if: ${{ !contains(github.event.head_commit.message, '[services24-built]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Dependencias de los generadores originales
+        run: python -m pip install numpy==2.3.5 Pillow==12.3.0 trimesh==4.11.1 scipy
+      - name: Verificar y extraer los scripts originales
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import base64, hashlib, lzma, tarfile, io
+          files=sorted(Path('.services24-staging').glob('part*.b64'))
+          assert len(files)==12, f'Faltan partes de integración: {len(files)}/12'
+          payload=''.join(f.read_text() for f in files)
+          assert len(payload)==47148, 'Paquete incompleto'
+          binary=base64.b64decode(payload,validate=True)
+          assert hashlib.sha256(binary).hexdigest()=='1929991166f22436e98cbb6f7005d684eb6b1d4b22f6eb6b67300350109f9b73', 'Integridad de recursos inválida'
+          with tarfile.open(fileobj=io.BytesIO(lzma.decompress(binary)),mode='r:') as tf:
+              for item in tf.getmembers():
+                  path=Path(item.name)
+                  if path.is_absolute() or '..' in path.parts or not item.isfile():
+                      raise RuntimeError('Ruta insegura o inesperada: '+item.name)
+              tf.extractall('.services24-tmp',filter='data')
+          print('Paquete original verificado y extraído')
+          PY
+      - name: Reconstruir los 24 GLB y sus miniaturas originales
+        run: |
+          set -euo pipefail
+          cd .services24-tmp
+          mkdir -p generators/internet/{modelos_glb,miniaturas,texturas}
+          python generators/electricidad/generar_electricidad.py
+          python generators/agua/generar_agua.py
+          python generators/internet/generar_internet.py
+          python generators/electricidad/crear_miniaturas.py
+          python generators/agua/crear_miniaturas.py
+          python generators/internet/crear_miniaturas.py
+          for grupo in electricidad agua internet; do
+            mkdir -p biblioteca/"$grupo"/{modelos_glb,miniaturas}
+            cp generators/"$grupo"/modelos_glb/*.glb biblioteca/"$grupo"/modelos_glb/
+            cp generators/"$grupo"/miniaturas/*.png biblioteca/"$grupo"/miniaturas/
+          done
+          test "$(find biblioteca -name '*.glb' | wc -l)" -eq 24
+          test "$(find biblioteca -path '*/miniaturas/*.png' | wc -l)" -eq 24
+      - name: Integrar y reemplazar placeholders
+        run: |
+          python .services24-tmp/instalar_servicios.py . --dry-run
+          python .services24-tmp/instalar_servicios.py .
+      - name: Probar contratos actuales de servicios
+        run: |
+          node --test tests/fh-services-core.test.js juego/assets/fh-services-engine-hook.test.js
+          node --check juego/assets/fh-services-core.js
+          node --check juego/assets/fh-services-engine-hook.js
+      - name: Confirmar código y modelos en la rama
+        run: |
+          rm -rf .services24-staging .services24-tmp .servicios24-respaldo
+          rm -f .github/workflows/services24-build.yml
+          git config user.name "Blakpine model integration"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "[services24-built] Integrar 24 modelos de Electricidad, Agua e Internet"
+          git push origin HEAD:feat/servicios24-modelos-20261109
