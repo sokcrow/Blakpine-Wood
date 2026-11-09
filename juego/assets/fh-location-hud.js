@@ -40,8 +40,13 @@
   return Number.isFinite(a.x)&&Number.isFinite(a.y)&&Number.isFinite(a.w)&&Number.isFinite(a.h)&&
    p.x>=a.x&&p.y>=a.y&&p.x<a.x+a.w&&p.y<a.y+a.h;
  }
- function codeForFloor(floors,index){
+ function codeForFloor(floors,index,mainFloorId){
   const floor=floors?.[index];if(!floor)return '';
+  if(mainFloorId&&floors.some(f=>f.id===mainFloorId)){
+   const main=floors.findIndex(f=>f.id===mainFloorId),diff=index-main;
+   return diff===0?'PB':diff<0?'B'+(-diff):'F'+diff;
+  }
+  // Los mapas sin planta principal explícita conservan los códigos de siempre.
   const elev=f=>Number.isFinite(Number(f.elevationFt))?Number(f.elevationFt):0;
   const basement=elev(floor)<0;
   const levels=floors.map((f,i)=>({i,v:elev(f)})).filter(x=>(x.v<0)===basement);
@@ -77,7 +82,7 @@
   const common=regions.find(z=>z.kind==='common');
   const exterior=regions.find(z=>z.kind==='exterior');
   if(property){
-   return {kind:'property',floorCode:codeForFloor(map.floors,floorIndex),
+   return {kind:'property',floorCode:codeForFloor(map.floors,floorIndex,map.mainFloorId),
     primary:label(property.name)||text('property','PROPIEDAD'),
     secondary:label(room?.label),scopeKey:scope(floorId,'property',property.id||property.name,room?.id||room?.label)};
   }
@@ -90,7 +95,7 @@
     scopeKey:scope(floorId,'exterior-zone',exterior.id||exterior.name,parkingArea?.id||parkingArea?.label,outsideArea?.id||outsideArea?.label)};
   }
   if(building||common||buildingArea||hall||room){
-   return {kind:'building',floorCode:codeForFloor(map.floors,floorIndex),
+   return {kind:'building',floorCode:codeForFloor(map.floors,floorIndex,map.mainFloorId),
     primary:label(map.buildingNames?.[building?.id])||label(buildingArea?.label)||
      label(map.title)||text('building','EDIFICIO'),
     secondary:label(common?.name)||label(hall?.label)||label(room?.label),
