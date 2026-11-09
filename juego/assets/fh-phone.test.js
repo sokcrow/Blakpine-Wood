@@ -113,6 +113,8 @@ test('las aplicaciones nuevas conservan Hamazon y partidas anteriores',()=>{
  Phone.ensureState(state);
  for(const id of ['calendar','weather','hamazon'])assert.ok(state.phone.installedApps.includes(id));
  assert.equal(Phone.uninstallApp(state,'calendar'),false);
+ assert.ok(Phone.BASE_APPS.includes('accounts'));
+ assert.ok(state.phone.installedApps.includes('accounts'));
 });
 function fakePhoneDocument(){
  function node(tag){
@@ -176,4 +178,38 @@ test('el celular conserva el estilo y consulta el clima del motor',()=>{
  assert.match(css,/\.fh-phone-weather-widget/);
  assert.match(css,/\.fh-phone-calendar-grid/);
  assert.match(main,/forest-horror-map-v1/);
+});
+
+test('Cuentas muestra el saldo del personaje, rechazos y permite refrescar sin cobrar',()=>{
+ const E=require('./fh-economy-core.js'),View=require('./fh-economy-view.js');
+ require('./fh-economy-strings.js');
+ require('./fh-phone-strings.js');
+ let state=E.ensureOwner(E.createEconomy(),{ownerType:'character',ownerId:'ana'}).state;
+ const cash=E.accountId('character','ana','cash'),bank=E.accountId('character','ana','bank');
+ const req=(id,amountCents)=>({id,amountCents,category:'test',gameMinutes:480});
+ state=E.credit(state,{...req('start',5000),to:bank,externalRef:'system:initial'}).state;
+ state=E.debit(state,{...req('rejected',7000),from:cash,externalRef:'system:payment'}).state;
+ let writes=0,raw=E.serialize(state);
+ const storage={getItem:()=>raw,setItem(){writes++}};
+ const doc=fakePhoneDocument();
+ const phone=Phone.createRuntime({state:{clock:{minutes:480},characterId:'ana'},
+  document:doc,strings:globalThis.FH_PHONE_TEXT,economyView:View,economyStorage:storage});
+ assert.equal(phone.open(),true);
+ const app=doc.body.querySelectorAll('.fh-phone-app').find(x=>x.dataset.app==='accounts');
+ assert.ok(app,'La aplicación Cuentas aparece en el inicio');
+ app.listeners.click();
+ assert.deepEqual(doc.body.querySelectorAll('.fh-phone-account-card').map(x=>x.children[1].textContent),
+  ['$0.00','$50.00']);
+ assert.equal(doc.body.querySelector('.fh-phone-account-total').children[1].textContent,'$50.00');
+ const movements=doc.body.querySelectorAll('.fh-phone-account-movement');
+ assert.equal(movements.length,2);
+ assert.equal(movements[0].dataset.status,'rejected');
+ assert.match(movements[0].children[0].children[1].textContent,/Fondos insuficientes/);
+ assert.equal(writes,0);
+ state=E.credit(state,{...req('new',225),to:cash,externalRef:'system:grant'}).state;
+ raw=E.serialize(state);
+ doc.body.querySelector('.fh-phone-account-refresh').listeners.click();
+ assert.deepEqual(doc.body.querySelectorAll('.fh-phone-account-card').map(x=>x.children[1].textContent),
+  ['$2.25','$50.00']);
+ assert.equal(writes,0);
 });
