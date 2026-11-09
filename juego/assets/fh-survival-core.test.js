@@ -2,6 +2,7 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict');
 const S=require('./fh-survival-core.js');
+const Weather=require('./fh-weather-core.js');
 function make(pg=20,sp=20,pe=10){
  const game={character:{life:'alive',resources:{pg,pgMax:20,sp,spMax:20,pe,peMax:18}},clock:{minutes:0}};
  return {game,life:S.createRuntime(game)};
@@ -142,4 +143,45 @@ test('gasto de PE: sin energía rechaza la tarea y nunca queda negativo',()=>{
  assert.equal(life.canSpendPE(1),false);
  assert.equal(life.spendPE(1),false);
  assert.equal(game.character.resources.pe,0);
+});
+
+test('integración meteorológica: medianoche no reinicia supervivencia y PG se cura cada día',()=>{
+ const game={
+  character:{life:'alive',resources:{pg:10,pgMax:20,sp:20,spMax:20,pe:10,peMax:18}},
+  clock:{year:2026,month:11,day:9,minutes:1430,minutesPerSecond:120}
+ };
+ const weather=Weather.createRuntime({gameState:game});
+ const minute=()=>Weather.absoluteMinute(game.clock);
+ const runtime=S.createRuntime(game,{},minute());
+ const first=minute();
+ runtime.update(first,{mode:'sleeping'});
+ const pass=(ticks,mode)=>{
+  for(let i=0;i<ticks;i++){weather.update(.25);runtime.update(minute(),{mode});}
+ };
+ pass(12,'sleeping'); // 360 minutos de juego, cruza la medianoche.
+ assert.equal(game.clock.day,10);
+ assert.ok(minute()>first,'la marca de tiempo debe aumentar al cambiar de fecha');
+ assert.equal(game.character.resources.pg,12);
+ runtime.update(minute(),{mode:'awake'});
+ pass(48,'awake'); // Día siguiente: el reloj visible vuelve a pasar por medianoche.
+ assert.equal(game.clock.day,11);
+ pass(12,'sleeping');
+ assert.equal(game.character.resources.pg,14,'debe recuperarse de nuevo en otro día');
+ const loaded=JSON.parse(JSON.stringify(game));
+ const resumed=S.createRuntime(loaded,{},Weather.absoluteMinute(loaded.clock));
+ assert.equal(resumed.state.lastMinute,minute(),'la persistencia conserva el minuto absoluto');
+});
+
+test('compatibilidad: partidas de la PR con minuto diario no adelantan años al cargar',()=>{
+ const game={
+  character:{life:'alive',resources:{pg:12,pgMax:20,sp:10,spMax:20,pe:0,peMax:18}},
+  clock:{year:2026,month:11,day:10,minutes:360},
+  survival:{version:1,lastMinute:355,mode:'awake',stressCarry:20}
+ };
+ const now=Weather.absoluteMinute(game.clock);
+ const life=S.createRuntime(game,{},now);
+ assert.equal(life.state.version,2);
+ assert.equal(life.state.lastMinute,now);
+ life.update(now+1,{mode:'awake',stressed:true});
+ assert.equal(game.character.resources.sp,10,'no se aplican periodos de estrés ficticios');
 });
