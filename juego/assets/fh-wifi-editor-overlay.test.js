@@ -108,6 +108,14 @@ test('leyenda y raster: visible con router; oculta sin selección',()=>{
   const result=WiFi.draw(ctx,opts);
   assert.equal(result.powered,true);assert.equal(legend.hidden,false);
   assert.ok(calls.some(call=>call[0]==='draw'));
+  const rasters=()=>calls.filter(call=>call[0]==='raster').length;
+  const initial=rasters();
+  WiFi.draw(ctx,opts);
+  assert.equal(rasters(),initial,'pan y zoom reutilizan el raster almacenado');
+  router.wifiRadiusFt=50;
+  const revised=WiFi.draw(ctx,opts);
+  assert.equal(revised.powered,true);
+  assert.equal(rasters(),initial+1,'al modificar el router se recalcula la imagen');
   WiFi.draw(ctx,{...opts,router:null});
   assert.equal(legend.hidden,true);
  }finally{global.document=oldDoc;}
