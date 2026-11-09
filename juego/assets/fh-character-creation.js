@@ -6,6 +6,12 @@
  if(!C||!T)throw Error('Faltan los datos del creador de personajes.');
  const doc=global.document;
  let pending=null;
+ function ensureEconomy(profile){
+  const core=global.FHEconomyCore, text=global.FH_ECONOMY_TEXT||{};
+  if(!core)throw Error(text.storage_unavailable||T.storageError);
+  try{return core.openStore(global.localStorage).ensureOwner({ownerType:'character',ownerId:profile.id});}
+  catch(err){throw Error(text[err?.message]||text.storage_unavailable||T.storageError)}
+ }
  const el=(tag,cls,content)=>{
   const node=doc.createElement(tag);
   if(cls)node.className=cls;
@@ -14,7 +20,7 @@
  };
  function ensureCharacter() {
   const existing=C.current();
-  if(existing)return Promise.resolve(existing);
+  if(existing){try{ensureEconomy(existing);return Promise.resolve(existing)}catch(err){return Promise.reject(err)}}
   if(pending)return pending;
   if(!doc||!doc.body)return Promise.reject(Error(T.missingEngine));
   pending=new Promise(resolve=>openWizard(resolve,C.load()?.life==='dead'));
@@ -45,6 +51,7 @@
    if(state.step<5){state.step++;render();panel.scrollTop=0;return}
    try{
     const profile=C.createProfile(state);
+    ensureEconomy(profile);
     close(C.store(profile));
    }catch(err){error.textContent=err.message||T.storageError;error.hidden=false}
   };
