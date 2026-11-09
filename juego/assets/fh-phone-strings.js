@@ -51,7 +51,7 @@
   wifiPassword:'Contraseña Wi-Fi',wifiProtected:'Red protegida',wifiShowPassword:'Mostrar contraseña',wifiHidePassword:'Ocultar contraseña',
   wifiPasswordMissing:'Introduce la contraseña',wifiConnectedStatus:'Conectado',connect:'Conectar',wifiConnected:'Red guardada',
   wifiRejected:'Contraseña incorrecta',mobileReady:'Red móvil disponible',
-  mobileUnavailable:'Sin servicio móvil o cobertura',
+  mobileUnavailable:'Sin servicio móvil o cobertura',phoneIndicators:'Indicadores del celular',
   callsTitle:'Telefonía móvil',dialNumber:'Número o contacto',call:'Llamar',
   callUnavailable:'No se puede realizar la llamada',incoming:'Entrante',outgoing:'Saliente',
   noInternet:'Sin internet ni red móvil.',phoneBattery:'Batería del celular'
