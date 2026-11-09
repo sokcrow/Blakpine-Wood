@@ -4181,17 +4181,21 @@ function fhRefreshActorVisibility(){
     "weather:initial.weather&&typeof initial.weather==='object'?{...initial.weather}:null,survival:initial.survival&&typeof initial.survival==='object'?JSON.parse(JSON.stringify(initial.survival)):null};"],
    ["window.FHCharacterRuntime=Object.freeze({get character(){return GameState.character||null},die:fhNotifyCharacterDeath});",
     "window.FHCharacterRuntime=Object.freeze({get character(){return GameState.character||null},die:fhNotifyCharacterDeath});\n"+
-    "let fhSurvivalDirty=false,fhSurvivalLastSave=GameState.clock?.minutes||0;\n"+
+    "const fhSurvivalMinute=()=>{const c=GameState.clock||{};\n"+
+    " const clock={year:Number.isFinite(c.year)?c.year:2016,month:Number.isFinite(c.month)?c.month:6,day:Number.isFinite(c.day)?c.day:1,minutes:Number.isFinite(c.minutes)?c.minutes:480};\n"+
+    " return window.FHWeatherCore?.absoluteMinute(clock)??clock.minutes;\n"+
+    "};\n"+
+    "let fhSurvivalDirty=false,fhSurvivalLastSave=fhSurvivalMinute();\n"+
     "const fhSurvival=GameState.character?.resources&&window.FHSurvival?.createRuntime(GameState,{\n"+
     " onChange:()=>{fhSurvivalDirty=true},onCritical:()=>{fhSurvivalDirty=true},\n"+
     " onDeath:()=>GameEvents.emit('character:death')\n"+
-    "});\n"+
+    "},fhSurvivalMinute());\n"+
     "window.FHSurvivalRuntime=fhSurvival;\n"+
     "const fhSurvivalUI=window.FHSurvivalUI?.mount(fhSurvival,saveProgress);"],
    ["window.FHDeliveryRuntime?.update(dt);window.FHPhoneRuntime?.update(dt);",
     "window.FHDeliveryRuntime?.update(dt);window.FHPhoneRuntime?.update(dt);\n"+
     "if(fhSurvival){\n"+
-    " const fhNow=GameState.clock?.minutes||0;\n"+
+    " const fhNow=fhSurvivalMinute();\n"+
     " const fhPoseState=playerPose.state;\n"+
     " const fhSleeping=window.FHSleep?.status()?.stage==='asleep';\n"+
     " const fhSitting=fhPoseState.phase==='sitting'&&fhPoseState.verb==='sit';\n"+
