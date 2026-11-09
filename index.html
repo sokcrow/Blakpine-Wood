@@ -4085,7 +4085,10 @@ function fhRefreshActorVisibility(){
    'registerVisibility:window.FHActorVisibility.register,'+
    'unregisterVisibility:window.FHActorVisibility.unregister,'+
    'invalidate:()=>{visibilityDirty=true;}})||null;';
-  doc=doc.replace(marker,marker+'\n'+bridge);
+  const actorReady='const tex={},loader=new THREE.TextureLoader();';
+  if(doc.split(actorReady).length!==2)throw Error('Hook de inicialización de Sombras incompatible');
+  // El registro se declara antes; crear Sombras sólo cuando hero y shadow ya existen.
+  doc=doc.replace(actorReady,bridge+'\n'+actorReady);
   const script='<script src="'+new URL('./juego/assets/fh-actor-presentation.js?v=20261107-actors-2',document.baseURI).href+'"></'+'script>';
   const shadows='<script src="'+new URL('./juego/assets/fh-shadow-visuals.js?v=20261109-shadows-1',document.baseURI).href+'"></'+'script>';
   return doc.replace('</head>',script+shadows+'</head>');
@@ -4417,5 +4420,6 @@ init();
 <script src="./juego/assets/fh-services-engine-hook.js?v=20261109-wifi-protection-1"></script>
 </body>
 </html>
+
 
 
