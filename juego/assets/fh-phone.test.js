@@ -149,7 +149,7 @@ function fakePhoneDocument(){
    visit(body);return result;
   }};
 }
-test('Wi-Fi protegido: entrada usable, iconos y candado permanente tras conectar',()=>{
+test('Wi-Fi protegido: fila limpia y contraseña solo al tocarla',()=>{
  require('./fh-phone-strings.js');
  const doc=fakePhoneDocument(),net={
   routerId:'router-test',name:'Router Wi-Fi',bars:3,requiresPassword:true,authenticated:false,online:false
@@ -163,37 +163,39 @@ test('Wi-Fi protegido: entrada usable, iconos y candado permanente tras conectar
    net.authenticated=true;net.online=true;return true;
   }});
  assert.equal(phone.open(),true);
- const app=doc.body.querySelectorAll('.fh-phone-app').find(x=>x.dataset.app==='network');
- assert.ok(app);app.listeners.click();
+ doc.body.querySelectorAll('.fh-phone-app').find(x=>x.dataset.app==='network').listeners.click();
  const card=doc.body.querySelector('.fh-phone-network-card');
- assert.ok(card);
- assert.ok(card.querySelector('.fh-phone-network-lock'),'la red protegida tiene candado');
- assert.equal(card.querySelector('.fh-phone-network-strength').children[1].textContent,'Excelente');
- assert.equal(card.querySelector('.fh-phone-network-signal').children.length,4);
- assert.equal(card.querySelector('.fh-phone-network-signal').children[0].tagName,'PATH');
+ assert.ok(card.querySelector('.fh-phone-network-lock'));
+ assert.equal(card.querySelector('.fh-phone-network-name').textContent,'Router Wi-Fi');
+ assert.equal(card.querySelector('.fh-phone-network-strength'),null,'no mostrar calidad en lista');
+ assert.equal(card.querySelector('.fh-phone-network-status'),null,'sin estados escritos en lista');
+ const header=card.querySelector('.fh-phone-network-heading');
  const form=card.querySelector('.fh-phone-network-form');
+ assert.equal(form.hidden,true,'la contraseña aparece únicamente al tocar la red');
+ header.listeners.click();assert.equal(form.hidden,false);
+ assert.equal(header.attributes['aria-expanded'],'true');
+ header.listeners.click();assert.equal(form.hidden,true);
+ header.listeners.click();assert.equal(form.hidden,false);
  const field=card.querySelector('.fh-phone-network-password-field');
  const password=field.children[0],visibility=field.children[1],connect=form.children[1];
  assert.equal(password.type,'password');
  assert.equal(password.attributes['aria-label'],'Contraseña Wi-Fi');
  assert.equal(connect.disabled,true);
  password.value='equivocada';password.listeners.input();assert.equal(connect.disabled,false);
- visibility.listeners.click();
- assert.equal(password.type,'text');
- assert.equal(visibility.attributes['aria-pressed'],'true');
- visibility.listeners.click();
- assert.equal(password.type,'password');
+ visibility.listeners.click();assert.equal(password.type,'text');
+ visibility.listeners.click();assert.equal(password.type,'password');
  form.listeners.submit({preventDefault(){}});
  assert.equal(attempts,1);assert.equal(saves,0);
  password.value='sok';password.listeners.input();
  form.listeners.submit({preventDefault(){}});
  assert.equal(attempts,2);assert.equal(saves,1);
  const connected=doc.body.querySelector('.fh-phone-network-card');
- assert.ok(connected.querySelector('.fh-phone-network-lock'),'el candado persiste al autenticar');
- assert.equal(connected.querySelector('.fh-phone-network-status').textContent,'Conectado');
+ assert.ok(connected.querySelector('.fh-phone-network-lock'),'candado permanente');
  assert.equal(connected.querySelector('.fh-phone-network-form'),null);
+ const wifi=doc.body.querySelector('.fh-phone-status-wifi');
+ assert.equal(wifi.hidden,false,'la conexión activa aparece en la barra superior');
 });
-test('Wi-Fi abierto: sin candado ni formulario, calidad sin contador de barras',()=>{
+test('Wi-Fi abierto: solo nombre, sin candado ni contraseña',()=>{
  require('./fh-phone-strings.js');
  const doc=fakePhoneDocument();
  const phone=Phone.createRuntime({state:{},document:doc,strings:globalThis.FH_PHONE_TEXT,
@@ -201,40 +203,41 @@ test('Wi-Fi abierto: sin candado ni formulario, calidad sin contador de barras',
  assert.equal(phone.open(),true);
  doc.body.querySelectorAll('.fh-phone-app').find(x=>x.dataset.app==='network').listeners.click();
  const card=doc.body.querySelector('.fh-phone-network-card');
- assert.ok(card);
+ assert.equal(card.querySelector('.fh-phone-network-name').textContent,'Red libre');
  assert.equal(card.querySelector('.fh-phone-network-lock'),null);
  assert.equal(card.querySelector('.fh-phone-network-form'),null);
- assert.equal(card.querySelector('.fh-phone-network-strength').children[1].textContent,'Buena');
- assert.equal(card.querySelector('.fh-phone-network-status').textContent,'Conectado');
+ assert.equal(card.querySelector('.fh-phone-network-strength'),null);
+ assert.equal(card.querySelector('.fh-phone-network-status'),null);
+ card.querySelector('.fh-phone-network-heading').listeners.click();
+ assert.equal(card.querySelector('.fh-phone-network-form'),null);
+ const wifi=doc.body.querySelector('.fh-phone-status-wifi');
+ assert.equal(wifi.hidden,false);
+ assert.deepEqual(wifi.children.slice(0,3).map(x=>x.attributes.opacity),['1','1','.2']);
 });
-test('ondas Wi-Fi cambian en tiempo real sin perder contraseña ni foco',()=>{
+test('barra superior: icono Wi-Fi en tiempo real sin abrir Redes',()=>{
  require('./fh-phone-strings.js');
  const doc=fakePhoneDocument();
- const net={routerId:'radio1',name:'Red protegida',requiresPassword:true,bars:3,authenticated:false,online:false};
+ const net={routerId:'r',name:'Casa',requiresPassword:true,bars:3,authenticated:false,online:false};
  const phone=Phone.createRuntime({state:{},document:doc,strings:globalThis.FH_PHONE_TEXT,networks:()=>[net]});
  assert.equal(phone.open(),true);
- doc.body.querySelectorAll('.fh-phone-app').find(x=>x.dataset.app==='network').listeners.click();
- const row=doc.body.querySelector('.fh-phone-network-card');
- const input=row.querySelector('.fh-phone-network-password-field').children[0];
- const icon=row.querySelector('.fh-phone-network-signal');
- input.value='contrasena-en-progreso';input.listeners.input();
- doc.activeElement=input;
- const bar=i=>icon.children[i].attributes.opacity;
- assert.deepEqual([bar(0),bar(1),bar(2)],['1','1','1']);
+ const icons=doc.body.querySelector('.fh-phone-status-icons');
+ const wifi=doc.body.querySelector('.fh-phone-status-wifi');
+ assert.equal(icons.children[1],wifi,'Wi-Fi junto a señal celular');
+ assert.equal(wifi.hidden,true,'la red no autenticada no produce icono conectado');
+ net.authenticated=true;net.online=true;
+ phone.update(.55);assert.equal(wifi.hidden,false);
+ assert.deepEqual(wifi.children.slice(0,3).map(x=>x.attributes.opacity),['1','1','1']);
  net.bars=1;phone.update(.55);
- assert.equal(doc.body.querySelector('.fh-phone-network-card'),row);
- assert.equal(input.value,'contrasena-en-progreso');
- assert.equal(doc.activeElement,input);
- assert.deepEqual([bar(0),bar(1),bar(2)],['1','.2','.2']);
- assert.equal(row.querySelector('.fh-phone-network-strength').children[1].textContent,'Débil');
- net.bars=2;phone.update(.55);
- assert.deepEqual([bar(0),bar(1),bar(2)],['1','1','.2']);
- assert.equal(row.querySelector('.fh-phone-network-strength').children[1].textContent,'Buena');
- net.bars=3;phone.update(.55);
- assert.deepEqual([bar(0),bar(1),bar(2)],['1','1','1']);
- assert.equal(row.querySelector('.fh-phone-network-strength').children[1].textContent,'Excelente');
+ assert.deepEqual(wifi.children.slice(0,3).map(x=>x.attributes.opacity),['1','.2','.2']);
+ assert.equal(wifi.attributes['aria-label'],'Wi-Fi: Débil');
+ net.bars=2;net.online=false;phone.update(.55);
+ assert.equal(wifi.hidden,false,'asociado al Wi-Fi sin internet todavía tiene señal');
+ assert.deepEqual(wifi.children.slice(0,3).map(x=>x.attributes.opacity),['1','1','.2']);
+ net.authenticated=false;phone.update(.55);assert.equal(wifi.hidden,true);
+ net.authenticated=true;net.bars=3;phone.update(.55);assert.equal(wifi.hidden,false);
+ net.bars=0;phone.update(.55);assert.equal(wifi.hidden,true);
 });
-test('pérdida temporal de señal conserva la contraseña y recupera Conectar',()=>{
+test('entrada expandida conserva contraseña y foco durante los cambios de cobertura',()=>{
  require('./fh-phone-strings.js');
  const doc=fakePhoneDocument();
  let networks=[{routerId:'radio1',name:'Router',requiresPassword:true,bars:3,authenticated:false}];
@@ -242,21 +245,26 @@ test('pérdida temporal de señal conserva la contraseña y recupera Conectar',(
  assert.equal(phone.open(),true);
  doc.body.querySelectorAll('.fh-phone-app').find(x=>x.dataset.app==='network').listeners.click();
  const row=doc.body.querySelector('.fh-phone-network-card');
+ row.querySelector('.fh-phone-network-heading').listeners.click();
+ const form=row.querySelector('.fh-phone-network-form');
  const input=row.querySelector('.fh-phone-network-password-field').children[0];
- const submit=row.querySelector('.fh-phone-network-form').children[1];
- input.value='clave';input.listeners.input();assert.equal(submit.disabled,false);
+ const submit=form.children[1];
+ assert.equal(form.hidden,false);
+ input.value='clave';input.listeners.input();doc.activeElement=input;
+ assert.equal(submit.disabled,false);
+ networks[0].bars=1;phone.update(.55);
+ assert.equal(doc.body.querySelector('.fh-phone-network-card'),row);
+ assert.equal(doc.activeElement,input);assert.equal(input.value,'clave');
  networks=[];phone.update(.55);
  assert.equal(doc.body.querySelector('.fh-phone-network-card'),row);
- assert.equal(input.value,'clave');
- assert.equal(row.querySelector('.fh-phone-network-strength').children[1].textContent,'Sin señal');
- assert.equal(submit.disabled,true);
+ assert.equal(input.value,'clave');assert.equal(form.hidden,false);
+ assert.equal(row.dataset.inRange,'false');assert.equal(submit.disabled,true);
  networks=[{routerId:'radio1',name:'Router',requiresPassword:true,bars:2,authenticated:false}];
  phone.update(.55);
  assert.equal(doc.body.querySelector('.fh-phone-network-card'),row);
- assert.equal(input.value,'clave');
- assert.equal(submit.disabled,false);
+ assert.equal(input.value,'clave');assert.equal(submit.disabled,false);
 });
-test('redes nuevas, desaparecidas y cortes de internet se actualizan sin reabrir Redes',()=>{
+test('redes nuevas, desaparecidas y cortes de internet sin estados escritos',()=>{
  require('./fh-phone-strings.js');
  const doc=fakePhoneDocument();
  const a={routerId:'a',name:'Red A',bars:2,authenticated:true,requiresPassword:false,online:true};
@@ -267,7 +275,8 @@ test('redes nuevas, desaparecidas y cortes de internet se actualizan sin reabrir
  doc.body.querySelectorAll('.fh-phone-app').find(x=>x.dataset.app==='network').listeners.click();
  const original=doc.body.querySelector('.fh-phone-network-card');
  a.online=false;phone.update(.55);
- assert.equal(original.querySelector('.fh-phone-network-status').textContent,'Red Wi-Fi sin internet');
+ assert.equal(original.querySelector('.fh-phone-network-status'),null);
+ assert.equal(doc.body.querySelector('.fh-phone-status-wifi').hidden,false);
  networks=[a,b];phone.update(.55);
  assert.equal(doc.body.querySelectorAll('.fh-phone-network-card').length,2);
  assert.equal(doc.body.querySelectorAll('.fh-phone-network-lock').length,1);
@@ -277,6 +286,7 @@ test('redes nuevas, desaparecidas y cortes de internet se actualizan sin reabrir
  networks=[];phone.update(.55);
  assert.equal(doc.body.querySelectorAll('.fh-phone-network-card').length,0);
  assert.equal(doc.body.querySelector('.fh-phone-empty').hidden,false);
+ assert.equal(doc.body.querySelector('.fh-phone-status-wifi').hidden,true);
 });
 test('Wi-Fi móvil: formulario apilado y targets táctiles de ancho completo',()=>{
  const css=fs.readFileSync(path.resolve(__dirname,'fh-phone.css'),'utf8');
@@ -285,6 +295,8 @@ test('Wi-Fi móvil: formulario apilado y targets táctiles de ancho completo',()
  assert.match(css,/#fhPhonePanel \.fh-phone-network-password-field input\{[\s\S]*?width:100%/);
  assert.match(css,/#fhPhonePanel \.fh-phone-network-form \.fh-phone-primary\{[\s\S]*?width:100%/);
  assert.match(css,/#fhPhonePanel \.fh-phone-network-visibility\{[\s\S]*?width:44px;height:44px/);
+ assert.match(css,/#fhPhonePanel \.fh-phone-network-form\[hidden\]\{display:none!important\}/);
+ assert.match(css,/#fhPhonePanel \.fh-phone-status-wifi\[hidden\]\{display:none!important\}/);
 });
 test('widget muestra el estado del juego y el calendario se abre',()=>{
  require('./fh-phone-strings.js');
