@@ -457,8 +457,6 @@
    networkEmpty=el('p','fh-phone-empty',label('noNetworks','Sin redes Wi-Fi al alcance.'));
    networkHost.append(networkEmpty);content.append(networkHost);
    refreshNetworks();
-   content.append(el('p','fh-phone-muted',options.mobileAvailable?.()!==false?
-    label('mobileReady','Red móvil disponible'):label('mobileUnavailable','Sin red móvil')));
   }
  function calls(){
   const enabled=options.mobileAvailable?.()!==false;
