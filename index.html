@@ -4172,7 +4172,7 @@ function fhRefreshActorVisibility(){
    doc=doc.replace(before,after);
   }
   const script='<script src="'+new URL('./juego/assets/fh-floor-visibility.js?v=20261108-floor-vis-2',document.baseURI).href+'"></'+'script>';
-  return doc.replace('</head>',script+'</head>');
+  return addSurvivalToEngine(doc.replace('</head>',script+'</head>'));
  }
  // Recursos y estados de personaje: adaptador del motor, no del editor.
  function addSurvivalToEngine(doc){
@@ -4188,8 +4188,8 @@ function fhRefreshActorVisibility(){
     "});\n"+
     "window.FHSurvivalRuntime=fhSurvival;\n"+
     "const fhSurvivalUI=window.FHSurvivalUI?.mount(fhSurvival,saveProgress);"],
-   ["if(!fhDeliveryUiActive&&!fhDecorationActive)moveUpdate(dt);",
-    "if(!fhDeliveryUiActive&&!fhDecorationActive&&!fhSurvival?.state.critical)moveUpdate(dt);"],
+   ["if(!fhDeliveryUiActive&&!window.FHStorageRuntime?.isOpen)moveUpdate(dt);",
+    "if(!fhDeliveryUiActive&&!window.FHStorageRuntime?.isOpen&&!fhSurvival?.state.critical)moveUpdate(dt);"],
    ["window.FHDeliveryRuntime?.update(dt);window.FHPhoneRuntime?.update(dt);",
     "window.FHDeliveryRuntime?.update(dt);window.FHPhoneRuntime?.update(dt);\n"+
     "if(fhSurvival){\n"+
@@ -4241,7 +4241,7 @@ function fhRefreshActorVisibility(){
   .replace(cloneBefore,'const clone=source.clone(true);\n   window.FHAssets?.mirror(source,clone);\n   clone.position.y+=floorElev[f];')
   .replace(engineSuccessBefore,engineSuccessAfter).replace(engineFailBefore,engineFailAfter).replace(loadFailBefore,loadFailAfter)
   .replace('</head>',localThree+coverageScript+lightsModule+surfaceScript+decorationScript+ruleScript+inventoryCoreScript+bridge+sleepCss+sleepStrings+sleepModule+pcAssemblyModule+computerStrings+computerModule+npcGoapModule+npcCourierModule+deliveryStrings+deliveryModule+styleCore+styleRender+parkingScript+playerMenuCss+playerMenuStrings+skillsModule+skillsStrings+helpCss+helpStrings+helpScript+playerMenuScript+locationCss+locationStrings+locationScript+hudRedesignCss+gameUiCss+hudFrameScript+mobileMenusCss+statusCss+statusStrings+statusScript+phoneCss+phoneStrings+phoneScript+mobileCameraScript+'</head>'))));
- return addSurvivalToEngine(addFloorVisibilityToEngine(addNaturalLightToEngine(assembled)));
+ return addFloorVisibilityToEngine(addNaturalLightToEngine(assembled));
 }
 let fhCharacterLaunchPending=false;
 async function start3DPreview(){
