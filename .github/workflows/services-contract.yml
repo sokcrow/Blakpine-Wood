@@ -11,6 +11,7 @@ on:
       - 'juego/assets/fh-water-visuals.js'
       - 'tests/fh-services-core.test.js'
       - 'juego/assets/fh-services-engine-hook.test.js'
+      - 'juego/assets/fh-service-wallmount.test.js'
       - '.github/workflows/services-contract.yml'
   push:
     branches: [main]
@@ -32,4 +33,4 @@ jobs:
         with:
           node-version: '22'
       - name: Pruebas de redes y servicios
-        run: node --test tests/fh-services-core.test.js juego/assets/fh-services-engine-hook.test.js
+        run: node --test tests/fh-services-core.test.js juego/assets/fh-services-engine-hook.test.js juego/assets/fh-service-wallmount.test.js
