@@ -4177,6 +4177,14 @@ function fhRefreshActorVisibility(){
  // Recursos y estados de personaje: adaptador del motor, no del editor.
  function addSurvivalToEngine(doc){
   const edits=[
+   ["function updateRoomLighting(now){",
+    "function fhLightBlockers(){\n"+
+    " const blockers=sightWalls[currentFloor].slice();\n"+
+    " for(const d of doorList[currentFloor])if(!d.transparent&&!d.passable)blockers.push(d.block);\n"+
+    " return blockers;\n"+
+    "}\nfunction updateRoomLighting(now){"],
+   ["const lightBlockers=sightWalls[currentFloor].slice();\n for(const d of doorList[currentFloor])if(!d.transparent&&!d.passable)lightBlockers.push(d.block);",
+    "const lightBlockers=fhLightBlockers();"],
    ["weather:initial.weather&&typeof initial.weather==='object'?{...initial.weather}:null};",
     "weather:initial.weather&&typeof initial.weather==='object'?{...initial.weather}:null,survival:initial.survival&&typeof initial.survival==='object'?JSON.parse(JSON.stringify(initial.survival)):null};"],
    ["window.FHCharacterRuntime=Object.freeze({get character(){return GameState.character||null},die:fhNotifyCharacterDeath});",
@@ -4202,7 +4210,7 @@ function fhRefreshActorVisibility(){
     " let fhDark=false;\n"+
     " if(!fhSleeping&&!lighting.state?.enabled&&!fhNatural?.illuminates(user.x,user.z)){\n"+
     "  const lamps=window.FHLights?.sourcesNear(roomLampEntries,lighting,currentFloor,user.x,user.z,1,16)||[];\n"+
-    "  fhDark=!window.FHLights?.sourcesIlluminate(lamps,user.x,user.z,lightBlockers,ForestShared.pointInSight);\n"+
+    "  fhDark=!window.FHLights?.sourcesIlluminate(lamps,user.x,user.z,fhLightBlockers(),ForestShared.pointInSight);\n"+
     " }\n"+
     " fhSurvival.update(fhNow,{mode:fhSleeping?'sleeping':fhSitting?'sitting':'awake',\n"+
     "  stressed:fhDark,relaxing:fhSitting&&!!watchingTvId});\n"+

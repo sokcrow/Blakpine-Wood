@@ -93,6 +93,45 @@ test('arranque real: GLB y PG componen después de cómics y menú contextual',(
  assert.doesNotThrow(()=>new vm.Script(body),'la cadena completa produce JavaScript válido');
 });
 
+test('el primer tick de supervivencia funciona a oscuras y respeta paredes y puertas',()=>{
+ const {context,motor}=integrationEnvironment();
+ const html=context.prepareGLBEngineDoc(motor);
+ const from=html.indexOf('window.FHDeliveryRuntime?.update(dt);window.FHPhoneRuntime?.update(dt);');
+ const to=html.indexOf('if(fhWeather?.update(dt))',from);
+ assert.ok(from>=0&&to>from,'Tick real del motor ensamblado localizado');
+ const helperStart=html.indexOf('function fhLightBlockers(){');
+ const helperEnd=html.indexOf('function updateRoomLighting(now){',helperStart);
+ const helper=helperStart>=0?html.slice(helperStart,helperEnd):'';
+ const wall={x1:1,z1:-2,x2:1,z2:2};
+ const door={transparent:false,passable:false,block:wall};
+ const walls=[[]],doors=[[door]];
+ const game={character:{life:'alive',resources:{pg:20,pgMax:20,sp:20,spMax:20,pe:18,peMax:18}}};
+ const survival=require('./fh-survival-core.js').createRuntime(game,{},0);
+ let minute=0;
+ const runtime=vm.createContext({window:{},console,dt:.016,currentFloor:0,
+  user:{x:2,z:0},sightWalls:walls,doorList:doors,
+  roomLampEntries:[{floor:0,x:0,z:0,radius:5,dimRadius:7,angleDeg:360}],
+  lighting:{state:{enabled:false},fixtureLit:()=>true},
+  fhNatural:{illuminates:()=>false},ForestShared:vm.runInContext('ForestShared',context),
+  playerPose:{state:{phase:'idle'}},watchingTvId:null,
+  fhSurvival:survival,fhSurvivalMinute:()=>minute,fhSurvivalUI:null,
+  fhSurvivalDirty:false,fhSurvivalLastSave:0,saveProgress(){}
+ });
+ vm.runInContext(fs.readFileSync(path.join(__dirname,'fh-lights.js'),'utf8'),runtime);
+ vm.runInContext(helper,runtime);
+ const tick=()=>vm.runInContext(html.slice(from,to),runtime);
+ assert.doesNotThrow(tick,'El primer tick no debe detener el render por una variable fuera de alcance');
+ minute=60;tick();
+ assert.equal(game.character.resources.sp,18,'La puerta opaca cerrada impide recibir luz');
+ door.passable=true;minute=120;tick();
+ assert.equal(game.character.resources.sp,18,'La puerta abierta deja pasar luz');
+ door.passable=false;door.transparent=true;minute=180;tick();
+ assert.equal(game.character.resources.sp,18,'La puerta transparente deja pasar luz');
+ doors[0]=[];walls[0]=[wall];minute=240;tick();
+ assert.equal(game.character.resources.sp,16,'Las paredes siguen bloqueando luz');
+ assert.equal(walls[0].length,1,'El cálculo no modifica los obstáculos del mapa');
+});
+
 function actorStartup(){
  const {context,window,motor}=integrationEnvironment();
  const html=window.FHStructureHealthEngine.patch(window.FHArchitectureSkins.patchEngineDoc(context.prepareGLBEngineDoc(motor)));
