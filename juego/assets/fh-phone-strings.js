@@ -45,7 +45,7 @@
   weatherNextChange:'Próxima evaluación',weatherUnknownChange:'Sin previsión',
   weatherHours:'horas',weatherMinutes:'minutos',
   ordersCreated:'Pedidos registrados',failed:'No registrados',orderUpdate:'Pedido',
-  app_network:'Redes',app_calls:'Llamadas',networkTitle:'Wi-Fi cercanas',wifiExcellent:'Excelente',wifiGood:'Buena',wifiWeak:'Débil',networkLoading:'Cargando datos de internet…',
+  app_network:'Redes',app_calls:'Llamadas',networkTitle:'Wi-Fi cercanas',wifiExcellent:'Excelente',wifiGood:'Buena',wifiWeak:'Débil',wifiNoSignal:'Sin señal',networkLoading:'Cargando datos de internet…',
   noNetworks:'No hay redes cercanas.',online:'Internet disponible',
   offlineNet:'Red Wi-Fi sin internet',wifiLocked:'Contraseña necesaria',
   wifiPassword:'Contraseña Wi-Fi',wifiProtected:'Red protegida',wifiShowPassword:'Mostrar contraseña',wifiHidePassword:'Ocultar contraseña',
