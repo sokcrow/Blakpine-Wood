@@ -4075,8 +4075,20 @@ function fhRefreshActorVisibility(){
    if(count!==1)throw Error('Hook actores incompatible: '+oldValue.slice(0,85)+' ('+count+')');
    doc=doc.replace(oldValue,newValue);
   }
+  // Las Sombras son actores visuales: su IA y navegación se conectarán por separado.
+  // No alteramos movimiento, colisión ni visibilidad de NPCs/jugadores.
+  const marker='window.FHActorVisibility=Object.freeze({register:fhRegisterVisibleActor,unregister:fhUnregisterVisibleActor});';
+  if(doc.split(marker).length!==2)throw Error('Hook de presentación de Sombras incompatible');
+  const baseUrl=new URL('./juego/assets/enemigos/Sombras/',document.baseURI).href;
+  const bridge='window.FHShadowActors=window.FHShadowVisuals?.createManager?.({'+
+   'THREE,stories,floorElev,baseUrl:'+JSON.stringify(baseUrl)+','+
+   'registerVisibility:window.FHActorVisibility.register,'+
+   'unregisterVisibility:window.FHActorVisibility.unregister,'+
+   'invalidate:()=>{visibilityDirty=true;}})||null;';
+  doc=doc.replace(marker,marker+'\n'+bridge);
   const script='<script src="'+new URL('./juego/assets/fh-actor-presentation.js?v=20261107-actors-2',document.baseURI).href+'"></'+'script>';
-  return doc.replace('</head>',script+'</head>');
+  const shadows='<script src="'+new URL('./juego/assets/fh-shadow-visuals.js?v=20261109-shadows-1',document.baseURI).href+'"></'+'script>';
+  return doc.replace('</head>',script+shadows+'</head>');
  }
 
 
