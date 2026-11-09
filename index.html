@@ -3229,9 +3229,9 @@ function prepareGLBEngineDoc(source){
  const statusCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-status-hud.css?v=20261107-palette-feedback-1',document.baseURI).href+'">';
  const statusStrings='<script src="'+new URL('./juego/assets/fh-status-strings.js?v=20261107-palette-feedback-1',document.baseURI).href+'"></'+'script>';
  const statusScript='<script src="'+new URL('./juego/assets/fh-status-hud.js?v=20261107-palette-feedback-1',document.baseURI).href+'"></'+'script>';
- const phoneCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-phone.css?v=20261109-wifi-live-2',document.baseURI).href+'">';
- const phoneStrings='<script src="'+new URL('./juego/assets/fh-phone-strings.js?v=20261109-wifi-live-2',document.baseURI).href+'"></'+'script>';
- const phoneScript='<script src="'+new URL('./juego/assets/fh-phone.js?v=20261109-wifi-live-2',document.baseURI).href+'"></'+'script>';
+ const phoneCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-phone.css?v=20261109-wifi-compact-status-3',document.baseURI).href+'">';
+ const phoneStrings='<script src="'+new URL('./juego/assets/fh-phone-strings.js?v=20261109-wifi-compact-status-3',document.baseURI).href+'"></'+'script>';
+ const phoneScript='<script src="'+new URL('./juego/assets/fh-phone.js?v=20261109-wifi-compact-status-3',document.baseURI).href+'"></'+'script>';
  const mobileCameraScript='<script src="'+new URL('./juego/assets/fh-mobile-camera.js?v=20261108-landscape20',document.baseURI).href+'"></'+'script>';
  const locationHudHook='if(now-lastHud>90){lastHud=now;hudUpdate()}';
  const locationHudAfter='if(now-lastHud>90){lastHud=now;hudUpdate();window.FHLocationHUD?.update(DATA,currentFloor,{x:user.x/CELL,y:user.z/CELL});window.FHStatusHUD?.update(window.FHCharacterRuntime?.character?.resources)}';
