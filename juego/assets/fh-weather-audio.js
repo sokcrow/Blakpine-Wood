@@ -43,7 +43,7 @@
   return buffer;
  }
  function makeThunderBuffer(ctx, variant, random) {
-  const rate = Math.min(22050, ctx.sampleRate), length = Math.floor(rate * 5.6);
+  const rate = Math.min(11025, ctx.sampleRate), length = Math.floor(rate * 5.6);
   const buffer = ctx.createBuffer(1, length, rate), samples = buffer.getChannelData(0);
   const bursts = [0, .26 + variant * .09, .9 + variant * .16, 2.05 + variant * .19];
   let bass = 0;
