@@ -334,6 +334,7 @@
     const lock=glyph('lock');
     lock.classList.add('fh-phone-network-lock');
     lock.setAttribute('role','img');
+    lock.setAttribute('aria-hidden','false');
     lock.setAttribute('aria-label',label('wifiProtected','Red protegida'));
     identity.append(lock);
    }
