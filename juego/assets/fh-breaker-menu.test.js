@@ -133,3 +133,65 @@ test('el inspector no permite elegir la zona de otro circuito del mismo panel',(
  assert.equal(items[0].circuits[1].zoneId,'a2');assert.equal(second.value,'a2');assert.ok(warning);
  second.value='b1';second.onchange();assert.equal(items[0].circuits[1].zoneId,'b1');assert.equal(items[0].circuits[1].id,'a2');
 });
+
+test('el inspector muestra el alcance real al crear un breaker, sin alterar JSON antiguos',()=>{
+ const seen={},FH=require('./fh-services-core.js');
+ const context=vm.createContext({
+  window:{FHServices:FH,FH_SERVICES_TEXT:{fields:{}},FH_LIGHT_TEXT:{breakerRange:(type,feet)=>type+': '+feet}},
+  document:{createElement:tag=>new Element(tag)},
+  makeField:(label,key,value)=>{seen[key]=value;return new Element('label')}
+ });
+ const start=editor.indexOf('function attachServiceInspector(');
+ const end=editor.indexOf('function openInspector()',start);
+ assert.ok(start>=0&&end>start);
+ vm.runInContext(editor.slice(start,end),context);
+ for(const [type,feet] of [['small',90],['medium',180],['large',360]]){
+  const panel={id:'new-panel',type:'breaker_panel',breakerType:type};
+  context.attachServiceInspector(panel,new Element('div'));
+  assert.equal(seen.rangeFt,feet,'mostrar alcance inicial de '+type);
+  assert.equal(Object.hasOwn(panel,'rangeFt'),false,'el inspector no escribe valores en el mapa');
+ }
+ const legacy={id:'old',type:'breaker_panel',breakerType:'large',rangeFt:0};
+ context.attachServiceInspector(legacy,new Element('div'));
+ assert.equal(seen.rangeFt,0,'conservar cero explícito');
+ legacy.rangeFt=24;
+ context.attachServiceInspector(legacy,new Element('div'));
+ assert.equal(seen.rangeFt,24,'conservar alcance personalizado');
+});
+
+test('cambiar tipo de breaker refresca el alcance en el inspector sin reescribir valores explícitos',()=>{
+ const FH=require('./fh-services-core.js'),displayed=[],floor={items:[]};
+ const ctx=vm.createContext({
+  window:{FHServices:FH,FH_SERVICES_TEXT:{fields:{}},FH_LIGHT_TEXT:{breakerRange:(type,feet)=>type+': '+feet}},
+  document:{createElement:tag=>new Element(tag)},
+  current:()=>floor,AREA_TYPES:new Set(),DOOR_TYPES:new Set(),
+  clone:value=>JSON.parse(JSON.stringify(value)),
+  record(){},refreshCircuits(){},render(){},
+  makeField:(label,key,value)=>{if(key==='rangeFt')displayed.push(value);return new Element('label')},
+  openInspector:()=>ctx.attachServiceInspector(floor.items[0],new Element('div'))
+ });
+ const editStart=editor.indexOf('function setItemField(');
+ const editEnd=editor.indexOf('function makeField(',editStart);
+ const attachStart=editor.indexOf('function attachServiceInspector(');
+ const attachEnd=editor.indexOf('function openInspector()',attachStart);
+ assert.ok(editStart>=0&&editEnd>editStart&&attachStart>=0&&attachEnd>attachStart);
+ vm.runInContext(editor.slice(editStart,editEnd)+editor.slice(attachStart,attachEnd),ctx);
+ const panel={id:'new',type:'breaker_panel',breakerType:'medium'};
+ floor.items=[panel];
+ ctx.openInspector();
+ ctx.setItemField('new','breakerType','small');
+ ctx.setItemField('new','breakerType','large');
+ assert.deepEqual(displayed,[180,90,360]);
+ assert.equal(Object.hasOwn(panel,'rangeFt'),false,'cambiar tipo no graba un alcance explícito');
+
+ const existing={id:'saved',type:'breaker_panel',breakerType:'medium',rangeFt:42};
+ floor.items=[existing];
+ ctx.openInspector();ctx.setItemField('saved','breakerType','large');
+ assert.deepEqual(displayed.slice(-2),[42,42]);
+ assert.equal(existing.rangeFt,42);
+
+ existing.rangeFt=0;
+ ctx.openInspector();ctx.setItemField('saved','breakerType','small');
+ assert.deepEqual(displayed.slice(-2),[0,0],'mantener los 0 ft guardados');
+ assert.equal(existing.rangeFt,0);
+});

@@ -136,9 +136,9 @@ test('el overlay eléctrico continúa por ventanas, puertas y aberturas',()=>{
 });
 test('editor y motor 3D cargan la misma versión corregida del grafo',()=>{
  const hook=fs.readFileSync(path.join(__dirname,'fh-services-engine-hook.js'),'utf8');
- const version='fh-services-core.js?v=20261109-review-fixes-7';
+ const version='fh-services-core.js?v=20261109-cable-range-3x-1';
  assert.ok(editor.includes(version));assert.ok(hook.includes(version));
- assert.ok(editor.includes('fh-services-engine-hook.js?v=20261109-review-fixes-7'));
+ assert.ok(editor.includes('fh-services-engine-hook.js?v=20261109-cable-range-3x-1'));
 });
 test('el plano omite las lámparas del otro tramo y las que superan el alcance',()=>{
  const {project,breaker}=network('door');

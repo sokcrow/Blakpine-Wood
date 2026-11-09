@@ -19,11 +19,11 @@
   'reloj_digital','camara_seguridad','escritorio_pc']);
  const needsElectricity=it=>!!it&&(POWER_NEEDS.has(it.type)||ELECTRIC_MODELS.has(it.modelId)||it.pcTerminal===true||it.requiresPower===true||it.service?.requiresPower===true);
  const WATER_NEEDS=new Set(['bath','toilet','kitchen']);
- const LIMITS={small:{rangeFt:30,capacityWatts:1200},medium:{rangeFt:60,capacityWatts:2400},large:{rangeFt:120,capacityWatts:4800}};
+ const LIMITS={small:{rangeFt:90,capacityWatts:1200},medium:{rangeFt:180,capacityWatts:2400},large:{rangeFt:360,capacityWatts:4800}};
  const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
  const number=(n,fallback=0)=>Number.isFinite(Number(n))?Number(n):fallback;
  function rangeFor(panel,circuit={}){
-  const max=LIMITS[panel.breakerType||'medium']?.rangeFt||60;
+  const max=LIMITS[panel.breakerType||'medium']?.rangeFt||180;
   return Math.min(max,Math.max(0,number(circuit.rangeFt??panel.rangeFt,max)));
  }
  const point=it=>({x:number(it?.x),y:number(it?.y)});
@@ -180,7 +180,7 @@
   const zoneFor=(f,it)=>String(it.zoneId||(elements[f]||[]).find(r=>r.type==='room'&&(r.roomId||r.id)===it.roomId)?.zoneId||roomOn(f,it)?.zoneId||'');
   function powerRoute(f,panel,target){
    if(!powerGraphs[f])return null;
-   const panelLeadFt=LIMITS[panel.breakerType||'medium']?.rangeFt||60;
+   const panelLeadFt=LIMITS[panel.breakerType||'medium']?.rangeFt||180;
    const leadFt=(target.type==='light_fixture'&&!target.wallId)||target.type==='elevator'?Math.max(0,number(target.service?.maxWallDistanceFt,panelLeadFt)):3.25;
    const key=[number(panel.x),number(panel.y),number(target.x),number(target.y),leadFt,panelLeadFt].join(':');
    const cache=powerRouteCache[f];

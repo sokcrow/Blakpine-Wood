@@ -106,7 +106,7 @@ for(const [name,factory] of [
  });
  test(name+': dos breakers de la misma zona cubren tramos distintos y se apagan por separado',()=>{
   const {floors,room,lamps,panel}=hallway();panel.breakerType='small';panel.circuits[0].rangeFt=20;
-  const second={id:'second',type:'breaker_panel',x:10,y:0,breakerType:'small',zoneId:'a',powerScope:'zone',circuits:[{zoneId:'a'}]};
+  const second={id:'second',type:'breaker_panel',x:10,y:0,breakerType:'small',zoneId:'a',powerScope:'zone',circuits:[{zoneId:'a',rangeFt:30}]};
   const state={};floors[0].items.push(second);
   const lighting=create(floors,state),check=()=>lamps.map(l=>lighting.fixtureLit(0,room,l));
   assert.deepEqual(check(),[true,true,true,true]);
