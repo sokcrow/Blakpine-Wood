@@ -65,6 +65,20 @@ test('Wi-Fi: la contraseña es necesaria y el servicio puede suspenderse',()=>{
  sys.setService('internet',false);
  assert.equal(sys.wifiAt(0,3,3.4)[0].online,false);
 });
+test('Wi-Fi: el candado depende de la contraseña del router y no de la sesión',()=>{
+ const {sys,items,project,state}=fixture();
+ const before=sys.wifiAt(0,3,3.4)[0];
+ assert.equal(before.requiresPassword,true);
+ assert.equal(before.authenticated,false);
+ assert.equal(sys.connectWifi('router','sok'),true);
+ const connected=sys.wifiAt(0,3,3.4)[0];
+ assert.equal(connected.requiresPassword,true);
+ assert.equal(connected.authenticated,true);
+ items.find(it=>it.id==='router').wifiPassword='';
+ const open=FH.createRuntime(project,state).wifiAt(0,3,3.4)[0];
+ assert.equal(open.requiresPassword,false);
+ assert.equal(open.authenticated,true);
+});
 test('telefonía móvil independiente del servicio de internet',()=>{
  const {sys}=fixture();
  sys.setService('internet',false);
