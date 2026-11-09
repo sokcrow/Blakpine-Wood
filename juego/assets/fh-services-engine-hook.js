@@ -77,7 +77,7 @@
    '  }',
    '  if(it.type==="power_outlet"||it.type==="power_strip"){',
    '   notice((status.power.powered?"⚡ ":"⚡ Sin energía · ")+',
-   '     (T.usedSlots||"Conexiones utilizadas")+": "+status.usedSlots+"/"+(it.slots||2)+',
+   '     (T.usedSlots||"Conexiones utilizadas")+": "+status.usedSlots+"/"+(status.slotCapacity||it.slots||2)+',
    '     " · "+Math.round(status.loadingRayos)+"/"+(it.capacityRayos||6)+" rayos");return true;',
    '  }',
    '  if(it.type==="router"){notice(status.internet.online?"Router con internet.":"Router sin conexión a internet.");return true;}',
