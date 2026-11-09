@@ -121,3 +121,13 @@ test('persistencia de faltas de sueño al recuperar la partida',()=>{
  assert.equal(loaded.character.resources.sp,11,'no duplica la pérdida inicial');
  assert.equal(loaded.survival.fatigue.initialApplied,true);
 });
+
+test('acumulación por minutos del mundo: estrés sentado y relajación en ticks breves',()=>{
+ const {game,life}=make(20,15,0);
+ for(let minute=0;minute<=60;minute++)life.update(minute,{mode:'sitting',stressed:true});
+ assert.equal(game.character.resources.sp,13);
+ assert.equal(game.character.resources.pe,1);
+ for(let minute=61;minute<=120;minute++)life.update(minute,{mode:'sitting',relaxing:true});
+ assert.equal(game.character.resources.sp,14);
+ assert.equal(game.character.resources.pe,2);
+});
