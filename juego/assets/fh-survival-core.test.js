@@ -131,3 +131,15 @@ test('acumulación por minutos del mundo: estrés sentado y relajación en ticks
  assert.equal(game.character.resources.sp,14);
  assert.equal(game.character.resources.pe,2);
 });
+
+test('gasto de PE: sin energía rechaza la tarea y nunca queda negativo',()=>{
+ const {game,life}=make(20,20,2);
+ assert.equal(life.spendPE(1),true);
+ assert.equal(life.spendPE(2),false);
+ assert.equal(game.character.resources.pe,1);
+ assert.equal(life.spendPE(1),true);
+ assert.equal(game.character.resources.pe,0);
+ assert.equal(life.canSpendPE(1),false);
+ assert.equal(life.spendPE(1),false);
+ assert.equal(game.character.resources.pe,0);
+});
