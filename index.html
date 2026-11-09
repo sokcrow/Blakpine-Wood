@@ -1800,7 +1800,7 @@ c.restore()}
 c.save();c.strokeStyle='#bed1ea';c.lineWidth=2/z;c.strokeRect(0,0,ref.width,ref.height);c.restore();
 const items=current().items;
 if(!opts.clean&&activeLayer!=='lighting'){for(const pending of (spaceCache[floorIndex]?.pending||[])){c.save();c.fillStyle='#d7a65b16';for(const sp of pending.spans){const p=toPixel(sp);c.fillRect(p.x,p.y,sp.w*gridX(),sp.h*gridY())}const cp=toPixel(pending.center);c.fillStyle='#f7c985';c.strokeStyle='#121b2b';c.lineWidth=2/z;c.font=`bold ${11/z}px system-ui`;c.textAlign='center';c.strokeText('Sin salida · añade puerta',cp.x,cp.y);c.fillText('Sin salida · añade puerta',cp.x,cp.y);c.restore()}}
-if(floorIndex>0){const slab=buildingSlabs(floorIndex-1);if(slab.spans.length){c.save();c.fillStyle='#cd68712e';c.strokeStyle='#f37b83a0';c.lineWidth=1.2/z;for(const sp of slab.spans){const p=toPixel({x:sp.x,y:sp.y});const w=sp.w*gridX(),h=sp.h*gridY();c.fillRect(p.x,p.y,w,h)}c.restore()}}
+if(floorIndex>window.FHFloorLevels.mainIndex(project)){const slab=buildingSlabs(floorIndex-1);if(slab.spans.length){c.save();c.fillStyle='#cd68712e';c.strokeStyle='#f37b83a0';c.lineWidth=1.2/z;for(const sp of slab.spans){const p=toPixel({x:sp.x,y:sp.y});const w=sp.w*gridX(),h=sp.h*gridY();c.fillRect(p.x,p.y,w,h)}c.restore()}}
  for(const it of items){if(AREA_TYPES.has(it.type)){c.save();if(!opts.clean&&layerForItem(it)!==activeLayer)c.globalAlpha=.5;drawArea(c,it,z,it.id===selection);c.restore()}}
 for(const it of items){if(it.type==='parking_decal'){c.save();if(!opts.clean&&layerForItem(it)!==activeLayer)c.globalAlpha=.45;window.FHParking?.draw2D(c,it,toPixel,gridX(),gridY(),it.id===selection,project.units.feetPerCell||5);c.restore();}}
 for(const it of items){if(SEGMENT_TYPES.has(it.type)){c.save();if(!opts.clean&&layerForItem(it)!==activeLayer)c.globalAlpha=.5;drawSegment(c,it,z,it.id===selection);c.restore()}}
@@ -2929,7 +2929,10 @@ function modalElevatorEvents(){
 }
 function modalProject(){modal(`<h2>Proyecto · Forest Horror</h2><p>Conserva los pisos del mapa y compártelo como JSON para convertirlo después al juego 3D.</p><div class="tip">El <b>JSON completo</b> incluye las imágenes base, muros, ventanas, puertas con mirilla, muebles y altura de cada piso.</div><div class="actions"><button class="primary" id="fullExport">⬇ Exportar JSON completo</button><button id="liteExport">⬇ JSON ligero</button><button id="importJSON">⬆ Importar JSON</button><button id="previewPNG">▧ Imagen PNG del piso</button><button id="loadDemo" class="accent">⌂ Cargar ejemplo arquitectónico</button><button id="projectRoomsBtn">⌂ Ver / renombrar cuartos</button><button id="itemCatalogBtn">▣ Catálogo de objetos</button><button id="elevatorConfigBtn">⇅ Eventos del ascensor</button><button id="propertyManagerBtn">▰ Propiedades y dueños</button><button id="wallpaperEditorBtn">▨ Diseñar tapiz</button><button id="parkingDemoBtn">▤ Demo: 8 cajones y 4 coches</button></div><h3>Administrar</h3><label>Nombre del proyecto<input type="text" id="projectName" value="${escapeAttr(project.title)}"></label><div class="actions"><button id="applyName">Guardar nombre</button><button id="newMap" class="danger">Vaciar dibujos</button><button id="closeProject">Cerrar</button></div><p><small>El borrador se intenta guardar en el dispositivo. Exporta el JSON regularmente para tener una copia segura.</small></p>`,()=>{$('#closeProject').onclick=closeModal;$('#fullExport').onclick=()=>exportJSON(true);$('#liteExport').onclick=()=>exportJSON(false);$('#importJSON').onclick=()=>{$('#jsonInput').click()};$('#previewPNG').onclick=exportPNG;$('#loadDemo').onclick=loadArchitectureExample;$('#projectRoomsBtn').onclick=modalRoomList;$('#itemCatalogBtn').onclick=modalItemCatalog;$('#elevatorConfigBtn').onclick=modalElevatorEvents;$('#propertyManagerBtn').onclick=()=>window.FHStyleEditor?.propertyManager();$('#wallpaperEditorBtn').onclick=()=>window.FHStyleEditor?.wallpaperEditor();$('#parkingDemoBtn').onclick=()=>{closeModal();window.FHParkingEditor?.demo()};$('#applyName').onclick=()=>{project.title=$('#projectName').value||'Mapa sin título';saveSoon();toast('Nombre guardado')};$('#newMap').onclick=()=>{if(confirm('¿Borrar TODOS los elementos dibujados en los dos pisos? Se conservan las imágenes.')){try{localStorage.removeItem(ForestShared.gameSaveKey(project))}catch{};project.createdAt=new Date().toISOString();project.floors.forEach(f=>{f.items=[];f.apartments=[]});project.properties=[];project.locationZones=[];project.buildingNames={};project.patterns=[];recalcAllSpaces();selection=null;history=[];historyIndex=-1;record();closeModal();toast('Mapa de dibujos vaciado')}}})}
 function escapeAttr(v){return String(v).replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;')}
-function exportProject(includeImages){syncStairLinks();recalcAllSpaces();const out=clone(project);out.buildingSlabs=clone(buildingSlabs());out.slabsByLevel=project.floors.slice(1).map((_,i)=>clone(buildingSlabs(i)));out.exportedAt=new Date().toISOString();out.floors.forEach((f,i)=>{f.architectureGraph=buildArchitectureGraph(f.items.filter(it=>STRUCTURAL_TYPES.has(it.type)));f.grid={columns:out.units.columns,rows:out.units.rows,fitToImage:out.units.fitGridToImage,cellWidthPx:rounded(out.units.fitGridToImage?(f.reference.width-out.units.originPx.x)/out.units.columns:out.units.gridPx,5),cellHeightPx:rounded(out.units.fitGridToImage?(f.reference.height-out.units.originPx.y)/out.units.rows:out.units.gridPx,5),feetPerCell:out.units.feetPerCell};if(!includeImages){delete f.reference.data;f.reference.imageIncluded=false}else{f.reference.imageIncluded=true}for(const it of f.items){if(it.type==='peephole_door'){const dx=it.b.x-it.a.x,dy=it.b.y-it.a.y,len=Math.hypot(dx,dy)||1,sign=it.peekSide||1;it.peekTo={x:rounded(-dy/len*sign,5),y:rounded(dx/len*sign,5)};it.peekFrom={x:-it.peekTo.x,y:-it.peekTo.y}}}});return out}
+function emptySlab(){return {enabled:false,spans:[],regions:[],micro:1}}
+function slabsForLevels(){const ground=window.FHFloorLevels.mainIndex(project);return project.floors.slice(1).map((_,i)=>i+1<=ground?emptySlab():clone(buildingSlabs(i)))}
+function basementSlabs(){const ground=window.FHFloorLevels.mainIndex(project);return project.floors.map((_,i)=>i<ground?clone(buildingSlabs(i)):null)}
+function exportProject(includeImages){syncStairLinks();recalcAllSpaces();const out=clone(project);out.buildingSlabs=clone(buildingSlabs(window.FHFloorLevels.mainIndex(project)));out.slabsByLevel=slabsForLevels();out.basementSlabs=basementSlabs();out.exportedAt=new Date().toISOString();out.floors.forEach((f,i)=>{f.architectureGraph=buildArchitectureGraph(f.items.filter(it=>STRUCTURAL_TYPES.has(it.type)));f.grid={columns:out.units.columns,rows:out.units.rows,fitToImage:out.units.fitGridToImage,cellWidthPx:rounded(out.units.fitGridToImage?(f.reference.width-out.units.originPx.x)/out.units.columns:out.units.gridPx,5),cellHeightPx:rounded(out.units.fitGridToImage?(f.reference.height-out.units.originPx.y)/out.units.rows:out.units.gridPx,5),feetPerCell:out.units.feetPerCell};if(!includeImages){delete f.reference.data;f.reference.imageIncluded=false}else{f.reference.imageIncluded=true}for(const it of f.items){if(it.type==='peephole_door'){const dx=it.b.x-it.a.x,dy=it.b.y-it.a.y,len=Math.hypot(dx,dy)||1,sign=it.peekSide||1;it.peekTo={x:rounded(-dy/len*sign,5),y:rounded(dx/len*sign,5)};it.peekFrom={x:-it.peekTo.x,y:-it.peekTo.y}}}});return out}
 function downloadBlob(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000)}
 function fileBase(){return(project.title||'ForestHorror').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\w-]+/g,'_').slice(0,40)||'ForestHorror'}
 function exportJSON(withImages){const doc=exportProject(withImages);try{window.FHStructureHealth?.validateMap(doc);window.FHAccessConfig?.validateMap(doc)}catch(error){toast(error.message);return}window.FHStyleProperty?.validateMap(doc);window.FHParking?.validateProject(doc);const warnings=[...ForestShared.interactionReferenceWarnings(doc),...ForestShared.progressionReferenceWarnings(doc)];
@@ -3002,8 +3005,9 @@ function playSolidAt(x,y){
    }),...playLiftCollision.flatMap(lift=>lift.walls)],wallPad:.045,
   doors:[...items.filter(it=>PLAY_DOORS.has(it.type)).map(it=>({...it,open:playDoorPassable(it)})),...playLiftCollision.map(lift=>lift.door)],doorPad:.045,
   objects:items.filter(it=>PLAY_SOLID_OBJECTS.has(it.type)&&it.blocksMovement!==false),objectMode:'circle',
-  surfaceAllowed:playState.floorIndex===0?null:(xx,yy)=>{
-   const slab=buildingSlabs(playState.floorIndex-1);
+  surfaceAllowed:playState.floorIndex===window.FHFloorLevels.mainIndex(project)?null:(xx,yy)=>{
+   const belowGround=playState.floorIndex<window.FHFloorLevels.mainIndex(project);
+   const slab=buildingSlabs(belowGround?playState.floorIndex:playState.floorIndex-1);
    if(!slab.enabled)return true;
    const onSpan=slab.spans.some(r=>xx>=r.x-.001&&xx<=r.x+r.w+.001&&yy>=r.y-.001&&yy<=r.y+r.h+.001);
    const authored=items.some(it=>PLAY_FLOORS[it.type]&&(it.spans?.some(r=>xx>=r.x&&xx<=r.x+r.w&&yy>=r.y&&yy<=r.y+r.h)||it.cells?.some(r=>Math.floor(xx)===r.x&&Math.floor(yy)===r.y)||(it.w&&it.h&&xx>=it.x&&xx<=it.x+it.w&&yy>=it.y&&yy<=it.y+it.h)));
@@ -3080,7 +3084,7 @@ function makeCurrent3DProject(){
  const fhMapSave=fhProfile?window.FHCharacterCreation.selectMapSave(fhRawSave,fhProfile.id):fhRawSave;
  const units={...project.units,metersPerCell:Number(project.units.feetPerCell||5)*.3048};
  // Excluir únicamente imágenes de referencia de varios MB; geometría 3D proviene de items.
- return {schema:SCHEMA,version:project.version||1,styleSystem:project.styleSystem||0,buildingOwnerId:project.buildingOwnerId||'',buildingOwners:clone(project.buildingOwners||{}),buildingNames:clone(project.buildingNames||{}),properties:clone(project.properties||[]),locationZones:clone(project.locationZones||[]),patterns:clone(project.patterns||[]),title:project.title||'Forest Horror',createdAt:project.createdAt,itemDefs:clone(project.itemDefs||[]),initialGameState:clone(project.initialGameState||{}),weather:clone(project.weather||{enabled:false}),elevatorEvents:clone(project.elevatorEvents||{}),__runtimeSave:fhMapSave,__runtimeCharacter:fhProfile?clone(fhProfile):null,units,buildingSlabs:clone(buildingSlabs()),slabsByLevel:project.floors.slice(1).map((_,i)=>clone(buildingSlabs(i))),
+ return {schema:SCHEMA,version:project.version||1,mainFloorId:project.mainFloorId||undefined,styleSystem:project.styleSystem||0,buildingOwnerId:project.buildingOwnerId||'',buildingOwners:clone(project.buildingOwners||{}),buildingNames:clone(project.buildingNames||{}),properties:clone(project.properties||[]),locationZones:clone(project.locationZones||[]),patterns:clone(project.patterns||[]),title:project.title||'Forest Horror',createdAt:project.createdAt,itemDefs:clone(project.itemDefs||[]),initialGameState:clone(project.initialGameState||{}),weather:clone(project.weather||{enabled:false}),elevatorEvents:clone(project.elevatorEvents||{}),__runtimeSave:fhMapSave,__runtimeCharacter:fhProfile?clone(fhProfile):null,units,buildingSlabs:clone(buildingSlabs(window.FHFloorLevels.mainIndex(project))),slabsByLevel:slabsForLevels(),basementSlabs:basementSlabs(),
   floors:project.floors.map(f=>({id:f.id,name:f.name,elevationFt:f.elevationFt,
    ceilingHeightFt:f.ceilingHeightFt,lightingManual:!!f.lightingManual,items:clone(window.FHAreaMerge?.forEngine(f.items)||f.items),apartments:clone(f.apartments||[])}))};
 }
@@ -4218,6 +4222,27 @@ function fhRefreshActorVisibility(){
   return doc.replace('</head>',script+'</head>');
  }
 
+// El motor empaquetado ordena niveles por índice; se separa el suelo del primer sótano.
+function addBuildingLevelsToEngine(doc){
+ const edits=[
+  ["const SLABS=DATA.floors.map((_,i)=>i===0?EMPTY_SLAB:(DATA.slabsByLevel?.[i-1]|| (i===1?DATA.buildingSlabs:null)||EMPTY_SLAB));",
+   "const mainFloorIndex=Math.max(0,DATA.floors.findIndex(f=>f.id===DATA.mainFloorId));\n"+
+   "const SLABS=DATA.floors.map((_,i)=>i<=mainFloorIndex?EMPTY_SLAB:(DATA.slabsByLevel?.[i-1]|| (i===1?DATA.buildingSlabs:null)||EMPTY_SLAB));"],
+  ["if(f===0||!SLABS[f].enabled)for(const r of surfaceRectsMinusVoids(f,0,0,GRID_X,GRID_Z))surfaceGrid(f,r.x,r.y,r.w,r.h,MAT.parking,-.09);",
+   "if(f===mainFloorIndex||(f>mainFloorIndex&&!SLABS[f].enabled))for(const r of surfaceRectsMinusVoids(f,0,0,GRID_X,GRID_Z))surfaceGrid(f,r.x,r.y,r.w,r.h,MAT.parking,-.09);\n"+
+   "if(f<mainFloorIndex&&DATA.basementSlabs?.[f]?.enabled)for(const sp of DATA.basementSlabs[f].spans)for(const r of surfaceRectsMinusVoids(f,sp.x,sp.y,sp.w,sp.h))surfaceGrid(f,r.x,r.y,r.w,r.h,ART_FLOOR_MAT,.018);"],
+  ["surfaceAllowed:currentFloor>0&&SLABS[currentFloor].enabled?(xx,zz)=>onStructuralSlab(xx,zz):null",
+   "surfaceAllowed:currentFloor<mainFloorIndex&&DATA.basementSlabs?.[currentFloor]?.enabled?(xx,zz)=>fhBasementWalk(xx,zz):currentFloor>mainFloorIndex&&SLABS[currentFloor].enabled?(xx,zz)=>onStructuralSlab(xx,zz):null"]
+ ];
+ for(const [before,after] of edits){
+  const count=doc.split(before).length-1,expected=before.startsWith('surfaceAllowed:')?2:1;
+  if(count!==expected)throw Error('Hook de niveles incompatible: '+before.slice(0,75)+' ('+count+')');
+  doc=doc.split(before).join(after);
+ }
+ const method="function fhBasementWalk(x,z){const spans=DATA.basementSlabs?.[currentFloor]?.spans||[];const gx=x/CELL,gz=z/CELL;return spans.some(r=>gx>=r.x&&gx<=r.x+r.w&&gz>=r.y&&gz<=r.y+r.h)}\n";
+ if(doc.split('function canWalk(x,z){').length!==2)throw Error('Punto de colisión de sótanos no localizado');
+ return doc.replace('function canWalk(x,z){',method+'function canWalk(x,z){');
+}
  // Restringe las fachadas de niveles vecinos sin duplicar FOW ni cambiar el mapa.
  function addFloorVisibilityToEngine(doc){
   const replacements=[
@@ -4233,7 +4258,7 @@ function fhRefreshActorVisibility(){
    doc=doc.replace(before,after);
   }
   const script='<script src="'+new URL('./juego/assets/fh-floor-visibility.js?v=20261108-floor-vis-2',document.baseURI).href+'"></'+'script>';
-  return addSurvivalToEngine(doc.replace('</head>',script+'</head>'));
+  return addBuildingLevelsToEngine(addSurvivalToEngine(doc.replace('</head>',script+'</head>')));
  }
  // Recursos y estados de personaje: adaptador del motor, no del editor.
  function addSurvivalToEngine(doc){
