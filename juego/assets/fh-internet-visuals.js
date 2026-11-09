@@ -37,9 +37,12 @@
   if(meta.mount==='floor')return {x:Number(it.x)*CELL,z:Number(it.y)*CELL,y:0,
    rotation:-(Number(it.rotation)||0)*Math.PI/180,mount:'floor'};
   if(!shared||typeof shared.switchWallMount!=='function')return null;
-  const near=shared.switchWallMount(items,{x:Number(it.x),y:Number(it.y)},
-   {wallId:it.wallId||undefined,maxDistance:it.wallId?.12:.55,
-    ...(Number.isFinite(Number(it.rotation))?{rotation:Number(it.rotation)}:{})});
+  const rotation=Number.isFinite(Number(it.rotation))?{rotation:Number(it.rotation)}:{};
+  const target={x:Number(it.x),y:Number(it.y)};
+  let near=shared.switchWallMount(items,target,
+   {wallId:it.wallId||undefined,maxDistance:it.wallId?.12:.55,...rotation});
+  // Recuperación visual de wallId obsoleto: no modifica la geometría ni el JSON.
+  if(!near&&it.wallId)near=shared.switchWallMount(items,target,{maxDistance:.55,...rotation});
   if(!near||!['wall','red_wall','property_wall'].includes((items||[]).find(w=>w.id===near.wallId)?.type))return null;
   const offset=HALF_WALL+GAP;
   return {x:near.point.x*CELL+near.normal.x*offset,
