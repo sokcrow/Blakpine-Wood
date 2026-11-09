@@ -151,7 +151,6 @@
    }
    if(mode!=='sitting'&&was==='sitting')state.sitCarry=0;
    if(mode==='sleeping'||mode==='unconscious'){state.stressCarry=0;state.relaxCarry=0;}
-   else if(mode==='sitting')state.stressCarry=0;
    if(elapsed>0){
     if(mode==='sleeping'){
      state.sleepMinutes+=elapsed;
