@@ -3083,8 +3083,13 @@ function makeCurrent3DProject(){
  const fhRawSave=readStorage(ForestShared.gameSaveKey(project));
  const fhMapSave=fhProfile?window.FHCharacterCreation.selectMapSave(fhRawSave,fhProfile.id):fhRawSave;
  const units={...project.units,metersPerCell:Number(project.units.feetPerCell||5)*.3048};
+ const main=project.floors.findIndex(f=>f.id===project.mainFloorId);
+ const mainIndex=main>=0?main:Math.max(0,project.floors.findIndex(f=>f.elevationFt===0));
+ const empty={enabled:false,spans:[],regions:[],micro:1};
+ const slabsByLevel=project.floors.slice(1).map((_,i)=>i+1<=mainIndex?clone(empty):clone(buildingSlabs(i)));
+ const basementSlabs=project.floors.map((_,i)=>i<mainIndex?clone(buildingSlabs(i)):null);
  // Excluir únicamente imágenes de referencia de varios MB; geometría 3D proviene de items.
- return {schema:SCHEMA,version:project.version||1,mainFloorId:project.mainFloorId||undefined,styleSystem:project.styleSystem||0,buildingOwnerId:project.buildingOwnerId||'',buildingOwners:clone(project.buildingOwners||{}),buildingNames:clone(project.buildingNames||{}),properties:clone(project.properties||[]),locationZones:clone(project.locationZones||[]),patterns:clone(project.patterns||[]),title:project.title||'Forest Horror',createdAt:project.createdAt,itemDefs:clone(project.itemDefs||[]),initialGameState:clone(project.initialGameState||{}),weather:clone(project.weather||{enabled:false}),elevatorEvents:clone(project.elevatorEvents||{}),__runtimeSave:fhMapSave,__runtimeCharacter:fhProfile?clone(fhProfile):null,units,buildingSlabs:clone(buildingSlabs(window.FHFloorLevels.mainIndex(project))),slabsByLevel:slabsForLevels(),basementSlabs:basementSlabs(),
+ return {schema:SCHEMA,version:project.version||1,mainFloorId:project.mainFloorId||undefined,styleSystem:project.styleSystem||0,buildingOwnerId:project.buildingOwnerId||'',buildingOwners:clone(project.buildingOwners||{}),buildingNames:clone(project.buildingNames||{}),properties:clone(project.properties||[]),locationZones:clone(project.locationZones||[]),patterns:clone(project.patterns||[]),title:project.title||'Forest Horror',createdAt:project.createdAt,itemDefs:clone(project.itemDefs||[]),initialGameState:clone(project.initialGameState||{}),weather:clone(project.weather||{enabled:false}),elevatorEvents:clone(project.elevatorEvents||{}),__runtimeSave:fhMapSave,__runtimeCharacter:fhProfile?clone(fhProfile):null,units,buildingSlabs:clone(buildingSlabs(mainIndex)),slabsByLevel,basementSlabs,
   floors:project.floors.map(f=>({id:f.id,name:f.name,elevationFt:f.elevationFt,
    ceilingHeightFt:f.ceilingHeightFt,lightingManual:!!f.lightingManual,items:clone(window.FHAreaMerge?.forEngine(f.items)||f.items),apartments:clone(f.apartments||[])}))};
 }
