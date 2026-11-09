@@ -4,6 +4,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
 const vm=require('node:vm');
+const Services=require('./fh-services-core.js');
 
 const editor=fs.readFileSync(path.join(__dirname,'../../index.html'),'utf8');
 const start=editor.indexOf('const ForestShared=(()=>{');
@@ -44,13 +45,63 @@ function factoryFrom(doc,window={}){
 const room={id:'room-a',roomId:'room-a',type:'room',zoneId:'a',x:0,y:0,w:8,h:8};
 const lamp={id:'lamp-a',type:'light_fixture',roomId:'room-a',x:2,y:2};
 const panel={id:'panel-a',type:'breaker_panel',powerScope:'zone',zoneId:'a',circuits:[{id:'a',zoneId:'a',powerScope:'zone',powerFlag:'circuit-a'}]};
-const floor=items=>({id:'f0',items});
+const floor=items=>({id:'f0',items:[{id:'wall',type:'wall',a:{x:0,y:0},b:{x:10,y:0}},...items]});
+function withWiring(create){
+ return (floors,state={})=>{
+  const runtime=Services.createRuntime({floors,units:{feetPerCell:5}},state);
+  return create(floors,state,{fixturePowered:(f,it,zone)=>!!runtime.sourceFor(f,it,zone)});
+ };
+}
+function hallway(){
+ const room={id:'hall',roomId:'hall',type:'room',zoneId:'a',x:0,y:0,w:10,h:2};
+ const lamps=[1,3,6,8].map((x,i)=>({id:'hall-lamp-'+i,type:'light_fixture',roomId:'hall',x,y:.5}));
+ const panel={id:'hall-breaker',type:'breaker_panel',x:0,y:0,zoneId:'a',powerScope:'zone',circuits:[{zoneId:'a',rangeFt:60}]};
+ const door={id:'hall-door',type:'door',a:{x:4,y:0},b:{x:5,y:0},open:false};
+ const floors=[{id:'f0',items:[room,panel,...lamps,
+  {id:'left',type:'wall',a:{x:0,y:0},b:{x:4,y:0}},door,
+  {id:'right',type:'wall',a:{x:5,y:0},b:{x:10,y:0}}]}];
+ return {floors,room,lamps,panel,door};
+}
 
-for(const [name,create] of [
+for(const [name,factory] of [
  ['compartido',shared.createLightingSystem],
  ['motor 3D preparado',factoryFrom(engine.prepared)],
  ['motor 3D con servicios',factoryFrom(engine.patched)]
 ]){
+ const create=withWiring(factory);
+ test(name+': la puerta secciona cuatro luces del mismo pasillo en dos con energía y dos sin ella',()=>{
+  const {floors,room,lamps,door}=hallway();
+  const lighting=create(floors,{});
+  assert.deepEqual(lamps.map(l=>lighting.fixtureLit(0,room,l)),[true,true,false,false]);
+  const services=Services.createRuntime({floors,units:{feetPerCell:5}},{});
+  assert.deepEqual(lamps.map(l=>services.statusFor(0,l).power.powered),[true,true,false,false]);
+  const entries=lamps.map(l=>({floor:0,room,lamp:l,x:l.x,z:l.y,radius:3}));
+  assert.equal(Lights.sourcesNear(entries,lighting,0,0,0,100).length,2);
+  door.open=true;
+  assert.deepEqual(lamps.map(l=>create(floors,{}).fixtureLit(0,room,l)),[true,true,false,false]);
+ });
+ test(name+': otro breaker y su circuito devuelven energía sólo al tramo aislado',()=>{
+  const {floors,room,lamps}=hallway();
+  floors[0].items.push({id:'second-breaker',type:'breaker_panel',x:10,y:0,zoneId:'b',powerScope:'zone',circuits:[{zoneId:'b',rangeFt:60}]});
+  const unassigned=create(floors,{});
+  assert.equal(unassigned.fixtureLit(0,room,lamps[2]),false,'el segundo panel no conecta luces asignadas al primero');
+  lamps[2].zoneId=lamps[3].zoneId='b';
+  const state={},lighting=create(floors,state);
+  assert.deepEqual(lamps.map(l=>lighting.fixtureLit(0,room,l)),[true,true,true,true]);
+  state.flags['power_zone:b']=false;
+  assert.deepEqual(lamps.map(l=>lighting.fixtureLit(0,room,l)),[true,true,false,false]);
+ });
+ test(name+': una ventana conserva las cuatro luces conectadas y se respeta el alcance',()=>{
+  const {floors,room,lamps,panel,door}=hallway();door.type='window';
+  assert.deepEqual(lamps.map(l=>create(floors,{}).fixtureLit(0,room,l)),[true,true,true,true]);
+  panel.circuits[0].rangeFt=10;
+  const lighting=create(floors,{});
+  assert.deepEqual(lamps.map(l=>lighting.fixtureLit(0,room,l)),[true,false,false,false]);
+ });
+ test(name+': sin comprobación de cableado disponible, la lámpara queda apagada',()=>{
+  const {floors,room,lamps}=hallway();
+  assert.equal(factory(floors,{}).fixtureLit(0,room,lamps[0]),false);
+ });
  test(name+': mapa antiguo sin breaker permanece apagado aunque las banderas estén en true',()=>{
   const state={flags:{power_global:true,'power_floor:f0':true,'power_zone:a':true}};
   const runtime=create([floor([room,lamp])],state);
@@ -96,11 +147,11 @@ for(const [name,create] of [
   state.flags.power_global=false;
   assert.equal(runtime.fixtureLit(0,null,{...lamp,zoneId:'b'}),false);
  });
- test(name+': un breaker de otro piso no alimenta el circuito salvo destino explícito',()=>{
+ test(name+': un breaker de otro piso no crea un cableado entre plantas',()=>{
   const floors=[floor([room,lamp]),{id:'f1',items:[panel]}];
   assert.equal(create(floors,{}).fixtureLit(0,room,lamp),false);
   floors[1].items=[{...panel,circuits:[{...panel.circuits[0],floorId:'f0'}]}];
-  assert.equal(create(floors,{}).fixtureLit(0,room,lamp),true);
+  assert.equal(create(floors,{}).fixtureLit(0,room,lamp),false);
  });
  test(name+': flags de piso, panel, suministro y estados guardados se respetan',()=>{
   for(const state of [
@@ -140,13 +191,22 @@ for(const [name,create] of [
 
 test('la integración 3D aplica la fábrica compartida, conserva servicios y produce JS válido',()=>{
  assert.equal(factoryFrom(engine.prepared).toString(),shared.createLightingSystem.toString());
+ assert.match(engine.prepared,/fixturePowered:\(floor,fixture,zone\)=>!!window.FHServicesRuntime\?\.sourceFor\(floor,fixture,zone\)/);
  assert.match(engine.patched,/fixture\?\.service\?\.requiresPower/,'se conserva el chequeo opt-in de suministro físico');
  const script=engine.patched.slice(engine.patched.lastIndexOf('<script>')+8,engine.patched.lastIndexOf('</script>'));
  assert.doesNotThrow(()=>new vm.Script(script));
- const create=factoryFrom(engine.patched,{FHServicesRuntime:{statusFor:()=>({power:{powered:false}})}});
+ const create=withWiring(factoryFrom(engine.patched,{FHServicesRuntime:{statusFor:()=>({power:{powered:false}})}}));
  const physical={...lamp,service:{requiresPower:true}};
  assert.equal(create([floor([room,physical,panel])],{}).fixtureLit(0,room,physical),false);
  assert.equal(create([floor([room,lamp,panel])],{}).fixtureLit(0,room,lamp),true);
+});
+test('las lámparas con requiresPower reciben su circuito sin ocupar un enchufe',()=>{
+ const {floors,lamps}=hallway();lamps[0].service={requiresPower:true,watts:40};
+ floors[0].items.push({id:'socket',type:'power_outlet',zoneId:'a',x:1,y:0,slots:2});
+ const runtime=Services.createRuntime({floors,units:{feetPerCell:5}},{});
+ assert.equal(runtime.statusFor(0,lamps[0]).power.via,'hall-breaker');
+ assert.equal(runtime.statusFor(0,lamps[0]).power.powered,true);
+ assert.equal(runtime.statusFor(0,floors[0].items.at(-1)).usedSlots,0);
 });
 
 test('fuentes dinámicas de batería no dependen de circuitos y el mapa no se reescribe',()=>{

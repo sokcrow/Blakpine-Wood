@@ -189,7 +189,7 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
 <script src="./juego/assets/fh-weather-strings.js?v=20261108-clima1"></script>
 <script src="./juego/assets/fh-weather-editor.js?v=20261108-clima1"></script>
 <script src="./juego/assets/fh-services-strings.js?v=20261108-service-core-1"></script>
-<script src="./juego/assets/fh-services-core.js?v=20261108-window-wiring-3"></script>
+<script src="./juego/assets/fh-services-core.js?v=20261108-sectioned-lighting-4"></script>
 <script>// /shared + /editor. Motor empaquetado y aislado en iframe.
 const ForestShared=(()=>{
 // shared/geometry.js
@@ -640,6 +640,7 @@ function createLightingSystem(floors,state,config={}){
  }
  function fixtureLit(floor,room,fixture){
   if(!fixture||!circuitAvailable(floor,str(fixture.zoneId)||str(room?.zoneId)))return false;
+  if(config.fixturePowered?.(floor,fixture,str(fixture.zoneId)||str(room?.zoneId))!==true)return false;
   const roomId=room?.roomId||room?.id;
   return powered(floor,str(fixture?.zoneId)||str(room?.zoneId))&&(!roomId||on(roomKey(floor,roomId)));
  }
@@ -1829,7 +1830,7 @@ function drawWallPaths(c,z,paths,color,selected=true){
 function drawLightingOverlay(c,z){
  const items=current().items,zone=selectedCircuit(),all=$('#circuitShowAll')?.checked||false;
  window.FHLightEditorOverlay?.draw(c,z);
- const graph=utilityVisual().graph;
+ const {graph,runtime}=utilityVisual();
  if(!graph)return;
  const rooms=items.filter(it=>it.type==='room');
  for(const circ of availableCircuits()){
@@ -1843,6 +1844,7 @@ function drawLightingOverlay(c,z){
    return room?.zoneId===circ.zoneId;
   };
   for(const target of items.filter(it=>['light_fixture','light_switch','power_outlet'].includes(it.type)&&sameCircuit(it))){
+   if(runtime?.sourceFor(floorIndex,target,circ.zoneId)?.panel.id!==owner.id)continue;
    const gapFt=target.type==='light_fixture'&&!target.wallId?Math.max(0,Number(target.service?.maxWallDistanceFt)||30):3.25;
    const path=graph.routeDetailed(owner,target,gapFt/Math.max(.1,Number(project.units.feetPerCell)||5));
    if(path){paths.push(path);terminals.push(path.to)}
@@ -3021,6 +3023,9 @@ function addLiveTextToEngine(doc){
 }
 
 function prepareGLBEngineDoc(source){
+ const lightingInit='const lighting=ForestShared.createLightingSystem(DATA.floors,GameState);';
+ if(source.split(lightingInit).length!==2)throw Error('No se encontró la inicialización de iluminación');
+ source=source.replace(lightingInit,'const lighting=ForestShared.createLightingSystem(DATA.floors,GameState,{fixturePowered:(floor,fixture,zone)=>!!window.FHServicesRuntime?.sourceFor(floor,fixture,zone)});');
  // El motor embebido recibe la misma regla de energía que el código compartido.
  const lightingStart=source.indexOf('function createLightingSystem(');
  const lightingEnd=source.indexOf('\n// shared/breakers.js',lightingStart);
@@ -4322,7 +4327,7 @@ init();
 <script src="./juego/assets/fh-structure-engine-hook.js?v=20261108-architecture-load"></script>
 <script src="./juego/assets/fh-comic-action-engine-hook.js?v=20261107-comic-actions-1"></script>
 <script src="./juego/assets/fh-context-engine-hook.js?v=20261108-elevator-comfort-1"></script>
-<script src="./juego/assets/fh-services-engine-hook.js?v=20261108-window-wiring-3"></script>
+<script src="./juego/assets/fh-services-engine-hook.js?v=20261108-sectioned-lighting-4"></script>
 </body>
 </html>
 

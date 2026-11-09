@@ -137,7 +137,21 @@ test('el overlay pasa por ventanas y no dibuja conexiones a través de puertas/a
 });
 test('editor y motor 3D cargan la misma versión corregida del grafo',()=>{
  const hook=fs.readFileSync(path.join(__dirname,'fh-services-engine-hook.js'),'utf8');
- const version='fh-services-core.js?v=20261108-window-wiring-3';
+ const version='fh-services-core.js?v=20261108-sectioned-lighting-4';
  assert.ok(editor.includes(version));assert.ok(hook.includes(version));
- assert.ok(editor.includes('fh-services-engine-hook.js?v=20261108-window-wiring-3'));
+ assert.ok(editor.includes('fh-services-engine-hook.js?v=20261108-sectioned-lighting-4'));
+});
+test('el plano omite las lámparas del otro tramo y las que superan el alcance',()=>{
+ const {project,breaker}=network('door');
+ project.floors[0].items.push(...[.3,.7,2,2.5].map((x,i)=>({id:'lamp-'+i,type:'light_fixture',zoneId:'a',x,y:.2})));
+ const ctx=overlayEnvironment(project),lines=[];
+ let from=null,to=null;
+ const canvas={save(){},restore(){},beginPath(){from=to=null},
+  moveTo(x,y){from={x,y}},lineTo(x,y){to={x,y}},stroke(){if(from&&to)lines.push({from,to})},arc(){},fill(){}};
+ ctx.drawLightingOverlay(canvas,1);
+ assert.equal(lines.length,2);
+ assert.ok(lines.every(l=>l.to.x<=1&&l.to.y===0));
+ breaker.circuits[0].rangeFt=2;
+ lines.length=0;ctx.drawLightingOverlay(canvas,1);
+ assert.equal(lines.length,1);assert.equal(lines[0].to.x,.3);
 });
