@@ -150,7 +150,8 @@
     state.sleepMinutes=0;state.sleepPECarry=0;state.sleepSPCarry=0;
    }
    if(mode!=='sitting'&&was==='sitting')state.sitCarry=0;
-   if(mode!=='awake'){state.stressCarry=0;state.relaxCarry=0;}
+   if(mode==='sleeping'||mode==='unconscious'){state.stressCarry=0;state.relaxCarry=0;}
+   else if(mode==='sitting')state.stressCarry=0;
    if(elapsed>0){
     if(mode==='sleeping'){
      state.sleepMinutes+=elapsed;
@@ -159,7 +160,8 @@
      completeSleep(now);
     }else if(mode==='sitting'){
      addWhole('sitCarry',elapsed,HOUR,'pe',1);
-     if(context.relaxing&&!context.stressed)addWhole('relaxCarry',elapsed,HOUR,'sp',1);
+     if(context.stressed){addWhole('stressCarry',elapsed,HOUR,'sp',-2);state.relaxCarry=0;}
+     else if(context.relaxing)addWhole('relaxCarry',elapsed,HOUR,'sp',1);
      else state.relaxCarry=0;
     }else if(mode==='awake'){
      if(context.stressed){addWhole('stressCarry',elapsed,HOUR,'sp',-2);state.relaxCarry=0}
@@ -178,7 +180,7 @@
    }
    state.mode=mode;
    state.lastMinute=now;
-   return read();
+   return state;
   }
   clampResources();checkCritical();
   return Object.freeze({state,resources,update,read,change,damagePG,setPGMax,deathSave,awakeFromStable,checkCritical});
