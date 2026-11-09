@@ -346,3 +346,23 @@ body.breaker-active #fhPhoneToggle,body.breaker-active #fhPhonePanel{
 }
 /* La tecla F conserva la misma linterna; se oculta solo el control legacy. */
 #flashlightToggle{display:none!important}
+
+/* Cuentas: lectura del libro económico, sin acciones bancarias simuladas. */
+#fhPhonePanel .fh-phone-accounts-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:12px 0 8px}
+#fhPhonePanel .fh-phone-account-card{display:flex;flex-direction:column;gap:9px;min-width:0;padding:14px 11px;border:1px solid #ffffff35;border-radius:12px;background:#ffffff0d}
+#fhPhonePanel .fh-phone-account-card small{font-size:11px;line-height:1.3;color:#d4d0c8}
+#fhPhonePanel .fh-phone-account-card strong{font-size:20px;letter-spacing:-.035em;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+#fhPhonePanel .fh-phone-account-total{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:11px 1px 14px;border-bottom:1px solid #ffffff38;font-size:12px}
+#fhPhonePanel .fh-phone-account-total strong{font-size:17px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+#fhPhonePanel .fh-phone-account-refresh{display:block;min-height:44px;margin:13px 0 19px;padding:9px 15px;border:1px solid #ffffff57;border-radius:10px;background:#292a2d;color:#f3f0ec;font-size:12px;cursor:pointer}
+#fhPhonePanel .fh-phone-account-movement{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 2px;border-bottom:1px solid #ffffff28}
+#fhPhonePanel .fh-phone-account-movement-detail{display:flex;flex-direction:column;min-width:0;gap:5px;font-size:12px;overflow-wrap:anywhere}
+#fhPhonePanel .fh-phone-account-movement-detail small{font-size:11px;line-height:1.5;color:#c5c3c1}
+#fhPhonePanel .fh-phone-account-movement-amount{font-size:13px;font-variant-numeric:tabular-nums;white-space:nowrap}
+#fhPhonePanel .fh-phone-account-movement[data-status="rejected"] .fh-phone-account-movement-amount{color:#bcbab7}
+@media(max-width:480px){
+ #fhPhonePanel .fh-phone-account-card{padding:11px 8px}
+ #fhPhonePanel .fh-phone-account-card strong{font-size:16px}
+ #fhPhonePanel .fh-phone-account-movement-detail{font-size:11px}
+ #fhPhonePanel .fh-phone-account-movement-detail small{font-size:10px}
+}

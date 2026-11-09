@@ -6,6 +6,9 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
 
+const Economy=require('./fh-economy-core.js');
+const EconomyView=require('./fh-economy-view.js');
+const economyStrings=fs.readFileSync(path.join(__dirname,'fh-economy-strings.js'),'utf8');
 const menuSource=fs.readFileSync(path.join(__dirname,'fh-player-menu.js'),'utf8');
 const stringsSource=fs.readFileSync(path.join(__dirname,'fh-player-menu-strings.js'),'utf8');
 const css=fs.readFileSync(path.join(__dirname,'fh-player-menu.css'),'utf8');
@@ -117,10 +120,12 @@ function scene(profile){
   }
   const global={
     document,parent:null,console:{warn(){}},addEventListener(){},
+    FHEconomyView:EconomyView,localStorage:profile.storage,
     get FHCharacterRuntime(){return {character:profile.current};}
   };
   global.parent=global;
   new Function('window',stringsSource)(global);
+  new Function('window',economyStrings)(global);
   new Function('window','module',skillSource)(global,{exports:{}});
   new Function('window',skillTextSource)(global);
   new Function('window',helpTextSource)(global);
@@ -134,7 +139,7 @@ function scene(profile){
 }
 
 const example={
-  name:'Elena Flores',origin:'resident',
+  id:'elena',name:'Elena Flores',origin:'resident',
   scores:{FOR:5,AGI:4,VOL:3,PRU:2,ING:6,ARC:1,SOC:4},
   resources:{pg:20,pgMax:36,sp:14,spMax:24,pe:7,peMax:15}
 };
@@ -142,7 +147,7 @@ const example={
 test('Estado lee nombre, origen, siete atributos y PG/SP/PE actuales de la partida',()=>{
   const profile={current:structuredClone(example)};
   const {tabs,detail}=scene(profile);
-  assert.equal(tabs.children.length,4);
+  assert.equal(tabs.children.length,5);
   tabs.children[2].click();
   assert.match(detail.textContent,/Elena Flores/);
   assert.match(detail.textContent,/Residente/);
@@ -161,7 +166,7 @@ test('Estado lee nombre, origen, siete atributos y PG/SP/PE actuales de la parti
     assert.ok(bar.getAttribute('aria-valuenow')!==undefined);
   }
   profile.current.resources.pg=4;
-  tabs.children[3].click();
+  tabs.children[4].click();
   tabs.children[2].click();
   assert.match(detail.textContent,/4 \/ 36/);
 });
@@ -177,7 +182,7 @@ test('Estado no genera estadísticas cuando falta el personaje',()=>{
 
 test('Opciones ofrece Decorar en lugar de Pixel y separa la salida al editor',()=>{
   const {tabs,detail,global,clicks}=scene({current:structuredClone(example)});
-  tabs.children[3].click();
+  tabs.children[4].click();
   const controls=detail.querySelectorAll('[data-fh-setting]');
   assert.equal(controls.length,2);
   assert.doesNotMatch(detail.textContent,/Cuadrícula/);
@@ -202,4 +207,25 @@ test('Estado y Opciones mantienen distribución adaptable y foco visible',()=>{
   assert.match(css,/grid-template-columns:minmax\(0,1\.08fr\) minmax\(0,1fr\)/);
   assert.match(css,/@media\(max-width:740px\) and \(orientation:portrait\)/);
   assert.match(css,/\.fh-setting-control:focus-visible|#fhPlayerMenu button:focus-visible/);
+});
+
+test('Dinero consulta saldos e intentos rechazados sin cambiar el libro',()=>{
+ let world=Economy.ensureOwner(Economy.createEconomy(),{ownerType:'character',ownerId:'elena'}).state;
+ const cash=Economy.accountId('character','elena','cash');
+ const bank=Economy.accountId('character','elena','bank');
+ const tx=(id,amountCents)=>({id,amountCents,category:'test',gameMinutes:480});
+ world=Economy.credit(world,{...tx('salary',5050),to:cash,externalRef:'system:salary'}).state;
+ world=Economy.credit(world,{...tx('gift',8000),to:bank,externalRef:'system:gift'}).state;
+ world=Economy.debit(world,{...tx('failed',99999),from:cash,externalRef:'system:service'}).state;
+ let writes=0;const storage={getItem:()=>Economy.serialize(world),setItem(){writes++}};
+ const profile={current:structuredClone(example),storage};
+ const {tabs,detail}=scene(profile);
+ tabs.children[3].click();
+ assert.match(detail.textContent,/Dinero total/);
+ assert.deepEqual(detail.querySelectorAll('.fh-money-amount').map(x=>x.textContent),['$50.50','$80.00']);
+ assert.match(detail.textContent,/\$130\.50/);
+ assert.equal(detail.querySelectorAll('.fh-money-entry').length,3);
+ assert.ok(detail.querySelectorAll('.fh-money-entry').some(e=>e.dataset.status==='rejected'));
+ assert.match(detail.textContent,/Fondos insuficientes/);
+ assert.equal(writes,0);
 });

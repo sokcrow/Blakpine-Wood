@@ -3043,6 +3043,9 @@ function addLiveTextToEngine(doc){
 }
 
 function prepareGLBEngineDoc(source){
+ const fhEconomyScripts=['fh-economy-strings.js','fh-economy-core.js','fh-economy-view.js'].map(name=>
+  '<script src="'+new URL('./juego/assets/'+name+'?v=20261109-economy1',document.baseURI).href+'"></'+'script>').join('');
+ source=source.replace('</head>',fhEconomyScripts+'</head>');
  const lightingInit='const lighting=ForestShared.createLightingSystem(DATA.floors,GameState);';
  if(source.split(lightingInit).length!==2)throw Error('No se encontró la inicialización de iluminación');
  source=source.replace(lightingInit,'const lighting=ForestShared.createLightingSystem(DATA.floors,GameState,{fixturePowered:(floor,fixture,zone)=>!!window.FHServicesRuntime?.sourceFor(floor,fixture,zone)});');
@@ -4324,6 +4327,9 @@ init();
 <script src="./juego/assets/fh-character-strings.js?v=20261106-phase1"></script>
 <script src="./juego/assets/fh-skills.js?v=20261106-skills"></script>
 <script src="./juego/assets/fh-character-core.js?v=20261106-skills"></script>
+<script src="./juego/assets/fh-economy-strings.js?v=20261109-economy1"></script>
+<script src="./juego/assets/fh-economy-core.js?v=20261109-economy1"></script>
+<script src="./juego/assets/fh-economy-view.js?v=20261109-economy-view1"></script>
 <script src="./juego/assets/fh-character-creation.js?v=20261107-help"></script>
 <script src="./juego/assets/fh-strings.js"></script>
 <script src="./juego/assets/fh-light-coverage.js?v=20261105-light-ui2"></script>

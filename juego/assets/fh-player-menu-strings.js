@@ -10,6 +10,7 @@
     inventory: 'Inventario',
     notes: 'Notas',
     status: 'Estado',
+    money: 'Dinero',
     settings: 'Opciones',
     back: 'Volver al menú',
     noObjective: 'No hay un registro de objetivos disponible por ahora.',

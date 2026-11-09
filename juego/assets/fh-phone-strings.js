@@ -3,7 +3,8 @@
  'use strict';
  root.FH_PHONE_TEXT=Object.freeze({
   phone:'Celular',openPhone:'Abrir celular',closePhone:'Cerrar celular',back:'Volver',torchBattery:'Batería de la linterna',gameTime:'HORA DEL JUEGO',
-  app_home:'INICIO',app_directory:'Directorio',app_messages:'Mensajes',
+  app_home:'INICIO',app_accounts:'Cuentas',
+  refreshAccounts:'Actualizar saldos',app_directory:'Directorio',app_messages:'Mensajes',
   app_conversation:'Conversación',app_notes:'Notas',app_editNote:'Editar nota',app_document:'Documento',
   collectedNotes:'Documentos recogidos',
   app_flashlight:'Linterna',app_store:'Tienda de apps',app_hamazon:'Hamazon',

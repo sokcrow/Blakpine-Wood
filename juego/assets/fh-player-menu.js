@@ -6,6 +6,7 @@
     ['objectives','objectives','◇'],
     ['inventory','inventory','▧'],
     ['status','status','◈'],
+    ['money','money','＄'],
     ['settings','settings','⚙']
   ]);
   const categories = Object.freeze([
@@ -124,6 +125,48 @@
       section.append(group);
     }
     section.append(result);host.append(section);
+  }
+  function renderMoney(host){
+    const money=global.FH_ECONOMY_TEXT||{};
+    const text=(key)=>money[key]||label('notAvailable','—');
+    const id=global.FHCharacterRuntime?.character?.id;
+    const view=global.FHEconomyView?.readForCharacter(id,global.localStorage);
+    if(!view?.ok){
+      host.append(node('p','fh-money-error',text(view?.reason||'storage_unavailable')));
+      return;
+    }
+    const balances=node('div','fh-money-balances');
+    for(const [kind,caption,value] of [
+      ['cash',text('cashBalance'),view.cashUsd],['bank',text('bankBalance'),view.bankUsd]
+    ]){
+      const box=node('div','fh-money-balance-card fh-money-balance-'+kind);
+      box.append(node('small','fh-money-caption',caption),node('strong','fh-money-amount',value));
+      balances.append(box);
+    }
+    const total=node('div','fh-money-total');
+    total.append(node('span','',text('totalBalance')),node('strong','',view.totalUsd));
+    host.append(balances,total,node('h4','fh-status-column-heading',text('recentMovements')),
+      node('p','fh-money-hint',text('movementsHelp')));
+    if(!view.movements.length){host.append(node('p','fh-money-empty',text('noMovements')));return}
+    const history=node('div','fh-money-history');
+    for(const movement of view.movements){
+      const row=node('div','fh-money-entry');
+      row.dataset.status=movement.status;
+      const details=node('div','fh-money-entry-details');
+      const title=movement.operation==='credit'?text('creditLabel')
+        :movement.operation==='debit'?text('debitLabel'):text('transferLabel');
+      const direction=movement.direction==='incoming'?text('incoming')
+        :movement.direction==='outgoing'?text('outgoing'):text('internalTransfer');
+      details.append(node('strong','',title+' · '+direction));
+      const status=movement.status==='rejected'?text('rejectedLabel'):text('confirmedLabel');
+      details.append(node('small','',status+(movement.status==='rejected'?
+        ' · '+(money[movement.reason]||text('rejected')):'')));
+      const sign=movement.status==='rejected'?'':movement.direction==='incoming'?'+'
+        :movement.direction==='outgoing'?'−':'';
+      row.append(details,node('strong','fh-money-entry-amount',sign+movement.amountUsd));
+      history.append(row);
+    }
+    host.append(history);
   }
   function renderStatus(host){
     // Fuente de verdad: GameState.character, expuesta por FHCharacterRuntime.
@@ -379,6 +422,9 @@
           break;
         case 'status':
           renderStatus(detail);
+          break;
+        case 'money':
+          renderMoney(detail);
           break;
         case 'settings':
           renderSettings(detail);
