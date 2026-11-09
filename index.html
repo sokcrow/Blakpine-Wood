@@ -196,7 +196,7 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
 <script src="./juego/assets/fh-weather-strings.js?v=20261108-clima1"></script>
 <script src="./juego/assets/fh-weather-editor.js?v=20261108-clima1"></script>
 <script src="./juego/assets/fh-services-strings.js?v=20261109-review-fixes-7"></script>
-<script src="./juego/assets/fh-services-core.js?v=20261109-cable-range-3x-1"></script>
+<script src="./juego/assets/fh-services-core.js?v=20261109-wifi-protection-1"></script>
 <script src="./juego/assets/fh-wifi-editor-overlay.js?v=20261109-wifi-editor-1"></script>
 <script src="./juego/assets/fh-light-strings.js?v=20261109-zones-3"></script>
 <script>// /shared + /editor. Motor empaquetado y aislado en iframe.
@@ -3229,9 +3229,9 @@ function prepareGLBEngineDoc(source){
  const statusCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-status-hud.css?v=20261107-palette-feedback-1',document.baseURI).href+'">';
  const statusStrings='<script src="'+new URL('./juego/assets/fh-status-strings.js?v=20261107-palette-feedback-1',document.baseURI).href+'"></'+'script>';
  const statusScript='<script src="'+new URL('./juego/assets/fh-status-hud.js?v=20261107-palette-feedback-1',document.baseURI).href+'"></'+'script>';
- const phoneCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-phone.css?v=20261108-calendar-weather-1',document.baseURI).href+'">';
- const phoneStrings='<script src="'+new URL('./juego/assets/fh-phone-strings.js?v=20261108-calendar-weather-1',document.baseURI).href+'"></'+'script>';
- const phoneScript='<script src="'+new URL('./juego/assets/fh-phone.js?v=20261108-calendar-weather-1',document.baseURI).href+'"></'+'script>';
+ const phoneCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-phone.css?v=20261109-wifi-phone-1',document.baseURI).href+'">';
+ const phoneStrings='<script src="'+new URL('./juego/assets/fh-phone-strings.js?v=20261109-wifi-phone-1',document.baseURI).href+'"></'+'script>';
+ const phoneScript='<script src="'+new URL('./juego/assets/fh-phone.js?v=20261109-wifi-phone-1',document.baseURI).href+'"></'+'script>';
  const mobileCameraScript='<script src="'+new URL('./juego/assets/fh-mobile-camera.js?v=20261108-landscape20',document.baseURI).href+'"></'+'script>';
  const locationHudHook='if(now-lastHud>90){lastHud=now;hudUpdate()}';
  const locationHudAfter='if(now-lastHud>90){lastHud=now;hudUpdate();window.FHLocationHUD?.update(DATA,currentFloor,{x:user.x/CELL,y:user.z/CELL});window.FHStatusHUD?.update(window.FHCharacterRuntime?.character?.resources)}';
@@ -4402,7 +4402,7 @@ init();
 <script src="./juego/assets/fh-structure-engine-hook.js?v=20261108-architecture-load"></script>
 <script src="./juego/assets/fh-comic-action-engine-hook.js?v=20261107-comic-actions-1"></script>
 <script src="./juego/assets/fh-context-engine-hook.js?v=20261108-elevator-comfort-1"></script>
-<script src="./juego/assets/fh-services-engine-hook.js?v=20261109-cable-range-3x-1"></script>
+<script src="./juego/assets/fh-services-engine-hook.js?v=20261109-wifi-protection-1"></script>
 </body>
 </html>
 
