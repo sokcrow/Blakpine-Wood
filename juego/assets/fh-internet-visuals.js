@@ -117,7 +117,7 @@
   const handle='handle:(it,f)=>{\n  const service=window.FHServicesRuntime,T=window.FH_SERVICES_TEXT||{};';
   doc=once(doc,handle,handle+'\n  if(window.FHInternetVisuals.isInternetType(it.type)&&!window.FHInternetVisuals.frontAllowed(it,user.x/CELL,user.z/CELL)){notice(window.FH_INTERNET_TEXT?.wrongSide||"Usa el dispositivo desde su frente.");return true;}');
   const base=new URL('./juego/assets/',global.document?.baseURI||'https://localhost/');
-  const scripts=['fh-internet-catalog.js','fh-internet-strings.js','fh-internet-visuals.js?v=20261109-red-glb-fix1'].map(p=>
+  const scripts=['fh-internet-catalog.js','fh-internet-strings.js','fh-internet-visuals.js?v=20261109-wall-mount-1'].map(p=>
    '<script src="'+new URL(p,base).href+'"></scr'+'ipt>').join('');
   const h=doc.indexOf('</head>');if(h<0)throw Error('No se encontró cabecera del motor');
   return doc.slice(0,h)+scripts+doc.slice(h);
