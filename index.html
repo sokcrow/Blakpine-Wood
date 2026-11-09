@@ -2568,7 +2568,7 @@ function modalCircuitAudit(){
    const card=document.createElement('div');card.style.cssText='padding:8px 10px;margin-top:6px;background:#1b2b35';card.style.borderLeft='3px solid '+circ.circuitColor;
    const h=document.createElement('strong');h.textContent=T.breakerIdentity(circ.panelLabel,circ.panelId);card.append(h);
    const owner=items.find(it=>it.id===circ.panelId),spec=owner?.circuits?.find(c=>(c.id||c.zoneId)===circ.id),type=owner?.breakerType||'medium';
-   const info=document.createElement('div');info.textContent=T.breakerRange(T.breakerTypes[type]||type,window.FHServices?.rangeFor(owner||{},spec)??60);card.append(info);
+   const info=document.createElement('div');info.textContent=T.breakerRange(T.breakerTypes[type]||type,window.FHServices?.rangeFor(owner||{},spec)??180);card.append(info);
    section.append(card);
    }
    list.append(section);
@@ -2687,7 +2687,7 @@ function attachServiceInspector(it,fields){
  sec.style.cssText='grid-column:1/-1;border-top:1px solid var(--line);padding-top:8px;display:grid;grid-template-columns:repeat(auto-fit,minmax(138px,1fr));gap:7px';
  const title=document.createElement('strong');title.textContent='Servicios y conexiones';title.style.gridColumn='1/-1';sec.append(title);
  for(const name of names[it.type]||[]){
-  if(name==='breakerType'){sec.append(makeField(T[name]||name,name,it.breakerType||'medium','select',[['small','Pequeño'],['medium','Mediano'],['large','Grande']]));const note=document.createElement('small');note.textContent=window.FH_LIGHT_TEXT.breakerRange(it.breakerType||'medium',window.FHServices.LIMITS[it.breakerType||'medium']?.rangeFt||60);sec.append(note);continue;}
+  if(name==='breakerType'){sec.append(makeField(T[name]||name,name,it.breakerType||'medium','select',[['small','Pequeño'],['medium','Mediano'],['large','Grande']]));const note=document.createElement('small');note.textContent=window.FH_LIGHT_TEXT.breakerRange(it.breakerType||'medium',window.FHServices.LIMITS[it.breakerType||'medium']?.rangeFt||180);sec.append(note);continue;}
   if(name==='propertyId'){
    sec.append(makeField(T[name]||name,name,it.propertyId||'','select',
     [['','Automática (posición)'],...(project.properties||[]).filter(p=>p.floorId===current().id).map(p=>[p.id,p.name||p.id])]));continue;
@@ -2697,7 +2697,7 @@ function attachServiceInspector(it,fields){
     [['','Sin asignar'],...current().items.filter(x=>x.type==='router').map(x=>[x.id,x.label||x.id])]));continue;
   }
   const flag=name==='opened',numeric=['slots','capacityRayos','radiusFt','rangeFt','flowLpm','wifiRadiusFt','ethernetLengthFt','cableLengthFt','chargePerHour','rayos','watts','ethernetLeadFt'].includes(name);
-  const value=it[name]??window.FHServices?.defaultsFor(it.type)?.[name]??'';
+  const value=name==='rangeFt'&&it.type==='breaker_panel'?it.rangeFt??window.FHServices?.rangeFor(it)??'':it[name]??window.FHServices?.defaultsFor(it.type)?.[name]??'';
   sec.append(makeField(T[name]||name,name,value,flag?'checkbox':numeric?'number':'text'));
  }
  if(configurable.includes(it.type)){
