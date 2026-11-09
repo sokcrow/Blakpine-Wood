@@ -9,12 +9,13 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
  'use strict';
  const CATALOG=Object.freeze({
-  el_alto:Object.freeze({name:'El Alto',folder:'el_alto',pg:15,defaultHeight:2.7}),
-  la_nina:Object.freeze({name:'La Niña',folder:'la_nina',pg:5,defaultHeight:1.25})
+  el_alto:Object.freeze({name:'El Alto',folder:'el_alto',pg:15,relativeScale:1.5}),
+  la_nina:Object.freeze({name:'La Niña',folder:'la_nina',pg:5,relativeScale:0.7})
  });
- function createManager({THREE,stories,floorElev,baseUrl,registerVisibility,unregisterVisibility,invalidate}={}){
+ function createManager({THREE,stories,floorElev,baseUrl,playerHeight,registerVisibility,unregisterVisibility,invalidate}={}){
   if(!THREE||!Array.isArray(stories)||typeof THREE.Sprite!=='function'||
    typeof THREE.SpriteMaterial!=='function'||typeof THREE.TextureLoader!=='function'||
+   !Number.isFinite(playerHeight)||playerHeight<=0||
    typeof registerVisibility!=='function'||typeof unregisterVisibility!=='function')
    throw Error('Presentación de Sombras: falta el motor de actores o su registro de visibilidad.');
   const assetRoot=String(baseUrl||'').replace(/\/+$/,'')+'/';
@@ -37,12 +38,13 @@
    textures.set(kind,promise);
    return promise;
   }
-  function spawn(kind,floor,x,z,{height,id}={}){
+  function spawn(kind,floor,x,z,{id}={}){
    const type=CATALOG[kind];
    if(!type||!Number.isInteger(floor)||!stories[floor]||!Number.isFinite(x)||!Number.isFinite(z))return null;
    const key=id==null?'sombra-'+(++nextId):String(id);
    if(!key||actors.has(key))return null;
-   const h=Number.isFinite(height)&&height>0?height:type.defaultHeight;
+   // La escala es relativa a la altura visual del jugador (1.0), nunca una altura fija.
+   const h=playerHeight*type.relativeScale;
    const material=new THREE.SpriteMaterial({transparent:true,depthWrite:false,opacity:0,alphaTest:0.02});
    const sprite=new THREE.Sprite(material);
    sprite.userData.fhShadowType=kind;
