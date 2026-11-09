@@ -344,10 +344,14 @@
   function requiresPower(it){return needsElectricity(it)||pcStations.has(id(it));}
   function requiresWater(it){return it.service?.requiresWater===true;}
   function candidates(f,it,types){
+   const electrical=types.includes('power_outlet')||types.includes('power_strip');
+   // El alcance eléctrico lo determina el cable del aparato; agua y drenaje
+   // conservan el alcance de sus tomas para no alterar sus redes.
+   const reachFt=electrical?Math.max(0,number(it.service?.powerCableFt??it.powerCableFt??it.radiusFt,5)):null;
    return (elements[f]||[]).filter(x=>types.includes(x.type)&&x.id!==it.id&&
     (!((types.includes('water_outlet')?it.waterOutletId:types.includes('drain_outlet')?it.drainOutletId:it.outletId))||
      String(types.includes('water_outlet')?it.waterOutletId:types.includes('drain_outlet')?it.drainOutletId:it.outletId)===String(x.id))&&
-    dist(point(it),point(x))*feetPerCell<=Math.max(0,number(x.radiusFt,5))&&
+    dist(point(it),point(x))*feetPerCell<=(electrical?reachFt:Math.max(0,number(x.radiusFt,5)))&&
     barriers(f,it,x)===0)
     .sort((a,b)=>dist(point(a),point(it))-dist(point(b),point(it))||id(a).localeCompare(id(b)));
   }
@@ -358,7 +362,9 @@
     const claim=(it,sources)=>{
      for(const source of candidates(f,it,sources)){
       const k=f+':'+id(source),count=used.get(k)||0;
-      if(count>=Math.max(1,Math.floor(number(source.slots,2))))continue;
+      // Dos conexiones por enchufe; una regleta enchufada ocupa una de ellas.
+      const limit=source.type==='power_outlet'?2:Math.max(1,Math.floor(number(source.slots,4)));
+      if(count>=limit)continue;
       if(source.type==='power_strip'&&(!bindings.has(k)||!active(source)))continue;
       if(source.type==='power_outlet'&&!active(source))continue;
       const choices=source.type==='power_outlet'?sourcesFor(f,source,zoneFor(f,source)):supplyOptions.get(k)||[];
@@ -676,7 +682,8 @@
    return {power,water,drain:drainStatus(f,it),internet:internetFor(f,it),broken:number(s.damage[id(it)])>=100,
     loadingRayos:snap.loads.get(f+':'+id(it))||0,
     usedSlots:it.type==='ethernet_port'?network.portUsed.get(id(it))||0:snap.used.get(f+':'+id(it))||0,
-    portSlots:it.type==='ethernet_port'?Math.max(1,number(it.portSlots,it.utilitySkin==='toma_rj45_doble'?2:1)):undefined};
+    portSlots:it.type==='ethernet_port'?Math.max(1,number(it.portSlots,it.utilitySkin==='toma_rj45_doble'?2:1)):undefined,
+    slotCapacity:it.type==='power_outlet'?2:it.type==='power_strip'?Math.max(1,Math.floor(number(it.slots,4))):undefined};
   }
   function setService(name,active){if(!Object.prototype.hasOwnProperty.call(s.contracts,name))return false;s.contracts[name]=active?'active':'suspended';return true;}
   return Object.freeze({state:s,phone:state.phone,graphs,powerGraphs,powerRoute,zoneFor,requiresPower,point,itemAt,defaultsFor,sourceFor,wiredRoute,scopeFor,
