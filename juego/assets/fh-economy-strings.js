@@ -15,4 +15,4 @@
     confirmed: 'Operación confirmada.',
     rejected: 'Operación rechazada. No se realizó ningún cobro.'
   });
-})(typeof globalThis !== 'undefined' ? globalThis : this);
+})(typeof window !== 'undefined' ? window : globalThis);
