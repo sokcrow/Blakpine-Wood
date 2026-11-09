@@ -26,10 +26,10 @@ function fixture(){
  const state={phone:{battery:20}};
  return {project,state,items,sys:FH.createRuntime(project,state)};
 }
-test('compatibilidad: mapa anterior sin dispositivos usa estado heredado',()=>{
+test('un televisor antiguo no recibe energía sin conexión',()=>{
  const project={schema:'forest-horror-map-v1',units:{feetPerCell:5},floors:[{id:'f',items:[{id:'tv',type:'tv',x:1,y:1}]}]};
  const sys=FH.createRuntime(project,{});
- assert.equal(sys.statusFor(0,project.floors[0].items[0]).power.legacy,true);
+ assert.equal(sys.statusFor(0,project.floors[0].items[0]).power.powered,false);
 });
 test('red física de paredes: bifurcación T funciona sin atajo recto',()=>{
  const {sys}=fixture();
@@ -306,3 +306,4 @@ test('las aplicaciones reportan menor velocidad si quedan menos barras',()=>{
  assert.equal(close.bars,3);
  if(distant)assert.ok(distant.speedFactor<=close.speedFactor);
 });
+

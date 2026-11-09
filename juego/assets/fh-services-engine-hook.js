@@ -8,8 +8,8 @@
  };
  function patch(doc){
   const base=new URL('./juego/assets/',root.document.baseURI).href;
-  const core='<script src="'+base+'fh-services-core.js?v=20261109-routed-breaker-5"></'+'script>';
-  const strings='<script src="'+base+'fh-services-strings.js?v=20261108-service-core-1"></'+'script>';
+  const core='<script src="'+base+'fh-services-core.js?v=20261109-review-fixes-7"></'+'script>';
+  const strings='<script src="'+base+'fh-services-strings.js?v=20261109-review-fixes-7"></'+'script>';
   // El motor incrusta subdocumentos HTML como cadenas: hay varios </head>.
   // Insertar en el primer cierre (cabecera del documento exterior), como
   // hacen los otros adaptadores, y no exigir una ocurrencia única.
@@ -23,7 +23,7 @@
    ' const item=(DATA.floors[f]?.items||[]).find(v=>String(v.id)===String(stationId));',
    ' return item?.service?.internetMode&&item.service.internetMode!=="none"?window.FHServicesRuntime?.internetFor(f,item):null;',
    '},',
-   'powerAvailable:(item,f)=>item.service?.requiresPower!==true||window.FHServicesRuntime?.statusFor(f,item).power.powered!==false,'
+   'powerAvailable:(item,f)=>window.FHServicesRuntime?.statusFor(f,item).power.powered===true,'
   ].join('\n');
   doc=once(doc,pc,pc+'\n'+pcOptions,'computadoras');
   const phone='window.FHPhoneRuntime=window.FHPhone?.createRuntime({';
@@ -32,7 +32,7 @@
    // Recuperar la instancia seleccionada por readGameSave ANTES de crear runtime.
    'const fhServicesSaved=(restored||DATA.initialGameState)?.services;',
    'if(fhServicesSaved&&typeof fhServicesSaved==="object"&&!Array.isArray(fhServicesSaved))GameState.services=structuredClone(fhServicesSaved);',
-   'window.FHServicesRuntime=window.FHServices?.createRuntime(DATA,GameState,{phoneDrainPerHour:.5});',
+   'window.FHServicesRuntime=window.FHServices?.createRuntime(DATA,GameState,{phoneDrainPerHour:.5,isPc:(it,f)=>window.FHComputer?.isPc(it,DATA.floors[f]?.items||[],Number(DATA.units.feetPerCell)||5)});',
    'let fhServicesSaveAccum=0;',
    'window.FHServicesGame={',
    ' receiveFixedCall:(routerId,from)=>{',
@@ -44,7 +44,7 @@
    ' },',
    ' handle:(it,f)=>{',
    '  const service=window.FHServicesRuntime,T=window.FH_SERVICES_TEXT||{};',
-   '  if(!service)return false;',
+   '  if(!service){notice(T.noPower||"Sin electricidad.");return true;}',
    '  const status=service.statusFor(f,it);',
    '  if(it.type==="phone_charger"){',
    '   if(service.phone.placedAt===it.id){service.takePhone();notice(T.phoneTaken||"Celular recuperado.");}',
@@ -52,7 +52,7 @@
    '   else notice(T.chargerMissing||"El cargador no tiene corriente.");',
    '   window.FHPhoneRuntime?.syncAvailability?.();saveProgress();return true;',
    '  }',
-   '  if(it.service?.requiresPower===true&&!status.power.powered){notice(T.noPower||"Sin electricidad.");return true;}',
+   '  if(service.requiresPower(it)&&!status.power.powered){notice(T.noPower||"Sin electricidad.");return true;}',
    '  if(it.service?.requiresWater===true&&!status.water.water){notice(T.noWater||"Sin agua.");return true;}',
    '  if(it.service?.requiresWater===true){',
    '   const result=service.useWaterFixture(f,it);',
@@ -108,6 +108,9 @@
    ' }',
    '}',
    'function fhServicesSyncVisuals(){',
+   ' const service=window.FHServicesRuntime,session=window.FHComputerRuntime?.session;',
+   ' if(session&&service){const item=service.itemAt(session.floor,session.stationId);if(!item||!service.statusFor(session.floor,item).power.powered)window.FHComputerRuntime.close();}',
+   ' if(typeof watchingTvId!=="undefined"&&watchingTvId&&service){const tv=service.itemAt(currentFloor,watchingTvId);if(!tv||!service.statusFor(currentFloor,tv).power.powered){watchingTvId=null;GameState.flags.tv_on=false;}}',
    ' for(const entry of fhServicesVisuals){',
    '  if(entry.it.type!=="phone_charger")continue;',
    '  const hasPhone=window.FHServicesRuntime?.phone.placedAt===entry.it.id;',
@@ -150,7 +153,7 @@
    'function useFurniture(item,selectedSeat=null){'+
    'if(window.FHServicesGame?.handle(item,currentFloor))return;','interacción');
 
-  // Compatibilidad: los objetos antiguos sin service no adquieren nuevas necesidades.
+  // Los equipos eléctricos antiguos también requieren una conexión real.
   doc=once(doc,'window.FHStorageRuntime?.supports(it))',
    'window.FHStorageRuntime?.supports(it)||window.FHServices?.INFRA.has(it.type))','selección');
 
@@ -160,20 +163,19 @@
    ' const sid=key.slice(key.lastIndexOf(":")+1);',
    ' const it=(DATA.floors[currentFloor]?.items||[]).find(v=>String(v.id)===sid);',
    ' if(it){const st=window.FHServicesRuntime?.statusFor(currentFloor,it);',
-   '  if(it.service?.requiresPower===true&&!st?.power.powered||it.service?.requiresWater===true&&!st?.water.water){',
-   '   actions=[{id:"blocked",label:it.service?.requiresPower===true&&!st?.power.powered?"🔴⚡ Sin electricidad":"🔴💧 Sin agua",disabled:true}];',
+   '  if(window.FHServicesRuntime?.requiresPower(it)&&!st?.power.powered||it.service?.requiresWater===true&&!st?.water.water){',
+   '   actions=[{id:"blocked",label:window.FHServicesRuntime?.requiresPower(it)&&!st?.power.powered?"🔴⚡ Sin electricidad":"🔴💧 Sin agua",disabled:true}];',
    '  }',
    ' }',
    '}'
   ].join('\n');
   doc=once(doc,gesture,warning+'\n'+gesture,'radial');
+  const television=' const tv=combo.tv;';
+  if(doc.includes(television))doc=once(doc,television,television+'\n if(window.FHServicesRuntime?.statusFor(currentFloor,tv)?.power.powered!==true){notice(window.FH_SERVICES_TEXT?.noPower||"Sin electricidad.");return {ok:false,reason:"noPower"};}','televisor');
+  const elevator="return lighting.powered(stop.f,stop.item.zoneId||'');";
+  if(doc.includes(elevator))doc=once(doc,elevator,'return window.FHServicesRuntime?.statusFor(stop.f,stop.item).power.powered===true;','ascensor');
 
-  // Solo lámparas opt-in: la iluminación antigua sigue intacta.
-  const fixture='return powered(floor,str(fixture?.zoneId)||str(room?.zoneId))&&(!roomId||on(roomKey(floor,roomId)));';
-  if(doc.split(fixture).length===2)
-   doc=doc.replace(fixture,'return powered(floor,str(fixture?.zoneId)||str(room?.zoneId))&&'+
-    '(!fixture?.service?.requiresPower||window.FHServicesRuntime?.statusFor(floor,fixture)?.power?.powered!==false)&&'+
-    '(!roomId||on(roomKey(floor,roomId)));');
+  // fixturePowered ya consulta sourceFor; no recalcular los enchufes por cada foco.
   return doc;
  }
  root.FHServicesEngine=Object.freeze({patch});

@@ -37,41 +37,39 @@ function setup(empty=false){
  return {ctx,elements,items,state};
 }
 
-test('el selector agrupa por breaker aunque se repitan nombre, circuito y color',()=>{
+test('el selector ofrece zonas independientes aunque repitan nombre y color',()=>{
  const {ctx,elements}=setup();ctx.refreshCircuits('b1');
- const groups=elements.circuitChooser.children.filter(c=>c.tagName==='optgroup');
- assert.equal(groups.length,2);
- assert.match(groups[0].label,/Panel.*breaker-A/);assert.match(groups[1].label,/Panel.*breaker-B/);
- assert.deepEqual(groups.map(g=>g.children.map(o=>o.value)),[['a1','a2'],['b1']]);
- assert.notEqual(groups[0].children[0].textContent,groups[0].children[1].textContent,'IDs distinguen circuitos con igual nombre');
+ const groups=elements.circuitChooser.children.filter(c=>c.tagName==='option'&&c.value);
+ assert.equal(groups.length,3);
+ assert.deepEqual(groups.map(g=>g.value),['a1','a2','b1']);
+ assert.notEqual(groups[0].textContent,groups[1].textContent,'IDs distinguen zonas con igual nombre');
  assert.equal(elements.circuitChooser.value,'b1');
- assert.match(elements.circuitStatus.textContent,/breaker-B.*Pasillo/);
+ assert.match(elements.circuitStatus.textContent,/Pasillo.*b1.*1 breakers/);
 });
-test('Conexiones muestra una sección por breaker y sus propios dispositivos',()=>{
+test('Conexiones muestra una sección por zona y enumera los breakers que la alimentan',()=>{
  const {ctx,elements,state}=setup();ctx.modalCircuitAudit();
  const sections=elements.circuitAuditList.children.filter(c=>c.tagName==='section');
- assert.equal(sections.length,2);assert.match(state.html,/Conexiones por breaker/);
- assert.match(sections[0].children[0].textContent,/breaker-A/);
- assert.match(sections[1].children[0].textContent,/breaker-B/);
- assert.equal(sections[0].children.filter(c=>c.tagName==='div').length,2);
- assert.equal(sections[1].children.filter(c=>c.tagName==='div').length,1);
+ assert.equal(sections.length,3);assert.match(state.html,/Conexiones por zona/);
+ assert.match(sections[0].children[0].textContent,/a1/);
+ assert.match(sections[2].children[0].textContent,/b1/);
+ assert.equal(sections[0].children.filter(c=>c.tagName==='div').length,1);
  assert.match(sections[0].textContent,/Cuarto A/);assert.doesNotMatch(sections[0].textContent,/Cuarto B/);
- assert.match(sections[1].textContent,/Cuarto B/);assert.doesNotMatch(sections[1].textContent,/Cuarto A/);
+ assert.match(sections[2].textContent,/Cuarto B/);assert.doesNotMatch(sections[2].textContent,/Cuarto A/);
  assert.match(sections[0].textContent,/1 habitaciones · 1 lámparas · 1 interruptores/);
- assert.match(sections[1].textContent,/1 habitaciones · 1 lámparas · 0 interruptores/);
+ assert.match(sections[2].textContent,/1 habitaciones · 1 lámparas · 0 interruptores/);
 });
-test('los selectores de asignación anteponen el breaker y conservan los IDs del mapa',()=>{
+test('los selectores de asignación conservan los IDs de zona',()=>{
  const {ctx}=setup(),options=ctx.circuitSelectOptions('orphan');
- assert.equal(options[1][0],'a1');assert.match(options[1][1],/^Panel.*breaker-A.*Pasillo.*a1/);
- assert.equal(options[3][0],'b1');assert.match(options[3][1],/^Panel.*breaker-B.*Pasillo.*b1/);
+ assert.equal(options[1][0],'a1');assert.match(options[1][1],/Pasillo.*a1/);
+ assert.equal(options[3][0],'b1');assert.match(options[3][1],/Pasillo.*b1/);
  assert.equal(options.at(-1)[0],'orphan');assert.match(options.at(-1)[1],/sin breaker/);
 });
 test('renombrar o recolorear un breaker no cambia sus asignaciones ni la selección',()=>{
  const {ctx,elements,items}=setup();ctx.refreshCircuits('b1');
  const before=JSON.stringify(items.filter(it=>it.type!=='breaker_panel'));
  items[0].label='Pasillo norte';items[0].circuits[0].circuitColor='#56a9e6';ctx.refreshCircuits();
- const groups=elements.circuitChooser.children.filter(c=>c.tagName==='optgroup');
- assert.match(groups[0].label,/Pasillo norte.*breaker-A/);
+ const groups=elements.circuitChooser.children.filter(c=>c.tagName==='option'&&c.value);
+ assert.match(groups[0].textContent,/Pasillo.*a1/);
  assert.equal(elements.circuitChooser.value,'b1');assert.equal(elements.circuitColor.value,'#dc5656');
  assert.equal(JSON.stringify(items.filter(it=>it.type!=='breaker_panel')),before);
 });
@@ -81,9 +79,57 @@ test('mapa sin breakers conserva estado vacío y alerta de conexiones huérfanas
  ctx.modalCircuitAudit();assert.match(elements.circuitAuditList.textContent,/Aún no hay breakers/);
  items.push({id:'orphan',type:'light_fixture',zoneId:'missing'});ctx.modalCircuitAudit();
  assert.match(elements.circuitAuditList.textContent,/Sin breaker asignado: 1/);
- assert.match(state.html,/Conexiones por breaker/);
+ assert.match(state.html,/Conexiones por zona/);
 });
 test('los textos del menú se cargan antes de inicializar el editor',()=>{
- const script=editor.indexOf('fh-light-strings.js?v=20261108-breaker-groups-1');
+ const script=editor.indexOf('fh-light-strings.js?v=20261109-zones-3');
  assert.ok(script>=0&&script<editor.indexOf('const ForestShared=(()=>{'));
+});
+test('varios breakers de una zona aparecen una sola vez en el selector y juntos en el resumen',()=>{
+ const {ctx,items,elements}=setup();items[1].circuits[0].zoneId='a1';
+ ctx.refreshCircuits('a1');
+ const choices=elements.circuitChooser.children.filter(c=>c.tagName==='option'&&c.value);
+ assert.deepEqual(choices.map(c=>c.value),['a1','a2']);assert.match(elements.circuitStatus.textContent,/2 breakers/);
+ ctx.modalCircuitAudit();const group=elements.circuitAuditList.children.filter(c=>c.tagName==='section')[0];
+ assert.match(group.textContent,/breaker-A/);assert.match(group.textContent,/breaker-B/);
+});
+test('se puede asignar un segundo breaker a una zona existente sin cambiar su ID propio',()=>{
+ const {ctx,items}=setup();
+ ctx.CIRCUIT_COLORS=['#dc5656'];ctx.record=()=>{};ctx.openInspector=()=>{};
+ const start=editor.indexOf('function renderBreakerCircuits('),end=editor.indexOf('function renderAnchorInspector(',start);
+ vm.runInContext(editor.slice(start,end),ctx);
+ const fields=new Element('div');ctx.renderBreakerCircuits(items[1],fields);
+ const descendants=node=>[node,...node.children.flatMap(descendants)];
+ const label=descendants(fields).find(node=>node.tagName==='label'&&node.textContent.startsWith('Zona eléctrica compartida'));
+ assert.ok(label);const select=label.children[0];select.value='a1';select.onchange();
+ assert.equal(items[1].circuits[0].zoneId,'a1');assert.equal(items[1].circuits[0].id,'b1');
+});
+test('validación permite varios breakers en la misma zona sin cambiar el esquema',()=>{
+ const {ctx}=setup();
+ const project=JSON.parse(fs.readFileSync(path.join(__dirname,'../../forest-horror/maps/DEMO_Interacciones.json'),'utf8'));
+ const panels=['new1','new2'].map(id=>({id,type:'breaker_panel',x:1,y:1,w:.75,h:.4,heightFt:5,rotation:0,zoneId:'shared',circuits:[{id:'c-'+id,zoneId:'shared',name:'Zona compartida'}]}));
+ project.floors[0].items.push(...panels);ctx.projectToValidate=project;
+ const result=vm.runInContext('ForestShared.validate(projectToValidate)',ctx);
+ assert.equal(result.ok,true,JSON.stringify(result.errors));assert.equal(project.schema,'forest-horror-map-v1');
+});
+test('el color se mantiene coherente entre breakers de una zona, sin unir zonas por color',()=>{
+ const {ctx,items}=setup();items[1].circuits[0].zoneId='a1';
+ ctx.setZoneColor('a1','#56a9e6');
+ assert.equal(items[0].circuits[0].circuitColor,'#56a9e6');assert.equal(items[1].circuits[0].circuitColor,'#56a9e6');
+ assert.equal(items[0].circuits[1].circuitColor,'#dc5656');
+ assert.deepEqual(Array.from(ctx.electricalZoneGroups(),z=>z.zoneId),['a1','a2']);
+});
+test('el inspector no permite elegir la zona de otro circuito del mismo panel',()=>{
+ const {ctx,items}=setup();let warning='';ctx.toast=text=>{warning=text};
+ ctx.CIRCUIT_COLORS=['#dc5656'];ctx.record=()=>{};ctx.openInspector=()=>{};
+ const start=editor.indexOf('function renderBreakerCircuits('),end=editor.indexOf('function renderAnchorInspector(',start);
+ vm.runInContext(editor.slice(start,end),ctx);
+ const fields=new Element('div');ctx.renderBreakerCircuits(items[0],fields);
+ const descendants=node=>[node,...node.children.flatMap(descendants)];
+ const labels=descendants(fields).filter(node=>node.tagName==='label'&&node.textContent.startsWith('Zona eléctrica compartida'));
+ const second=labels[1].children[0];
+ assert.equal(second.children.some(option=>option.value==='a1'),false);
+ second.value='a1';second.onchange();
+ assert.equal(items[0].circuits[1].zoneId,'a2');assert.equal(second.value,'a2');assert.ok(warning);
+ second.value='b1';second.onchange();assert.equal(items[0].circuits[1].zoneId,'b1');assert.equal(items[0].circuits[1].id,'a2');
 });

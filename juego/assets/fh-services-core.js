@@ -12,11 +12,20 @@
  // La ventana conserva la instalación; puertas y aberturas cortan ese tramo.
  const WALL_PATHS=new Set([...WALLS,'window']);
  const INFRA=new Set(['power_outlet','power_strip','water_main','water_valve','water_outlet','drain_outlet','drain_main','router','ethernet_port','landline_phone','phone_charger']);
- const POWER_NEEDS=new Set(['router','phone_charger']);
+ const POWER_NEEDS=new Set(['router','phone_charger','light_fixture','tv','landline_phone','elevator']);
+ const ELECTRIC_MODELS=new Set(['refrigerador','estufa_horno','microondas','campana_extractora','cafetera','tostadora',
+  'lampara_escritorio','monitor_crt','gabinete_pc','teclado_pc','mouse_pc','impresora_matricial','telefono_fijo',
+  'telefono_pared','contestadora','fax','televisor_crt','videocasetera_vhs','radio_portatil','grabadora_boombox',
+  'reloj_digital','camara_seguridad','escritorio_pc']);
+ const needsElectricity=it=>!!it&&(POWER_NEEDS.has(it.type)||ELECTRIC_MODELS.has(it.modelId)||it.pcTerminal===true||it.requiresPower===true||it.service?.requiresPower===true);
  const WATER_NEEDS=new Set(['bath','toilet','kitchen']);
  const LIMITS={small:{rangeFt:30,capacityWatts:1200},medium:{rangeFt:60,capacityWatts:2400},large:{rangeFt:120,capacityWatts:4800}};
  const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
  const number=(n,fallback=0)=>Number.isFinite(Number(n))?Number(n):fallback;
+ function rangeFor(panel,circuit={}){
+  const max=LIMITS[panel.breakerType||'medium']?.rangeFt||60;
+  return Math.min(max,Math.max(0,number(circuit.rangeFt??panel.rangeFt,max)));
+ }
  const point=it=>({x:number(it?.x),y:number(it?.y)});
  const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
  const id=it=>String(it?.id||'');
@@ -40,8 +49,9 @@
   const t=d2?clamp(((p.x-a.x)*dx+(p.y-a.y)*dy)/d2,0,1):0;
   return {x:a.x+dx*t,y:a.y+dy*t,t};
  }
- function wallGraph(items){
-  const walls=(items||[]).filter(it=>WALL_PATHS.has(it.type)&&it.a&&it.b&&dist(it.a,it.b)>0.001);
+ function wallGraph(items,options={}){
+  const paths=options.doorways?new Set([...WALL_PATHS,'door','peephole_door','opening']):WALL_PATHS;
+  const walls=(items||[]).filter(it=>paths.has(it.type)&&it.a&&it.b&&dist(it.a,it.b)>0.001);
   const cuts=walls.map(w=>[w.a,w.b]);
   for(let i=0;i<walls.length;i++)for(let j=i+1;j<walls.length;j++){
    const a=walls[i],b=walls[j],hit=intersection(a.a,a.b,b.a,b.b);
@@ -162,7 +172,30 @@
   const s=ensureState(state),floors=Array.isArray(project?.floors)?project.floors:[];
   const feetPerCell=Math.max(.1,number(project?.units?.feetPerCell,5));
   const graphs=floors.map(f=>wallGraph(f.items||[]));
+  const powerGraphs=floors.map(f=>wallGraph(f.items||[],{doorways:true}));
   const elements=floors.map(f=>f.items||[]);
+  const pcStations=new Set(elements.flatMap((items,f)=>options.isPc?items.filter(it=>options.isPc(it,f)).map(id):[]));
+  const powerRouteCache=floors.map(()=>new Map());
+  const cableDistance=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
+  const zoneFor=(f,it)=>String(it.zoneId||(elements[f]||[]).find(r=>r.type==='room'&&(r.roomId||r.id)===it.roomId)?.zoneId||roomOn(f,it)?.zoneId||'');
+  function powerRoute(f,panel,target){
+   if(!powerGraphs[f])return null;
+   const panelLeadFt=LIMITS[panel.breakerType||'medium']?.rangeFt||60;
+   const leadFt=(target.type==='light_fixture'&&!target.wallId)||target.type==='elevator'?Math.max(0,number(target.service?.maxWallDistanceFt,panelLeadFt)):3.25;
+   const key=[number(panel.x),number(panel.y),number(target.x),number(target.y),leadFt,panelLeadFt].join(':');
+   const cache=powerRouteCache[f];
+   if(cache.has(key))return cache.get(key);
+   const path=powerGraphs[f].routeDetailed(point(panel),point(target),Math.max(leadFt,panelLeadFt)/feetPerCell);
+   let result=null;
+   if(path&&path.fromGap*feetPerCell<=panelLeadFt+1e-7&&path.toGap*feetPerCell<=leadFt+1e-7){
+    const lead=(a,b)=>[{x:a.x,y:a.y},{x:b.x,y:a.y},{x:b.x,y:b.y}];
+    const points=[...lead(point(panel),path.from),...path.points,...lead(path.to,point(target))]
+     .filter((p,i,all)=>i===0||dist(p,all[i-1])>1e-7);
+    const feet=(path.length+cableDistance(point(panel),path.from)+cableDistance(path.to,point(target)))*feetPerCell;
+    result={...path,points,feet};
+   }
+   if(cache.size>4000)cache.clear();cache.set(key,result);return result;
+  }
   const routeCache=floors.map(()=>new Map());
   const route=(f,a,b,maxGapFt=3.25)=>{
    if(!graphs[f])return Infinity;
@@ -263,7 +296,8 @@
    for(const panel of values(f,'breaker_panel')){
     const list=Array.isArray(panel.circuits)&&panel.circuits.length?panel.circuits:[{zoneId:panel.zoneId||'main'}];
     for(const c of list)circuits.push({panel,powerFlag:String(c.powerFlag||panel.powerFlag||''),zoneId:String(c.zoneId||c.id||panel.zoneId||'main'),
-     rangeFt:Math.max(0,number(c.rangeFt??panel.rangeFt,LIMITS[panel.breakerType||'medium']?.rangeFt||60)),
+     breakerFlag:'power_breaker:'+id(panel)+':'+String(c.id||c.zoneId||panel.zoneId||'main'),
+     rangeFt:rangeFor(panel,c),
      capacityWatts:Math.max(0,number(c.capacityWatts??panel.capacityWatts,LIMITS[panel.breakerType||'medium']?.capacityWatts||2400))});
    }
    return circuits;
@@ -274,33 +308,23 @@
    if(panel.enabled===false||panel.on===false||number(s.damage[id(panel)])>=100||
      s.contracts.electricity!=='active'||!flagOn('power_global')||
      !flagOn('power_floor:'+String(floors[f]?.id||f))||
-     !flagOn('power_zone:'+c.zoneId)||!flagOn(id(panel)))return false;
+     !flagOn('power_zone:'+c.zoneId)||!flagOn(id(panel))||!flagOn(c.breakerFlag))return false;
    return (!panel.powerFlag||flagOn(panel.powerFlag))&&(!c.powerFlag||flagOn(c.powerFlag));
   }
-  function sourceFor(f,it,zone=''){
-   if(it.type==='light_fixture'){
-    zone=zone||it.zoneId||'';
-    if(!zone){
-     const room=(elements[f]||[]).find(r=>r.type==='room'&&(r.roomId||r.id)===it.roomId)||roomOn(f,it);
-     zone=room?.zoneId||'';
-    }
-    if(!zone)return null;
-   }
+  function sourcesFor(f,it,zone=''){
+   zone=zone||zoneFor(f,it);
+   if(!zone)return [];
    const candidates=powerScopes[f]||[];
-   let best=null,d=Infinity;
+   const sources=[];
    for(const c of candidates){
     if(zone&&c.zoneId!==zone)continue;
     if(!circuitOn(f,c))continue;
-    const gapFt=it.type==='light_fixture'&&!it.wallId?
-     Math.max(0,number(it.service?.maxWallDistanceFt,30)):3.25;
-    const feet=route(f,c.panel,it,gapFt);
-    if(feet<=c.rangeFt&&feet<d){d=feet;best=c;}
+    const path=powerRoute(f,c.panel,it);
+    if(path&&path.feet<=c.rangeFt+1e-7)sources.push({...c,route:path,feet:path.feet});
    }
-   return best;
+   return sources.sort((a,b)=>a.feet-b.feet);
   }
-  function poweredOutlet(f,outlet){
-   return !!outlet&&number(s.damage[id(outlet)])<100&&!!sourceFor(f,outlet,outlet.zoneId||'');
-  }
+  function sourceFor(f,it,zone=''){return sourcesFor(f,it,zone)[0]||null}
   function active(it){return s.enabled[id(it)]!==false&&it.enabled!==false&&it.on!==false;}
   function rayos(it){return Math.max(0,number(it.rayos,it.service?.rayos??0));}
   function watts(it){return Math.max(0,number(it.watts,it.service?.watts??rayos(it)*200));}
@@ -309,7 +333,7 @@
    if(it.type==='phone_charger'&&(state.phone.placedAt!==id(it)||state.phone.battery>=100))return false;
    return it.service?.onDemand!==true||s.usage[id(it)]===true;
   }
-  function requiresPower(it){return POWER_NEEDS.has(it.type)||it.service?.requiresPower===true;}
+  function requiresPower(it){return needsElectricity(it)||pcStations.has(id(it));}
   function requiresWater(it){return it.service?.requiresWater===true;}
   function candidates(f,it,types){
    return (elements[f]||[]).filter(x=>types.includes(x.type)&&x.id!==it.id&&
@@ -320,17 +344,24 @@
     .sort((a,b)=>dist(point(a),point(it))-dist(point(b),point(it))||id(a).localeCompare(id(b)));
   }
   function electrical(){
-   const bindings=new Map(),used=new Map(),loads=new Map();
+   const bindings=new Map(),used=new Map(),loads=new Map(),supplies=new Map(),supplyOptions=new Map();
    for(let f=0;f<floors.length;f++){
     const outlets=values(f,'power_outlet'),strips=values(f,'power_strip');
     const claim=(it,sources)=>{
      for(const source of candidates(f,it,sources)){
       const k=f+':'+id(source),count=used.get(k)||0;
       if(count>=Math.max(1,Math.floor(number(source.slots,2))))continue;
-      if(source.type==='power_strip'&&!bindings.has(k))continue;
-      if(source.type==='power_outlet'&&!poweredOutlet(f,source))continue;
+      if(source.type==='power_strip'&&(!bindings.has(k)||!active(source)))continue;
+      if(source.type==='power_outlet'&&!active(source))continue;
+      const choices=source.type==='power_outlet'?sourcesFor(f,source,zoneFor(f,source)):supplyOptions.get(k)||[];
+      const zone=zoneFor(f,it),cableFeet=cableDistance(point(source),point(it))*feetPerCell;
+      const eligible=choices.map(supply=>({...supply,feet:supply.feet+cableFeet}))
+       .filter(supply=>(!zone||zone===supply.zoneId)&&supply.feet<=supply.rangeFt+1e-7)
+       .sort((a,b)=>a.feet-b.feet);
+      const supply=eligible[0];if(!supply)continue;
       if(number(s.damage[id(source)])>=100)continue;
       bindings.set(f+':'+id(it),source);
+      supplies.set(f+':'+id(it),supply);supplyOptions.set(f+':'+id(it),eligible);
       used.set(k,count+1);
       if(drawingPower(it))loads.set(k,(loads.get(k)||0)+rayos(it));
       return source;
@@ -338,7 +369,7 @@
      return null;
     };
     for(const strip of strips.slice().sort((a,b)=>id(a).localeCompare(id(b))))claim(strip,['power_outlet']);
-    for(const it of (elements[f]||[]).filter(x=>requiresPower(x)&&!['power_strip','light_fixture'].includes(x.type)).sort((a,b)=>id(a).localeCompare(id(b))))
+    for(const it of (elements[f]||[]).filter(x=>requiresPower(x)&&!['power_strip','light_fixture','elevator'].includes(x.type)).sort((a,b)=>id(a).localeCompare(id(b))))
      claim(it,['power_strip','power_outlet']);
     // La regleta no crea potencia: propagar la suma de sus aparatos al enchufe.
     for(const strip of strips){
@@ -349,18 +380,22 @@
      }
     }
    }
-   return {bindings,used,loads};
+   return {bindings,used,loads,supplies};
   }
   function electricalStatus(f,it,snapshot){
    const key=f+':'+id(it);
-   if(it.type==='light_fixture'){
+   if(['light_fixture','elevator'].includes(it.type)){
     const source=sourceFor(f,it);
-    return {connected:!!source,powered:!!source,via:source?.panel.id||''};
+    return {connected:!!source,powered:!!source,via:source?.panel.id||'',feet:source?.feet??null};
    }
-   if(it.type==='power_outlet')return {connected:poweredOutlet(f,it),powered:poweredOutlet(f,it)};
+   if(it.type==='power_outlet'){
+    const source=active(it)&&number(s.damage[id(it)])<100?sourceFor(f,it):null;
+    return {connected:!!source,powered:!!source,breakerId:source?.panel.id||'',feet:source?.feet??null};
+   }
    const parent=snapshot.bindings.get(key);
-   if(!requiresPower(it)&&it.type!=='power_strip')return {connected:true,powered:true,legacy:true};
-   return {connected:!!parent,powered:!!parent,via:parent?.id||''};
+   if(!requiresPower(it)&&it.type!=='power_strip')return {connected:false,powered:false,required:false};
+   const supply=snapshot.supplies.get(key),powered=!!parent&&number(s.damage[id(it)])<100;
+   return {connected:!!parent,powered,via:parent?.id||'',breakerId:supply?.panel.id||'',feet:supply?.feet??null};
   }
   function waterStatus(f,it){
    if(!requiresWater(it)&&it.type!=='water_outlet')return {connected:true,water:true,legacy:true};
@@ -464,7 +499,7 @@
   function landlineFor(f,it){
    if(it.type!=='landline_phone'||s.contracts.landline!=='active')return false;
    const router=itemAt(f,it.routerId);
-   return !!router&&router.type==='router'&&internetFor(f,router).online&&
+   return !!router&&router.type==='router'&&electricalStatus(f,it,electrical()).powered&&internetFor(f,router).online&&
     !!wiredRoute(f,router,it,Math.max(0,number(it.cableLengthFt,number(router.ethernetLengthFt,60))));
   }
   function mobileFor(){
@@ -561,9 +596,9 @@
     loadingRayos:snap.loads.get(f+':'+id(it))||0,usedSlots:snap.used.get(f+':'+id(it))||0};
   }
   function setService(name,active){if(!Object.prototype.hasOwnProperty.call(s.contracts,name))return false;s.contracts[name]=active?'active':'suspended';return true;}
-  return Object.freeze({state:s,phone:state.phone,graphs,point,itemAt,defaultsFor,sourceFor,wiredRoute,scopeFor,
+  return Object.freeze({state:s,phone:state.phone,graphs,powerGraphs,powerRoute,zoneFor,requiresPower,point,itemAt,defaultsFor,sourceFor,wiredRoute,scopeFor,
    statusFor,electrical,waterStatus,drainStatus,wifiAt,connectWifi,internetFor,landlineFor,mobileFor,
    chargePhone,takePhone,useWaterFixture,setUsage,dial,tick,setService,feetPerCell});
  }
- return Object.freeze({INFRA,defaultsFor,wallGraph,ensureState,createRuntime});
+ return Object.freeze({INFRA,defaultsFor,wallGraph,ensureState,createRuntime,requiresPower:needsElectricity,LIMITS,rangeFor});
 });
