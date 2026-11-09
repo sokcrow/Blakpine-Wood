@@ -21,7 +21,7 @@ function network(type='window'){
  return {project,breaker,socket,router,port};
 }
 
-for(const type of ['window','door','peephole_door','opening']){
+for(const type of ['window']){
  test(type+': el recorrido continúa por el tramo recortado y gira en la esquina',()=>{
   const items=wallRun(type),before=JSON.stringify(items),graph=FH.wallGraph(items);
   const route=graph.routeDetailed(origin,target,0);
@@ -47,12 +47,32 @@ for(const type of ['window','door','peephole_door','opening']){
  });
 }
 
-test('el estado visual de una puerta no corta el cableado',()=>{
+for(const type of ['door','peephole_door','opening']){
+ test(type+': el hueco corta el recorrido sin fabricar una conexión',()=>{
+  const graph=FH.wallGraph(wallRun(type));
+  assert.equal(graph.routeDetailed(origin,target,0),null);
+ });
+ test(type+': no hay alimentación ni conexión cableada a través del hueco',()=>{
+  const {project,socket,router,port}=network(type),runtime=FH.createRuntime(project,{});
+  assert.equal(runtime.sourceFor(0,socket,'a'),null);
+  assert.equal(runtime.statusFor(0,socket).power.powered,false);
+  assert.equal(runtime.wiredRoute(0,router,port,30),null);
+ });
+}
+
+test('las puertas abiertas o cerradas cortan el tramo de cableado',()=>{
  for(const type of ['door','peephole_door'])for(const open of [false,true]){
   const items=wallRun(type,1),door=items.find(it=>it.id==='portal');
   Object.assign(door,{open,locked:true,variant:'metal',partialOpen:.5});
-  assert.equal(FH.wallGraph(items).route(origin,target,0),5);
+  assert.equal(FH.wallGraph(items).routeDetailed(origin,target,0),null);
  }
+});
+test('una puerta obliga a rodear por otras paredes cuando existe un recorrido alternativo',()=>{
+ const items=[...wallRun('door',1),segment('wall',0,0,0,3),
+  segment('wall',0,3,3,3),segment('wall',3,3,3,2)];
+ const route=FH.wallGraph(items).routeDetailed(origin,target,0);
+ assert.ok(route);assert.equal(route.length,7);
+ assert.ok(route.points.some(p=>p.y===3),'recorre la pared alternativa, no el hueco de puerta');
 });
 test('ventanas verticales, diagonales e invertidas conservan sus extremos reales',()=>{
  for(const mapPoint of [p=>({x:p.x,y:p.y}),p=>({x:p.y,y:p.x}),p=>({x:p.x,y:p.x})]){
@@ -87,8 +107,8 @@ function overlayEnvironment(project){
  vm.runInContext(editor.slice(from,to),context);
  return context;
 }
-test('la caché del plano se reconstruye al quitar, añadir o mover una ventana/puerta',()=>{
- for(const type of ['window','door','peephole_door','opening']){
+test('la caché se reconstruye al editar una ventana o convertirla en puerta/abertura',()=>{
+ for(const type of ['window']){
   const {project}=network(type),ctx=overlayEnvironment(project);
   const route=()=>ctx.utilityVisual().graph.routeDetailed(origin,target,0);
   assert.ok(route());
@@ -97,22 +117,27 @@ test('la caché del plano se reconstruye al quitar, añadir o mover una ventana/
   items.push(portal);assert.ok(route());
   portal.a.y=1;portal.b.y=1;assert.equal(route(),null);
   portal.a.y=0;portal.b.y=0;assert.ok(route());
+  for(const blockedType of ['door','peephole_door','opening']){
+   portal.type=blockedType;assert.equal(route(),null);
+   portal.type='window';assert.ok(route());
+  }
  }
 });
-test('el overlay eléctrico dibuja una conexión continua a través de ventana y puerta',()=>{
- for(const type of ['window','door']){
+test('el overlay pasa por ventanas y no dibuja conexiones a través de puertas/aberturas',()=>{
+ for(const type of ['window','door','peephole_door','opening']){
   const {project}=network(type),ctx=overlayEnvironment(project),lines=[];
   let from=null,to=null;
   const canvas={save(){},restore(){},beginPath(){from=to=null},
    moveTo(x,y){from={x,y}},lineTo(x,y){to={x,y}},stroke(){if(from&&to)lines.push({from,to})},arc(){},fill(){}};
   ctx.drawLightingOverlay(canvas,1);
+  if(type!=='window'){assert.equal(lines.length,0);continue}
   assert.ok(lines.some(l=>l.from.x===1&&Math.abs(l.to.x-1.66)<1e-6&&l.from.y===0&&l.to.y===0));
   assert.equal(lines.reduce((sum,l)=>sum+Math.hypot(l.to.x-l.from.x,l.to.y-l.from.y),0),5);
  }
 });
 test('editor y motor 3D cargan la misma versión corregida del grafo',()=>{
  const hook=fs.readFileSync(path.join(__dirname,'fh-services-engine-hook.js'),'utf8');
- const version='fh-services-core.js?v=20261108-wall-openings-2';
+ const version='fh-services-core.js?v=20261108-window-wiring-3';
  assert.ok(editor.includes(version));assert.ok(hook.includes(version));
- assert.ok(editor.includes('fh-services-engine-hook.js?v=20261108-wall-openings-2'));
+ assert.ok(editor.includes('fh-services-engine-hook.js?v=20261108-window-wiring-3'));
 });

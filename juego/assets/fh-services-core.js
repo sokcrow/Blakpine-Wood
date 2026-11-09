@@ -9,8 +9,8 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
  'use strict';
  const WALLS=new Set(['wall','red_wall','property_wall']);
- // El dintel/antepecho conserva la instalación aunque el portal recorte el muro.
- const WALL_PATHS=new Set([...WALLS,'window','door','peephole_door','opening']);
+ // La ventana conserva la instalación; puertas y aberturas cortan ese tramo.
+ const WALL_PATHS=new Set([...WALLS,'window']);
  const INFRA=new Set(['power_outlet','power_strip','water_main','water_valve','water_outlet','drain_outlet','drain_main','router','ethernet_port','landline_phone','phone_charger']);
  const POWER_NEEDS=new Set(['router','phone_charger']);
  const WATER_NEEDS=new Set(['bath','toilet','kitchen']);
@@ -72,7 +72,7 @@
    }
    return best;
   };
-  // Ruta compartida entre simulación y overlay, continua por los huecos del muro.
+  // Ruta compartida entre simulación y overlay, continua sólo por ventanas.
   function routeDetailed(a,b,maxGap=.65,allowed=()=>true){
    const start=anchor(a,allowed),end=anchor(b,allowed);
    if(!start||!end||start.gap>maxGap||end.gap>maxGap)return null;
