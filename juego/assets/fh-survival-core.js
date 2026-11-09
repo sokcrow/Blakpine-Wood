@@ -63,6 +63,13 @@
    }
    return state.critical;
   }
+  function canSpendPE(cost){
+   return finite(cost)&&cost>=0&&finite(resources.pe)&&resources.pe>=cost;
+  }
+  function spendPE(cost){
+   if(!canSpendPE(cost))return false;
+   return cost===0||change('pe',-cost);
+  }
   function damagePG(amount){
    if(!finite(amount)||amount<=0)return false;
    const did=change('pg',-amount);
@@ -182,7 +189,7 @@
    return state;
   }
   clampResources();checkCritical();
-  return Object.freeze({state,resources,update,read,change,damagePG,setPGMax,deathSave,awakeFromStable,checkCritical});
+  return Object.freeze({state,resources,update,read,change,canSpendPE,spendPE,damagePG,setPGMax,deathSave,awakeFromStable,checkCritical});
  }
  return Object.freeze({penaltySP,recoveryPG,createRuntime});
 });
