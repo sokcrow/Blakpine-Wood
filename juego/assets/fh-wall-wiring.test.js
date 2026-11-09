@@ -137,9 +137,9 @@ test('el overlay pasa por ventanas y no dibuja conexiones a través de puertas/a
 });
 test('editor y motor 3D cargan la misma versión corregida del grafo',()=>{
  const hook=fs.readFileSync(path.join(__dirname,'fh-services-engine-hook.js'),'utf8');
- const version='fh-services-core.js?v=20261108-sectioned-lighting-4';
+ const version='fh-services-core.js?v=20261109-routed-breaker-5';
  assert.ok(editor.includes(version));assert.ok(hook.includes(version));
- assert.ok(editor.includes('fh-services-engine-hook.js?v=20261108-sectioned-lighting-4'));
+ assert.ok(editor.includes('fh-services-engine-hook.js?v=20261109-routed-breaker-5'));
 });
 test('el plano omite las lámparas del otro tramo y las que superan el alcance',()=>{
  const {project,breaker}=network('door');

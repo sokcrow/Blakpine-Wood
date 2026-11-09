@@ -69,6 +69,37 @@ for(const [name,factory] of [
  ['motor 3D con servicios',factoryFrom(engine.patched)]
 ]){
  const create=withWiring(factory);
+ for(const failure of ['enabled','on','damage','powerFlag']){
+  test(name+': el panel conectado debe estar disponible aunque otro panel sano comparta zona ('+failure+')',()=>{
+   const room={id:'r',roomId:'r',type:'room',zoneId:'a',x:0,y:0,w:14,h:2};
+   const lamp={id:'l',type:'light_fixture',roomId:'r',x:12,y:.2};
+   const isolated={id:'isolated',type:'breaker_panel',x:0,y:0,powerScope:'zone',zoneId:'a',circuits:[{zoneId:'a',rangeFt:120}]};
+   const nearby={id:'nearby',type:'breaker_panel',x:10,y:0,powerScope:'zone',zoneId:'a',powerFlag:'panel_nearby_on',circuits:[{zoneId:'a',rangeFt:120,powerFlag:'circuit_nearby_on'}]};
+   const state={};
+   if(failure==='enabled')nearby.enabled=false;
+   if(failure==='on')nearby.on=false;
+   if(failure==='damage')state.services={damage:{nearby:100}};
+   if(failure==='powerFlag')state.flags={panel_nearby_on:false};
+   const floors=[{id:'f0',items:[room,lamp,isolated,nearby,
+    {id:'left',type:'wall',a:{x:0,y:0},b:{x:4,y:0}},
+    {id:'right',type:'wall',a:{x:10,y:0},b:{x:14,y:0}}]}];
+   const services=Services.createRuntime({floors,units:{feetPerCell:5}},state);
+   assert.equal(services.sourceFor(0,lamp,'a'),null,'no usar el panel cercano que no está disponible');
+   assert.equal(create(floors,state).fixtureLit(0,room,lamp),false);
+   assert.equal(services.statusFor(0,lamp).power.powered,false);
+   nearby.enabled=true;nearby.on=true;state.services.damage.nearby=0;
+   state.flags.panel_nearby_on=true;
+   assert.equal(services.sourceFor(0,lamp,'a').panel.id,nearby.id,'restaurar el panel devuelve la ruta sin reconstruir el grafo');
+   assert.equal(create(floors,state).fixtureLit(0,room,lamp),true);
+  });
+ }
+ test(name+': otro breaker sano sí puede alimentar la lámpara cuando su ruta llega hasta ella',()=>{
+  const {floors,room,lamps,panel,door}=hallway();door.type='window';
+  floors[0].items.push({id:'bad',type:'breaker_panel',x:1,y:0,enabled:false,zoneId:'a',powerScope:'zone',circuits:[{zoneId:'a',rangeFt:60}]});
+  const services=Services.createRuntime({floors,units:{feetPerCell:5}},{});
+  assert.equal(services.sourceFor(0,lamps[0],'a').panel.id,panel.id);
+  assert.equal(create(floors,{}).fixtureLit(0,room,lamps[0]),true);
+ });
  test(name+': la puerta secciona cuatro luces del mismo pasillo en dos con energía y dos sin ella',()=>{
   const {floors,room,lamps,door}=hallway();
   const lighting=create(floors,{});

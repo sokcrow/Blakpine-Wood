@@ -271,10 +271,11 @@
   const flagOn=k=>s.enabled[k]!==false&&state.flags?.[k]!==false;
   function circuitOn(f,c){
    const panel=c.panel;
-   if(s.contracts.electricity!=='active'||!flagOn('power_global')||
+   if(panel.enabled===false||panel.on===false||number(s.damage[id(panel)])>=100||
+     s.contracts.electricity!=='active'||!flagOn('power_global')||
      !flagOn('power_floor:'+String(floors[f]?.id||f))||
      !flagOn('power_zone:'+c.zoneId)||!flagOn(id(panel)))return false;
-   return !c.powerFlag||flagOn(c.powerFlag);
+   return (!panel.powerFlag||flagOn(panel.powerFlag))&&(!c.powerFlag||flagOn(c.powerFlag));
   }
   function sourceFor(f,it,zone=''){
    if(it.type==='light_fixture'){
