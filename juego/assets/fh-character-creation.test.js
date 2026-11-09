@@ -21,6 +21,8 @@ for(const pattern of [
 const src=fs.readFileSync(path.join(__dirname,'fh-character-core.js'),'utf8');
 const strings=fs.readFileSync(path.join(__dirname,'fh-character-strings.js'),'utf8');
 const ui=fs.readFileSync(path.join(__dirname,'fh-character-creation.js'),'utf8');
+const economy=fs.readFileSync(path.join(__dirname,'fh-economy-core.js'),'utf8');
+const economyText=fs.readFileSync(path.join(__dirname,'fh-economy-strings.js'),'utf8');
 const helpTexts=fs.readFileSync(path.join(__dirname,'fh-character-help-strings.js'),'utf8');
 const helpUI=fs.readFileSync(path.join(__dirname,'fh-character-help.js'),'utf8');
 class Node {
@@ -41,7 +43,7 @@ const values=new Map();
 const window={document:doc,localStorage:{getItem:k=>values.get(k)||null,setItem:(k,v)=>values.set(k,v)},
  crypto:{randomUUID:()=> 'first-id'},addEventListener(){},removeEventListener(){}};
 const context={window,Date,Math,JSON,Object,Set,Error,Number,String,Array};
-for(const [filename,code] of [['helpTexts',helpTexts],['helpUI',helpUI],['strings',strings],['core',src],['creation',ui]])vm.runInNewContext(code,context,{filename});
+for(const [filename,code] of [['helpTexts',helpTexts],['helpUI',helpUI],['strings',strings],['core',src],['economyText',economyText],['economy',economy],['creation',ui]])vm.runInNewContext(code,context,{filename});
 const P=window.FHCharacterCreation,T=window.FH_CHARACTER_TEXT;
 function panel(){return doc.body.children[0].children[0]}
 function content(){return panel().children[4]}
@@ -82,6 +84,11 @@ function pick(title){
  const created=await pending;
  assert.equal(created.scores.FOR,6);assert.equal(created.scores.AGI,6);
  assert.equal(P.current().name,'María');assert.equal(doc.body.children.length,0);
+ const balances=window.FHEconomyCore.openStore(window.localStorage);
+ const createdAccounts=balances.ensureOwner({ownerType:'character',ownerId:created.id});
+ assert.equal(createdAccounts.created,false,'El personaje ya debe tener cuentas persistentes');
+ assert.equal(balances.getBalance(createdAccounts.accountIds.cash),0);
+ assert.equal(balances.getBalance(createdAccounts.accountIds.bank),0);
  assert.equal(P.markDead(created.id),true);
  const second=P.ensureCharacter();assert.equal(doc.body.children.length,1);
  nav().children[0].onclick();assert.equal(await second,null);
