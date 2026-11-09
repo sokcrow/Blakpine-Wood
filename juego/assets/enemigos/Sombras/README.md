@@ -17,4 +17,4 @@ window.FHShadowActors.move(id, piso, nuevaX, nuevaZ);
 window.FHShadowActors.despawn(id);
 ```
 
-El generador de criaturas y las decisiones de IA todavía deberán invocar estas funciones cuando estén implementados; este paso **no crea apariciones automáticas**. La navegación real sigue a cargo del motor/GOAP existente; `move` únicamente actualiza la representación en el piso indicado. Las alturas visuales por defecto son provisionales y pueden especificarse al crear una entidad.
+El generador de criaturas y las decisiones de IA todavía deberán invocar estas funciones cuando estén implementados; este paso **no crea apariciones automáticas**. La navegación real sigue a cargo del motor/GOAP existente; `move` únicamente actualiza la representación en el piso indicado. Las escalas se calculan respecto a la altura visual del jugador (jugador = 1.0): **El Alto = 1.5** y **La Niña = 0.7**. El adaptador entrega `HERO_H * HERO_VISUAL_SCALE` como referencia, de modo que cambiar la altura del jugador conserva las proporciones de las Sombras.
