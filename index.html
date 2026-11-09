@@ -4188,8 +4188,6 @@ function fhRefreshActorVisibility(){
     "});\n"+
     "window.FHSurvivalRuntime=fhSurvival;\n"+
     "const fhSurvivalUI=window.FHSurvivalUI?.mount(fhSurvival,saveProgress);"],
-   ["if(!fhDeliveryUiActive&&!window.FHStorageRuntime?.isOpen)moveUpdate(dt);",
-    "if(!fhDeliveryUiActive&&!window.FHStorageRuntime?.isOpen&&!fhSurvival?.state.critical)moveUpdate(dt);"],
    ["window.FHDeliveryRuntime?.update(dt);window.FHPhoneRuntime?.update(dt);",
     "window.FHDeliveryRuntime?.update(dt);window.FHPhoneRuntime?.update(dt);\n"+
     "if(fhSurvival){\n"+
@@ -4214,6 +4212,11 @@ function fhRefreshActorVisibility(){
    if(occurrences!==1)throw Error('Hook supervivencia incompatible ('+occurrences+'): '+before.slice(0,64));
    doc=doc.replace(before,after);
   }
+  // Otros adaptadores pueden añadir condiciones al movimiento.
+  const movement=/if\(([^;\n]+)\)moveUpdate\(dt\);else\{user\.vx=user\.vz=0;\}/;
+  if(!movement.test(doc))throw Error('Hook de movimiento para supervivencia no localizado');
+  doc=doc.replace(movement,(_,condition)=>
+   'if(('+condition+')&&!fhSurvival?.state.critical)moveUpdate(dt);else{user.vx=user.vz=0;}');
   const tags=[
    'fh-survival-strings.js?v=20261109-survival1',
    'fh-survival-core.js?v=20261109-survival1',
