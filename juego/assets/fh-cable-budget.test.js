@@ -97,7 +97,8 @@ for(const withStrip of [false,true]){
   const small=panel('small',5,0,'small',30),large=panel('large',0,0,'large');
   const outlet={id:'plug',type:'power_outlet',zoneId:'a',x:5,y:0,radiusFt:40,slots:2};
   const strip={id:'strip',type:'power_strip',x:5,y:1,outletId:'plug',radiusFt:40,slots:3};
-  const tv={id:'tv',type:'tv',x:5,y:7,outletId:withStrip?'strip':'plug'};
+  // Caso especial de cable largo: el alcance pertenece al aparato, no al enchufe.
+  const tv={id:'tv',type:'tv',x:5,y:7,outletId:withStrip?'strip':'plug',service:{powerCableFt:40}};
   const items=[line({x:0,y:0},{x:6,y:0}),small,large,outlet,...(withStrip?[strip]:[]),tv];
   const system=run(items);
   assert.equal(system.sourceFor(0,outlet).panel.id,'small','el panel cercano llega al enchufe');

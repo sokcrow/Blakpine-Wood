@@ -42,8 +42,11 @@
   }
   if(!shared||typeof shared.switchWallMount!=='function')return null;
   const target={x:Number(it.x),y:Number(it.y)};
-  const mount=shared.switchWallMount(items,target,{wallId:it.wallId||undefined,maxDistance:it.wallId?.12:.55,
-   ...(Number.isFinite(Number(it.rotation))?{rotation:Number(it.rotation)}:{})});
+  const rotation=Number.isFinite(Number(it.rotation))?{rotation:Number(it.rotation)}:{};
+  let mount=shared.switchWallMount(items,target,{wallId:it.wallId||undefined,maxDistance:it.wallId?.12:.55,...rotation});
+  // Un wallId antiguo puede quedar obsoleto al editar la arquitectura.
+  // Sólo recuperar el modelo si existe otra pared estructural realmente cercana.
+  if(!mount&&it.wallId)mount=shared.switchWallMount(items,target,{maxDistance:.55,...rotation});
   const wall=(items||[]).find(it=>it.id===mount?.wallId);
   if(!wall||!['wall','red_wall','property_wall'].includes(wall.type))return null;
   return {x:mount.point.x*CELL+mount.normal.x*(HALF_WALL+CLEARANCE),
@@ -106,7 +109,7 @@
    const floor=DATA.floors[f],items=floor.items||[];
    for(const it of items){
     const meta=choose(it);if(!meta)continue;
-    const pose=mountPose(it,meta,items,CELL,ForestShared,floor.ceilingHeightFt);if(!pose)continue;
+    const pose=mountPose(it,meta,items,CELL,ForestShared,floor.ceilingHeightFt);if(!pose){console.warn('[Electricidad 01] Sin pared estructural para',meta.id,it.id);continue;}
     const existing=renderedByItem[f]?.get?.(it.id)||[];
     const old=existing.map(p=>p.root||p).filter(Boolean);
     const root=new THREE.Group();root.name='FH_ELECTRIC_'+it.id;root.userData.fhServiceItem=it.id;
@@ -142,7 +145,7 @@
   doc=once(doc,'function useFurniture(item,selectedSeat=null){',
    'function useFurniture(item,selectedSeat=null){\n if(window.FHElectricVisuals?.onUse(item,currentFloor,window.FHServicesRuntime,notice,user.x/CELL,user.z/CELL))return;');
   const rootUrl=new URL('./juego/assets/',global.document?.baseURI||'https://localhost/');
-  const scripts=['fh-electric-catalog.js','fh-electric-strings.js','fh-electric-meter-hud.js','fh-electric-visuals.js'].map(p=>
+  const scripts=['fh-electric-catalog.js','fh-electric-strings.js','fh-electric-meter-hud.js','fh-electric-visuals.js?v=20261109-wall-mount-1'].map(p=>
    '<script src="'+new URL(p,rootUrl).href+'"></scr'+'ipt>').join('');
   const where=doc.indexOf('</head>');if(where<0)throw Error('Electricidad 01: falta la cabecera del motor');
   return doc.slice(0,where)+scripts+doc.slice(where);
