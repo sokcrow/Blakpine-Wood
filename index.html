@@ -3043,7 +3043,7 @@ function addLiveTextToEngine(doc){
 }
 
 function prepareGLBEngineDoc(source){
- const fhEconomyScripts=['fh-economy-strings.js','fh-economy-core.js'].map(name=>
+ const fhEconomyScripts=['fh-economy-strings.js','fh-economy-core.js','fh-economy-view.js'].map(name=>
   '<script src="'+new URL('./juego/assets/'+name+'?v=20261109-economy1',document.baseURI).href+'"></'+'script>').join('');
  source=source.replace('</head>',fhEconomyScripts+'</head>');
  const lightingInit='const lighting=ForestShared.createLightingSystem(DATA.floors,GameState);';
@@ -4329,6 +4329,7 @@ init();
 <script src="./juego/assets/fh-character-core.js?v=20261106-skills"></script>
 <script src="./juego/assets/fh-economy-strings.js?v=20261109-economy1"></script>
 <script src="./juego/assets/fh-economy-core.js?v=20261109-economy1"></script>
+<script src="./juego/assets/fh-economy-view.js?v=20261109-economy-view1"></script>
 <script src="./juego/assets/fh-character-creation.js?v=20261107-help"></script>
 <script src="./juego/assets/fh-strings.js"></script>
 <script src="./juego/assets/fh-light-coverage.js?v=20261105-light-ui2"></script>
