@@ -8,7 +8,7 @@
  };
  function patch(doc){
   const base=new URL('./juego/assets/',root.document.baseURI).href;
-  const core='<script src="'+base+'fh-services-core.js?v=20261109-review-fixes-7"></'+'script>';
+  const core='<script src="'+base+'fh-services-core.js?v=20261109-cable-range-3x-1"></'+'script>';
   const strings='<script src="'+base+'fh-services-strings.js?v=20261109-review-fixes-7"></'+'script>';
   // El motor incrusta subdocumentos HTML como cadenas: hay varios </head>.
   // Insertar en el primer cierre (cabecera del documento exterior), como
