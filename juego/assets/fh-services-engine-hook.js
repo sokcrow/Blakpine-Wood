@@ -87,7 +87,7 @@
    '  if(it.type==="water_main"||it.type==="water_outlet"){',
    '    notice(status.water.water?"Agua disponible.":"Sin suministro de agua.");return true;',
    '  }',
-   '  if(it.type==="ethernet_port"){notice(status.internet.online?"Toma Ethernet conectada.":"Toma Ethernet sin internet.");return true;}',
+   '  if(it.type==="ethernet_port"){const t=window.FH_INTERNET_TEXT||{};notice(status.internet.online?(t.portConnected||"Puerto conectado")+": "+status.usedSlots+"/"+status.portSlots:(t.portOffline||"Puerto Ethernet sin conexión"));return true;}',
    '  return false;',
    ' }',
    '};',
@@ -176,7 +176,9 @@
   if(doc.includes(elevator))doc=once(doc,elevator,'return window.FHServicesRuntime?.statusFor(stop.f,stop.item).power.powered===true;','ascensor');
 
   // fixturePowered ya consulta sourceFor; no recalcular los enchufes por cada foco.
-  return doc;
+  doc=root.FHInternetVisuals?.patchEngineDoc(doc)||doc;
+  doc=root.FHElectricVisuals?.patchEngineDoc(doc)||doc;
+  return root.FHWaterVisuals?.patchEngineDoc(doc)||doc;
  }
  root.FHServicesEngine=Object.freeze({patch});
 })(typeof window!=='undefined'?window:globalThis);

@@ -1,4 +1,4 @@
-/* Blakpine-Wood: infraestructura sin tarifas; compatible con forest-horror-map-v1.
+/* FH_SERVICES_24_20261109 | Blakpine-Wood: infraestructura sin tarifas; compatible con forest-horror-map-v1.
  * Editor y motor comparten reglas. El estado persistente vive en GameState.services.
  */
 (function(root,factory){
@@ -162,6 +162,14 @@
   for(const name of ['internet','landline','mobile','water','electricity'])
    if(!['active','suspended'].includes(s.contracts[name]))s.contracts[name]='active';
   for(const name of ['kwh','waterLiters','drainLiters'])s.meters[name]=Math.max(0,number(s.meters[name]));
+  if(!s.powerHistory||typeof s.powerHistory!=='object'||Array.isArray(s.powerHistory))s.powerHistory={};
+  const h=s.powerHistory;
+  h.currentHour=h.currentHour==null?null:Number.isFinite(Number(h.currentHour))?Number(h.currentHour):null;
+  h.currentKwh=Math.max(0,number(h.currentKwh));
+  h.currentWatts=Math.max(0,number(h.currentWatts));
+  h.elapsedMinutes=Math.max(0,number(h.elapsedMinutes));
+  if(!Array.isArray(h.history))h.history=[];
+  if(h.history.length>48)h.history=h.history.slice(-48);
   state.services=s;
   state.phone=state.phone&&typeof state.phone==='object'?state.phone:{};
   state.phone.battery=clamp(number(state.phone.battery,100),0,100);
@@ -405,14 +413,19 @@
    const valveOpen=(main,port)=>{
     const assigned=String(port.valveId||main.valveId||'');
     return valves.every(v=>{
-     if(assigned&&id(v)!==assigned)return true;
-     if(!assigned&&(!port.networkId||!v.networkId||v.networkId!==port.networkId))return true;
+     if(assigned&&id(v)!==assigned&&(!main.networkId||v.networkId!==main.networkId))return true;
+     if(!assigned&&(!v.networkId||v.networkId!==port.networkId&&v.networkId!==main.networkId))return true;
      return (s.enabled[id(v)]??v.opened)!==false;
     });
    };
    if(it.type==='water_outlet'){
-    const linked=mains.some(main=>(!main.networkId||!it.networkId||main.networkId===it.networkId)&&
-     valveOpen(main,it)&&route(f,main,it)<=Math.max(0,number(main.rangeFt,120)));
+    const linked=mains.some(main=>{
+     const direct=!main.networkId||!it.networkId||main.networkId===it.networkId;
+     const branch=valves.some(v=>v.networkId===it.networkId&&
+      String(v.parentNetworkId||it.parentNetworkId||'')===String(main.networkId||''));
+     return (direct||branch)&&valveOpen(main,it)&&
+      route(f,main,it)<=Math.max(0,number(main.rangeFt,120));
+    });
     return {connected:linked,water:linked};
    }
    const ports=candidates(f,it,['water_outlet']);
@@ -425,6 +438,8 @@
   function drainStatus(f,it){
    if(!it||it.service?.drains===false)return {connected:false,draining:false};
    if(it.type==='drain_outlet'){
+    if(it.drainMode==='automatic'&&active(it)&&number(s.damage[id(it)])<100)
+     return {connected:true,draining:true,mode:'exterior'};
     const connected=values(f,'drain_main').some(main=>active(main)&&
      (!main.networkId||!it.networkId||main.networkId===it.networkId)&&
      route(f,it,main)<=Math.max(0,number(main.rangeFt,120)));
@@ -476,40 +491,84 @@
    }
    return false;
   }
-  function internetFor(f,it){
-   if(s.contracts.internet!=='active')return {online:false,reason:'service'};
-   if(it.type==='router')
-    return {online:electricalStatus(f,it,electrical()).powered&&active(it),method:'router'};
-   if(it.service?.internetMode==='wifi'){
-    const networks=wifiAt(f,number(it.x),number(it.y));
-    const best=networks.find(net=>net.online);
-    return best?{online:true,method:'wifi',routerId:best.routerId,
-     bars:best.bars,dbm:best.dbm,speedFactor:best.speedFactor,latencyMultiplier:best.latencyMultiplier}:
-     {online:false,reason:'noSignal'};
-   }
-   if(it.service?.internetMode!=='ethernet'&&it.type!=='ethernet_port')
-    return {online:false,reason:'noLink'};
-   const routers=values(f,'router').filter(r=>!it.routerId||id(r)===String(it.routerId));
-   for(const router of routers){
-    if(!electricalStatus(f,router,electrical()).powered||!active(router))continue;
-    const length=Math.max(0,number(it.cableLengthFt,number(router.ethernetLengthFt,60)));
-    if(wiredRoute(f,router,it,length))return {online:true,method:'ethernet',routerId:id(router),speedFactor:1};
-    if(it.type==='ethernet_port')continue;
-    for(const port of values(f,'ethernet_port')){
-     if(port.routerId&&String(port.routerId)!==id(router))continue;
-     if(dist(point(port),point(it))*feetPerCell>length||barriers(f,it,port)>0)continue;
-     if(wiredRoute(f,router,port,Math.max(0,number(router.ethernetLengthFt,60))))
-      return {online:true,method:'ethernet',routerId:id(router),portId:id(port),speedFactor:1};
+   function ethernetAssignments(f){
+    const snap=electrical(),routers=values(f,'router').filter(r=>active(r)&&
+     electricalStatus(f,r,snap).powered).sort((a,b)=>id(a).localeCompare(id(b)));
+    const ports=values(f,'ethernet_port');
+    const hasNewPorts=ports.some(p=>['toma_rj45','toma_rj45_doble'].includes(p.utilitySkin));
+    const clients=(elements[f]||[]).filter(it=>it.type==='landline_phone'||it.service?.internetMode==='ethernet')
+     .sort((a,b)=>id(a).localeCompare(id(b)));
+    const bindings=new Map(),portUsed=new Map(),routerUsed=new Map();
+    for(const client of clients){
+     if(!active(client)||number(s.damage[id(client)])>=100)continue;
+     if(client.type==='landline_phone'&&(s.contracts.landline!=='active'||!client.routerId))continue;
+     for(const router of routers){
+      if(client.routerId&&String(client.routerId)!==id(router))continue;
+      const routerLimit=Math.max(0,number(router.ethernetPorts,router.utilitySkin==='gateway_red'?5:Infinity));
+      if((routerUsed.get(id(router))||0)>=routerLimit)continue;
+      const candidates=ports.filter(p=>active(p)&&number(s.damage[id(p)])<100&&
+       (!client.ethernetPortId||String(client.ethernetPortId)===id(p))&&
+       (!p.routerId||String(p.routerId)===id(router)));
+      let assigned=false;
+      for(const port of candidates){
+       const slots=Math.max(1,Math.floor(number(port.portSlots,
+        port.utilitySkin==='toma_rj45_doble'?2:port.utilitySkin==='toma_rj45'?1:Infinity)));
+       if((portUsed.get(id(port))||0)>=slots)continue;
+       if(!wiredRoute(f,router,port,Math.max(0,number(router.ethernetLengthFt,60))))continue;
+       const lead=Math.max(0,number(client.cableLengthFt,number(port.cableLengthFt,30)));
+       if(dist(point(port),point(client))*feetPerCell>lead||barriers(f,client,port)>0)continue;
+       bindings.set(id(client),{routerId:id(router),portId:id(port),method:'ethernet'});
+       portUsed.set(id(port),(portUsed.get(id(port))||0)+1);
+       routerUsed.set(id(router),(routerUsed.get(id(router))||0)+1);
+       assigned=true;break;
+      }
+      const routerHasNewPorts=ports.some(p=>['toma_rj45','toma_rj45_doble'].includes(p.utilitySkin)&&
+       (!p.routerId||String(p.routerId)===id(router))&&
+       wiredRoute(f,router,p,Math.max(0,number(router.ethernetLengthFt,60))));
+      if(!assigned&&!routerHasNewPorts&&!client.ethernetPortId&&
+       wiredRoute(f,router,client,Math.max(0,number(client.cableLengthFt,number(router.ethernetLengthFt,60))))){
+       bindings.set(id(client),{routerId:id(router),method:'ethernet'});
+       routerUsed.set(id(router),(routerUsed.get(id(router))||0)+1);
+       assigned=true;
+      }
+      if(assigned)break;
+     }
     }
+    return {bindings,portUsed,routerUsed,hasNewPorts};
    }
-   return {online:false,reason:'noLink'};
-  }
-  function landlineFor(f,it){
-   if(it.type!=='landline_phone'||s.contracts.landline!=='active')return false;
-   const router=itemAt(f,it.routerId);
-   return !!router&&router.type==='router'&&electricalStatus(f,it,electrical()).powered&&internetFor(f,router).online&&
-    !!wiredRoute(f,router,it,Math.max(0,number(it.cableLengthFt,number(router.ethernetLengthFt,60))));
-  }
+   function internetFor(f,it){
+    if(s.contracts.internet!=='active')return {online:false,reason:'service'};
+    if(it.type==='router')
+     return {online:electricalStatus(f,it,electrical()).powered&&active(it),method:'router'};
+    if(it.service?.internetMode==='wifi'){
+     const networks=wifiAt(f,number(it.x),number(it.y));
+     const best=networks.find(net=>net.online);
+     return best?{online:true,method:'wifi',routerId:best.routerId,
+      bars:best.bars,dbm:best.dbm,speedFactor:best.speedFactor,latencyMultiplier:best.latencyMultiplier}:
+      {online:false,reason:'noSignal'};
+    }
+    if(it.type==='ethernet_port'){
+     if(!active(it)||number(s.damage[id(it)])>=100)return {online:false,reason:'broken'};
+     for(const router of values(f,'router')){
+      if(it.routerId&&String(it.routerId)!==id(router))continue;
+      if(!active(router)||!electricalStatus(f,router,electrical()).powered)continue;
+      if(wiredRoute(f,router,it,Math.max(0,number(router.ethernetLengthFt,60))))
+       return {online:true,method:'ethernet',routerId:id(router),speedFactor:1};
+     }
+     return {online:false,reason:'noLink'};
+    }
+    if(it.service?.internetMode!=='ethernet')return {online:false,reason:'noLink'};
+    const link=ethernetAssignments(f).bindings.get(id(it));
+    return link?{online:true,...link,speedFactor:1}:{online:false,reason:'noLink'};
+   }
+   function landlineFor(f,it){
+    if(it.type!=='landline_phone'||s.contracts.landline!=='active')return false;
+    const router=itemAt(f,it.routerId);
+    if(!router||router.type!=='router'||!electricalStatus(f,it,electrical()).powered||
+       !internetFor(f,router).online)return false;
+    const cable=ethernetAssignments(f);
+    return cable.bindings.get(id(it))?.routerId===id(router);
+   }
   function mobileFor(){
    return s.contracts.mobile==='active'&&state.phone.battery>0&&s.mobileSignal!==false&&!state.phone.placedAt;
   }
@@ -585,7 +644,20 @@
      }
     }
    }
-   s.meters.kwh+=usedWatts*seconds/3600000;
+   const deltaKwh=usedWatts*seconds/3600000;
+   s.meters.kwh+=deltaKwh;
+   const power=s.powerHistory;
+   const minutes=Number(state.clock?.minutes);
+   if(!Number.isFinite(minutes))power.elapsedMinutes+=seconds/60;
+   const hour=Math.floor(Math.max(0,Number.isFinite(minutes)?minutes:power.elapsedMinutes)/60)%24;
+   if(power.currentHour!==hour){
+    if(power.currentHour!==null){
+     power.history.push({hour:power.currentHour,kwh:power.currentKwh});
+     if(power.history.length>48)power.history.splice(0,power.history.length-48);
+    }
+    power.currentHour=hour;power.currentKwh=0;
+   }
+   power.currentWatts=usedWatts;power.currentKwh+=deltaKwh;
    s.meters.waterLiters+=waterLiters;
    s.meters.drainLiters+=drainLiters;
    if(state.phone.placedAt){
@@ -600,8 +672,11 @@
   }
   function statusFor(f,it){
    const snap=electrical(),power=electricalStatus(f,it,snap),water=waterStatus(f,it);
+   const network=it.type==='ethernet_port'?ethernetAssignments(f):null;
    return {power,water,drain:drainStatus(f,it),internet:internetFor(f,it),broken:number(s.damage[id(it)])>=100,
-    loadingRayos:snap.loads.get(f+':'+id(it))||0,usedSlots:snap.used.get(f+':'+id(it))||0};
+    loadingRayos:snap.loads.get(f+':'+id(it))||0,
+    usedSlots:it.type==='ethernet_port'?network.portUsed.get(id(it))||0:snap.used.get(f+':'+id(it))||0,
+    portSlots:it.type==='ethernet_port'?Math.max(1,number(it.portSlots,it.utilitySkin==='toma_rj45_doble'?2:1)):undefined};
   }
   function setService(name,active){if(!Object.prototype.hasOwnProperty.call(s.contracts,name))return false;s.contracts[name]=active?'active':'suspended';return true;}
   return Object.freeze({state:s,phone:state.phone,graphs,powerGraphs,powerRoute,zoneFor,requiresPower,point,itemAt,defaultsFor,sourceFor,wiredRoute,scopeFor,
