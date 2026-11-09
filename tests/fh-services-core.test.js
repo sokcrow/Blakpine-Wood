@@ -321,3 +321,51 @@ test('las aplicaciones reportan menor velocidad si quedan menos barras',()=>{
  if(distant)assert.ok(distant.speedFactor<=close.speedFactor);
 });
 
+
+
+test('la distancia de conexión eléctrica depende del cable del aparato, no del radio del enchufe',()=>{
+  const {project,state,items}=fixture();
+  const plug=items.find(it=>it.id==='plug');
+  plug.radiusFt=.1; // Antes impedía enchufar cualquier equipo a más de 0.1 pies.
+  const near={id:'new-near',type:'misc',x:3,y:3.6,outletId:'plug',zoneId:'a',
+    service:{requiresPower:true,powerCableFt:5,watts:80}};
+  items.push(near);
+  const sys=FH.createRuntime(project,state);
+  assert.equal(sys.statusFor(0,near).power.powered,true);
+  assert.equal(sys.statusFor(0,near).power.via,'plug');
+});
+
+test('un cable de menos de cinco pies no alcanza un enchufe lejano',()=>{
+  const {project,state,items}=fixture();
+  const far={id:'new-far',type:'misc',x:3,y:4.1,outletId:'plug',zoneId:'a',
+    service:{requiresPower:true,powerCableFt:5,watts:80}};
+  items.push(far);
+  const sys=FH.createRuntime(project,state);
+  assert.equal(sys.statusFor(0,far).power.powered,false);
+});
+
+test('un enchufe admite como máximo dos conexiones y una regleta ocupa una',()=>{
+  const {project,state,items}=fixture();
+  items.find(it=>it.id==='plug').slots=8; // Un mapa antiguo no debe aumentar la capacidad física.
+  const first={id:'new-a',type:'misc',x:3,y:3.3,outletId:'plug',zoneId:'a',
+    service:{requiresPower:true,powerCableFt:5}};
+  const second={id:'new-b',type:'misc',x:3,y:3.4,outletId:'plug',zoneId:'a',
+    service:{requiresPower:true,powerCableFt:5}};
+  items.push(first,second);
+  const sys=FH.createRuntime(project,state);
+  assert.equal(sys.statusFor(0,first).power.powered,true);
+  assert.equal(sys.statusFor(0,second).power.powered,false);
+  assert.equal(sys.statusFor(0,items.find(it=>it.id==='plug')).usedSlots,2);
+  assert.equal(sys.statusFor(0,items.find(it=>it.id==='plug')).slotCapacity,2);
+});
+
+test('el multiconector conserva ranuras propias sin aumentar las del enchufe',()=>{
+  const {project,state,items}=fixture();
+  const client={id:'new-through-strip',type:'misc',x:3,y:3.5,outletId:'strip',zoneId:'a',
+    service:{requiresPower:true,powerCableFt:5}};
+  items.push(client);
+  const sys=FH.createRuntime(project,state);
+  assert.equal(sys.statusFor(0,client).power.powered,true);
+  assert.equal(sys.statusFor(0,items.find(it=>it.id==='strip')).usedSlots,3);
+  assert.equal(sys.statusFor(0,items.find(it=>it.id==='plug')).usedSlots,1);
+});
