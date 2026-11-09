@@ -133,3 +133,28 @@ test('el inspector no permite elegir la zona de otro circuito del mismo panel',(
  assert.equal(items[0].circuits[1].zoneId,'a2');assert.equal(second.value,'a2');assert.ok(warning);
  second.value='b1';second.onchange();assert.equal(items[0].circuits[1].zoneId,'b1');assert.equal(items[0].circuits[1].id,'a2');
 });
+
+test('el inspector muestra el alcance real al crear un breaker, sin alterar JSON antiguos',()=>{
+ const seen={},FH=require('./fh-services-core.js');
+ const context=vm.createContext({
+  window:{FHServices:FH,FH_SERVICES_TEXT:{fields:{}},FH_LIGHT_TEXT:{breakerRange:(type,feet)=>type+': '+feet}},
+  document:{createElement:tag=>new Element(tag)},
+  makeField:(label,key,value)=>{seen[key]=value;return new Element('label')}
+ });
+ const start=editor.indexOf('function attachServiceInspector(');
+ const end=editor.indexOf('function openInspector()',start);
+ assert.ok(start>=0&&end>start);
+ vm.runInContext(editor.slice(start,end),context);
+ for(const [type,feet] of [['small',90],['medium',180],['large',360]]){
+  const panel={id:'new-panel',type:'breaker_panel',breakerType:type};
+  context.attachServiceInspector(panel,new Element('div'));
+  assert.equal(seen.rangeFt,feet,'mostrar alcance inicial de '+type);
+  assert.equal(Object.hasOwn(panel,'rangeFt'),false,'el inspector no escribe valores en el mapa');
+ }
+ const legacy={id:'old',type:'breaker_panel',breakerType:'large',rangeFt:0};
+ context.attachServiceInspector(legacy,new Element('div'));
+ assert.equal(seen.rangeFt,0,'conservar cero explícito');
+ legacy.rangeFt=24;
+ context.attachServiceInspector(legacy,new Element('div'));
+ assert.equal(seen.rangeFt,24,'conservar alcance personalizado');
+});
