@@ -3043,6 +3043,9 @@ function addLiveTextToEngine(doc){
 }
 
 function prepareGLBEngineDoc(source){
+ const fhEconomyScripts=['fh-economy-strings.js','fh-economy-core.js'].map(name=>
+  '<script src="'+new URL('./juego/assets/'+name+'?v=20261109-economy1',document.baseURI).href+'"></'+'script>').join('');
+ source=source.replace('</head>',fhEconomyScripts+'</head>');
  const lightingInit='const lighting=ForestShared.createLightingSystem(DATA.floors,GameState);';
  if(source.split(lightingInit).length!==2)throw Error('No se encontró la inicialización de iluminación');
  source=source.replace(lightingInit,'const lighting=ForestShared.createLightingSystem(DATA.floors,GameState,{fixturePowered:(floor,fixture,zone)=>!!window.FHServicesRuntime?.sourceFor(floor,fixture,zone)});');
@@ -4154,9 +4157,7 @@ async function start3DPreview(){
  try{
   const originalEngineDoc=decodeEmbedded3DEngine(PREVIEW_ENGINE_DOC_B64);
   const preparedEngineDoc=prepareGLBEngineDoc(originalEngineDoc);
-   const fhEconomyScripts=['fh-economy-strings.js','fh-economy-core.js'].map(name=>
-    '<script src="'+new URL('./juego/assets/'+name+'?v=20261109-economy1',document.baseURI).href+'"></'+'script>').join('');
-   let fhEngineDoc=preparedEngineDoc.replace('</head>',fhEconomyScripts+'</head>');
+   let fhEngineDoc=preparedEngineDoc;
    try{if(window.FHServicesEngine?.patch)fhEngineDoc=window.FHServicesEngine.patch(preparedEngineDoc)||preparedEngineDoc;}
    catch(serviceError){console.error('[Forest servicios] No pudo instalarse el adaptador:',serviceError);
     toast('Servicios temporalmente no disponibles en la vista 3D.');}
