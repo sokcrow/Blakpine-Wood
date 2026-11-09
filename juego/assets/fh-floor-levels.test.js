@@ -114,5 +114,7 @@ test('el parche 3D reconoce las anclas reales del motor empacado y las cambia',(
  assert.match(result,/function fhBasementWalk\(x,z\)/);
  assert.match(result,/DATA\.basementSlabs\?\.\[f\]/);
  assert.equal(result.includes('f===0||!SLABS[f].enabled'),false);
- assert.doesNotThrow(()=>new vm.Script(result.slice(result.indexOf('<script>')+8,result.indexOf('</script>',result.indexOf('<script>'))));
+ const first=result.indexOf('<script>'),last=result.indexOf('</script>',first);
+ assert.ok(first>=0&&last>first);
+ assert.doesNotThrow(()=>new vm.Script(result.slice(first+8,last)));
 });
