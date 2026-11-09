@@ -4212,11 +4212,11 @@ function fhRefreshActorVisibility(){
    if(occurrences!==1)throw Error('Hook supervivencia incompatible ('+occurrences+'): '+before.slice(0,64));
    doc=doc.replace(before,after);
   }
-  // Otros adaptadores pueden añadir condiciones al movimiento.
-  const movement=/if\(([^;\n]+)\)moveUpdate\(dt\);else\{user\.vx=user\.vz=0;\}/;
-  if(!movement.test(doc))throw Error('Hook de movimiento para supervivencia no localizado');
-  doc=doc.replace(movement,(_,condition)=>
-   'if(('+condition+')&&!fhSurvival?.state.critical)moveUpdate(dt);else{user.vx=user.vz=0;}');
+  // Mantener intacta la condición de movimiento de los adaptadores existentes.
+  const movement='function moveUpdate(dt){';
+  if(doc.split(movement).length!==2)throw Error('Función de movimiento no localizada');
+  doc=doc.replace(movement,movement+
+   '\n if(fhSurvival?.state.critical){user.walking=false;user.vx=user.vz=0;return;}');
   const tags=[
    'fh-survival-strings.js?v=20261109-survival1',
    'fh-survival-core.js?v=20261109-survival1',
