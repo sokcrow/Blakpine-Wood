@@ -6,7 +6,7 @@
  else root.FHPhone=Object.freeze(api);
 })(typeof globalThis!=='undefined'?globalThis:this,function(root){
  'use strict';
- const BASE_APPS=Object.freeze(['directory','messages','notes','calendar','weather','flashlight','store','network','calls']);
+ const BASE_APPS=Object.freeze(['directory','messages','notes','accounts','calendar','weather','flashlight','store','network','calls']);
  const AVAILABLE_APPS=Object.freeze([...BASE_APPS,'hamazon']);
  const CATEGORIES=Object.freeze(['person','business','service','player']);
  const EXTRA_APPS=new Map();
@@ -120,6 +120,7 @@
    directory:'M5 4h14v16H5z M9 4v16 M12 9h4 M12 13h4',
    messages:'M5 5h14v12H9l-4 3V5z M8 9h8 M8 12h5',
    notes:'M7 3h10l3 3v15H7z M17 3v4h3 M10 11h7 M10 15h7 M10 19h5',
+   accounts:'M4 6h16v12H4z M4 10h16 M8 15h4',
    flashlight:'M9 3h6l1 5-2.5 3v9h-3v-9L8 8z M9 8h6',
    store:'M4 4h7v7H4z M14 4h6v7h-6z M4 14h7v6H4z M14 14h6v6h-6z',
    hamazon:'M4 8h16v13H4z M8 8V6a4 4 0 0 1 8 0v2 M4 12h16',
@@ -175,7 +176,7 @@
    view=name;content.replaceChildren();toolbar(label('app_'+name,name),back);
    if(name==='messages'||name==='conversation'){pendingNotice=false;syncNotification()}
    const handlers={home:home,directory:directory,messages:messages,conversation:conversation,
-    notes:notes,editNote:editNote,document:readDocument,calendar:calendar,weather:weather,flashlight:flashlight,store:store,hamazon:hamazon,network:network,calls:calls};
+    notes:notes,editNote:editNote,document:readDocument,accounts:accounts,calendar:calendar,weather:weather,flashlight:flashlight,store:store,hamazon:hamazon,network:network,calls:calls};
    if(['store','hamazon'].includes(name)&&options.networkDelayMs){
     const ms=Math.max(0,Math.min(1800,Number(options.networkDelayMs())||0));
     if(ms>0){
@@ -210,6 +211,36 @@
     const icon=container('fh-phone-app-icon');icon.append(glyph(id));
     append(b,icon,el('span','fh-phone-app-label',label('app_'+id,EXTRA_APPS.get(id)?.name||id)));
     grid.append(b);
+   }
+  }
+  function accounts(){
+   const M=root.FH_ECONOMY_TEXT||{},text=key=>M[key]||label('notAvailable','—');
+   const reader=options.economyView||root.FHEconomyView;
+   const id=state.characterId||root.FHCharacterRuntime?.character?.id;
+   const v=reader?.readForCharacter(id,options.economyStorage||root.localStorage);
+   if(!v?.ok){empty(text(v?.reason||'storage_unavailable'));return}
+   content.append(el('p','fh-phone-muted',text('moneyReadOnly')));
+   const cards=container('fh-phone-accounts-grid');
+   for(const [kind,caption,value] of [['cash',text('cashBalance'),v.cashUsd],['bank',text('bankBalance'),v.bankUsd]]){
+    const card=container('fh-phone-account-card');card.dataset.kind=kind;
+    append(card,el('small','',caption),el('strong','',value));cards.append(card);
+   }
+   content.append(cards);
+   const total=container('fh-phone-account-total');
+   append(total,el('span','',text('totalBalance')),el('strong','',v.totalUsd));
+   content.append(total,button(label('refreshAccounts','Actualizar'),()=>screen('accounts'),'fh-phone-account-refresh'),
+    el('h3','fh-phone-section',text('recentMovements')));
+   if(!v.movements.length){empty(text('noMovements'));return}
+   for(const m of v.movements){
+    const entry=container('fh-phone-account-movement');entry.dataset.status=m.status;
+    const details=container('fh-phone-account-movement-detail');
+    const op=m.operation==='credit'?text('creditLabel'):m.operation==='debit'?text('debitLabel'):text('transferLabel');
+    const direction=m.direction==='incoming'?text('incoming'):m.direction==='outgoing'?text('outgoing'):text('internalTransfer');
+    const status=m.status==='rejected'?text('rejectedLabel'):text('confirmedLabel');
+    append(details,el('strong','',op+' · '+direction),
+      el('small','',status+(m.status==='rejected'?' · '+(M[m.reason]||text('rejected')):'')));
+    const sign=m.status==='rejected'?'':m.direction==='incoming'?'+':m.direction==='outgoing'?'−':'';
+    append(entry,details,el('strong','fh-phone-account-movement-amount',sign+m.amountUsd));content.append(entry);
    }
   }
   function calendar(){
