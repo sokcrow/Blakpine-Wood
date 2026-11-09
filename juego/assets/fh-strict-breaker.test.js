@@ -78,6 +78,10 @@ for(const [name,factory] of [
   lighting.restoreBreaker(0,{powerScope:'floor',breakerFlag:'old_floor_control'});
   assert.equal(state.flags['power_floor:f0'],true);assert.equal(state.services.enabled['power_floor:f0'],true);
   assert.equal(lighting.fixtureLit(0,room,lamp),true);
+  state.flags.old_floor_control=false;
+  assert.equal(lighting.breakerPower(0,{powerScope:'floor',breakerFlag:'old_floor_control'}),false);
+  lighting.restoreBreaker(0,{powerScope:'floor',breakerFlag:'old_floor_control'});
+  assert.equal(lighting.breakerPower(0,{powerScope:'floor',breakerFlag:'old_floor_control'}),true);
  });
  test(name+': restaurar los controles del demo recupera los cortes globales, de piso y de zona',()=>{
   const project=JSON.parse(fs.readFileSync(path.join(__dirname,'../../forest-horror/maps/DEMO_Circuitos_Identificados.json'),'utf8'));

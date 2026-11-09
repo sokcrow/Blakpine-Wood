@@ -662,7 +662,7 @@ function createLightingSystem(floors,state,config={}){
   return item.powerScope==='global'?'power_global':item.powerScope==='zone'?zoneKey(str(item.zoneId)||'main'):powerKey(floor);
  }
  function breakerPower(floor,item={}){
-  return on(breakerKey(floor,item))&&(!str(item.powerFlag)||on(item.powerFlag));
+  return on(breakerKey(floor,item))&&(!str(item.breakerFlag)||on(item.breakerFlag))&&(!str(item.powerFlag)||on(item.powerFlag));
  }
  function setBreakerPower(floor,item={},power=true){
   const value=!!power,scope=['global','floor','zone'].includes(item.powerScope)?item.powerScope:'floor';
