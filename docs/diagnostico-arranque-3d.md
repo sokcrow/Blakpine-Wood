@@ -20,11 +20,12 @@ Comparación: PR #100 (`73613fee`) → `bea3169` (PR #111 integrado).
 - RUNNING y el aviso de mapa listo llegan después de completar render y máscara del primer fotograma.
 - Se registran validación, WebGL, escenario, servicios, supervivencia, movimiento, cámara, visibilidad y render.
 - Los fallos de scripts, imágenes, estilos, GLB, shaders y contexto WebGL aparecen en el informe.
-- Un error fatal abre automáticamente el panel. Los fallos recuperables aumentan el contador de avisos.
+- El panel está oculto por defecto. Los errores fatales y los recursos fallidos lo muestran automáticamente; las etapas y las cargas normales no lo muestran.
+- La flecha junto a «Probar 3D» despliega «Mostrar diagnóstico durante el juego». Su estado se recuerda en el dispositivo y permite ver el panel durante una prueba sin errores.
 - El panel ofrece copiar el informe y volver al editor, incluso si falló el menú interno del juego.
 - El informe conserva hasta 80 entradas y mantiene el primer error fatal. No serializa el JSON del mapa ni las partidas guardadas y no se transmite automáticamente.
 - El estado vivo muestra posición, FPS, transitabilidad, postura, menú/celular/diálogo abierto, estado crítico, llamadas de render, geometrías, texturas y tamaño del canvas. Permite distinguir una animación activa con movimiento bloqueado de una excepción o un render sin geometría.
-- El código `3d-diag-20261109-1` permite distinguir esta versión de una página almacenada en caché.
+- El código `3d-diag-20261109-2` permite distinguir esta versión de una página almacenada en caché.
 - Si el lector no está disponible, el motor conserva la señal de éxito después del primer render; el lector no es un requisito nuevo para jugar.
 - Si un hook del propio lector deja de coincidir, se conserva el motor sin instrumentar y se muestra «Diagnóstico parcial». En ese caso no se certifica el primer fotograma. Un fallo al montar el panel tampoco impide construir el motor.
 
@@ -39,8 +40,8 @@ Esto valida el lector y el orden de arranque, no certifica renderizado GPU ni ju
 ## Prueba en el dispositivo afectado
 
 1. Con esta versión integrada y publicada, abrir «Probar 3D».
-2. Comprobar que el panel muestra `3d-diag-20261109-1`.
+2. Para verlo durante una prueba normal, desplegar la flecha del editor y activar «Mostrar diagnóstico durante el juego». El panel muestra `3d-diag-20261109-2`.
 3. Si falla, copiar el informe. El primer ERROR y su etapa son la referencia para la reparación.
 4. Si aparece «Primer fotograma completado» pero sigue negro o no responde, conservar también los avisos de recursos: un render completado no demuestra que todos los modelos o controles estén disponibles.
 
-Estado de aceptación del bloqueo móvil: **NEEDS WORK**. No se revirtió ninguna mejora ni se modificaron mapas o partidas.
+El usuario confirmó después de #112 que el escenario y el HUD son visibles; su informe mostró 52 FPS y ningún error. La causa de la pantalla negra anterior no quedó identificada por ese informe exitoso. No se revirtió ninguna mejora ni se modificaron mapas o partidas.

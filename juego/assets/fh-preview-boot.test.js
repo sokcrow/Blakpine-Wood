@@ -280,7 +280,7 @@ async function previewWithFailure(failingAdapter){
    FH_STRUCTURE_TEXT:{integrationFailure:'error de PG'}
   },
   project:{floors:[{items:[{type:'spawn'}]}]},
-  document:{activeElement:null},console:{error(){},warn(){}},
+  document:{activeElement:null,getElementById:()=>null},console:{error(){},warn(){}},
   preview3DActive:false,preview3DSent:false,preview3DRunning:false,preview3DArchitectureError:'',
   preview3DDiagnostics:null,preview3DDiagnosticFailed:false,
   play3DFrame:frame,play3DLayer:{classList:{add(){}},setAttribute(){}},
