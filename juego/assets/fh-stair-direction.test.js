@@ -45,6 +45,7 @@ test('editor permite escoger subir o bajar al crear una escalera; no asume el pi
  const doc=html();
  assert.match(doc,/function chooseStairPlacement\(\)/);
  assert.match(doc,/data-stair-direction/);
+ assert.match(doc,/for\(const button of \$\$\('\[data-stair-direction\]'\)\)/,'los botones se registran mediante querySelectorAll');
  assert.match(doc,/function stairNeighbors\(index=floorIndex\)/);
  assert.match(doc,/stairPlacementDirection=button\.dataset\.stairDirection/);
  assert.match(doc,/Dirección y destino/);
@@ -83,6 +84,18 @@ test('mover o girar la bajada actualiza el tramo inferior sin cambiar su ID',()=
  assert.equal(p.floors[0].items.length,1);
  assert.equal(base.id,originalId);
  for(const key of ['x','y','rotation','w','h'])assert.equal(base[key],authored[key]);
+});
+
+test('la escalera generada conserva la bandera que bloquea ambos sentidos',()=>{
+ const p=sample(),human=p.floors[1].items[0];human.stairBlockFlag='porton_cerrado';
+ const sync=getSync(p);sync();
+ const low=p.floors[0].items[0];
+ assert.equal(low.stairBlockFlag,'porton_cerrado');
+ assert.equal(low.targetFloorId,'pb');
+ human.stairBlockFlag='alarma_activada';sync();
+ assert.equal(p.floors[0].items[0].stairBlockFlag,'alarma_activada','actualizar el bloqueo propaga al tramo físico');
+ human.stairBlockFlag='';sync();
+ assert.equal(p.floors[0].items[0].stairBlockFlag,'','quitar el bloqueo limpia el valor heredado');
 });
 
 test('cambiar PB → B1 por PB → P1 o borrar limpia tramo anterior y enlaza subida',()=>{
@@ -149,7 +162,7 @@ test('alturas 3D se basan en elevaciones reales, no en dirección escrita en el 
  const source=patchedEngine();
  assert.match(source,/const floorElev=DATA\.floors\.map/);
  assert.ok(source.includes('rise=Math.max(2.3,Math.abs(a.autoLanding?'),'el desnivel usa la diferencia real entre pisos');
- assert.match(source,/const isAscending=dest>currentFloor/);
+ assert.ok(source.includes('isAscending=dest>currentFloor'),'el destino se interpreta desde la planta de origen');
  assert.match(source,/vertical:floorElev\[dest\]-floorElev\[currentFloor\]/);
  assert.match(source,/stairDescendTriggerAt\(stairs\.item/);
 });
