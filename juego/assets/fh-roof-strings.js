@@ -2,7 +2,7 @@
  'use strict';
  root.FH_ROOF_TEXT=Object.freeze({
   title:'Azotea sobre este nivel',open:'Configurar azotea',enabled:'Generar azotea y pretil',
-  help:'El perímetro cerrado de pared roja genera la azotea. Las zonas ocupadas por el edificio superior conservan su piso interior. Los patios permanecen abiertos.',
+  help:'Las paredes rojas de abajo generan el piso superior. Su parte fuera de los contornos rojos cerrados de arriba es azotea, haya o no habitaciones dibujadas. Los patios permanecen abiertos.',
   legacy:'Este mapa conserva su techo anterior hasta que actives esta opción.',
   height:'Altura del pretil (tiles)',floor:'Piso de azotea',wall:'Pared del pretil',
   material:'Material',color:'Color',save:'Guardar azotea',close:'Cerrar',

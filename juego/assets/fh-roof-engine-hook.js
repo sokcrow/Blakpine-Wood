@@ -12,11 +12,20 @@
   one('const SAVE_KEY=ForestShared.gameSaveKey(DATA);','const SAVE_KEY=fhRoofSaveKey;');
   one('const isBuilt=DATA.floors.map(',
    'const FH_ROOF_PLANS=window.FHRoof.plans(DATA,SLABS);\nconst fhRoofObjects=DATA.floors.map(()=>[]);\nconst isBuilt=DATA.floors.map(');
+  one('function areaSurfaceGrid(f,x,y,w,h,m,ypos){',String.raw`function areaSurfaceGrid(f,x,y,w,h,m,ypos){
+ const roof=FH_ROOF_PLANS[f];
+ if(roof){
+  // Los rellenos de habitaciones y suelos no cambian una azotea a interior.
+  for(const sp of window.FHRoof.difference([{x,y,w,h}],roof.spans))
+   for(const r of surfaceRectsMinusVoids(f,sp.x,sp.y,sp.w,sp.h))surfaceGrid(f,r.x,r.y,r.w,r.h,m,ypos);
+  return;
+ }
+`);
   const surface='if(f>0&&SLABS[f].enabled)for(const sp of SLABS[f].spans)for(const r of surfaceRectsMinusVoids(f,sp.x,sp.y,sp.w,sp.h))surfaceGrid(f,r.x,r.y,r.w,r.h,ART_FLOOR_MAT,.018);';
   one(surface,String.raw`
  const roof=FH_ROOF_PLANS[f];
  if(f>0&&SLABS[f].enabled){
-  const interiorSpans=roof?window.FHRoof.difference(SLABS[f].spans,roof.spans):SLABS[f].spans;
+  const interiorSpans=roof?roof.interiorSpans:SLABS[f].spans;
   for(const sp of interiorSpans)for(const r of surfaceRectsMinusVoids(f,sp.x,sp.y,sp.w,sp.h))surfaceGrid(f,r.x,r.y,r.w,r.h,ART_FLOOR_MAT,.018);
  }
  if(roof&&roof.spans.length){
@@ -45,7 +54,7 @@ for(let f=0;f<fhRoofObjects.length;f++)for(const {source,item} of fhRoofObjects[
 }
 // Perfil del borde de la losa:`);
   const tags=['fh-roof-strings.js','fh-roof.js'].map(file=>
-   '<script src="'+new URL('./juego/assets/'+file+'?v=20261110-roof1',root.document.baseURI).href+'"></'+'script>').join('');
+   '<script src="'+new URL('./juego/assets/'+file+'?v=20261110-roof2',root.document.baseURI).href+'"></'+'script>').join('');
   if(!doc.includes('</head>'))throw Error('Falta cabecera del motor para azoteas');
   doc=doc.replace('</head>',()=>tags+'</head>');
   return doc;
