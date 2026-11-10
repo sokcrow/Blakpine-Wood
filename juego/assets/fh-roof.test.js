@@ -34,10 +34,9 @@ test('retranqueo: concreto sólo en terraza, sin pretil contra el muro superior'
  const full=R.plan(slab([box(0,0,10,10)]),slab([box(0,0,10,10)]),R.settings());
  assert.equal(full.spans.length,0);assert.equal(full.edges.length,0);
 });
-test('mapa anterior o desactivado no recibe acabados ni muros nuevos',()=>{
- assert.equal(R.plan(slab([box(0,0,3,3)]),null,undefined),null);
+test('sólo la desactivación explícita conserva el acabado anterior sin pretil',()=>{
  assert.equal(R.plan(slab([box(0,0,3,3)]),null,{enabled:false}),null);
- const old={floors:[{id:'pb',items:[]}],roofSlabsByFloor:[slab([box(0,0,3,3)])]};
+ const old={floors:[{id:'pb',items:[],roof:{enabled:false}}],roofSlabsByFloor:[slab([box(0,0,3,3)])]};
  const original=JSON.stringify(old);R.prepareRuntime(old,'Azotea');assert.equal(JSON.stringify(old),original);
 });
 test('tapa final sólo en runtime, es idempotente y respeta altura y sótano',()=>{
@@ -129,7 +128,7 @@ test('record, undo y exportación real conservan la configuración sin inventar 
  assert.equal(out.floors[0].roof.parapetHeightTiles,.75);assert.equal(out.floors.length,1);
  assert.equal(out.roofSlabsByFloor[0].spans.length,1);
 });
-test('geometría Three.js real: pretil de .381 m, colisión perimetral y concreto texturizado',()=>{
+test('mapa sin roof: concreto, pretil de .381 m, colisión y copias para vistas desde otra planta',()=>{
  const THREE=require('./vendor/three.min.js');
  const sandbox={window:{document:{baseURI:'https://example.test/'}} ,URL};
  vm.createContext(sandbox);
@@ -145,7 +144,7 @@ test('geometría Three.js real: pretil de .381 m, colisión perimetral y concret
   MAT:{wall:new THREE.MeshLambertMaterial(),wood:new THREE.MeshLambertMaterial(),edge:new THREE.MeshLambertMaterial()},
   document:{createElement:()=>({width:0,height:0,getContext:()=>({fillRect(){}})})},
   surfaceRectsMinusVoids:(f,x,y,w,h)=>[{x,y,w,h}],
-  FH_ROOF_PLANS:[R.plan(slab([box(0,0,6,4)]),null,R.settings())],fhRoofObjects:[[]],SLABS:[slab([box(0,0,6,4)])],f:0,FHRoof:R};
+  FH_ROOF_PLANS:[R.plan(slab([box(0,0,6,4)]),null,undefined)],fhRoofObjects:[[]],SLABS:[slab([box(0,0,6,4)])],f:0,FHRoof:R};
  runtime.window=runtime;
  const c=vm.createContext(runtime);
  vm.runInContext(fs.readFileSync(__dirname+'/fh-style-property.js','utf8'),c);
@@ -164,6 +163,15 @@ test('geometría Three.js real: pretil de .381 m, colisión perimetral y concret
  const surface=runtime.stories[0].children.find(m=>m.userData.fhRoofSurface);
  assert.ok(surface.material.map);assert.equal(surface.material.userData.fhTileSize,32);
  assert.ok(surface.userData.fhStructuralSlab);assert.equal(runtime.occlusionRoots[0].length,5);
+ const proxyStart=patched.indexOf('for(let f=0;f<fhRoofObjects.length;f++)'),proxyEnd=patched.indexOf('// Perfil del borde de la losa:',proxyStart);
+ runtime.exteriorLayers=[new THREE.Group()];runtime.floorElev=[3.048];runtime.exteriorProxies=[];runtime.exteriorCutawayRoots=[];
+ vm.runInContext(patched.slice(proxyStart,proxyEnd),c);
+ assert.equal(runtime.exteriorProxies.length,5,'superficie y cuatro pretiles disponibles para la vista entre plantas');
+ const roofCopy=runtime.exteriorProxies.find(p=>p.clone.userData.fhRoofSurface);
+ assert.equal(roofCopy.clone.material,surface.material,'la copia exterior conserva el concreto, sin sustituirlo por madera');
+ assert.ok(Math.abs(roofCopy.clone.position.y-3.069)<1e-8);
+ const wallsCopied=runtime.exteriorProxies.filter(p=>p.clone.userData.fhRoofParapet);
+ assert.equal(wallsCopied.length,4);assert.ok(wallsCopied.every(p=>p.clone.material.color.getHexString()==='a34d43'));
 });
 test('los contornos rojos reales, sin habitaciones, separan interior y azotea',()=>{
  const html=fs.readFileSync(__dirname+'/../../index.html','utf8');
@@ -213,4 +221,31 @@ test('los suelos de habitaciones y áreas no pueden cubrir la azotea calculada',
  calls.length=0;
  roof.spans=[box(1,1,8,8)];ctx.areaSurfaceGrid(1,1,1,8,8,wood,.039);
  assert.equal(calls.length,0,'sin contorno rojo arriba, toda la losa conserva el acabado de azotea');
+});
+test('mapa existente sin campo roof usa defaults al calcular la azotea de Piso 2',()=>{
+ const data={schema:'forest-horror-map-v1',mainFloorId:'pb',styleSystem:0,
+  floors:[{id:'pb',name:'PB',elevationFt:0,ceilingHeightFt:10,items:[]},
+   {id:'p2',name:'Piso 2',elevationFt:10,ceilingHeightFt:10,items:[]}],
+  roofSlabsByFloor:[slab([box(1,1,8,8)]),{enabled:false,spans:[]}]};
+ const saved=JSON.stringify(data);
+ const roof=R.plans(data,[{enabled:false},data.roofSlabsByFloor[0]])[1];
+ assert.ok(roof,'no cancela la azotea por faltar el campo nuevo');
+ assert.equal(area(roof.spans),64);assert.equal(roof.floor.preset,'concreto');
+ assert.equal(roof.wall.color,'#A34D43');assert.equal(roof.parapetHeightTiles,.25);assert.equal(length(roof.edges),32);
+ assert.equal(JSON.stringify(data),saved,'consultar defaults no modifica el mapa guardado');
+ data.floors[0].roof={enabled:false};assert.equal(R.plans(data,[{},data.roofSlabsByFloor[0]])[1],null);
+});
+test('la última planta de un mapa existente también recibe tapa sin configuración nueva',()=>{
+ const data={mainFloorId:'pb',floors:[{id:'pb',name:'PB',elevationFt:0,ceilingHeightFt:10,items:[]}],
+  roofSlabsByFloor:[slab([box(0,0,6,4)])]};
+ R.prepareRuntime(data,'Azotea');assert.equal(data.floors.length,2);
+ const roof=R.plans(data,[{},data.slabsByLevel[0]])[1];
+ assert.equal(roof.floor.preset,'concreto');assert.equal(roof.edges.length,4);
+ R.prepareRuntime(data,'Azotea');assert.equal(data.floors.length,2);
+});
+test('el panel muestra la azotea activa por defecto para un mapa existente',()=>{
+ const env={window:{FHRoof:R,FH_ROOF_TEXT:{},FH_STYLE_TEXT:{floorPresets:[],wallPresets:[]}},
+  current:()=>({name:'PB'}),escapeAttr:s=>String(s??''),modal:html=>{env.html=html}};
+ vm.runInNewContext(fs.readFileSync(__dirname+'/fh-roof-editor.js','utf8'),env);
+ env.window.FHRoofEditor.open();assert.match(env.html,/id="roof-enabled" checked/);
 });

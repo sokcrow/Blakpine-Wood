@@ -12,7 +12,7 @@ En el nivel que contiene el perímetro rojo del edificio, abrir **⚙ Niveles �
 
 ## Compatibilidad y datos
 
-Se conserva `forest-horror-map-v1`. `floors[].roof` es opcional; los mapas anteriores sin ese campo conservan la apariencia anterior. Para aplicarles los valores nuevos, activar **Generar azotea y pretil** en el panel y guardar.
+Se conserva `forest-horror-map-v1`. `floors[].roof` es opcional; los mapas anteriores sin ese campo usan concreto y pretil de 0.25 tile automáticamente. No hace falta volver a dibujar ni guardar la configuración. Sólo `roof.enabled: false` desactiva expresamente estos acabados y el pretil.
 
 La configuración se guarda en el borrador, historial de deshacer/rehacer, exportación JSON y payload de la vista 3D. La exportación incorpora `roofSlabsByFloor`, un cálculo derivado de los mismos perímetros rojos y patios usados por `buildingSlabs()`.
 
@@ -20,6 +20,6 @@ La colisión del pretil utiliza `wallModel()` y los bloqueadores existentes. La 
 
 ## Validación
 
-Las pruebas `fh-roof.test.js` cubren valores predeterminados, normalización, patios, contornos en L, uniones de losas, retranqueos, configuraciones por planta, mapas anteriores, tapa final, permisos del panel, guardado, deshacer/rehacer, exportación y geometría real de Three.js con colisión perimetral y altura en metros. `fh-preview-boot.test.js` integra el adaptador en la cadena real de construcción del motor.
+Las pruebas `fh-roof.test.js` cubren valores predeterminados, normalización, patios, contornos en L, uniones de losas, retranqueos, configuraciones por planta, mapas anteriores sin configuración, desactivación explícita, tapa final, permisos del panel, guardado, deshacer/rehacer, exportación y geometría real de Three.js con colisión perimetral y altura en metros. `fh-preview-boot.test.js` integra el adaptador en la cadena real de construcción del motor.
 
 No se modifican los fragmentos Base64 del motor ni los sistemas de electricidad, combate o inventario.
