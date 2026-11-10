@@ -251,6 +251,19 @@ test('intercambiar dos niveles cambia sólo sus dos alturas, sin mover los otros
  assert.equal(p.mainFloorId,'pb');
 });
 
+test('crear arriba y abajo usa siempre 10 pies DESDE el piso seleccionado',()=>{
+ const p={floors:[floor('bajo',-12),floor('pb',0),floor('alto',12)]};
+ L.setMain(p,'pb');
+ const first=next('newB1');
+ assert.deepEqual(L.insert(p,'pb','below',first),{ok:true,index:1,id:'newB1'});
+ assert.equal(first.elevationFt,-10);
+ assert.equal(first,p.floors[1],'conserva la referencia del piso recién creado para renombrarlo');
+ const nextUp=next('newP1');
+ assert.deepEqual(L.insert(p,'pb','above',nextUp),{ok:true,index:3,id:'newP1'});
+ assert.equal(nextUp.elevationFt,10);
+ assert.deepEqual(p.floors.map(f=>f.elevationFt),[-12,-10,0,10,12]);
+ assert.deepEqual(p.floors.map((_,i)=>L.code(p,i)),['B2','B1','PB','P1','P2']);
+});
 test('no inventa hueco de 10 pies ni mueve pisos existentes si están demasiado juntos',()=>{
  const p={floors:[floor('ground',0),floor('upper',10)]};
  const before=JSON.stringify(p);
