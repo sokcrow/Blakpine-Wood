@@ -47,7 +47,7 @@ test('adapter 3D aplica FOW también al repartidor y expone registro para jugado
  assert.match(result,/window\.FHActorVisibility=Object\.freeze/);
  assert.match(result,/fhRegisterVisibleActor\(fhDeliveryNpc/);
  assert.match(result,/fhRegisterVisibleActor\(sprite/);
- assert.match(result,/fhRefreshActorVisibility\(\);\s*if\(peeking\)/);
+ assert.match(result,/fhRefreshActorVisibility\(\);\s*window.FHPreviewDiagnostics\?\.stage\('render'\);\s*if\(peeking\)/);
  assert.match(result,/const poseIdle=fhPlayerWalkCycle\.tick\(user\.walking,dt\)==='idle'/);
  assert.match(result,/fhNpcWalkCycle\.tick\(true,dt\)/);
  assert.match(result,/let fhActorSightSnapshot=null/);

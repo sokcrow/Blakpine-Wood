@@ -166,7 +166,8 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
   </div>
  </div>
 </div>
-<script src="./juego/assets/fh-preview-strings.js"></script>
+<script src="./juego/assets/fh-preview-strings.js?v=20261109-diag1"></script>
+<script src="./juego/assets/fh-preview-diagnostics.js?v=20261109-diag1"></script>
 <script src="./juego/assets/fh-mobile-camera.js?v=20261108-landscape20"></script>
 <script src="./juego/assets/images.js"></script>
 <script src="./juego/assets/engine-00.js"></script>
@@ -3008,9 +3009,13 @@ const play3DLayer=document.getElementById('play3dLayer');
 const play3DFrame=document.getElementById('play3dFrame');
 const play3DState=document.getElementById('play3dState');
 let preview3DActive=false,preview3DSent=false,preview3DRunning=false,preview3DTimer=null,preview3DArchitectureError='';
+let preview3DDiagnostics=null,preview3DDiagnosticFailed=false;
 function stop3DWatchdog(){if(preview3DTimer!==null){clearTimeout(preview3DTimer);preview3DTimer=null}}
-function preview3DError(message){
+function preview3DError(message,reported=false){
  stop3DWatchdog();
+ preview3DDiagnosticFailed=true;
+ if(!reported)preview3DDiagnostics?.record({kind:'fatal',stage:'adapter',message});
+ play3DLayer.classList.remove('fh-menu-live');
  show3DStatus(PREVIEW_TEXT.errorPrefix+String(message||PREVIEW_TEXT.unknown));
 }
 function makeCurrent3DProject(){
@@ -3989,9 +3994,9 @@ function fhStartNpcRoute(order,door){
  }
 
  const engineSuccessBefore="try{window.ForestHorrorLoadedMap=map;startGame();started=true;panel.classList.add('hide');document.getElementById('loading').classList.add('off')}";
- const engineSuccessAfter="try{window.ForestHorrorLoadedMap=map;startGame();started=true;panel.classList.add('hide');document.getElementById('loading').classList.add('off');parent.postMessage({type:'FOREST_PREVIEW_RUNNING'},'*')}";
+ const engineSuccessAfter="try{window.ForestHorrorLoadedMap=map;startGame();started=true;panel.classList.add('hide');document.getElementById('loading').classList.add('off')}";
  const engineFailBefore="catch(e){console.error(e);status.textContent='Error al construir el mapa: '+e.message;panel.classList.remove('hide')}}";
- const engineFailAfter="catch(e){console.error(e);status.textContent='Error al construir el mapa: '+e.message;panel.classList.remove('hide');parent.postMessage({type:'FOREST_PREVIEW_ERROR',message:e.message||String(e)},'*')}}";
+ const engineFailAfter="catch(e){console.error(e);window.FHPreviewDiagnostics?.fatal(e);status.textContent='Error al construir el mapa: '+e.message;panel.classList.remove('hide');parent.postMessage({type:'FOREST_PREVIEW_ERROR',message:e.message||String(e)},'*')}}";
  const loadFailBefore="if(index>=providers.length){status.textContent='No se pudo cargar Three.js. Conéctate a internet y vuelve a abrir este HTML.';return}";
  const loadFailAfter="if(index>=providers.length){status.textContent='No se pudo cargar Three.js. Conéctate a internet y vuelve a abrir este HTML.';parent.postMessage({type:'FOREST_PREVIEW_ERROR',message:status.textContent},'*');return}";
  for(const hook of [engineSuccessBefore,engineFailBefore,loadFailBefore])if(source.split(hook).length!==2)throw Error('Hook de inicio 3D incompatible: '+hook.slice(0,80));
@@ -4256,7 +4261,46 @@ function fhRefreshActorVisibility(){
   .replace(cloneBefore,'const clone=source.clone(true);\n   window.FHAssets?.mirror(source,clone);\n   clone.position.y+=floorElev[f];')
   .replace(engineSuccessBefore,engineSuccessAfter).replace(engineFailBefore,engineFailAfter).replace(loadFailBefore,loadFailAfter)
   .replace('</head>',localThree+coverageScript+lightsModule+surfaceScript+decorationScript+ruleScript+inventoryCoreScript+bridge+sleepCss+sleepStrings+sleepModule+pcAssemblyModule+computerStrings+computerModule+npcGoapModule+npcCourierModule+deliveryStrings+deliveryModule+styleCore+styleRender+parkingScript+playerMenuCss+playerMenuStrings+skillsModule+skillsStrings+helpCss+helpStrings+helpScript+playerMenuScript+locationCss+locationStrings+locationScript+hudRedesignCss+gameUiCss+hudFrameScript+mobileMenusCss+statusCss+statusStrings+statusScript+phoneCss+phoneStrings+phoneScript+mobileCameraScript+'</head>'))));
- return addFloorVisibilityToEngine(addNaturalLightToEngine(assembled));
+ function addPreviewDiagnostics(doc){
+  const original=doc;
+  const edits=[
+   ["function startGame(){\n'use strict';","function startGame(){\n'use strict';\nwindow.FHPreviewDiagnostics?.stage('validation');"],
+   ["const renderer=new THREE.WebGLRenderer(","window.FHPreviewDiagnostics?.stage('webgl');\nconst renderer=new THREE.WebGLRenderer("],
+   ['renderer.setClearColor(0x000000,1);',"window.FHPreviewDiagnostics?.watchThree(THREE,renderer);\nwindow.FHPreviewDiagnostics?.stage('world');\nrenderer.setClearColor(0x000000,1);"],
+   ['DATA.floors.forEach((_,i)=>buildFloor(i));',"window.FHPreviewDiagnostics?.stage('models');\nDATA.floors.forEach((_,i)=>buildFloor(i));"],
+   ['function frame(now){',"function frame(now){\nwindow.FHPreviewDiagnostics?.stage('frame');"],
+   [' const chargeBefore=Math.ceil(lighting.state.charge),wasOn=lighting.state.enabled;'," window.FHPreviewDiagnostics?.stage('lighting');\n const chargeBefore=Math.ceil(lighting.state.charge),wasOn=lighting.state.enabled;"],
+   ['window.FHDeliveryRuntime?.update(dt);window.FHPhoneRuntime?.update(dt);',"window.FHPreviewDiagnostics?.stage('services');window.FHDeliveryRuntime?.update(dt);window.FHPhoneRuntime?.update(dt);"],
+   ['function receive(obj){try{const valid=trimMap(obj);',"function receive(obj){try{window.FHPreviewDiagnostics?.stage('validation');const valid=trimMap(obj);"],
+   ['catch(e){status.textContent=e.message}}',"catch(e){status.textContent=e.message;window.FHPreviewDiagnostics?.fatal(e);parent.postMessage({type:'FOREST_PREVIEW_ERROR',message:e.message||String(e)},'*')}}"],
+   ['if(fhSurvival){',"window.FHPreviewDiagnostics?.stage('survival');\nif(fhSurvival){"],
+   ['fhDecorationTick();',"window.FHPreviewDiagnostics?.stage('movement');fhDecorationTick();"],
+   [' cameraUpdate(dt);'," window.FHPreviewDiagnostics?.stage('camera');cameraUpdate(dt);"],
+   ['if(now-lastHud>90){',"window.FHPreviewDiagnostics?.stage('visibility');if(now-lastHud>90){"],
+   [' drawSight();\n fhRefreshActorVisibility();'," window.FHPreviewDiagnostics?.stage('visibility');drawSight();\n fhRefreshActorVisibility();"],
+   [' if(peeking){pointPeephole();'," window.FHPreviewDiagnostics?.stage('render');\n if(peeking){pointPeephole();"],
+   ["notice('Mapa 3D listo · Escaleras conectadas: camina hacia el centro · E: usar · Q: mirilla.',5500);",''],
+   ['circleMask();requestAnimationFrame(frame);',"circleMask();if(!frame.fhReady&&!window.FHPreviewDiagnostics?.failed){frame.fhReady=true;if(window.FH_PREVIEW_TEXT?.engineReady)notice(window.FH_PREVIEW_TEXT.engineReady,5500);if(!window.FHPreviewDiagnostics?.frame)parent.postMessage({type:'FOREST_PREVIEW_RUNNING'},'*')}window.FHPreviewDiagnostics?.frame();requestAnimationFrame(frame);"],
+   ['\nrequestAnimationFrame(frame);\n}',"\nwindow.FHPreviewDiagnostics?.stage('firstFrame');requestAnimationFrame(frame);\n}"]
+  ];
+  for(const [before,after] of edits){
+   const count=doc.split(before).length-1;
+   if(count!==1){
+    const message=(window.FH_PREVIEW_TEXT?.diagnosticPartial||'Diagnostic hook')+' ('+count+'): '+before.slice(0,70);
+    console.warn('[Forest diagnóstico]',message);
+    if(typeof preview3DDiagnostics!=='undefined')preview3DDiagnostics?.record({kind:'resource',stage:'adapter',message});
+    // El lector nunca debe convertirse en otro adaptador obligatorio del juego.
+    doc=original.replace(engineSuccessAfter,engineSuccessAfter.slice(0,-1)+";parent.postMessage({type:'FOREST_PREVIEW_RUNNING',unverified:true},'*')}");
+    break;
+   }
+   doc=doc.replace(before,after);
+  }
+  // Instalar el lector ANTES de scripts, GLB y código de arranque del iframe.
+  const tags=['fh-preview-strings.js','fh-preview-diagnostics.js'].map(file=>
+   '<script '+(file.includes('diagnostics')?'data-fh-runtime ':'')+'src="'+new URL('./juego/assets/'+file+'?v=20261109-diag1',document.baseURI).href+'"></'+'script>').join('');
+  return doc.replace('<head>','<head>'+tags);
+ }
+ return addPreviewDiagnostics(addFloorVisibilityToEngine(addNaturalLightToEngine(assembled)));
 }
 let fhCharacterLaunchPending=false;
 async function start3DPreview(){
@@ -4278,6 +4322,12 @@ async function start3DPreview(){
  closeInspector();closeModal();anchor=null;preview=null;
  document.activeElement?.blur?.();
  preview3DActive=true;preview3DSent=false;preview3DRunning=false;preview3DArchitectureError='';
+ preview3DDiagnosticFailed=false;
+ try{
+  preview3DDiagnostics?.dispose();
+  preview3DDiagnostics=window.FHPreviewDiagnostics?.mount({container:play3DLayer,frame:play3DFrame,
+   onFailure:message=>preview3DError(message,true)})||null;
+ }catch(diagnosticError){console.warn('[Forest diagnóstico]',diagnosticError);preview3DDiagnostics=null;}
  show3DStatus(PREVIEW_TEXT.preparing);
  play3DLayer.classList.add('show');play3DLayer.setAttribute('aria-hidden','false');
  // La vista se crea fresca en cada prueba: las puertas abiertas durante juego no editan el mapa.
@@ -4287,6 +4337,7 @@ async function start3DPreview(){
    let fhEngineDoc=preparedEngineDoc;
    try{if(window.FHServicesEngine?.patch)fhEngineDoc=window.FHServicesEngine.patch(preparedEngineDoc)||preparedEngineDoc;}
    catch(serviceError){console.error('[Forest servicios] No pudo instalarse el adaptador:',serviceError);
+    preview3DDiagnostics?.record({kind:'resource',stage:'adapter',message:serviceError.message,stack:serviceError.stack});
     toast('Servicios temporalmente no disponibles en la vista 3D.');}
   try{
    if(!window.FHArchitectureSkins?.patchEngineDoc)throw Error('Adaptador del kit no disponible');
@@ -4295,20 +4346,23 @@ async function start3DPreview(){
     architectureDoc=window.FHStructureHealthEngine.patch(architectureDoc);
    }catch(structureError){
     console.error('[Forest PG] Falló la integración estructural:',structureError);
+    preview3DDiagnostics?.record({kind:'resource',stage:'adapter',message:structureError.message,stack:structureError.stack});
     preview3DArchitectureError=window.FH_STRUCTURE_TEXT.integrationFailure;
    }
    play3DFrame.srcdoc=architectureDoc;
   }catch(architectureError){
    console.error('[Forest Arquitectura] Falló la integración visual:',architectureError);
+   preview3DDiagnostics?.record({kind:'resource',stage:'adapter',message:architectureError.message,stack:architectureError.stack});
    preview3DArchitectureError=window.FH_ARCHITECTURE_TEXT.patchFailure;
    play3DFrame.srcdoc=fhEngineDoc;
   }
   preview3DTimer=setTimeout(()=>{if(preview3DActive&&!preview3DRunning)preview3DError(PREVIEW_TEXT.timeout)},30000);
- }catch(error){console.error('[Forest Horror 3D]',error);preview3DError(error.message);}
+ }catch(error){console.error('[Forest Horror 3D]',error);preview3DDiagnostics?.record({kind:'fatal',stage:'adapter',message:error.message,stack:error.stack});preview3DError(error.message,true);}
 }
 function close3DPreview(){
  if(!preview3DActive)return;
  stop3DWatchdog();preview3DActive=false;preview3DSent=false;preview3DRunning=false;preview3DArchitectureError='';
+ preview3DDiagnostics?.dispose();preview3DDiagnostics=null;
  play3DLayer.classList.remove('show','fh-menu-live');play3DLayer.setAttribute('aria-hidden','true');
  play3DFrame.removeAttribute('srcdoc');play3DFrame.src='about:blank';
  show3DStatus(PREVIEW_TEXT.preparing);render();
@@ -4392,14 +4446,16 @@ window.addEventListener('message',e=>{
   try{play3DFrame.contentWindow.postMessage({type:'FOREST_PREVIEW_MAP',project:makeCurrent3DProject()},'*')}
   catch(err){console.error('[Forest Horror 3D]',err);preview3DError(err.message)}
  } else if(e.data.type==='FOREST_PREVIEW_RUNNING'){
-  preview3DRunning=true;stop3DWatchdog();if(preview3DArchitectureError)show3DStatus(preview3DArchitectureError);else play3DState.classList.add('hide');
+  if(preview3DDiagnosticFailed)return;
+  preview3DRunning=true;stop3DWatchdog();if(e.data.unverified)show3DStatus(PREVIEW_TEXT.diagnosticPartial);else if(preview3DArchitectureError)show3DStatus(preview3DArchitectureError);else play3DState.classList.add('hide');
  } else if(e.data.type==='FOREST_CHARACTER_DEATH'){
   if(window.FHCharacterCreation?.markDead(String(e.data.characterId||''))){
    close3DPreview();toast(window.FH_CHARACTER_TEXT?.dead||'Tu personaje ha muerto. Debes crear otro.');
   }
  } else if(e.data.type==='FOREST_PLAYER_MENU_READY'){
-  play3DLayer.classList.add('fh-menu-live');
+  if(!preview3DDiagnosticFailed)play3DLayer.classList.add('fh-menu-live');
  } else if(e.data.type==='FOREST_ARCHITECTURE_ERROR'){
+  preview3DDiagnostics?.record({kind:'resource',stage:'models',message:String(e.data.id)+': '+String(e.data.reason)});
   console.warn('[Forest Arquitectura]',e.data.id,e.data.reason);
   preview3DArchitectureError=window.FH_ARCHITECTURE_TEXT.loadFailure+' ('+String(e.data.id||'GLB')+'). '+window.FH_ARCHITECTURE_TEXT.retainedPlaceholder;
   show3DStatus(preview3DArchitectureError);
