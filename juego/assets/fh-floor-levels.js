@@ -43,6 +43,14 @@
   }
   return true;
  }
+ function sortByElevation(map){
+  if(!valid(map)||!distinct(map.floors))return fail('Hay elevaciones duplicadas o inválidas. Ajusta las alturas antes de ordenar.');
+  const candidate=sorted(map.floors);
+  if(!linksIntact(map.floors,candidate))
+   return fail('El nuevo orden rompería conexiones de escaleras. Corrige sus destinos antes de ordenar.');
+  map.floors=candidate;
+  return {ok:true};
+ }
  function setMain(map,id){
   if(!valid(map))return fail('No se pueden leer las elevaciones del mapa.');
   const index=map.floors.findIndex(f=>f.id===id);
@@ -106,5 +114,5 @@
   map.mainFloorId=main;
   return {ok:true,index:map.floors.findIndex(f=>f.id===id)};
  }
- return Object.freeze({STEP_FT,ordered,mainId,mainIndex,code,setMain,insert,reorder,setElevation});
+ return Object.freeze({STEP_FT,ordered,mainId,mainIndex,code,setMain,insert,reorder,setElevation,sortByElevation});
 });
