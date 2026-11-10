@@ -284,7 +284,7 @@ test('referencia de suelo del motor 3D se calcula sin cambiar los valores JSON o
   return raw.slice(raw.indexOf('+"')+2,raw.lastIndexOf('";'));
  });
  const engine=fn(Buffer.from(parts.join(''),'base64').toString('utf8'));
- const lines=engine.match(/const groundElevationFt=[^\n]+;\n const floorElev=[^\n]+;/);
+ const lines=engine.match(/const groundElevationFt=[^\n]+;\n\s*const floorElev=[^\n]+;/);
  assert.ok(lines,'el motor incluye origen relativo PB');
  const compute=new Function('DATA','mainFloorIndex',lines[0]+'\nreturn floorElev;');
  const project={mainFloorId:'upper',floors:[{id:'ground',elevationFt:0},{id:'upper',elevationFt:20}]};
