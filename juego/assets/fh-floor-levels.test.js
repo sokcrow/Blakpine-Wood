@@ -132,7 +132,7 @@ test('los sótanos conservan superficie roja, pasillos, habitaciones, celdas y h
  });
  const source=patch(Buffer.from(parts.join(''),'base64').toString('utf8'));
  const from=source.indexOf('function onStructuralSlab(x,z,floor=currentFloor){');
- const until=source.indexOf('\n // La superficie bajo',from);
+ const until=source.indexOf('function stairSupportHeight(',from);
  assert.ok(from>0&&until>from,'se conserva el predicado compartido del motor');
  const factory=new Function('SLABS','DATA','CELL','mainFloorIndex','stairVoids','ForestShared','currentFloor',
   source.slice(from,until)+'\nreturn onStructuralSlab;');
