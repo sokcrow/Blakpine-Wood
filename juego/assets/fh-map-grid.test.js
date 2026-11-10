@@ -14,7 +14,7 @@ function geometry(project){
  return context;
 }
 test('los mapas nuevos son 40 × 40 y pueden existir sin imagen',()=>{
- const context={SCHEMA:'forest-horror-map-v1',ForestShared:{CURRENT_VERSION:1},window:{FH_MAP_GRID_TEXT:{noReference:'Sin referencia'}}};
+ const context={SCHEMA:'forest-horror-map-v1',ForestShared:{CURRENT_VERSION:1},window:{FHRoof:require('./fh-roof.js'),FH_MAP_GRID_TEXT:{noReference:'Sin referencia'}}};
  vm.createContext(context);
  vm.runInContext(between('const floorDefault=','let project=newProject()')+'\nthis.result=newProject();',context);
  assert.equal(context.result.units.columns,40);assert.equal(context.result.units.rows,40);

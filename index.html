@@ -193,6 +193,9 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
 <script src="./juego/assets/fh-style-renderer.js"></script>
 <script src="./juego/assets/fh-style-strings.js"></script>
 <script src="./juego/assets/fh-style-editor.js"></script>
+<script src="./juego/assets/fh-roof-strings.js?v=20261110-roof1"></script>
+<script src="./juego/assets/fh-roof.js?v=20261110-roof1"></script>
+<script src="./juego/assets/fh-roof-engine-hook.js?v=20261110-roof1"></script>
 <script src="./juego/assets/fh-parking.js"></script>
 <script src="./juego/assets/fh-parking-strings.js"></script>
 <script src="./juego/assets/fh-parking-editor.js"></script>
@@ -1658,7 +1661,7 @@ const SHORT={generator_ats:window.FH_SERVICES_TEXT.generator.ats,generator_tank:
 function normalizeFurnitureFootprints(){const eps=.001,types=Object.keys(OBJECT_SIZES);let changed=0;for(const fl of project.floors||[]){for(const it of fl.items||[]){if(!types.includes(it.type)||!('x' in it)||it.type==='spawn'||it.type==='car')continue;const old=LEGACY_OBJECT_SIZES[it.type],neu=OBJECT_SIZES[it.type];if(!old||!neu)continue;const w=Number(it.w),h=Number(it.h);if(Math.abs(w-old[0])<eps&&Math.abs(h-old[1])<eps){it.w=neu[0];it.h=neu[1];changed++;}}}return changed;}
 const $=s=>document.querySelector(s), $$=s=>Array.from(document.querySelectorAll(s));
 const clone=x=>JSON.parse(JSON.stringify(x));
-const floorDefault=(id,name,elev,index)=>({id,name,elevationFt:elev,ceilingHeightFt:11.5,lightingManual:true,reference:{name:window.FH_MAP_GRID_TEXT.noReference,data:'',width:1,height:1,opacity:.73},items:[]});
+const floorDefault=(id,name,elev,index)=>({id,name,elevationFt:elev,ceilingHeightFt:11.5,roof:window.FHRoof.settings(),lightingManual:true,reference:{name:window.FH_MAP_GRID_TEXT.noReference,data:'',width:1,height:1,opacity:.73},items:[]});
 const newProject=()=>({schema:SCHEMA,version:ForestShared.CURRENT_VERSION,title:'Forest Horror · Edificio de apartamentos',createdAt:new Date().toISOString(),styleSystem:1,initialGameState:{clock:{year:2016,month:6,day:1,minutes:480}},weather:{enabled:true,season:'calendar',minHours:3,maxHours:8,clockSpeed:1},buildingOwnerId:'',buildingOwners:{},properties:[],patterns:[],itemDefs:[{id:'flashlight_battery',kind:'consumable',name:'Batería de linterna',description:'Recarga el 50 % de la linterna.',stackable:true,icon:'▤'}],units:{gridPx:70,columns:40,rows:40,fitGridToImage:false,feetPerCell:5,metersPerCell:1.524,snapCell:1,originPx:{x:0,y:0}},mainFloorId:'floor1',floors:[floorDefault('floor1','Piso 1',0,0),floorDefault('floor2','Piso 2',10,1)],notes:'Coordenadas x/y en casillas; cada casilla equivale a 5 pies. El eje Y crece hacia abajo en la referencia. Cada mirilla tiene dirección peekTo. Los muebles guardan su rotación y el frente visual. También se exportan bardas medias, rejas y rellenos exteriores.'});
 let project=newProject(),floorIndex=0,selection=null,activeTool='wall',activeCategory='structure',activeLayer='architecture',gridVisible=true,jointsVisible=true,axisLock=true,snapEnabled=true,preview=null,anchor=null,cursorGridPoint=null,view={scale:1,tx:0,ty:0},canvas=$('#map'),ctx=canvas.getContext('2d',{alpha:false}),loadedImgs=project.floors.map(()=>null),pointerStates=new Map(),gesture=null,action=null,middlePan=null,dirty=false,history=[],historyIndex=-1,saveTimer=null,toastTimer=null;
 const current=()=>project.floors[floorIndex];
@@ -1742,7 +1745,7 @@ function toast(msg){let el=$('#toast');el.textContent=msg;el.style.display='bloc
   }
  }
 }
-function record(){rememberFloorRefs();syncStairLinks();normalizeArchitecture(floorIndex);const created=rebuildFloorSpaces(floorIndex);syncPropertyDoorRoles();history=history.slice(0,historyIndex+1);history.push(JSON.stringify({floors:project.floors.map(f=>({id:f.id,name:f.name,items:f.items,elevationFt:f.elevationFt,ceilingHeightFt:f.ceilingHeightFt,lightingManual:!!f.lightingManual,apartments:f.apartments||[]})),properties:project.properties||[],locationZones:project.locationZones||[],buildingNames:project.buildingNames||{},patterns:project.patterns||[],buildingOwnerId:project.buildingOwnerId||"",buildingOwners:project.buildingOwners||{},styleSystem:project.styleSystem||0,mainFloorId:project.mainFloorId||''}));if(history.length>75)history.shift();historyIndex=history.length-1;saveSoon();if(activeLayer==='lighting')refreshCircuits();render();return created}
+function record(){rememberFloorRefs();syncStairLinks();normalizeArchitecture(floorIndex);const created=rebuildFloorSpaces(floorIndex);syncPropertyDoorRoles();history=history.slice(0,historyIndex+1);history.push(JSON.stringify({floors:project.floors.map(f=>({id:f.id,name:f.name,items:f.items,elevationFt:f.elevationFt,ceilingHeightFt:f.ceilingHeightFt,roof:f.roof,lightingManual:!!f.lightingManual,apartments:f.apartments||[]})),properties:project.properties||[],locationZones:project.locationZones||[],buildingNames:project.buildingNames||{},patterns:project.patterns||[],buildingOwnerId:project.buildingOwnerId||"",buildingOwners:project.buildingOwners||{},styleSystem:project.styleSystem||0,mainFloorId:project.mainFloorId||''}));if(history.length>75)history.shift();historyIndex=history.length-1;saveSoon();if(activeLayer==='lighting')refreshCircuits();render();return created}
 function undo(){if(historyIndex<=0)return;historyIndex--;restoreHistory()}
 function redo(){if(historyIndex>=history.length-1)return;historyIndex++;restoreHistory()}
 function restoreHistory(){
@@ -1761,7 +1764,7 @@ function restoreHistory(){
   const old=existing||floorDefault(state.id||'floor'+(i+1),state.name||'Piso '+(i+1),state.elevationFt??i*12,i);
   return {...old,reference:existing?.reference||floorRefArchive.get(state.id)||old.reference,
    id:state.id||old.id,name:state.name||old.name,items:state.items||[],
-   elevationFt:state.elevationFt,ceilingHeightFt:state.ceilingHeightFt,
+   elevationFt:state.elevationFt,ceilingHeightFt:state.ceilingHeightFt,roof:state.roof,
    lightingManual:!!state.lightingManual,apartments:state.apartments||[]};
  });
  floorIndex=Math.max(0,project.floors.findIndex(f=>f.id===selectedId));
@@ -2043,8 +2046,9 @@ function editFloorInfo(){
  const f=current(),idx=floorIndex,code=floorCode(idx),isMain=window.FHFloorLevels.mainId(project)===f.id;
  const main=project.floors.find(item=>item.id===window.FHFloorLevels.mainId(project));
  const groundHeight=main?.elevationFt??0;
- modal(`<h2>Niveles · ${escapeAttr(f.name)}</h2><p>${code?code+' · ':''}Posición ${idx+1} de ${project.floors.length}. ${isMain?'Nivel suelo (PB).':'Altura relativa al suelo: '+rounded(f.elevationFt-groundHeight,2)+' pies.'}</p><label>Nombre<input id="floorNameField" type="text" maxlength="80" value="${escapeAttr(f.name)}"></label><label>Elevación física (pies)<input id="floorHeightField" type="number" step="0.1" value="${f.elevationFt}"></label><div class="actions"><button id="saveFloorField" class="primary">Guardar datos</button><button id="setMainFloor">⌂ Marcar como nivel suelo (PB)</button><button id="moveFloorUp">↑ Intercambiar con superior</button><button id="moveFloorDown">↓ Intercambiar con inferior</button><button id="sortFloors">↕ Ordenar por elevación</button><button id="cancelFloorField">Cerrar</button></div><p><small>PB es la referencia del suelo, no una altura forzada a 0. Los niveles nuevos usan 10 pies. Cambiar PB conserva las elevaciones; intercambiar niveles cambia sólo las alturas de esos dos pisos. Las conexiones de escaleras no pueden romperse.</small></p>`,()=>{
+ modal(`<h2>Niveles · ${escapeAttr(f.name)}</h2><p>${code?code+' · ':''}Posición ${idx+1} de ${project.floors.length}. ${isMain?'Nivel suelo (PB).':'Altura relativa al suelo: '+rounded(f.elevationFt-groundHeight,2)+' pies.'}</p><label>Nombre<input id="floorNameField" type="text" maxlength="80" value="${escapeAttr(f.name)}"></label><label>Elevación física (pies)<input id="floorHeightField" type="number" step="0.1" value="${f.elevationFt}"></label><div class="actions"><button id="saveFloorField" class="primary">Guardar datos</button><button id="setMainFloor">⌂ Marcar como nivel suelo (PB)</button><button id="moveFloorUp">↑ Intercambiar con superior</button><button id="moveFloorDown">↓ Intercambiar con inferior</button><button id="sortFloors">↕ Ordenar por elevación</button><button id="roofConfigField">${escapeAttr(window.FH_ROOF_TEXT.open)}</button><button id="cancelFloorField">Cerrar</button></div><p><small>PB es la referencia del suelo, no una altura forzada a 0. Los niveles nuevos usan 10 pies. Cambiar PB conserva las elevaciones; intercambiar niveles cambia sólo las alturas de esos dos pisos. Las conexiones de escaleras no pueden romperse.</small></p>`,()=>{
   $('#cancelFloorField').onclick=closeModal;
+  $('#roofConfigField').onclick=()=>window.FHRoofEditor.open();
   const images=()=>new Map(project.floors.map((item,i)=>[item.id,loadedImgs[i]]));
   const finishLayout=oldImages=>commitFloorLayout(project.floors.findIndex(item=>item.id===f.id),oldImages);
   $('#saveFloorField').onclick=()=>{
@@ -3107,7 +3111,7 @@ function escapeAttr(v){return String(v).replaceAll('&','&amp;').replaceAll('"','
 function emptySlab(){return {enabled:false,spans:[],regions:[],micro:1}}
 function slabsForLevels(){const ground=window.FHFloorLevels.mainIndex(project);return project.floors.slice(1).map((_,i)=>i+1<=ground?emptySlab():clone(buildingSlabs(i)))}
 function basementSlabs(){const ground=window.FHFloorLevels.mainIndex(project);return project.floors.map((_,i)=>i<ground?clone(buildingSlabs(i)):null)}
-function exportProject(includeImages){syncStairLinks();recalcAllSpaces();const out=clone(project);out.buildingSlabs=clone(buildingSlabs(window.FHFloorLevels.mainIndex(project)));out.slabsByLevel=slabsForLevels();out.basementSlabs=basementSlabs();out.exportedAt=new Date().toISOString();out.floors.forEach((f,i)=>{f.items=courtyardFloorItems(f.items,i);f.architectureGraph=buildArchitectureGraph(f.items.filter(it=>STRUCTURAL_TYPES.has(it.type)));f.grid={columns:out.units.columns,rows:out.units.rows,fitToImage:false,cellWidthPx:window.FHMapGrid.cellSize(out.units),cellHeightPx:window.FHMapGrid.cellSize(out.units),feetPerCell:out.units.feetPerCell};if(!includeImages){delete f.reference.data;f.reference.imageIncluded=false}else{f.reference.imageIncluded=true}for(const it of f.items){if(it.type==='peephole_door'){const dx=it.b.x-it.a.x,dy=it.b.y-it.a.y,len=Math.hypot(dx,dy)||1,sign=it.peekSide||1;it.peekTo={x:rounded(-dy/len*sign,5),y:rounded(dx/len*sign,5)};it.peekFrom={x:-it.peekTo.x,y:-it.peekTo.y}}}});return out}
+function exportProject(includeImages){syncStairLinks();recalcAllSpaces();const out=clone(project);out.buildingSlabs=clone(buildingSlabs(window.FHFloorLevels.mainIndex(project)));out.slabsByLevel=slabsForLevels();out.roofSlabsByFloor=project.floors.map((_,i)=>clone(buildingSlabs(i)));out.basementSlabs=basementSlabs();out.exportedAt=new Date().toISOString();out.floors.forEach((f,i)=>{f.items=courtyardFloorItems(f.items,i);f.architectureGraph=buildArchitectureGraph(f.items.filter(it=>STRUCTURAL_TYPES.has(it.type)));f.grid={columns:out.units.columns,rows:out.units.rows,fitToImage:false,cellWidthPx:window.FHMapGrid.cellSize(out.units),cellHeightPx:window.FHMapGrid.cellSize(out.units),feetPerCell:out.units.feetPerCell};if(!includeImages){delete f.reference.data;f.reference.imageIncluded=false}else{f.reference.imageIncluded=true}for(const it of f.items){if(it.type==='peephole_door'){const dx=it.b.x-it.a.x,dy=it.b.y-it.a.y,len=Math.hypot(dx,dy)||1,sign=it.peekSide||1;it.peekTo={x:rounded(-dy/len*sign,5),y:rounded(dx/len*sign,5)};it.peekFrom={x:-it.peekTo.x,y:-it.peekTo.y}}}});return out}
 function downloadBlob(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000)}
 function fileBase(){return(project.title||'ForestHorror').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\w-]+/g,'_').slice(0,40)||'ForestHorror'}
 function exportJSON(withImages){const doc=exportProject(withImages);try{window.FHStructureHealth?.validateMap(doc);window.FHAccessConfig?.validateMap(doc)}catch(error){toast(error.message);return}window.FHStyleProperty?.validateMap(doc);window.FHParking?.validateProject(doc);const warnings=[...ForestShared.interactionReferenceWarnings(doc),...ForestShared.progressionReferenceWarnings(doc)];
@@ -3284,9 +3288,9 @@ function makeCurrent3DProject(){
  const slabsByLevel=project.floors.slice(1).map((_,i)=>i+1<=mainIndex?clone(empty):clone(buildingSlabs(i)));
  const basementSlabs=project.floors.map((_,i)=>i<mainIndex?clone(buildingSlabs(i)):null);
  // Excluir únicamente imágenes de referencia de varios MB; geometría 3D proviene de items.
- return {schema:SCHEMA,version:project.version||1,mainFloorId:project.mainFloorId||undefined,styleSystem:project.styleSystem||0,buildingOwnerId:project.buildingOwnerId||'',buildingOwners:clone(project.buildingOwners||{}),buildingNames:clone(project.buildingNames||{}),properties:clone(project.properties||[]),locationZones:clone(project.locationZones||[]),patterns:clone(project.patterns||[]),title:project.title||'Forest Horror',createdAt:project.createdAt,itemDefs:clone(project.itemDefs||[]),initialGameState:clone(project.initialGameState||{}),weather:clone(project.weather||{enabled:false}),elevatorEvents:clone(project.elevatorEvents||{}),__runtimeSave:fhMapSave,__runtimeCharacter:fhProfile?clone(fhProfile):null,units,buildingSlabs:clone(buildingSlabs(mainIndex)),slabsByLevel,basementSlabs,
+ return {schema:SCHEMA,version:project.version||1,mainFloorId:project.mainFloorId||undefined,styleSystem:project.styleSystem||0,buildingOwnerId:project.buildingOwnerId||'',buildingOwners:clone(project.buildingOwners||{}),buildingNames:clone(project.buildingNames||{}),properties:clone(project.properties||[]),locationZones:clone(project.locationZones||[]),patterns:clone(project.patterns||[]),title:project.title||'Forest Horror',createdAt:project.createdAt,itemDefs:clone(project.itemDefs||[]),initialGameState:clone(project.initialGameState||{}),weather:clone(project.weather||{enabled:false}),elevatorEvents:clone(project.elevatorEvents||{}),__runtimeSave:fhMapSave,__runtimeCharacter:fhProfile?clone(fhProfile):null,units,buildingSlabs:clone(buildingSlabs(mainIndex)),slabsByLevel,basementSlabs,roofSlabsByFloor:project.floors.map((_,i)=>clone(buildingSlabs(i))),
   floors:project.floors.map(f=>({id:f.id,name:f.name,elevationFt:f.elevationFt,
-   ceilingHeightFt:f.ceilingHeightFt,lightingManual:!!f.lightingManual,items:clone(courtyardFloorItems(window.FHAreaMerge?.forEngine(f.items)||f.items,project.floors.indexOf(f))),apartments:clone(f.apartments||[])}))};
+   ceilingHeightFt:f.ceilingHeightFt,roof:f.roof?clone(f.roof):undefined,lightingManual:!!f.lightingManual,items:clone(courtyardFloorItems(window.FHAreaMerge?.forEngine(f.items)||f.items,project.floors.indexOf(f))),apartments:clone(f.apartments||[])}))};
 }
 function show3DStatus(message){play3DState.textContent=message;play3DState.classList.remove('hide')}
 
@@ -4473,7 +4477,7 @@ function addBuildingLevelsToEngine(doc){
   if(count!==expected)throw Error('Hook de niveles incompatible: '+before.slice(0,75)+' ('+count+')');
   doc=doc.split(before).join(after);
  }
- return doc;
+ return typeof window!=='undefined'&&window.FHRoofEngine?window.FHRoofEngine.patch(doc):doc;
 }
  // Restringe las fachadas de niveles vecinos sin duplicar FOW ni cambiar el mapa.
  function addFloorVisibilityToEngine(doc){
@@ -4880,6 +4884,7 @@ init();
 <script src="./juego/assets/fh-furniture-editor-strings.js?v=20261110-editor1"></script>
 <script src="./juego/assets/fh-furniture-editor.js?v=20261110-editor1"></script>
 <script src="./juego/assets/fh-generators-editor.js?v=20261110-generators-2"></script>
+<script src="./juego/assets/fh-roof-editor.js?v=20261110-roof1"></script>
 </body>
 </html>
 

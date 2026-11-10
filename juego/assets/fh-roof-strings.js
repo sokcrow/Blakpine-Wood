@@ -1,0 +1,13 @@
+(function(root){
+ 'use strict';
+ root.FH_ROOF_TEXT=Object.freeze({
+  title:'Azotea sobre este nivel',open:'Configurar azotea',enabled:'Generar azotea y pretil',
+  help:'El perímetro cerrado de pared roja genera la azotea. Las zonas ocupadas por el edificio superior conservan su piso interior. Los patios permanecen abiertos.',
+  legacy:'Este mapa conserva su techo anterior hasta que actives esta opción.',
+  height:'Altura del pretil (tiles)',floor:'Piso de azotea',wall:'Pared del pretil',
+  material:'Material',color:'Color',save:'Guardar azotea',close:'Cerrar',
+  saved:'Configuración de azotea guardada.',invalid:'La altura debe estar entre 0 y 2 tiles.',
+  denied:'Sólo el creador del mapa puede configurar la azotea.',cap:'Azotea',
+  defaultHint:'Por defecto: concreto y pretil rojo de 0.25 tile. Usa 0 para omitir el pretil.'
+ });
+})(typeof window!=='undefined'?window:globalThis);
