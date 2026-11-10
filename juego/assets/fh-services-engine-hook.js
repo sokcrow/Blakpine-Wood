@@ -8,8 +8,8 @@
  };
  function patch(doc){
   const base=new URL('./juego/assets/',root.document.baseURI).href;
-  const core='<script src="'+base+'fh-services-core.js?v=20261110-generators-1"></'+'script>';
-  const strings='<script src="'+base+'fh-services-strings.js?v=20261110-generators-1"></'+'script>';
+  const core='<script src="'+base+'fh-services-core.js?v=20261110-generators-2"></'+'script>';
+  const strings='<script src="'+base+'fh-services-strings.js?v=20261110-generators-2"></'+'script>';
   // El motor incrusta subdocumentos HTML como cadenas: hay varios </head>.
   // Insertar en el primer cierre (cabecera del documento exterior), como
   // hacen los otros adaptadores, y no exigir una ocurrencia única.
@@ -34,6 +34,8 @@
    'if(fhServicesSaved&&typeof fhServicesSaved==="object"&&!Array.isArray(fhServicesSaved))GameState.services=structuredClone(fhServicesSaved);',
    'window.FHServicesRuntime=window.FHServices?.createRuntime(DATA,GameState,{phoneDrainPerHour:.5,isPc:(it,f)=>window.FHComputer?.isPc(it,DATA.floors[f]?.items||[],Number(DATA.units.feetPerCell)||5)});',
    'let fhServicesSaveAccum=0;',
+   'let fhServicesATSRevision=window.FHServicesRuntime?.state.atsRevision;',
+   'if(DATA.floors.some(f=>(f.items||[]).some(it=>it.type==="generator_ats")))saveProgress();',
    'window.FHServicesGame={',
    ' receiveFixedCall:(routerId,from)=>{',
    '  const target=DATA.floors.flatMap((floor,f)=>(floor.items||[]).filter(it=>it.type==="landline_phone"&&it.routerId===routerId&&window.FHServicesRuntime?.landlineFor(f,it)));',
@@ -50,6 +52,8 @@
    '   service.setGeneratorEnabled(f,it.id,!status.enabled);notice(T.generator.status(service.generatorStatus(f,it)));',
    '   fhServicesSyncVisuals();saveProgress();return true;',
    '  }',
+   '  if(it.type==="generator_ats"){service.activateATSManual(f,it.id);notice(T.generator.atsStatus(service.atsStatus(f,it)));saveProgress();return true;}',
+   '  if(it.type==="generator_tank"){notice(T.generator.tankStatus(service.tankStatus(f,it)));return true;}',
    '  const status=service.statusFor(f,it);',
    '  if(it.type==="phone_charger"){',
    '   if(service.phone.placedAt===it.id){service.takePhone();notice(T.phoneTaken||"Celular recuperado.");}',
@@ -100,6 +104,10 @@
    'for(let f=0;f<DATA.floors.length;f++){',
    ' for(const it of DATA.floors[f].items||[]){',
    '  if(!window.FHServices?.INFRA.has(it.type))continue;',
+   '  if(["generator","generator_ats","generator_tank"].includes(it.type)){',
+   '   const entry=renderedByItem[f]?.get?.(it.id)?.[0],mesh=entry?.root||entry;',
+   '   if(mesh){mesh.userData.fhServiceItem=it.id;fhServicesVisuals.push({mesh,it,f});}continue;',
+   '  }',
    '  const mat=new THREE.MeshStandardMaterial({color:({power_outlet:0xd9bd74,power_strip:0xa89e8a,phone_charger:0x98b6a2,',
    '   water_main:0x528bac,water_valve:0x529dbb,water_outlet:0x76b1c8,drain_outlet:0x52707f,drain_main:0x456b80,router:0x678c98,',
    '   ethernet_port:0x6c9d9a,landline_phone:0x9099a7})[it.type]||0x999999,roughness:1});',
@@ -117,7 +125,7 @@
    ' if(session&&service){const item=service.itemAt(session.floor,session.stationId);if(!item||!service.statusFor(session.floor,item).power.powered)window.FHComputerRuntime.close();}',
    ' if(typeof watchingTvId!=="undefined"&&watchingTvId&&service){const tv=service.itemAt(currentFloor,watchingTvId);if(!tv||!service.statusFor(currentFloor,tv).power.powered){watchingTvId=null;GameState.flags.tv_on=false;}}',
    ' for(const entry of fhServicesVisuals){',
-   '  if(entry.it.type==="generator"){const status=service?.generatorStatus(entry.f,entry.it);entry.mesh.material.color.setHex(status?.running?0x7a9d66:status?.enabled?0xb19756:0x555b60);entry.mesh.userData.generatorStatus=status;}',
+   '  if(entry.it.type==="generator"){const status=service?.generatorStatus(entry.f,entry.it);entry.mesh.material?.color?.setHex(status?.running?0x7a9d66:status?.enabled?0xb19756:0x555b60);entry.mesh.userData.generatorStatus=status;}',
    '  if(entry.it.type!=="phone_charger")continue;',
    '  const hasPhone=window.FHServicesRuntime?.phone.placedAt===entry.it.id;',
    '  if(hasPhone&&!entry.phone){',
@@ -151,7 +159,7 @@
   doc=once(doc,phone,start+'\n'+phone+'\n'+phoneOptions,'inicialización');
 
   doc=once(doc,'window.FHPhoneRuntime?.update(dt);',
-   'window.FHServicesRuntime?.tick(dt,1);fhServicesSyncVisuals();'+
+   'window.FHServicesRuntime?.tick(dt,1);fhServicesSyncVisuals();if(fhServicesATSRevision!==window.FHServicesRuntime?.state.atsRevision){fhServicesATSRevision=window.FHServicesRuntime?.state.atsRevision;saveProgress();}'+
    'fhServicesSaveAccum+=dt;if(fhServicesSaveAccum>=15){fhServicesSaveAccum=0;saveProgress();}'+
    'window.FHPhoneRuntime?.update(dt);','actualización');
 
@@ -170,6 +178,8 @@
    ' const it=(DATA.floors[currentFloor]?.items||[]).find(v=>String(v.id)===sid);',
    ' if(it){const st=window.FHServicesRuntime?.statusFor(currentFloor,it);',
    '  if(it.type==="generator"){const status=window.FHServicesRuntime?.generatorStatus(currentFloor,it);if(status)actions=[{id:"generator",label:window.FH_SERVICES_TEXT.generator.action(status),run:()=>window.FHServicesGame.handle(it,currentFloor)},{id:"generator-status",label:window.FH_SERVICES_TEXT.generator.inspect,run:()=>notice(window.FH_SERVICES_TEXT.generator.status(window.FHServicesRuntime.generatorStatus(currentFloor,it)))}];}',
+   '  if(it.type==="generator_ats"){const status=window.FHServicesRuntime.atsStatus(currentFloor,it);const t=window.FH_SERVICES_TEXT.generator;actions=[{id:"ats-status",label:t.atsStatus(status),run:()=>notice(t.atsStatus(window.FHServicesRuntime.atsStatus(currentFloor,it)))},{id:"ats-manual",label:t.manual,disabled:!status.connected||!status.outage||status.damaged,run:()=>window.FHServicesGame.handle(it,currentFloor)}];}',
+   '  if(it.type==="generator_tank")actions=[{id:"tank-status",label:window.FH_SERVICES_TEXT.generator.inspect,run:()=>window.FHServicesGame.handle(it,currentFloor)}];',
    '  if(window.FHServicesRuntime?.requiresPower(it)&&!st?.power.powered||it.service?.requiresWater===true&&!st?.water.water){',
    '   actions=[{id:"blocked",label:window.FHServicesRuntime?.requiresPower(it)&&!st?.power.powered?"🔴⚡ Sin electricidad":"🔴💧 Sin agua",disabled:true}];',
    '  }',

@@ -11,7 +11,7 @@
  const WALLS=new Set(['wall','red_wall','property_wall']);
  // La ventana conserva la instalación; puertas y aberturas cortan ese tramo.
  const WALL_PATHS=new Set([...WALLS,'window']);
- const INFRA=new Set(['generator','power_outlet','power_strip','water_main','water_valve','water_outlet','drain_outlet','drain_main','router','ethernet_port','landline_phone','phone_charger']);
+ const INFRA=new Set(['generator','generator_ats','generator_tank','power_outlet','power_strip','water_main','water_valve','water_outlet','drain_outlet','drain_main','router','ethernet_port','landline_phone','phone_charger']);
  const POWER_NEEDS=new Set(['router','phone_charger','light_fixture','tv','landline_phone','elevator']);
  const ELECTRIC_MODELS=new Set(['refrigerador','estufa_horno','microondas','campana_extractora','cafetera','tostadora',
   'lampara_escritorio','monitor_crt','gabinete_pc','teclado_pc','mouse_pc','impresora_matricial','telefono_fijo',
@@ -137,7 +137,9 @@
  }
  function defaultsFor(type){
   switch(type){
-   case 'generator':return {generatorKind:'normal',enabled:false,autonomyHours:24,capacityWatts:2400,targets:[]};
+   case 'generator_ats':return {};
+   case 'generator_tank':return {capacityLiters:0};
+   case 'generator':return {fuelLitersPerHour:1,generatorKind:'normal',enabled:false,autonomyHours:24,capacityWatts:2400,targets:[]};
    case 'power_outlet':return {slots:2,radiusFt:5,capacityRayos:6};
    case 'power_strip':return {slots:4,radiusFt:5,capacityRayos:6,rayos:0};
    case 'water_main':return {rangeFt:120,flowLpm:50,networkId:'main'};
@@ -155,7 +157,7 @@
  function ensureState(state){
   if(!state||typeof state!=='object')throw Error('El estado de partida es obligatorio');
   const s=state.services&&typeof state.services==='object'?state.services:{};
-  for(const prop of ['damage','enabled','wifiKeys','connections','meters','usage','generators']){
+  for(const prop of ['damage','enabled','wifiKeys','connections','meters','usage','generators','ats','fuelTanks']){
    if(!s[prop]||typeof s[prop]!=='object'||Array.isArray(s[prop]))s[prop]={};
   }
   if(!Array.isArray(s.calls))s.calls=[];
@@ -320,6 +322,73 @@
    s.generators[g.key]={enabled:old?.enabled===undefined?g.it.enabled===true:old.enabled===true,
     remainingHours:Math.max(0,number(old?.remainingHours,Math.max(0,number(g.it.autonomyHours,24)))),running:false};
   }
+  const accessories=elements.flatMap((items,f)=>items.filter(it=>['generator_ats','generator_tank'].includes(it.type))
+   .map(it=>({it,f,key:floors[f].id+':'+id(it)})));
+  function linked(g,kind){
+   const prefix=kind==='generator_ats'?'ats':'tank',itemId=String(g.it[prefix+'Id']||'');
+   if(!itemId)return null;
+   const floorId=g.it[prefix+'FloorId']||floors[g.f].id;
+   const matches=accessories.filter(a=>a.it.type===kind&&id(a.it)===itemId&&floors[a.f].id===floorId);
+   const owners=generators.filter(other=>String(other.it[prefix+'Id']||'')===itemId&&
+    (other.it[prefix+'FloorId']||floors[other.f].id)===floorId);
+   return matches.length===1&&owners.length===1?matches[0]:false;
+  }
+  for(const a of accessories){
+   if(a.it.type==='generator_tank'){
+    const capacity=Math.max(0,number(a.it.capacityLiters));
+    const initial=clamp(number(a.it.initialFuelLiters,capacity),0,capacity);
+    s.fuelTanks[a.key]={liters:clamp(number(s.fuelTanks[a.key]?.liters,initial),0,capacity)};
+   }else{
+    const old=s.ats[a.key];
+    s.ats[a.key]={outage:old?.outage===true,mode:['automatic','failed','manual'].includes(old?.mode)?old.mode:'idle',
+     episode:Math.max(0,Math.floor(number(old?.episode)))};
+   }
+  }
+  function reserveHours(g){
+   const tank=linked(g,'generator_tank');
+   if(tank===false)return 0;
+   if(!tank)return s.generators[g.key].remainingHours;
+   const rate=Math.max(0,number(g.it.fuelLitersPerHour,1));
+   return rate>0&&number(s.damage[id(tank.it)])<100?s.fuelTanks[tank.key].liters/rate:0;
+  }
+  const baseReady=g=>s.generators[g.key].enabled&&reserveHours(g)>0&&
+   Math.max(0,number(g.it.capacityWatts,2400))>0&&number(s.damage[id(g.it)])<100;
+  function primaryAvailable(feed){
+   const sample={roomId:feed.target.roomId||'',x:feed.circuit.panel.x,y:feed.circuit.panel.y};
+   const normal=feeds.find(other=>other.g.it.generatorKind!=='emergency'&&feedMatches(other,feed.f,feed.circuit,sample));
+   return normal?baseReady(normal.g):mainAvailable(feed.f);
+  }
+  function syncATS(){
+   for(const a of accessories.filter(a=>a.it.type==='generator_ats')){
+    const owner=generators.find(g=>g.it.generatorKind==='emergency'&&linked(g,'generator_ats')===a);
+    const outage=!!owner&&feeds.some(feed=>feed.g===owner&&!primaryAvailable(feed));
+    const saved=s.ats[a.key];
+    if(outage&&!saved.outage){
+     saved.outage=true;saved.episode++;saved.mode=(options.random||Math.random)()<.1?'failed':'automatic';
+     s.atsRevision=Math.max(0,number(s.atsRevision))+1;
+    }else if(!outage&&saved.outage){
+     saved.outage=false;saved.mode='idle';s.atsRevision=Math.max(0,number(s.atsRevision))+1;
+    }
+   }
+  }
+  function atsStatus(f,it){
+   syncATS();const a=accessories.find(a=>a.f===f&&id(a.it)===id(it)&&a.it.type==='generator_ats');
+   if(!a)return null;
+   const owner=generators.find(g=>linked(g,'generator_ats')===a&&g.it.generatorKind==='emergency');
+   return {...s.ats[a.key],connected:!!owner,damaged:number(s.damage[id(it)])>=100};
+  }
+  function activateATSManual(f,itemId){
+   const it=itemAt(f,itemId),status=it&&atsStatus(f,it);
+   if(!status?.connected||!status.outage||status.damaged)return false;
+   const a=accessories.find(a=>a.f===f&&id(a.it)===String(itemId));
+   s.ats[a.key].mode='manual';s.atsRevision=Math.max(0,number(s.atsRevision))+1;allocationCache=null;return true;
+  }
+  function tankStatus(f,it){
+   const a=accessories.find(a=>a.f===f&&id(a.it)===id(it)&&a.it.type==='generator_tank');if(!a)return null;
+   const owner=generators.find(g=>linked(g,'generator_tank')===a);
+   return {liters:s.fuelTanks[a.key].liters,capacityLiters:Math.max(0,number(it.capacityLiters)),
+    connected:!!owner,remainingHours:owner?reserveHours(owner):0};
+  }
   const feeds=generators.flatMap(g=>(Array.isArray(g.it.targets)?g.it.targets:[]).flatMap((target,i)=>{
    if(!target||typeof target!=='object')return [];
    const f=floors.findIndex(floor=>floor.id===target.floorId);
@@ -332,7 +401,12 @@
   const roomIdFor=(f,it)=>String(it.roomId||roomOn(f,it)?.roomId||roomOn(f,it)?.id||'');
   const feedMatches=(feed,f,c,it)=>feed.f===f&&feed.circuit===c&&
    (!feed.target.roomId||roomIdFor(f,it)===String(feed.target.roomId));
-  const generatorReady=g=>s.generators[g.key].enabled&&s.generators[g.key].remainingHours>0&&Math.max(0,number(g.it.capacityWatts,2400))>0&&number(s.damage[id(g.it)])<100;
+  const generatorReady=g=>{
+   if(!baseReady(g))return false;
+   if(g.it.generatorKind!=='emergency')return true;
+   const ats=linked(g,'generator_ats');
+   return ats!==false&&(!ats||number(s.damage[id(ats.it)])<100&&['automatic','manual'].includes(s.ats[ats.key].mode));
+  };
   function mainAvailable(f){
    return s.contracts.electricity==='active'&&flagOn('power_global')&&flagOn('power_floor:'+String(floors[f]?.id||f));
   }
@@ -343,6 +417,7 @@
    return (!panel.powerFlag||flagOn(panel.powerFlag))&&(!c.powerFlag||flagOn(c.powerFlag));
   }
   function feedFor(f,c,it){
+   syncATS();
    const matching=feeds.filter(feed=>feedMatches(feed,f,c,it));
    const normal=matching.find(feed=>feed.g.it.generatorKind!=='emergency');
    if(normal&&generatorReady(normal.g))return normal;
@@ -370,11 +445,12 @@
   }
   function sourceFor(f,it,zone=''){return sourcesFor(f,it,zone)[0]||null}
   function generatorAllocation(){
+   syncATS();
    if(!generators.length)return {accepted:new Set(),running:new Set(),loads:new Map()};
    // Cache only across unchanged simulation state; remaining hours do not affect
    // allocation until empty, so a running generator does not rebuild per lamp/frame.
-   const signature=JSON.stringify([state.flags,s.enabled,s.contracts.electricity,s.damage,s.usage,state.phone.placedAt,state.phone.battery>=100,
-    generators.map(g=>[s.generators[g.key].enabled,s.generators[g.key].remainingHours>0,g.it.capacityWatts])]);
+   const signature=JSON.stringify([s.atsRevision,state.flags,s.enabled,s.contracts.electricity,s.damage,s.usage,state.phone.placedAt,state.phone.battery>=100,
+    generators.map(g=>[s.generators[g.key].enabled,reserveHours(g)>0,g.it.capacityWatts,g.it.fuelLitersPerHour])]);
    if(allocationCache?.signature===signature)return allocationCache;
    const snapshot=electrical(true),loads=new Map();
    for(let f=0;f<floors.length;f++)for(const it of elements[f]){
@@ -402,8 +478,9 @@
   function generatorStatus(f,it){
    const g=generators.find(g=>g.f===f&&id(g.it)===id(it));if(!g)return null;
    const saved=s.generators[g.key],allocation=generatorAllocation();
-   saved.running=allocation.running.has(g.key);
-   return {...saved,kind:g.it.generatorKind==='emergency'?'emergency':'normal',
+   saved.remainingHours=reserveHours(g);saved.running=allocation.running.has(g.key);
+   const tank=linked(g,'generator_tank');
+   return {...saved,fuelLiters:tank?s.fuelTanks[tank.key].liters:null,fuelLinked:!!g.it.tankId,kind:g.it.generatorKind==='emergency'?'emergency':'normal',
     suppliedTargets:feeds.filter(feed=>feed.g===g&&allocation.accepted.has(feed.key)).length,
     watts:feeds.filter(feed=>feed.g===g&&allocation.accepted.has(feed.key)).reduce((n,feed)=>n+(allocation.loads.get(feed.key)||0),0)};
   }
@@ -789,7 +866,12 @@
    // Consume game hours only while supplying selected destinations.
    for(const g of generators){
     const saved=s.generators[g.key];saved.running=allocation.running.has(g.key);
-    if(saved.running)saved.remainingHours=Math.max(0,saved.remainingHours-seconds/3600);
+    if(saved.running){
+     const tank=linked(g,'generator_tank');
+     if(tank)s.fuelTanks[tank.key].liters=Math.max(0,s.fuelTanks[tank.key].liters-seconds/3600*Math.max(0,number(g.it.fuelLitersPerHour,1)));
+     else saved.remainingHours=Math.max(0,saved.remainingHours-seconds/3600);
+    }
+    saved.remainingHours=reserveHours(g);
    }
   }
   function tick(realSeconds=0,minutesPerSecond=1){
@@ -799,9 +881,9 @@
    // Split exactly at exhaustion: no frame receives energy after the reserve is empty.
    while(remaining>1e-9){
     const allocation=generatorAllocation();
-    const limits=generators.filter(g=>allocation.running.has(g.key)).map(g=>s.generators[g.key].remainingHours*60/rate);
+    const limits=generators.filter(g=>allocation.running.has(g.key)).map(g=>reserveHours(g)*60/rate);
     const step=Math.min(remaining,...limits);
-    if(step<=1e-9){for(const g of generators)if(allocation.running.has(g.key)&&s.generators[g.key].remainingHours*60/rate<=1e-9)s.generators[g.key].remainingHours=0;allocationCache=null;continue;}
+    if(step<=1e-9){for(const g of generators)if(allocation.running.has(g.key)&&reserveHours(g)*60/rate<=1e-9){const tank=linked(g,'generator_tank');if(tank)s.fuelTanks[tank.key].liters=0;s.generators[g.key].remainingHours=0;}allocationCache=null;continue;}
     tickStep(step,rate);remaining-=step;
    }
    for(const g of generators)generatorStatus(g.f,g.it);
@@ -816,8 +898,9 @@
     slotCapacity:it.type==='power_outlet'?2:it.type==='power_strip'?Math.max(1,Math.floor(number(it.slots,4))):undefined};
   }
   function setService(name,active){if(!Object.prototype.hasOwnProperty.call(s.contracts,name))return false;s.contracts[name]=active?'active':'suspended';return true;}
+  syncATS();
   return Object.freeze({state:s,phone:state.phone,graphs,powerGraphs,powerRoute,zoneFor,requiresPower,point,itemAt,defaultsFor,sourceFor,wiredRoute,scopeFor,
-   generatorStatus,setGeneratorEnabled,generatorCircuitPowered,statusFor,electrical,waterStatus,drainStatus,wifiAt,wifiSampler,connectWifi,internetFor,landlineFor,mobileFor,
+   atsStatus,activateATSManual,tankStatus,generatorStatus,setGeneratorEnabled,generatorCircuitPowered,statusFor,electrical,waterStatus,drainStatus,wifiAt,wifiSampler,connectWifi,internetFor,landlineFor,mobileFor,
    chargePhone,takePhone,useWaterFixture,setUsage,dial,tick,setService,feetPerCell});
  }
  return Object.freeze({INFRA,defaultsFor,wallGraph,ensureState,createRuntime,requiresPower:needsElectricity,LIMITS,rangeFor});

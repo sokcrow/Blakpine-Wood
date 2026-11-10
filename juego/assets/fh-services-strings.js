@@ -3,6 +3,11 @@
  'use strict';
  root.FH_SERVICES_TEXT=Object.freeze({
   generator:Object.freeze({
+   picker:'Generadores y respaldo',feet:'pies',estimate:h=>'Autonomía inicial estimada: '+h.toFixed(2)+' h',close:'Cerrar',chooseModel:'Modelo del equipo',loading:'Cargando modelos…',loadError:'No se pudo cargar el catálogo de generadores.',wallRequired:'El ATS debe colocarse sobre una pared estructural.',
+   ats:'Tablero de transferencia automática',tank:'Tanque de combustible',noLink:'Sin asignar',atsLink:'ATS opcional',tankLink:'Tanque de combustible',fuelRate:'Consumo de combustible (litros/hora)',fuelCapacity:'Capacidad del tanque (litros)',initialFuel:'Combustible inicial (litros)',fuelNote:'Con tanque conectado, la autonomía se calcula con litros restantes ÷ litros/hora. Sin tanque se conserva la reserva en horas.',
+   manual:'Activar transferencia manual',atsNote:'Un intento automático por apagón, con 10 % de fallo. Si falla, activa la transferencia manual desde el tablero. Asígnalo desde el inspector del generador de emergencia.',
+   atsStatus:s=>!s?.connected?'ATS sin generador asignado':s.damaged?'ATS dañado':!s.outage?'ATS: red principal disponible':s.mode==='failed'?'ATS: fallo automático; activa la transferencia manual':s.mode==='manual'?'ATS: transferencia manual activada':'ATS: transferencia automática activada',
+   tankStatus:s=>!s?'Tanque no disponible':s.liters.toFixed(2)+' / '+s.capacityLiters.toFixed(2)+' L · '+(s.connected?s.remainingHours.toFixed(2)+' h disponibles':'Sin generador asignado'),
    normal:'Generador normal',emergency:'Generador de emergencia',kind:'Tipo de generador',
    enabled:'Encendido / respaldo automático habilitado',autonomy:'Autonomía inicial (horas del juego)',
    capacity:'Capacidad (vatios)',targets:'Destinos y prioridades',inspect:'Ver reserva y estado',wholeCircuit:'Circuito completo',
@@ -15,7 +20,7 @@
   tabElectric:'⚡ Electricidad',
   catWater:'◉ Agua y drenaje',catData:'⌁ Internet y telefonía',
   labels:Object.freeze({
-   generator:'Generador',power_outlet:'Enchufe doble',power_strip:'Multiconector',phone_charger:'Cargador de celular',
+   generator:'Generador',generator_ats:'Tablero ATS',generator_tank:'Tanque de combustible',power_outlet:'Enchufe doble',power_strip:'Multiconector',phone_charger:'Cargador de celular',
    water_main:'Entrada de agua',water_valve:'Válvula de agua',
    water_outlet:'Toma de agua',drain_outlet:'Desagüe',drain_main:'Salida principal de drenaje',
    router:'Router Wi-Fi',ethernet_port:'Toma Ethernet',landline_phone:'Teléfono de pared'
