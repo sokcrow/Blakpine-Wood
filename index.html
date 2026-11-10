@@ -1725,8 +1725,9 @@ function restoreHistory(){
  }
  const selectedId=current()?.id;
  project.floors=states.map((state,i)=>{
-  const old=project.floors.find(f=>f.id===state.id)||floorDefault(state.id||'floor'+(i+1),state.name||'Piso '+(i+1),state.elevationFt??i*12,i);
-  return {...old,reference:floorRefArchive.get(state.id)||old.reference,
+  const existing=project.floors.find(f=>f.id===state.id);
+  const old=existing||floorDefault(state.id||'floor'+(i+1),state.name||'Piso '+(i+1),state.elevationFt??i*12,i);
+  return {...old,reference:existing?.reference||floorRefArchive.get(state.id)||old.reference,
    id:state.id||old.id,name:state.name||old.name,items:state.items||[],
    elevationFt:state.elevationFt,ceilingHeightFt:state.ceilingHeightFt,
    lightingManual:!!state.lightingManual,apartments:state.apartments||[]};
@@ -4237,16 +4238,16 @@ function addBuildingLevelsToEngine(doc){
    "if(f===mainFloorIndex||(f>mainFloorIndex&&!SLABS[f].enabled))for(const r of surfaceRectsMinusVoids(f,0,0,GRID_X,GRID_Z))surfaceGrid(f,r.x,r.y,r.w,r.h,MAT.parking,-.09);\n"+
    "if(f<mainFloorIndex&&DATA.basementSlabs?.[f]?.enabled)for(const sp of DATA.basementSlabs[f].spans)for(const r of surfaceRectsMinusVoids(f,sp.x,sp.y,sp.w,sp.h))surfaceGrid(f,r.x,r.y,r.w,r.h,ART_FLOOR_MAT,.018);"],
   ["surfaceAllowed:currentFloor>0&&SLABS[currentFloor].enabled?(xx,zz)=>onStructuralSlab(xx,zz):null",
-   "surfaceAllowed:currentFloor<mainFloorIndex&&DATA.basementSlabs?.[currentFloor]?.enabled?(xx,zz)=>fhBasementWalk(xx,zz):currentFloor>mainFloorIndex&&SLABS[currentFloor].enabled?(xx,zz)=>onStructuralSlab(xx,zz):null"]
+   "surfaceAllowed:(currentFloor<mainFloorIndex&&DATA.basementSlabs?.[currentFloor]?.enabled||currentFloor>mainFloorIndex&&SLABS[currentFloor].enabled)?(xx,zz)=>onStructuralSlab(xx,zz):null"],
+  ["const slab=SLABS[floor],gx=x/CELL,gz=z/CELL;",
+   "const slab=floor<mainFloorIndex&&DATA.basementSlabs?.[floor]?.enabled?DATA.basementSlabs[floor]:SLABS[floor],gx=x/CELL,gz=z/CELL;"]
  ];
  for(const [before,after] of edits){
   const count=doc.split(before).length-1,expected=before.startsWith('surfaceAllowed:')?2:1;
   if(count!==expected)throw Error('Hook de niveles incompatible: '+before.slice(0,75)+' ('+count+')');
   doc=doc.split(before).join(after);
  }
- const method="function fhBasementWalk(x,z){const spans=DATA.basementSlabs?.[currentFloor]?.spans||[];const gx=x/CELL,gz=z/CELL;return spans.some(r=>gx>=r.x&&gx<=r.x+r.w&&gz>=r.y&&gz<=r.y+r.h)}\n";
- if(doc.split('function canWalk(x,z){').length!==2)throw Error('Punto de colisión de sótanos no localizado');
- return doc.replace('function canWalk(x,z){',method+'function canWalk(x,z){');
+ return doc;
 }
  // Restringe las fachadas de niveles vecinos sin duplicar FOW ni cambiar el mapa.
  function addFloorVisibilityToEngine(doc){
