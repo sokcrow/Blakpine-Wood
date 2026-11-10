@@ -1993,7 +1993,7 @@ function chooseStairPlacement(){
  const targets=stairNeighbors();
  if(!targets.length){toast('Crea primero otro nivel arriba o abajo para enlazar escaleras.');chooseTool('select');return}
  modal(`<h2>Sentido de la escalera</h2><p>Elige hacia dónde irá desde ${escapeAttr(current().name)}. La pendiente y el hueco seguirán el destino.</p><div class="actions">${targets.map(t=>`<button data-stair-direction="${t.direction}" class="${t.direction==='down'?'accent':'primary'}">${t.direction==='down'?'↓ Bajar a':'↑ Subir a'} ${escapeAttr(t.floor.name)} (${rounded(t.floor.elevationFt-current().elevationFt,2)} pies)</button>`).join('')}<button id="stairCancel">Cancelar</button></div>`,()=>{
-  for(const button of $('[data-stair-direction]'))button.onclick=()=>{
+  for(const button of $$('[data-stair-direction]'))button.onclick=()=>{
    stairPlacementDirection=button.dataset.stairDirection;closeModal();
    toast(stairPlacementDirection==='down'?'Escalera descendente: toca el mapa para colocarla.':'Escalera ascendente: toca el mapa para colocarla.');
   };
