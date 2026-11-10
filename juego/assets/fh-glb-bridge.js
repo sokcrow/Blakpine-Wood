@@ -7,6 +7,7 @@
   const libraryBase = new URL('../../forest-horror/biblioteca/', scriptUrl);
   const catalogUrl = new URL('catalogo_muebles.json', libraryBase);
   const deliveryCatalogUrl = new URL('catalogo_delivery.json', libraryBase);
+  const generatorsCatalogUrl = new URL('generadores/catalogo_generadores.json', libraryBase);
   const models = new Map();
   const mirrors = new WeakMap();
   let catalogPromise = null;
@@ -33,7 +34,7 @@
         console.warn('[Forest GLB] Catálogo de paquetería no disponible:', error);
         return {schema:'forest-horror-furniture-catalog-v1', furniture:[]};
       });
-      catalogPromise = Promise.all([loadDocument(catalogUrl), loadDocument(deliveryCatalogUrl, true)]).then(documents => {
+      catalogPromise = Promise.all([loadDocument(catalogUrl), loadDocument(deliveryCatalogUrl, true), loadDocument(generatorsCatalogUrl, true)]).then(documents => {
         const entries = new Map();
         for (const data of documents) {
           if (data.schema !== 'forest-horror-furniture-catalog-v1' || !Array.isArray(data.furniture)) {
@@ -41,7 +42,7 @@
           }
           for (const entry of data.furniture) {
             if (!entry || typeof entry.id !== 'string' || !/^[a-z0-9_]+$/.test(entry.id) ||
-                typeof entry.glb !== 'string' || !/^modelos_glb\/[a-z0-9_]+\.glb$/.test(entry.glb)) {
+                typeof entry.glb !== 'string' || !/^(?:generadores\/)?modelos_glb\/[a-z0-9_]+\.glb$/.test(entry.glb)) {
               throw new Error('Entrada inválida en el catálogo GLB');
             }
             if (entries.has(entry.id)) {
@@ -67,7 +68,7 @@
         if (!global.THREE) return reject(new Error('Three.js no está inicializado'));
         if (global.THREE.GLTFLoader) return resolve(new global.THREE.GLTFLoader());
         const script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js';
+        script.src = new URL('vendor/GLTFLoader.js', scriptUrl).href;
         script.onload = () => global.THREE.GLTFLoader
           ? resolve(new global.THREE.GLTFLoader())
           : reject(new Error('GLTFLoader no se registró'));

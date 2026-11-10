@@ -369,3 +369,202 @@ test('el multiconector conserva ranuras propias sin aumentar las del enchufe',()
   assert.equal(sys.statusFor(0,items.find(it=>it.id==='strip')).usedSlots,3);
   assert.equal(sys.statusFor(0,items.find(it=>it.id==='plug')).usedSlots,1);
 });
+
+function generatorFixture({kind='emergency',capacity=300,autonomy=72,targets,normal=false}={}){
+ const panel={id:'panel',type:'breaker_panel',x:0,y:0,circuits:[{id:'a',zoneId:'a'},{id:'b',zoneId:'b'}]};
+ const generator={id:'backup',type:'generator',generatorKind:kind,enabled:true,autonomyHours:autonomy,capacityWatts:capacity,
+  targets:targets||[{floorId:'upper',panelId:'panel',circuitId:'a',priority:10},{floorId:'upper',panelId:'panel',circuitId:'b',priority:1}]};
+ const roomA={id:'room-a',roomId:'A',type:'room',zoneId:'a',x:0,y:0,w:4,h:4};
+ const roomB={id:'room-b',roomId:'B',type:'room',zoneId:'b',x:4,y:0,w:4,h:4};
+ const a={id:'lamp-a',type:'light_fixture',roomId:'A',zoneId:'a',x:1,y:1,watts:200};
+ const b={id:'lamp-b',type:'light_fixture',roomId:'B',zoneId:'b',x:5,y:1,watts:200};
+ const project={schema:'forest-horror-map-v1',units:{feetPerCell:5},floors:[{id:'basement',items:[generator]},
+  {id:'upper',items:[{id:'wall',type:'wall',a:{x:0,y:0},b:{x:8,y:0}},panel,roomA,roomB,a,b]}]};
+ if(normal)project.floors[0].items.push({...generator,id:'normal',generatorKind:'normal',enabled:false});
+ const state={flags:{}},sys=FH.createRuntime(project,state);
+ return {project,state,sys,generator,panel,a,b,roomA,roomB};
+}
+test('generador de emergencia: espera, arranca desde sótano y conserva destinos prioritarios',()=>{
+ const {sys,state,generator,a,b}=generatorFixture();
+ assert.ok(sys.sourceFor(1,a));assert.ok(sys.sourceFor(1,b));
+ sys.tick(60);assert.equal(sys.generatorStatus(0,generator).remainingHours,72);
+ state.flags.power_global=false;
+ assert.ok(sys.sourceFor(1,a)?.feed);assert.equal(sys.sourceFor(1,b),null);
+ assert.equal(sys.generatorStatus(0,generator).watts,200);
+ sys.tick(60);assert.equal(sys.generatorStatus(0,generator).remainingHours,71);
+ state.flags.power_global=true;sys.tick(60);
+ assert.equal(sys.generatorStatus(0,generator).running,false);
+ assert.equal(sys.generatorStatus(0,generator).remainingHours,71);assert.ok(sys.sourceFor(1,b));
+});
+test('generador normal sustituye la red en destinos explícitos; apagado corta y admite respaldo',()=>{
+ const {sys,generator,a,b}=generatorFixture({kind:'normal',capacity:500});
+ assert.ok(sys.sourceFor(1,a)?.feed);sys.setGeneratorEnabled(0,'backup',false);
+ assert.equal(sys.sourceFor(1,a),null);assert.equal(sys.sourceFor(1,b),null);
+ sys.setGeneratorEnabled(0,'backup',true);assert.ok(sys.sourceFor(1,a));
+ const backup=generatorFixture({normal:true,capacity:500});
+ assert.ok(backup.sys.sourceFor(1,backup.a)?.feed);
+ assert.equal(backup.sys.generatorStatus(0,backup.generator).running,true);
+ backup.sys.setGeneratorEnabled(0,'normal',true);
+ assert.equal(backup.sys.generatorStatus(0,backup.generator).running,false);
+});
+test('reserva se agota a mitad del tick sin regalar consumo eléctrico',()=>{
+ const {sys,state,generator,a}=generatorFixture({autonomy:.5,capacity:200});
+ state.flags.power_global=false;
+ sys.tick(60);
+ assert.equal(sys.generatorStatus(0,generator).remainingHours,0);
+ assert.equal(sys.generatorStatus(0,generator).running,false);
+ assert.equal(sys.sourceFor(1,a),null);assert.ok(Math.abs(sys.state.meters.kwh-.1)<1e-9);
+});
+test('guardado JSON conserva habilitación y reserva sin recargar ni consumir tiempo cerrado',()=>{
+ const {sys,state,project,generator,a}=generatorFixture();state.flags.power_global=false;sys.tick(60);
+ sys.setGeneratorEnabled(0,'backup',false);
+ const saved=JSON.parse(JSON.stringify(state)),restored=FH.createRuntime(project,saved);
+ assert.equal(restored.generatorStatus(0,generator).remainingHours,71);
+ assert.equal(restored.generatorStatus(0,generator).enabled,false);assert.equal(restored.sourceFor(1,a),null);
+ restored.setGeneratorEnabled(0,'backup',true);assert.ok(restored.sourceFor(1,a));
+ assert.equal(restored.generatorStatus(0,generator).remainingHours,71);
+});
+test('respaldo respeta palancas, cortes de zona, flags del circuito y panel dañado',()=>{
+ for(const flag of ['power_breaker:panel:a','power_zone:a','panel','custom']){
+  const fx=generatorFixture();fx.panel.powerFlag=flag==='custom'?'custom':'';
+  fx.state.flags={power_global:false,[flag]:false};
+  assert.equal(FH.createRuntime(fx.project,fx.state).sourceFor(1,fx.a),null,flag);
+ }
+ const fx=generatorFixture();fx.state.flags.power_global=false;fx.sys.state.damage.panel=100;
+ assert.equal(fx.sys.sourceFor(1,fx.a),null);
+});
+test('destinos ausentes, referencias inválidas y reserva cero no crean electricidad',()=>{
+ for(const opts of [{targets:[]},{targets:[{floorId:'missing',panelId:'panel',circuitId:'a'}]},{autonomy:0},{capacity:0}]){
+  const {sys,state,a}=generatorFixture(opts);state.flags.power_global=false;
+  assert.equal(sys.sourceFor(1,a),null);
+ }
+});
+test('selección por habitación no alimenta otra habitación del mismo circuito',()=>{
+ const fx=generatorFixture({capacity:500,targets:[{floorId:'upper',panelId:'panel',circuitId:'a',roomId:'A',priority:1}]});
+ fx.b.zoneId='a';fx.roomB.zoneId='a';fx.state.flags.power_global=false;
+ assert.ok(fx.sys.sourceFor(1,fx.a));assert.equal(fx.sys.sourceFor(1,fx.b),null);
+});
+test('capacidad contempla equipos enchufados y reserva la potencia antes de conceder otro destino',()=>{
+ const fx=generatorFixture({capacity:400});
+ const outlet={id:'outlet',type:'power_outlet',zoneId:'a',roomId:'A',x:1,y:0};
+ const pc={id:'pc',type:'misc',zoneId:'a',roomId:'A',outletId:'outlet',x:1,y:.5,service:{requiresPower:true,watts:150}};
+ fx.project.floors[1].items.push(outlet,pc);
+ fx.state.flags.power_global=false;const sys=FH.createRuntime(fx.project,fx.state);
+ assert.equal(sys.statusFor(1,pc).power.powered,true);assert.equal(sys.sourceFor(1,fx.b),null);
+ assert.equal(sys.generatorStatus(0,fx.generator).watts,350);
+});
+test('sin generador opcional un apagón sigue cortando ambos circuitos',()=>{
+ const fx=generatorFixture();fx.project.floors[0].items=[];
+ const sys=FH.createRuntime(fx.project,fx.state);fx.state.flags.power_global=false;
+ assert.equal(sys.sourceFor(1,fx.a),null);assert.equal(sys.sourceFor(1,fx.b),null);
+});
+
+test('horas de juego escaladas, pausa y corte de un solo piso',()=>{
+ const fx=generatorFixture();fx.state.flags['power_floor:upper']=false;
+ fx.sys.tick(10,0);assert.equal(fx.sys.generatorStatus(0,fx.generator).remainingHours,72);
+ fx.sys.tick(30,4);assert.equal(fx.sys.generatorStatus(0,fx.generator).remainingHours,70);
+ assert.ok(fx.sys.sourceFor(1,fx.a));
+});
+test('dos habitaciones del mismo circuito reciben prioridades independientes',()=>{
+ const fx=generatorFixture({capacity:200,targets:[
+  {floorId:'upper',panelId:'panel',circuitId:'a',roomId:'B',priority:1},
+  {floorId:'upper',panelId:'panel',circuitId:'a',roomId:'A',priority:9}]});
+ fx.b.zoneId='a';fx.roomB.zoneId='a';fx.state.flags.power_global=false;
+ const sys=FH.createRuntime(fx.project,fx.state);
+ assert.ok(sys.sourceFor(1,fx.a));assert.equal(sys.sourceFor(1,fx.b),null);
+ fx.state.flags['light_room:upper:A']=false;
+ assert.ok(sys.sourceFor(1,fx.b),'apagar luces prioritarias libera capacidad');
+});
+test('carga sin datos usa 200 W en generador sin alterar el consumo de mapas antiguos',()=>{
+ const fx=generatorFixture({capacity:300});delete fx.a.watts;delete fx.b.watts;
+ fx.sys.tick(60);assert.equal(fx.sys.state.meters.kwh,0);
+ fx.state.flags.power_global=false;fx.sys.tick(60);
+ assert.equal(fx.sys.state.meters.kwh,.2);assert.equal(fx.sys.generatorStatus(0,fx.generator).watts,200);
+ assert.equal(fx.sys.sourceFor(1,fx.b),null);
+});
+test('referencia malformada no bloquea mapas y un generador dañado no suministra',()=>{
+ const fx=generatorFixture({targets:[null,{},42]});fx.state.flags.power_global=false;
+ assert.equal(fx.sys.sourceFor(1,fx.a),null);
+ const valid=generatorFixture();valid.state.flags.power_global=false;valid.sys.state.damage.backup=100;
+ assert.equal(valid.sys.sourceFor(1,valid.a),null);
+});
+test('un destino recortado no transfiere carga a un segundo panel sin capacidad reservada',()=>{
+ const fx=generatorFixture({capacity:200});
+ const second={id:'other',type:'breaker_panel',x:1,y:0,circuits:[{id:'b',zoneId:'b'}]};
+ const other={id:'g2',type:'generator',generatorKind:'emergency',enabled:true,capacityWatts:100,autonomyHours:24,
+  targets:[{floorId:'upper',panelId:'other',circuitId:'b',priority:1}]};
+ fx.project.floors[1].items.push(second);fx.project.floors[0].items.push(other);fx.state.flags.power_global=false;
+ const sys=FH.createRuntime(fx.project,fx.state);
+ assert.equal(sys.sourceFor(1,fx.b),null);
+ assert.ok(sys.generatorStatus(0,other).watts<=100);
+});
+
+function accessoriesFixture({roll=.5,liters=120,rate=5}={}){
+ const fx=generatorFixture({capacity:500});
+ const ats={id:'ats',type:'generator_ats'},tank={id:'tank',type:'generator_tank',capacityLiters:liters};
+ fx.project.floors[0].items.push(ats,tank);
+ Object.assign(fx.generator,{atsId:'ats',atsFloorId:'basement',tankId:'tank',tankFloorId:'basement',fuelLitersPerHour:rate});
+ let rolls=0;
+ fx.sys=FH.createRuntime(fx.project,fx.state,{random:()=>{rolls++;return roll;}});
+ return {...fx,ats,tank,rolls:()=>rolls};
+}
+test('ATS: una tirada por apagón, fallo exacto por debajo de 10 %, sin consumir reserva',()=>{
+ const fx=accessoriesFixture({roll:.099999});fx.state.flags.power_global=false;
+ for(let i=0;i<10;i++)assert.equal(fx.sys.sourceFor(1,fx.a),null);
+ fx.sys.tick(60);assert.equal(fx.rolls(),1);assert.equal(fx.sys.atsStatus(0,fx.ats).mode,'failed');
+ assert.equal(fx.sys.tankStatus(0,fx.tank).liters,120);
+ fx.sys.setGeneratorEnabled(0,'backup',false);fx.sys.setGeneratorEnabled(0,'backup',true);
+ assert.equal(fx.rolls(),1);assert.equal(fx.sys.sourceFor(1,fx.a),null);
+});
+test('ATS: éxito desde 0.10, retorno de principal y nuevo intento en otro apagón',()=>{
+ const fx=accessoriesFixture({roll:.1});fx.state.flags.power_global=false;
+ assert.ok(fx.sys.sourceFor(1,fx.a));assert.equal(fx.rolls(),1);
+ fx.sys.tick(60);assert.equal(fx.sys.tankStatus(0,fx.tank).liters,115);
+ fx.state.flags.power_global=true;fx.sys.tick(60);
+ assert.equal(fx.sys.atsStatus(0,fx.ats).mode,'idle');assert.equal(fx.sys.tankStatus(0,fx.tank).liters,115);
+ fx.state.flags.power_global=false;assert.ok(fx.sys.sourceFor(1,fx.a));assert.equal(fx.rolls(),2);
+});
+test('ATS: fallo y transferencia manual persisten sin repetir azar al cargar',()=>{
+ const fx=accessoriesFixture({roll:0});fx.state.flags.power_global=false;fx.sys.tick(.1);
+ let rolled=0;const state=JSON.parse(JSON.stringify(fx.state));
+ const restored=FH.createRuntime(fx.project,state,{random:()=>{rolled++;return .9;}});
+ assert.equal(restored.atsStatus(0,fx.ats).mode,'failed');assert.equal(rolled,0);assert.equal(restored.sourceFor(1,fx.a),null);
+ assert.equal(restored.activateATSManual(0,'ats'),true);assert.ok(restored.sourceFor(1,fx.a));
+ const again=FH.createRuntime(fx.project,JSON.parse(JSON.stringify(state)),{random:()=>{throw Error('no repetir tirada');}});
+ assert.equal(again.atsStatus(0,fx.ats).mode,'manual');assert.ok(again.sourceFor(1,fx.a));
+});
+test('ATS: corte de breaker no inicia apagón; manual sin apagón o tablero dañado se rechaza',()=>{
+ const fx=accessoriesFixture();fx.state.flags['power_breaker:panel:a']=false;
+ assert.equal(fx.sys.sourceFor(1,fx.a),null);assert.equal(fx.rolls(),0);assert.equal(fx.sys.activateATSManual(0,'ats'),false);
+ fx.state.flags.power_global=false;fx.sys.state.damage.ats=100;
+ assert.equal(fx.sys.sourceFor(1,fx.b),null);assert.equal(fx.sys.activateATSManual(0,'ats'),false);
+});
+test('tanque: 120 L a 5 L/h son 24 horas, sin sumar autonomía del generador',()=>{
+ const fx=accessoriesFixture();assert.equal(fx.sys.generatorStatus(0,fx.generator).remainingHours,24);
+ fx.state.flags.power_global=false;fx.sys.tick(60,12);
+ assert.equal(fx.sys.generatorStatus(0,fx.generator).remainingHours,12);assert.equal(fx.sys.tankStatus(0,fx.tank).liters,60);
+ const restored=FH.createRuntime(fx.project,JSON.parse(JSON.stringify(fx.state)));
+ assert.equal(restored.generatorStatus(0,fx.generator).remainingHours,12);assert.equal(restored.tankStatus(0,fx.tank).liters,60);
+});
+test('tanque: agotamiento durante un tick, litros nunca negativos y reserva antigua no revive',()=>{
+ const fx=accessoriesFixture({liters:2.5,rate:5});fx.state.flags.power_global=false;fx.sys.tick(60);
+ assert.equal(fx.sys.tankStatus(0,fx.tank).liters,0);assert.equal(fx.sys.generatorStatus(0,fx.generator).remainingHours,0);
+ assert.equal(fx.sys.sourceFor(1,fx.a),null);assert.ok(Math.abs(fx.sys.state.meters.kwh-.2)<1e-9);
+ const restored=FH.createRuntime(fx.project,JSON.parse(JSON.stringify(fx.state)));
+ assert.equal(restored.sourceFor(1,fx.a),null);
+});
+test('accesorios: enlaces inválidos, compartidos o consumo cero no suministran energía gratis',()=>{
+ for(const change of [fx=>fx.generator.tankId='missing',fx=>fx.generator.atsId='missing',fx=>fx.generator.fuelLitersPerHour=0,
+  fx=>fx.project.floors[0].items.push({...fx.generator,id:'other'})]){
+  const fx=accessoriesFixture();change(fx);fx.state.flags.power_global=false;
+  const runtime=FH.createRuntime(fx.project,fx.state,{random:()=>.5});assert.equal(runtime.sourceFor(1,fx.a),null);
+ }
+});
+test('ATS: enlaces entre pisos funcionan y el estado no afecta a edificios sin ATS',()=>{
+ const fx=accessoriesFixture({roll:0});
+ fx.project.floors[0].items.splice(fx.project.floors[0].items.indexOf(fx.ats),1);
+ fx.project.floors[1].items.push(fx.ats);fx.generator.atsFloorId='upper';fx.state.flags.power_global=false;
+ const runtime=FH.createRuntime(fx.project,fx.state,{random:()=>0});
+ assert.equal(runtime.sourceFor(1,fx.a),null);assert.equal(runtime.activateATSManual(1,'ats'),true);assert.ok(runtime.sourceFor(1,fx.a));
+ const legacy=generatorFixture();legacy.state.flags.power_global=false;assert.ok(legacy.sys.sourceFor(1,legacy.a));
+});

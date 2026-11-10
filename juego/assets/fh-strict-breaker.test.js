@@ -297,3 +297,54 @@ test('fuentes dinámicas de batería no dependen de circuitos y el mapa no se re
  }finally{Lights.removeDynamicSource(id)}
  assert.equal(JSON.stringify(floors),before);
 });
+
+for(const [name,create] of [['compartido',shared.createLightingSystem],['motor preparado',factoryFrom(engine.prepared)],['motor con servicios',factoryFrom(engine.patched)]]){
+ test(name+': respaldo enciende sólo el cuarto seleccionado durante apagón y respeta interruptor',()=>{
+  const a={id:'a',type:'room',roomId:'A',zoneId:'a',x:0,y:0,w:4,h:4};
+  const b={id:'b',type:'room',roomId:'B',zoneId:'a',x:4,y:0,w:4,h:4};
+  const lampA={id:'la',type:'light_fixture',roomId:'A',x:1,y:1,watts:100};
+  const lampB={id:'lb',type:'light_fixture',roomId:'B',x:5,y:1,watts:100};
+  const gen={id:'g',type:'generator',generatorKind:'emergency',enabled:true,capacityWatts:100,autonomyHours:48,
+   targets:[{floorId:'upper',panelId:'p',circuitId:'a',roomId:'A',priority:10}]};
+  const floors=[{id:'lower',items:[gen]},{id:'upper',items:[a,b,lampA,lampB,
+   {id:'w',type:'wall',a:{x:0,y:0},b:{x:8,y:0}},
+   {id:'p',type:'breaker_panel',x:0,y:0,circuits:[{id:'a',zoneId:'a'}]}]}];
+  const state={flags:{power_global:false}},service=Services.createRuntime({floors,units:{feetPerCell:5}},state);
+  const lighting=create(floors,state,{
+   fixturePowered:(f,it,z)=>!!service.sourceFor(f,it,z),generatorPowered:(f,it,z)=>!!service.sourceFor(f,it,z)?.feed,
+   generatorCircuitPowered:(f,z)=>service.generatorCircuitPowered(f,z)});
+  assert.equal(lighting.fixtureLit(1,a,lampA),true);assert.equal(lighting.fixtureLit(1,b,lampB),false);
+  assert.equal(lighting.powered(1,'a'),true,'el interruptor reconoce el respaldo');
+  lighting.toggleRoom(1,'A');assert.equal(lighting.fixtureLit(1,a,lampA),false);
+  lighting.toggleRoom(1,'A');assert.equal(lighting.fixtureLit(1,a,lampA),true);
+  state.flags['power_breaker:p:a']=false;assert.equal(lighting.fixtureLit(1,a,lampA),false);
+  state.flags['power_breaker:p:a']=true;state.flags.power_global=true;
+  assert.equal(lighting.fixtureLit(1,b,lampB),true);assert.equal(service.generatorStatus(0,gen).running,false);
+ });
+}
+
+test('siete props de piso usan el collider existente; ATS de pared no bloquea movimiento',()=>{
+ const THREE=require('./vendor/three.min.js');
+ const models=JSON.parse(fs.readFileSync(path.join(__dirname,'../../forest-horror/biblioteca/generadores/catalogo_generadores.json'))).furniture;
+ const doc=engine.prepared,from=doc.indexOf('function furniture(f,a){'),to=doc.indexOf('\nfunction windowModel(',from);
+ assert.ok(from>0&&to>from);
+ for(const model of models){
+  const stories=[new THREE.Group()],colliders=[[]],attached=[],material=new THREE.MeshBasicMaterial();
+  const win={FHAssets:{attach:(root,item)=>attached.push({root,item})}};
+  const context={window:win,THREE,CELL:1.524,stories,furnitureColliders:colliders,furnitureSightRoots:[[]],elevatorSightRoots:[[]],
+   ForestShared:shared,MAT:new Proxy({},{get:()=>material}),box:(group,mat,x,y,z,w,h,d)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);group.add(m);return m;}};
+  vm.runInNewContext(doc.slice(from,to)+'\nthis.make=furniture;',context);
+  const item={id:model.id,type:model.type,modelId:model.id,placement:model.placement,mountHeightFt:model.mountHeightFt,
+   x:3,y:3,w:model.widthFt/5,h:model.depthFt/5,rotation:90,blocksMovement:model.blocksMovement};
+  const root=context.make(0,item);
+  assert.equal(attached.length,1);assert.equal(attached[0].item.modelId,model.id);
+  assert.equal(colliders[0].length,model.blocksMovement?1:0,model.id);
+  if(model.blocksMovement){
+   const c=colliders[0][0];assert.ok(Math.abs(c.w-model.widthFt*.3048)<1e-8);assert.ok(Math.abs(c.d-model.depthFt*.3048)<1e-8);
+   const geometry={width:30,height:30,radius:.2,objects:colliders[0],objectMode:'box'};
+   assert.equal(shared.solidAt(c.cx,c.cz,geometry),true,model.id+' bloquea');
+   assert.equal(shared.solidAt(20,20,geometry),false,'fuera del equipo se puede caminar');
+  }
+  assert.ok(root.isGroup);
+ }
+});
