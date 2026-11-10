@@ -104,3 +104,49 @@ test('una computadora antigua sin requiresPower también debe tener suministro; 
  win.FHServicesRuntime={statusFor:()=>({power:{powered:true}})};assert.equal(options.powerAvailable(item,0),true);
 });
 
+
+test('interacción de generador restaura reserva, permite habilitar y guarda mediante el puente',()=>{
+ const generator={id:'g',type:'generator',generatorKind:'emergency',enabled:true,autonomyHours:72,targets:[]};
+ const data={floors:[{id:'sotano',items:[generator]}]};
+ const services={generators:{'sotano:g':{enabled:false,remainingHours:31,running:true}}};
+ const {win}=runEngine({services},{FHServices:{...Services,createRuntime:(_,state)=>Services.createRuntime(data,state)}});
+ assert.equal(win.FHServicesRuntime.generatorStatus(0,generator).remainingHours,31);
+ assert.equal(win.FHServicesRuntime.generatorStatus(0,generator).running,false);
+ win.FH_SERVICES_TEXT={generator:{status:s=>String(s.enabled)}};
+ assert.equal(win.FHServicesGame.handle(generator,0),true);
+ assert.equal(win.FHServicesRuntime.generatorStatus(0,generator).enabled,true);
+ assert.equal(win.FHServicesRuntime.generatorStatus(0,generator).remainingHours,31);
+ win.FHServicesGame.handle(generator,0);
+ assert.equal(win.FHServicesRuntime.generatorStatus(0,generator).enabled,false);
+});
+
+test('editor: selección de habitación, prioridad y circuito completo se exportan con IDs entre pisos',()=>{
+ class Node{
+  constructor(tag){this.tag=tag;this.children=[];this.style={};this.attributes={};}
+  append(...nodes){this.children.push(...nodes);}
+  setAttribute(k,v){this.attributes[k]=v;}
+ }
+ const document={createElement:tag=>new Node(tag),createTextNode:text=>({text})};
+ const item={id:'g',type:'generator',targets:[]};
+ const floor={id:'upper',name:'Piso 1',items:[
+  {id:'p',type:'breaker_panel',label:'Panel',circuits:[{id:'c',zoneId:'a'}]},
+  {id:'r',type:'room',roomId:'A',zoneId:'a',label:'Enfermería'}]};
+ const editor=fs.readFileSync(path.join(__dirname,'../../index.html'),'utf8');
+ const from=editor.indexOf('function attachServiceInspector('),to=editor.indexOf('\nfunction openInspector()',from);
+ const strings={};vm.runInNewContext(fs.readFileSync(path.join(__dirname,'fh-services-strings.js'),'utf8'),{globalThis:strings});
+ const calls=[];let refreshed=0;
+ const ctx={document,window:strings,project:{floors:[{id:'basement',items:[item]},floor]},
+  makeField:(...args)=>{calls.push(args);return new Node('field')},
+  setItemField:(_,key,value)=>item[key]=value,openInspector:()=>refreshed++};
+ vm.runInNewContext(editor.slice(from,to),ctx);
+ let fields=new Node('fields');ctx.attachServiceInspector(item,fields);
+ assert.ok(calls.some(args=>args[1]==='autonomyHours'));assert.ok(calls.some(args=>args[1]==='capacityWatts'));
+ let group=fields.children.at(-1),roomRow=group.children[2];
+ roomRow.children[0].children[0].checked=true;roomRow.children[1].value='9';roomRow.children[0].children[0].onchange();
+ assert.deepEqual(JSON.parse(JSON.stringify(item.targets)),[{floorId:'upper',panelId:'p',circuitId:'c',roomId:'A',priority:9}]);
+ assert.equal(refreshed,1);
+ fields=new Node('fields');ctx.attachServiceInspector(item,fields);group=fields.children.at(-1);
+ assert.equal(group.children[2].children[1].disabled,false,'prioridad editable después de seleccionar');
+ const whole=group.children[1];whole.children[0].children[0].checked=true;whole.children[0].children[0].onchange();
+ assert.equal(item.targets.length,1);assert.equal(item.targets[0].roomId,undefined,'circuito completo reemplaza sus habitaciones');
+});

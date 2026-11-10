@@ -2,10 +2,20 @@
 (function(root){
  'use strict';
  root.FH_SERVICES_TEXT=Object.freeze({
+  generator:Object.freeze({
+   normal:'Generador normal',emergency:'Generador de emergencia',kind:'Tipo de generador',
+   enabled:'Encendido / respaldo automático habilitado',autonomy:'Autonomía inicial (horas del juego)',
+   capacity:'Capacidad (vatios)',targets:'Destinos y prioridades',inspect:'Ver reserva y estado',wholeCircuit:'Circuito completo',
+   priority:'Prioridad (mayor primero)',note:'Sin destinos seleccionados no suministra energía. Los números de prioridad mayores se alimentan primero; cada destino se conecta completo o se desconecta si no cabe. Las conexiones entre pisos usan los IDs del piso, panel y circuito. Un generador normal sustituye la red principal en sus destinos. La reserva no se consume con la partida cerrada. Equipos sin consumo configurado: 200 W al usar generadores.',
+   turnOn:'Encender generador',turnOff:'Apagar generador',enable:'Habilitar respaldo automático',disable:'Deshabilitar respaldo automático',
+   running:'En funcionamiento',standby:'En espera',off:'Apagado',empty:'Reserva agotada',reserve:'Reserva restante',hours:'h',
+   action:(status)=>status.kind==='emergency'?(status.enabled?'Deshabilitar respaldo automático':'Habilitar respaldo automático'):(status.enabled?'Apagar generador':'Encender generador'),
+   status:(status)=> (status.remainingHours<=0?'Reserva agotada':status.running?'En funcionamiento':status.enabled?'En espera':'Apagado')+' · Reserva restante: '+status.remainingHours.toFixed(2)+' h · '+Math.round(status.watts)+' W'
+  }),
   tabElectric:'⚡ Electricidad',
   catWater:'◉ Agua y drenaje',catData:'⌁ Internet y telefonía',
   labels:Object.freeze({
-   power_outlet:'Enchufe doble',power_strip:'Multiconector',phone_charger:'Cargador de celular',
+   generator:'Generador',power_outlet:'Enchufe doble',power_strip:'Multiconector',phone_charger:'Cargador de celular',
    water_main:'Entrada de agua',water_valve:'Válvula de agua',
    water_outlet:'Toma de agua',drain_outlet:'Desagüe',drain_main:'Salida principal de drenaje',
    router:'Router Wi-Fi',ethernet_port:'Toma Ethernet',landline_phone:'Teléfono de pared'
