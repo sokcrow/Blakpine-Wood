@@ -111,10 +111,93 @@ test('el parche 3D reconoce las anclas reales del motor empacado y las cambia',(
  const engine=Buffer.from(parts.join(''),'base64').toString('utf8');
  const result=fn(engine);
  assert.match(result,/const mainFloorIndex=Math\.max\(0,DATA\.floors\.findIndex/);
- assert.match(result,/function fhBasementWalk\(x,z\)/);
+ assert.doesNotMatch(result,/function fhBasementWalk\(x,z\)/);
+ assert.match(result,/const slab=floor<mainFloorIndex&&DATA\.basementSlabs\?\.\[floor\]\?\.enabled/);
+ assert.match(result,/surfaceAllowed:\(currentFloor<mainFloorIndex&&DATA\.basementSlabs\?\.\[currentFloor\]/);
  assert.match(result,/DATA\.basementSlabs\?\.\[f\]/);
  assert.equal(result.includes('f===0||!SLABS[f].enabled'),false);
  const first=result.indexOf('<script>'),last=result.indexOf('</script>',first);
  assert.ok(first>=0&&last>first);
  assert.doesNotThrow(()=>new vm.Script(result.slice(first+8,last)));
+});
+
+test('los sótanos conservan superficie roja, pasillos, habitaciones, celdas y huecos de escalera',()=>{
+ const html=fs.readFileSync(path.join(__dirname,'../../index.html'),'utf8');
+ const start=html.indexOf('function addBuildingLevelsToEngine(doc){');
+ const end=html.indexOf('// Restringe las fachadas de niveles vecinos',start);
+ const patch=new Function('return ('+html.slice(start,end).trim()+')')();
+ const parts=Array.from({length:13},(_,i)=>{
+  const raw=fs.readFileSync(path.join(__dirname,'engine-'+String(i).padStart(2,'0')+'.js'),'utf8');
+  return raw.slice(raw.indexOf('+"')+2,raw.lastIndexOf('";'));
+ });
+ const source=patch(Buffer.from(parts.join(''),'base64').toString('utf8'));
+ const from=source.indexOf('function onStructuralSlab(x,z,floor=currentFloor){');
+ const until=source.indexOf('\n // La superficie bajo',from);
+ assert.ok(from>0&&until>from,'se conserva el predicado compartido del motor');
+ const factory=new Function('SLABS','DATA','CELL','mainFloorIndex','stairVoids','ForestShared','currentFloor',
+  source.slice(from,until)+'\nreturn onStructuralSlab;');
+ const data={basementSlabs:[
+  {enabled:true,spans:[{x:0,y:0,w:2,h:2}]},
+  null
+ ],floors:[
+  {id:'b1',items:[
+   {type:'hall',x:3,y:0,w:2,h:2},
+   {type:'room',spans:[{x:6,y:0,w:2,h:2}]},
+   {type:'pavement',cells:[{x:9,y:1}]}
+  ]},
+  {id:'pb',items:[]}
+ ]};
+ const empty={enabled:false,spans:[]};
+ const stairs=[[],[]];
+ const walk=factory([empty,empty],data,1,1,stairs,{stairOnRun:()=>false},0);
+ assert.equal(walk(1,1),true,'dentro de la losa roja');
+ assert.equal(walk(3.5,1),true,'pasillo fuera de la losa roja');
+ assert.equal(walk(6.5,1),true,'habitación con spans');
+ assert.equal(walk(9.5,1.5),true,'superficie por celdas');
+ assert.equal(walk(12,4),false,'fuera de cualquier superficie');
+ stairs[0]=[{x1:0.5,x2:1.5,z1:.5,z2:1.5}];
+ assert.equal(walk(1,1),false,'hueco de escalera no admite pasos por la losa');
+});
+
+test('deshacer conserva la imagen importada de pisos existentes y recupera la de pisos restaurados',()=>{
+ const html=fs.readFileSync(path.join(__dirname,'../../index.html'),'utf8');
+ const from=html.indexOf('function restoreHistory(){');
+ const until=html.indexOf('\nfunction numId(){',from);
+ assert.ok(from>0&&until>from);
+ const harness=new Function('state',`
+  let {project,history,historyIndex,floorRefArchive,loadedImgs,floorIndex}=state;
+  let selection='selected';
+  const current=()=>project.floors[floorIndex];
+  const floorDefault=(id,name,elevationFt)=>({
+   id,name,elevationFt,reference:{data:'default'},items:[],ceilingHeightFt:11.5
+  });
+  const recalcAllSpaces=()=>{},syncStairLinks=()=>{},refreshFloorTabs=()=>{};
+  const closeInspector=()=>{},saveSoon=()=>{},render=()=>{},setupImage=()=>{};
+  ${html.slice(from,until)}
+  restoreHistory();
+  return {project,loadedImgs,floorIndex,selection};
+ `);
+ const ground=floor('ground',0,[{id:'new-edit'}]);
+ ground.reference={name:'Nueva referencia',data:'imagen-importada',width:512,height:512};
+ const image={id:'image-object'};
+ const snapshot={floors:[
+  {id:'ground',name:'PB',items:[{id:'before-undo'}],elevationFt:0,ceilingHeightFt:11.5},
+  {id:'b1',name:'Sótano',items:[],elevationFt:-12,ceilingHeightFt:11.5}
+ ]};
+ const state={
+  project:{floors:[ground]},
+  history:[JSON.stringify(snapshot)],historyIndex:0,floorIndex:0,
+  loadedImgs:[image],
+  floorRefArchive:new Map([
+   ['ground',{name:'Referencia obsoleta',data:'imagen-original'}],
+   ['b1',{name:'Referencia recuperada',data:'imagen-sótano'}]
+  ])
+ };
+ const restored=harness(state);
+ assert.equal(restored.project.floors[0].reference.data,'imagen-importada');
+ assert.equal(restored.project.floors[0].items[0].id,'before-undo');
+ assert.equal(restored.loadedImgs[0],image,'se conserva la imagen precargada actual');
+ assert.equal(restored.project.floors[1].reference.data,'imagen-sótano');
+ assert.equal(restored.project.floors[1].id,'b1');
+ assert.equal(restored.floorIndex,0);
 });
