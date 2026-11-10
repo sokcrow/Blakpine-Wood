@@ -17,7 +17,9 @@ function integrationEnvironment(){
  for(let i=0;i<=12;i++){
   vm.runInContext(fs.readFileSync(path.join(__dirname,'engine-'+String(i).padStart(2,'0')+'.js'),'utf8'),context);
  }
- for(const file of ['fh-architecture-skins.js','fh-comic-action-engine-hook.js','fh-context-engine-hook.js','fh-structure-engine-hook.js']){
+ for(const file of ['fh-architecture-skins.js','fh-comic-action-engine-hook.js','fh-context-engine-hook.js','fh-structure-engine-hook.js',
+  'fh-internet-catalog.js','fh-internet-visuals.js','fh-electric-catalog.js','fh-electric-visuals.js',
+  'fh-water-catalog.js','fh-water-visuals.js','fh-services-engine-hook.js']){
   document.currentScript={src:new URL('juego/assets/'+file,document.baseURI).href};
   vm.runInContext(fs.readFileSync(path.join(__dirname,file),'utf8'),context);
  }
@@ -50,7 +52,7 @@ test('el adaptador 3D declara integración local y el motor base tiene sintaxis 
  // aislamiento: validar su sintaxis y contratos sin simularlas incorrectamente.
  assert.doesNotThrow(()=>new vm.Script('('+source+')'));
  assert.ok(source.includes('juego/assets/vendor/three.min.js'));
- assert.match(source,/FOREST_PREVIEW_RUNNING/);
+ assert.match(source,/FHPreviewDiagnostics\?\.frame\(\)/);
  assert.match(source,/FOREST_PREVIEW_ERROR/);
  const start=motor.lastIndexOf('<script>')+8;
  const end=motor.lastIndexOf('</script>');
@@ -78,11 +80,13 @@ test('hook del repartidor construye una cámara de puerta válida desde el motor
  assert.doesNotThrow(()=>new vm.Script(output.slice(start,end)));
 });
 
-test('arranque real: GLB y PG componen después de cómics y menú contextual',()=>{
+test('arranque real: servicios, 24 GLB y PG componen después de cómics y menú contextual',()=>{
  const {context,window,motor}=integrationEnvironment();
  const prepared=context.prepareGLBEngineDoc(motor);
  assert.match(prepared,/if\(d\.stairBlockFlag&&GameState.flags\[d.stairBlockFlag\]\)\{fhComicWorld/);
- const patched=window.FHStructureHealthEngine.patch(window.FHArchitectureSkins.patchEngineDoc(prepared));
+ const served=window.FHServicesEngine.patch(prepared);
+ const patched=window.FHStructureHealthEngine.patch(window.FHArchitectureSkins.patchEngineDoc(served));
+ for(const name of ['FHServicesRuntime','FHInternetVisuals','FHElectricVisuals','FHWaterVisuals'])assert.ok(patched.includes(name),name+' integrado');
  assert.match(patched,/FHArchitectureSkins\?\.decorateDoor\(d,it,THREE,installVisibility\)/);
  assert.match(patched,/FHArchitectureSkins\?\.decorateWindow/);
  assert.match(patched,/FHStructureHealthRuntime\?\.registerDoor/);
@@ -130,6 +134,67 @@ test('el primer tick de supervivencia funciona a oscuras y respeta paredes y pue
  doors[0]=[];walls[0]=[wall];minute=240;tick();
  assert.equal(game.character.resources.sp,16,'Las paredes siguen bloqueando luz');
  assert.equal(walls[0].length,1,'El cálculo no modifica los obstáculos del mapa');
+});
+
+test('fotograma ensamblado: movimiento, cámara y render deben terminar antes de RUNNING',()=>{
+ const {context,motor}=integrationEnvironment();
+ const html=context.prepareGLBEngineDoc(motor);
+ assert.ok(html.indexOf('data-fh-runtime')<html.indexOf('vendor/three.min.js'),'El lector se instala antes de Three y los demás recursos');
+ const start=html.indexOf('function frame(now){'),end=html.indexOf('function resize(){',start);
+ assert.ok(start>0&&end>start);
+ const source=html.slice(start,end),THREE=require('./vendor/three.min.js');
+ for(const failAt of [null,'movement','camera','render','without-reader']){
+  const calls=[],messages=[],handlers={},noop=()=>{},sprite=()=>({position:new THREE.Vector3(),scale:new THREE.Vector3()});
+  const step=(name)=>{calls.push(name);if(failAt===name)throw Error('failure-'+name);};
+  const window={document:{baseURI:'https://game.test/',currentScript:null},console:{error:noop},
+   parent:{postMessage(message){messages.push(message);if(message.type==='FOREST_PREVIEW_RUNNING')calls.push('running');}},
+   addEventListener(type,fn){handlers[type]=fn;}};
+  const env=vm.createContext({window,parent:window.parent,URL,console,
+   last:0,perfFrames:0,perfStamp:0,perfFPS:0,elevatorSystem:{update:noop},updateElevatorVisuals:noop,
+   elevatorArrivalEvents:[],elevatorFlicker:0,lighting:{state:{charge:100,enabled:false},tick:noop,flicker:()=>false},
+   lastBatteryNotice:false,visibilityDirty:false,flashlightSpot:{position:new THREE.Vector3(),target:{position:new THREE.Vector3()}},
+   occupiedShaft:()=>null,floorElev:[0],currentFloor:0,user:{x:4,z:4,face:1},flashDir:{x:0,z:-1},
+   updateRoomLighting:noop,$:()=>({hidden:true}),fhSurvival:null,fhWeather:null,fhWeatherRenderer:null,fhWeatherAudio:null,fhNatural:null,
+   fhDecorationTick:noop,fhDeliveryUiActive:false,moveUpdate:()=>step('movement'),fhDeliveryNpcTick:noop,
+   playerPose:{state:{phase:'standing'},update:()=>null},playerPoseItem:null,GameState:{hidden:false},GameEvents:{},
+   cameraUpdate:()=>step('camera'),updateCabinIsolation:noop,updateAdjacentVisibility:noop,updateCameraCutaway:noop,
+   stairTravel:null,stairSupportHeight:()=>0,hero:sprite(),shadow:sprite(),saveProgress:noop,
+   fhPlayerWalkCycle:{tick:()=> 'idle'},tex:{},heroMaterial:{},HERO_VISUAL_SCALE:1,spriteWidth:()=>1,
+   walkDistance:0,doorList:[[]],lastHud:0,hudUpdate:noop,DATA:{floors:[{id:'f1'}]},CELL:1.524,fhContextRefresh:noop,
+   drawSight:noop,fhRefreshActorVisibility:noop,peeking:false,renderer:{render:()=>step('render')},scene:{},cam:{},
+   circleMask:noop,requestAnimationFrame:()=>calls.push('scheduled'),notice:noop
+  });
+  for(const file of ['fh-preview-strings.js','fh-preview-diagnostics.js']){
+   vm.runInContext(fs.readFileSync(path.join(__dirname,file),'utf8'),env);
+  }
+  const diagnostics=window.FHPreviewDiagnostics.createRuntime(window);
+  window.FHPreviewDiagnostics=failAt==='without-reader'?undefined:diagnostics;
+  vm.runInContext(source,env);
+  if(failAt&&failAt!=='without-reader'){
+   let error;try{vm.runInContext('frame(100)',env);}catch(e){error=e;}
+   assert.ok(error,'La excepción de '+failAt+' debe propagarse al navegador');
+   handlers.error({target:window,error});
+   assert.equal(messages.some(x=>x.type==='FOREST_PREVIEW_RUNNING'),false);
+   assert.equal(messages.find(x=>x.kind==='fatal').stage,failAt);
+   assert.equal(calls.includes('scheduled'),false,'No confundir una animación detenida con un arranque correcto');
+  }else{
+   assert.doesNotThrow(()=>vm.runInContext('frame(100)',env));
+   assert.deepEqual(calls,['movement','camera','render','running','scheduled']);
+  }
+ }
+});
+
+test('un hook diagnóstico incompatible no bloquea la construcción del motor',()=>{
+ const {context,window,motor}=integrationEnvironment(),patch=window.FHContextEngine.patch,messages=[];
+ context.preview3DDiagnostics={record:entry=>messages.push(entry)};
+ context.console={...console,warn(){}};
+ window.FHContextEngine={patch(doc){return patch(doc).replace('fhDecorationTick();','fhDecorationTick( );');}};
+ const html=context.prepareGLBEngineDoc(motor);
+ assert.ok(html.includes('data-fh-runtime'),'La captura global de errores sigue instalada');
+ assert.ok(html.includes("type:'FOREST_PREVIEW_RUNNING',unverified:true"));
+ assert.equal(messages.length,1,'El lector debe identificar su propia incompatibilidad');
+ const body=html.slice(html.lastIndexOf('<script>')+8,html.lastIndexOf('</script>'));
+ assert.doesNotThrow(()=>new vm.Script(body));
 });
 
 function actorStartup(){
@@ -208,14 +273,16 @@ async function previewWithFailure(failingAdapter){
  const context=vm.createContext({
   window:{
    FHCharacterCreation:{ensureCharacter:async()=>({id:'test'})},
+   FHPreviewDiagnostics:{mount(){if(failingAdapter==='diagnostics')throw Error('diagnostics');return null;}},
    FHArchitectureSkins:{patchEngineDoc(){if(failingAdapter==='architecture')throw Error('architecture');return 'motor-con-glb';}},
    FHStructureHealthEngine:{patch(){throw Error('structure');}},
    FH_ARCHITECTURE_TEXT:{patchFailure:'error de arquitectura'},
    FH_STRUCTURE_TEXT:{integrationFailure:'error de PG'}
   },
   project:{floors:[{items:[{type:'spawn'}]}]},
-  document:{activeElement:null},console:{error(){}},
+  document:{activeElement:null},console:{error(){},warn(){}},
   preview3DActive:false,preview3DSent:false,preview3DRunning:false,preview3DArchitectureError:'',
+  preview3DDiagnostics:null,preview3DDiagnosticFailed:false,
   play3DFrame:frame,play3DLayer:{classList:{add(){}},setAttribute(){}},
   PREVIEW_ENGINE_DOC_B64:'base64',PREVIEW_TEXT:{preparing:'preparando'},
   decodeEmbedded3DEngine:()=>'',prepareGLBEngineDoc:()=>'motor-base',
@@ -236,6 +303,12 @@ test('si falla arquitectura, el arranque conserva el motor base y su aviso',asyn
  const {frame,context,messages}=await previewWithFailure('architecture');
  assert.equal(frame.srcdoc,'motor-base');
  assert.equal(context.preview3DArchitectureError,'error de arquitectura');
+ assert.deepEqual(messages,[]);
+});
+
+test('si el panel de diagnóstico falla al montarse, el motor sigue construyéndose',async()=>{
+ const {frame,messages}=await previewWithFailure('diagnostics');
+ assert.equal(frame.srcdoc,'motor-con-glb');
  assert.deepEqual(messages,[]);
 });
 
