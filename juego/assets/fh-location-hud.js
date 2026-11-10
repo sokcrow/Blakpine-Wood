@@ -81,6 +81,11 @@
   const regions=(map.locationZones||[]).filter(z=>z.floorId===floorId&&regionContains(z));
   const common=regions.find(z=>z.kind==='common');
   const exterior=regions.find(z=>z.kind==='exterior');
+  const courtyard=areas.find(it=>it.courtyard===true);
+  if(courtyard){
+   return {kind:'exterior',floorCode:'',primary:text('exterior','EXTERIOR'),
+    secondary:label(courtyard.label),scopeKey:scope(floorId,'courtyard',courtyard.id)};
+  }
   if(property){
    return {kind:'property',floorCode:codeForFloor(map.floors,floorIndex,map.mainFloorId),
     primary:label(property.name)||text('property','PROPIEDAD'),

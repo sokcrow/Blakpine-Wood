@@ -71,9 +71,10 @@
    if(level<0||level>=floors.length||!Number.isFinite(x)||!Number.isFinite(z))return false;
    const px=x/cell,py=z/cell;
    if(px<0||py<0||px>=cols||py>=rows)return false;
-   // Las etiquetas de habitación y pasillo tienen prioridad, incluso cuando
-   // un contorno de fachada está incompleto o un patio quedó mal clasificado.
-   if(interiors[level].some(it=>areaHasPoint(it,px,py)))return false;
+   // El patio explícito prevalece sobre áreas antiguas de edificio o habitación.
+   // Sin toggle se conserva la prioridad de los interiores de mapas anteriores.
+   const courtyard=outdoors[level].some(it=>it.courtyard===true&&areaHasPoint(it,px,py));
+   if(!courtyard&&interiors[level].some(it=>areaHasPoint(it,px,py)))return false;
    const slab=slabs[level];
    if(slab?.enabled&&Array.isArray(slab.spans)&&slab.spans.some(sp=>areaHasPoint(sp,px,py)))return false;
    // Patios y exteriores explícitos no necesitan conectarse al borde del mapa.

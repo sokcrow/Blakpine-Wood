@@ -10,7 +10,7 @@ const begin=html.indexOf('function makeCurrent3DProject(){');
 const end=html.indexOf('\nfunction show3DStatus(',begin);
 assert(begin>=0&&end>begin,'No se encuentra makeCurrent3DProject en el editor');
 const makePreview=new Function('project','clone','ForestShared','readStorage','buildingSlabs','SCHEMA','window',
- html.slice(begin,end)+'\nreturn makeCurrent3DProject();');
+ html.slice(html.indexOf('function courtyardFloorItems('),html.indexOf('function editCourtyardAt('))+html.slice(begin,end)+'\nreturn makeCurrent3DProject();');
 const clone=v=>JSON.parse(JSON.stringify(v));
 const polygon=(x,y,w,h)=>[{x,y},{x:x+w,y},{x:x+w,y:y+h},{x,y:y+h}];
 const walls=polygon(0,0,5,5).map((a,i,points)=>({

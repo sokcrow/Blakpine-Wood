@@ -52,7 +52,7 @@ test('el editor integra la regla en las fachadas y conserva el FOW original',()=
  assert.match(html,/FHFloorVisibility\.facadeCandidate\(currentFloor,f,inside,inCameraVolume\(bounds\),upperWindows\.length>0\)/);
  assert.match(html,/const upperWindows=inside&&f===currentFloor\+1\?openings\.filter\(it=>it\.type==='window'\):openings;/);
  assert.match(html,/upperWindows,CELL,base,floorElev\[currentFloor\+1\],roof\?\.spans\|\|\[\]\)/);
- assert.match(html,/return addPreviewDiagnostics\(addFloorVisibilityToEngine\(addNaturalLightToEngine\(assembled\)\)\)/);
+ assert.match(html,/return addPreviewDiagnostics\(addCourtyardsToEngine\(addFloorVisibilityToEngine\(addNaturalLightToEngine\(assembled\)\)\)\)/);
  assert.match(html,/\.\/juego\/assets\/fh-floor-visibility\.js/);
  assert.match(html,/const inside=outside!==true\|\|underRoof;/);
  assert.match(html,/const roofSpans=SLABS\[currentFloor\+1\]\?\.spans\|\|\[\];/);

@@ -258,7 +258,7 @@ test('el adaptador 3D no incorpora shaders de brillo natural adicional',()=>{
  assert.doesNotMatch(source,/totalEmissiveRadiance|uFHNaturalColor|ambient\.intensity|onBeforeCompile/);
  assert.doesNotMatch(html,/fhNatural\?\.attach/);
  assert.match(html,/fhNatural\?\.paintSight/);
- assert.match(html,/fh-natural-light\.js\?v=20261108-exterior-mask3/);
+ assert.match(html,/fh-natural-light\.js\?v=20261110-patio1/);
 });
 
 test('el adaptador 3D registra el módulo sin modificar los fragmentos Base64',()=>{
@@ -266,7 +266,7 @@ test('el adaptador 3D registra el módulo sin modificar los fragmentos Base64',(
  const html=fs.readFileSync(path.resolve(__dirname,'../../index.html'),'utf8');
  assert.match(html,/function addNaturalLightToEngine\(doc\)/);
  assert.match(html,/const assembled=\(window\.FHContextEngine/);
- assert.match(html,/return addPreviewDiagnostics\(addFloorVisibilityToEngine\(addNaturalLightToEngine\(assembled\)\)\)/);
+ assert.match(html,/return addPreviewDiagnostics\(addCourtyardsToEngine\(addFloorVisibilityToEngine\(addNaturalLightToEngine\(assembled\)\)\)\)/);
  assert.match(html,/fhNatural\?\.update\(\)/);
  assert.match(html,/fh-natural-light\.js/);
 });

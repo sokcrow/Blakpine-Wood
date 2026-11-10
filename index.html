@@ -208,6 +208,7 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
 <script src="./juego/assets/fh-light-strings.js?v=20261109-zones-3"></script>
 <script src="./juego/assets/fh-map-grid.js?v=20261110-grid1"></script>
 <script src="./juego/assets/fh-map-grid-strings.js?v=20261110-grid1"></script>
+<script src="./juego/assets/fh-courtyard-strings.js?v=20261110-patio1"></script>
 <script>// /shared + /editor. Motor empaquetado y aislado en iframe.
 const ForestShared=(()=>{
 // shared/geometry.js
@@ -949,6 +950,7 @@ function createExteriorClassifier(floor,roofSlab){
  const redSegments=items.filter(it=>it.type==='red_wall'&&it.a&&it.b);
  const outdoorAreas=items.filter(it=>OUTDOOR_AREAS.has(it.type));
  function inside(x,y){
+  if(outdoorAreas.some(area=>area.courtyard===true&&areaContains(area,x,y)))return false;
   if(!hasBoundary)return null;
   if(spans)return spans.some(sp=>areaContains(sp,x,y));
   return loops.reduce((v,poly)=>v!==pointInLoop(x,y,poly),false);
@@ -1638,7 +1640,7 @@ const TOOL_GROUPS={
  lighting:[['select','Seleccionar circuito','☞'],['pan','Mover mapa','✋'],['zone_assign','Conectar zona','◈'],['light_fixture','Foco de techo','✦'],['light_strip','Tubo largo','▰'],['light_panel','Panel de techo','▤'],['light_wall','Aplique de pared','◖'],['light_flood','Reflector de pared','◁'],['light_switch','Interruptor','◉'],['breaker_panel','Breaker','▤'],['power_outlet','Enchufe doble','⚡'],['power_strip','Multiconector','▤'],['phone_charger','Cargador de celular','▣']],
   water:[['select','Seleccionar','☞'],['pan','Mover mapa','✋'],['water_main','Entrada de agua','◉'],['water_valve','Válvula','◈'],['water_outlet','Toma de agua','◉'],['drain_outlet','Drenaje','◌'],['drain_main','Salida de drenaje','◉']],
   network:[['select','Seleccionar','☞'],['pan','Mover mapa','✋'],['router','Router Wi-Fi','⌁'],['ethernet_port','Toma Ethernet','▣'],['landline_phone','Teléfono de pared','☎']],
- areas:[['room_fill','Revisar recinto','⌂'],['room','Zona manual','▣'],['hall','Pasillo','═'],['outside','Exterior','♧'],['building','Edificio','▥'],['pavement','Banqueta / piso','▦'],['parking','Estacionamiento','▤'],['asphalt','Asfalto','▦'],['alley','Callejón manchado','▦'],['sidewalk','Banqueta','▤'],['concrete','Concreto','▦'],['gravel','Grava','░'],['cobblestone','Adoquín','▣'],['tile_floor','Baldosa','▦'],['carpet','Alfombra','▧'],['wood_floor','Madera','▤'],['grass','Pasto','❋'],['dirt','Tierra','░'],['elevator','Ascensor ⇅','⇅'],['stairs','Escaleras ½ cuadro','≋'],['spawn','Jugador','✦'],['npc_portal','Entrada / salida NPC','⇥'],['select','Seleccionar','☞'],['pan','Mover mapa','✋']],
+ areas:[['courtyard',window.FH_COURTYARD_TEXT.tool,'☀'],['room_fill','Revisar recinto','⌂'],['room','Zona manual','▣'],['hall','Pasillo','═'],['outside','Exterior','♧'],['building','Edificio','▥'],['pavement','Banqueta / piso','▦'],['parking','Estacionamiento','▤'],['asphalt','Asfalto','▦'],['alley','Callejón manchado','▦'],['sidewalk','Banqueta','▤'],['concrete','Concreto','▦'],['gravel','Grava','░'],['cobblestone','Adoquín','▣'],['tile_floor','Baldosa','▦'],['carpet','Alfombra','▧'],['wood_floor','Madera','▤'],['grass','Pasto','❋'],['dirt','Tierra','░'],['elevator','Ascensor ⇅','⇅'],['stairs','Escaleras ½ cuadro','≋'],['spawn','Jugador','✦'],['npc_portal','Entrada / salida NPC','⇥'],['select','Seleccionar','☞'],['pan','Mover mapa','✋']],
  parking_marks:[['select','Seleccionar','☞'],['parking_stall','Cajones N','▱'],['parking_arrow','Flecha','➜'],['parking_crosswalk','Cebra','▥'],['parking_double_yellow','Doble amarilla','═'],['parking_dashed_yellow','Discontinua','┄'],['parking_speed_bump','Reductor','▰'],['parking_curb','Guarnición','▤'],['pan','Mover mapa','✋'],['erase','Borrar','⌫']],
  navigate:[['select','Seleccionar','☞'],['pan','Mover mapa','✋'],['erase','Borrar','⌫'],['wall','Pared','▰'],['red_wall','Pared roja','▰'],['paint_wall','Pintar cara','▨'],['half_wall','Pared media','▱'],['fence','Reja','⛶'],['door','Puerta','🚪'],['peephole_door','Mirilla','◉'],['window','Ventana','▤']]
 };
@@ -2000,7 +2002,7 @@ function chooseStairPlacement(){
   $('#stairCancel').onclick=()=>{closeModal();chooseTool('select')};
  });
 }
-function chooseTool(tool){activeTool=tool;anchor=null;preview=null;if(window.FHParkingEditor?.isTool(tool))window.FHParkingEditor.settings(tool);$$('#tools button').forEach(b=>b.classList.toggle('active',b.dataset.tool===tool));const tips={...window.FH_SERVICES_TEXT?.tips,property_wall:'PARED AMARILLA: dibuja un contorno cerrado para delimitar una propiedad. Asígnale un dueño en Proyecto → Propiedades y dueños. No genera losa.',paint_wall:'PINTAR CARA: toca uno de los lados de una pared; sólo cambia el lado seleccionado. En Seleccionar también puedes elegir A o B.',red_wall:'PARED ROJA: al pintar sobre un muro azul, reemplaza únicamente el tramo cubierto (sin superposiciones). Cierra el contorno en el nivel suelo (PB) para generar la losa. «Copiar muros ↑» es opcional.',wall:'Pared azul: si pintas sobre una roja, reemplaza el tramo cubierto y deja de ser estructural. Cierra paredes y agrega puertas para definir habitaciones.',half_wall:'Pared media: útil para bardas bajas, divisiones parciales o barras.',fence:'Reja: cerca o barandal; también deja claro su recorrido en el JSON.',door:'Puerta: dibuja sobre una pared para crear una salida. Al colocarla se detecta la habitación. Tócala para marcar la entrada al apartamento.',peephole_door:'Mirilla: dibuja la puerta; selecciónala para invertir hacia dónde mira.',window:'Ventana: traza su longitud. Se coloca una ventana individual por casilla y deja pasar la visión.',opening:'Hueco: paso libre sin puerta.',select:'Seleccionar: toca un elemento para editarlo o arrástralo para moverlo.',pan:'Mover mapa: arrastra para desplazar, pellizca para zoom.',erase:'Borrar: toca un elemento. Usa Deshacer si fue accidental.',room:'Zona manual: opcional; las habitaciones se reconocen automáticamente al colocar una puerta.',hall:'Pasillo: marca su área para identificarla.',outside:'Exterior: marca una zona exterior general.',building:'Edificio: relleno para masas de construcción o bloques vecinos.',pavement:'Banqueta o piso duro exterior.',parking:'Relleno de estacionamiento o asfalto.',grass:'Relleno de pasto o jardín.',dirt:'Relleno de tierra o patio.',bed:'Cama con flecha de frente para orientar el mueble.',sofa:'Sofá con flecha de frente.',tv:'Tele con flecha de frente.',dining:'Comedor orientable.',table:'Mesa orientable.',chair:'Silla orientable.',kitchen:'Cocina orientable.',bath:'Baño o tina orientable.',toilet:'WC orientable.',car:'Coche orientable.',misc:'Mueble libre orientable.',zone_assign:'Elige un circuito en la barra. Toca un cuarto para conectar sus lámparas e interruptores, o toca una lámpara para conectarla individualmente.',breaker_panel:'Coloca un tablero. Selecciónalo para crear circuitos con nombres, colores e IDs propios.',light_switch:'Sólo en pared. La flecha indica la cara visible y la habitación que controla. «Girar» cambia de lado.'};$('#stageHint').textContent=window.FH_PARKING_TEXT?.tips?.[tool]||tips[tool]||`${SHORT[tool]||tool}: toca el centro donde deseas colocarlo.`;render();if(tool==='stairs')chooseStairPlacement()}
+function chooseTool(tool){activeTool=tool;anchor=null;preview=null;if(window.FHParkingEditor?.isTool(tool))window.FHParkingEditor.settings(tool);$$('#tools button').forEach(b=>b.classList.toggle('active',b.dataset.tool===tool));const tips={courtyard:window.FH_COURTYARD_TEXT.hint,...window.FH_SERVICES_TEXT?.tips,property_wall:'PARED AMARILLA: dibuja un contorno cerrado para delimitar una propiedad. Asígnale un dueño en Proyecto → Propiedades y dueños. No genera losa.',paint_wall:'PINTAR CARA: toca uno de los lados de una pared; sólo cambia el lado seleccionado. En Seleccionar también puedes elegir A o B.',red_wall:'PARED ROJA: al pintar sobre un muro azul, reemplaza únicamente el tramo cubierto (sin superposiciones). Cierra el contorno en el nivel suelo (PB) para generar la losa. «Copiar muros ↑» es opcional.',wall:'Pared azul: si pintas sobre una roja, reemplaza el tramo cubierto y deja de ser estructural. Cierra paredes y agrega puertas para definir habitaciones.',half_wall:'Pared media: útil para bardas bajas, divisiones parciales o barras.',fence:'Reja: cerca o barandal; también deja claro su recorrido en el JSON.',door:'Puerta: dibuja sobre una pared para crear una salida. Al colocarla se detecta la habitación. Tócala para marcar la entrada al apartamento.',peephole_door:'Mirilla: dibuja la puerta; selecciónala para invertir hacia dónde mira.',window:'Ventana: traza su longitud. Se coloca una ventana individual por casilla y deja pasar la visión.',opening:'Hueco: paso libre sin puerta.',select:'Seleccionar: toca un elemento para editarlo o arrástralo para moverlo.',pan:'Mover mapa: arrastra para desplazar, pellizca para zoom.',erase:'Borrar: toca un elemento. Usa Deshacer si fue accidental.',room:'Zona manual: opcional; las habitaciones se reconocen automáticamente al colocar una puerta.',hall:'Pasillo: marca su área para identificarla.',outside:'Exterior: marca una zona exterior general.',building:'Edificio: relleno para masas de construcción o bloques vecinos.',pavement:'Banqueta o piso duro exterior.',parking:'Relleno de estacionamiento o asfalto.',grass:'Relleno de pasto o jardín.',dirt:'Relleno de tierra o patio.',bed:'Cama con flecha de frente para orientar el mueble.',sofa:'Sofá con flecha de frente.',tv:'Tele con flecha de frente.',dining:'Comedor orientable.',table:'Mesa orientable.',chair:'Silla orientable.',kitchen:'Cocina orientable.',bath:'Baño o tina orientable.',toilet:'WC orientable.',car:'Coche orientable.',misc:'Mueble libre orientable.',zone_assign:'Elige un circuito en la barra. Toca un cuarto para conectar sus lámparas e interruptores, o toca una lámpara para conectarla individualmente.',breaker_panel:'Coloca un tablero. Selecciónalo para crear circuitos con nombres, colores e IDs propios.',light_switch:'Sólo en pared. La flecha indica la cara visible y la habitación que controla. «Girar» cambia de lado.'};$('#stageHint').textContent=window.FH_PARKING_TEXT?.tips?.[tool]||tips[tool]||`${SHORT[tool]||tool}: toca el centro donde deseas colocarlo.`;render();if(tool==='stairs')chooseStairPlacement()}
 function changeFloor(i){if(!Number.isInteger(i)||i<0||i>=project.floors.length||i===floorIndex)return;floorIndex=i;selection=null;anchor=null;preview=null;closeInspector();if(activeLayer==='lighting')refreshCircuits();refreshFloorTabs();if(!loadedImgs[i])setupImage(i);fitMap()}
 function refreshFloorTabs(){
  const el=$('#floorTabs');if(!el)return;
@@ -2164,6 +2166,46 @@ function roomShapeSpans(region,cols,micro){
  }
  return spans;
 }
+function rasterAreaMask(area,micro,W,T,mask=new Uint8Array(W*T)){
+ const rects=area.spans?.length?area.spans:area.cells?.length?area.cells.map(p=>({...p,w:1,h:1})):[area];
+ for(const rect of rects){
+  const x0=Math.max(0,Math.ceil(rect.x*micro-.5)),x1=Math.min(W,Math.ceil((rect.x+rect.w)*micro-.5));
+  const y0=Math.max(0,Math.ceil(rect.y*micro-.5)),y1=Math.min(T,Math.ceil((rect.y+rect.h)*micro-.5));
+  if(x1<=x0)continue;for(let y=y0;y<y1;y++)mask.fill(1,y*W+x0,y*W+x1);
+ }
+ return mask;
+}
+function courtyardFloorItems(items,index){
+ const own=items.filter(it=>!it.inheritedCourtyard);
+ const inherited=project.floors.slice(0,index).flatMap(floor=>floor.items.filter(it=>it.courtyard===true&&!it.inheritedCourtyard).map(area=>({...clone(area),id:'sky_'+floor.id+'_'+area.id,inheritedCourtyard:true,blocksMovement:false})));
+ return own.concat(inherited);
+}
+function editCourtyardAt(point,enabled){
+ const result=detectFloorRegions(floorIndex),cell=Math.floor(point.y*result.micro)*result.W+Math.floor(point.x*result.micro);
+ const region=result.regions.find(region=>region.cells.includes(cell));
+ const T=window.FH_COURTYARD_TEXT;
+ const existing=current().items.find(it=>it.id===region?.courtyardId)||current().items.find(it=>it.courtyard===true&&!it.inheritedCourtyard&&areaHasPoint(it,point));
+ if(!region||region.exterior&&!existing){toast(T.closedRequired);return;}
+ const apply=value=>{
+  const shape={x:region.minX/result.micro,y:region.minY/result.micro,w:(region.maxX-region.minX+1)/result.micro,h:(region.maxY-region.minY+1)/result.micro,spans:roomShapeSpans(region,result.W,result.micro)};
+  if(window.FHStyleEditor?.canEditItem(existing||shape)===false){toast(window.FH_STYLE_TEXT.denied);return;}
+  if(value&&!existing){
+   const room=current().items.find(it=>it.type==='room'&&areaMatchScore(it,shape)>.01);
+   const courtyard={...shape,id:numId(),type:'outside',courtyard:true,label:T.tool,blocksMovement:false};
+   if(room){courtyard.interiorRoom=clone(room);current().items=current().items.filter(it=>it.id!==room.id)}
+   current().items.push(courtyard);selection=courtyard.id;
+  }else if(!value&&existing){
+   current().items=current().items.filter(it=>it.id!==existing.id);
+   if(existing.interiorRoom&&(!region.exterior||region.courtyardId))current().items.push({...clone(existing.interiorRoom),...shape});
+   selection=null;
+  }
+  record();closeModal();if(selection)openInspector();else closeInspector();toast(value?T.outdoor:T.indoor);
+ };
+ if(typeof enabled==='boolean'){apply(enabled);return;}
+ modal(`<h2>${T.title}</h2><p>${T.help}</p><label class="ck"><input type="checkbox" id="courtyardEnabled" ${existing?'checked':''}> ${T.toggle}</label><div class="actions"><button class="primary" id="courtyardApply">${T.apply}</button><button id="courtyardClose">${T.close}</button></div>`,()=>{
+  $('#courtyardApply').onclick=()=>apply($('#courtyardEnabled').checked);$('#courtyardClose').onclick=closeModal;
+ });
+}
 // Red arquitectónica: los muros contiguos o superpuestos se consolidan;
 // las intersecciones quedan como nodos explícitos en el grafo exportado.
 const graphCache=[];
@@ -2324,6 +2366,23 @@ function detectFloorRegions(index){
   let set=doorRegions.get(e.id);if(!set){set=new Set();doorRegions.set(e.id,set)}set.add(ida);set.add(idb);
   if(ida>=0)regions[ida].doorIds.add(e.id);if(idb>=0)regions[idb].doorIds.add(e.id);
  }
+ // Un patio se vincula a la región que conserva mayor superficie de su contorno.
+ // Si se cierra un cobertizo dentro, su región separada no hereda el exterior.
+ const courtyards=f.items.filter(it=>it.courtyard===true&&!it.inheritedCourtyard);
+ for(const courtyard of courtyards){
+  const mask=rasterAreaMask(courtyard,micro,W,T);
+  let best=null,score=0;
+  for(const region of regions){
+   if(region.exterior)continue;
+   let overlap=0,touchesOutline=false;
+   for(const cell of region.cells){
+    if(!mask[cell])continue;overlap++;
+    if(!touchesOutline){const x=cell%W,y=Math.floor(cell/W);touchesOutline=x===0||y===0||x===W-1||y===T-1||!mask[cell-1]||!mask[cell+1]||!mask[cell-W]||!mask[cell+W];}
+   }
+   if(touchesOutline&&overlap>score){score=overlap;best=region;}
+  }
+  if(best){best.exterior=true;best.courtyardId=courtyard.id;}
+ }
  const confirmed=regions.filter(r=>!r.exterior&&r.doorIds.size>0),pending=regions.filter(r=>!r.exterior&&r.doorIds.size===0);
  return {micro,W,T,regions,confirmed,pending,doorRegions,doors};
 }
@@ -2332,6 +2391,10 @@ function areaMatchScore(a,b){const aps=a.spans?.length?a.spans:[{x:a.x,y:a.y,w:a
 function rebuildFloorSpaces(index,{promptNames=false}={}){
  const f=project.floors[index],old=f.items.filter(it=>it.type==='room'&&it.autoGenerated),result=detectFloorRegions(index),generated=[],used=new Set(),newRooms=[];
  const {micro,W,regions,confirmed,pending,doorRegions,doors}=result;
+ for(const region of regions)if(region.courtyardId){
+  const courtyard=f.items.find(it=>it.id===region.courtyardId),spans=roomShapeSpans(region,W,micro);
+  Object.assign(courtyard,{x:region.minX/micro,y:region.minY/micro,w:(region.maxX-region.minX+1)/micro,h:(region.maxY-region.minY+1)/micro,spans,areaCells:region.cells.length/(micro*micro)});
+ }
  const regionToRoom=new Map();
  for(const r of confirmed){const spans=roomShapeSpans(r,W,micro),x=r.minX/micro,y=r.minY/micro,w=(r.maxX-r.minX+1)/micro,h=(r.maxY-r.minY+1)/micro;
   const shape={x,y,w,h,spans};
@@ -2387,7 +2450,8 @@ const roofCache={key:null,slabs:null};
 function buildingSlabs(sourceIndex=0){
  const a=(project.floors[sourceIndex]?.items||[]).filter(it=>it.type==='red_wall'||(it.roofBoundary&&['door','peephole_door','window','opening'].includes(it.type)));
  const nC=project.units.columns,nR=project.units.rows;
- const key=JSON.stringify([sourceIndex,nC,nR,a.map(it=>[it.type,it.a,it.b])]);
+ const voids=project.floors.slice(0,sourceIndex+1).flatMap(f=>f.items.filter(it=>it.courtyard===true&&!it.inheritedCourtyard));
+ const key=JSON.stringify([sourceIndex,nC,nR,a.map(it=>[it.type,it.a,it.b]),voids.map(it=>[it.x,it.y,it.w,it.h,it.spans])]);
  if(roofCache.key===key)return roofCache.slabs;
  const hasOutline=a.some(it=>it.type==='red_wall');
  if(!hasOutline){roofCache.key=key;roofCache.slabs={enabled:false,spans:[],regions:[],micro:1};return roofCache.slabs}
@@ -2396,13 +2460,14 @@ function buildingSlabs(sourceIndex=0){
  const outline=a.map(it=>({...it,type:'wall'}));
  const {H,V,W,T}=rasterBoundary(outline,micro,nC,nR);
  const mark=new Uint8Array(W*T),spans=[],regions=[];
+ const voidMask=new Uint8Array(W*T);for(const area of voids)rasterAreaMask(area,micro,W,T,voidMask);
  const blocked=(x,y,dir)=>dir===0?V.has(`${x+1},${y}`):dir===1?V.has(`${x},${y}`):dir===2?H.has(`${x},${y+1}`):H.has(`${x},${y}`);
  for(let start=0;start<W*T;start++){
   if(mark[start])continue;
   const q=[start],region=[],rows=new Map();let outside=false;mark[start]=1;
   for(let k=0;k<q.length;k++){
    const idx=q[k],x=idx%W,y=(idx/W)|0;region.push(idx);
-   let row=rows.get(y);if(!row)rows.set(y,row=[]);row.push(x);
+   if(!voidMask[idx]){let row=rows.get(y);if(!row)rows.set(y,row=[]);row.push(x);}
    for(let d=0;d<4;d++){
     const nx=x+(d===0?1:d===1?-1:0),ny=y+(d===2?1:d===3?-1:0),b=blocked(x,y,d);
     if(nx<0||ny<0||nx>=W||ny>=T){if(!b)outside=true;continue}
@@ -2582,7 +2647,8 @@ if(tool==='select'){if(a.hit&&doDrag){const it=current().items.find(v=>v.id===a.
  it.roomId=room?.roomId||'';it.apartmentId=room?.apartmentId||'';
 }record();openInspector()}return}
 if(tool==='pan')return;
-if(tool==='room_fill'){const area=current().items.find(it=>it.type==='room'&&roomHasPosition(it,pos));if(area){selection=area.id;openInspector();render();toast('Habitación reconocida automáticamente')}else{const result=detectFloorRegions(floorIndex),i=Math.floor(pos.y*result.micro)*result.W+Math.floor(pos.x*result.micro);const pending=result.pending.some(r=>r.cells.includes(i));toast(pending?'Recinto sellado: pon una puerta para convertirlo en habitación':'Aún no hay un contorno cerrado aquí')}return}
+if(tool==='courtyard'){editCourtyardAt(toGrid(toWorld(pt)));return}
+if(tool==='room_fill'){const area=current().items.find(it=>it.type==='room'&&roomHasPosition(it,pos));if(area){selection=area.id;openInspector();render();toast('Habitación reconocida automáticamente')}else{const result=detectFloorRegions(floorIndex),i=Math.floor(pos.y*result.micro)*result.W+Math.floor(pos.x*result.micro);const pending=result.pending.some(r=>r.cells.includes(i));if(pending)editCourtyardAt(pos);else toast('Aún no hay un contorno cerrado aquí')}return}
 if(doDrag&&!POINT_TYPES.has(activeTool)&&activeTool!=='elevator')return;
 if(tool==='light_switch'||tool==='misc'&&['surface','floor_or_surface'].includes(window.FHEditorCatalog?.selectedPlacement?.()))pos=toGrid(toWorld(pt));
 if(tool==='spawn'){current().items=current().items.filter(it=>it.type!=='spawn');}
@@ -2886,6 +2952,7 @@ function attachServiceInspector(it,fields){
   const note=document.createElement('small');note.style.gridColumn='1/-1';note.textContent=window.FH_SERVICES_TEXT?.fields?.serviceNote||'Sin tarifas por ahora.';sec.append(note);fields.append(sec);
 }
 function openInspector(){let it=current().items.find(v=>v.id===selection);if(!it){closeInspector();return}$('#inspector').classList.add('open');$('#inspTitle').textContent=`${SHORT[it.type]||it.type} · ${it.id.slice(-5)}`;let fields=$('#fields');fields.innerHTML='';const put=(...xs)=>fields.append(makeField(...xs));
+if(it.type==='room'||it.courtyard===true){const field=document.createElement('label'),toggle=document.createElement('input');field.className='ck full';toggle.type='checkbox';toggle.checked=it.courtyard===true;toggle.onchange=()=>{const sp=it.spans?.[0]||it;editCourtyardAt({x:sp.x+Math.min(.125,(sp.w||1)/2),y:sp.y+Math.min(.125,(sp.h||1)/2)},toggle.checked)};field.append(toggle,document.createTextNode(window.FH_COURTYARD_TEXT.toggle));fields.append(field)}
 if(SEGMENT_TYPES.has(it.type)){put('Inicio X (cuadros)','ax',it.a.x,'number');put('Inicio Y','ay',it.a.y,'number');put('Final X','bx',it.b.x,'number');put('Final Y','by',it.b.y,'number');put('Altura (pies)','heightFt',it.heightFt,'number');if(it.type==='window')put('Marco de ventana','windowSkin',it.windowSkin||'clasica','select',[['clasica','Clásica'],['dividida','Dividida']]);if(it.type==='door'||it.type==='peephole_door'){put('Estado','open',String(it.open),'select',[['false','Cerrada'],['true','Abierta']]);fields.lastElementChild.querySelector('select').onchange=(e)=>{setItemField(selection,'open',e.target.value==='true')};put('Apartamento (ID)','apartmentId',it.apartmentId||'');put('Tipo de puerta','doorRole',it.doorRole||'auto','select',[['auto','Automática'],['entrance','Entrada de apartamento'],['interior','Puerta interior']]);put('Cerradura','locked',it.locked,'checkbox');put('ID de llave (opcional)','keyId',it.keyId||'');put('Flag que atranca escaleras (opcional)','stairBlockFlag',it.stairBlockFlag||'');const ds=ForestShared.doorSpec(it);const note=document.createElement('div');note.className='tip';note.style.gridColumn='1/-1';note.textContent=ds.label+' · '+ds.length.toFixed(2)+' casillas · 1=una hoja, 2=dos hojas, 3=cochera';fields.append(note);put('Variante de acabado','variant',it.variant||ds.variant,'select',ForestShared.DOOR_VARIANTS.map(v=>[v,({wood:'Madera',glass:'Cristal',metal:'Metal',garage:'Cochera',storefront:'Escaparate'})[v]]));if(it.type==='door'&&(ds.variant==='glass'||ds.variant==='storefront'))put(window.FH_ARCHITECTURE_TEXT.glassDesign,'architectureSkin',it.architectureSkin||'','select',[['',window.FH_ARCHITECTURE_TEXT.automatic],['puerta_cristal_simple',window.FH_ARCHITECTURE_TEXT.simple],['puerta_cristal_antipanico',window.FH_ARCHITECTURE_TEXT.panic],['puerta_cristal_tintada',window.FH_ARCHITECTURE_TEXT.tinted]]);put('Color de hoja','style.color',it.style?.color||'#79624a','color');put('Ventana en hoja','style.window',!!it.style?.window,'checkbox');if(ds.family==='garage')put('Apertura (0.05–1)','partialOpen',it.partialOpen??1,'number');const previewCanvas=document.createElement('canvas');previewCanvas.id='doorPreviewCanvas';previewCanvas.width=240;previewCanvas.height=76;previewCanvas.style.gridColumn='1/-1';fields.append(previewCanvas);drawDoorInspectorPreview(previewCanvas,it);const variantField=[...fields.querySelectorAll('label')].find(l=>l.textContent.startsWith('Variante de acabado'));const colorField=[...fields.querySelectorAll('label')].find(l=>l.textContent.startsWith('Color de hoja'));fields.prepend(note,variantField,colorField,previewCanvas)}
 if(it.type==='peephole_door'){put('La mirilla apunta hacia','peekSide',it.peekSide||1,'select',[['1','Lado de la flecha'],['-1','Lado contrario']]);let p=document.createElement('div');p.className='tip';p.style.gridColumn='1/-1';p.textContent='La flecha violeta señala HACIA DÓNDE se ve a través de la mirilla. Ubica la flecha del lado exterior del apartamento.';fields.append(p)}if(it.type==='half_wall'||it.type==='fence'){let p=document.createElement('div');p.className='tip';p.style.gridColumn='1/-1';p.textContent=it.type==='half_wall'?'Pared media: sirve como barda baja o división parcial.':'Reja: sirve para cercas, barandales o límites ligeros.';fields.append(p)}
 }else{put('Centro / X','x',it.x,'number');put('Centro / Y','y',it.y,'number');if(AREA_TYPES.has(it.type)){put('Ancho (cuadros)','w',it.w,'number');put('Alto (cuadros)','h',it.h,'number');put('Nombre del área','label',it.label||'');put('ID apartamento','apartmentId',it.apartmentId||'');put('ID habitación','roomId',it.roomId||'');if(it.type==='room')put('Circuito de iluminación','zoneId',it.zoneId||'main','select',circuitSelectOptions(it.zoneId));else put('ID de zona eléctrica','zoneId',it.zoneId||'main');if(it.autoGenerated){let p=document.createElement('div');p.className='tip';p.style.gridColumn='1/-1';p.textContent=`✓ Habitación creada por una puerta · ${it.areaCells||0} casillas · ${it.exitCount||0} salidas. Para cambiar la forma, edita sus paredes.`;fields.append(p)}if(it.cells?.length){let p=document.createElement('div');p.className='tip';p.style.gridColumn='1/-1';p.textContent=`Área detectada automáticamente: ${it.cells.length} casillas.`;fields.append(p)}}else{put('Ancho (cuadros)','w',it.w,'number');put('Alto (cuadros)','h',it.h,'number');put('Rotación (grados)','rotation',it.rotation||0,'number');put('Etiqueta','label',it.label||'');if(ORIENTABLE_TYPES.has(it.type)){let p=document.createElement('div');p.className='tip';p.style.gridColumn='1/-1';p.textContent='La flecha amarilla indica el frente del objeto según su rotación.';fields.append(p)}if(it.type==='stairs'&&!it.autoLanding&&!it.autoDescendingSource){put('Dirección y destino','targetFloorId',it.targetFloorId,'select',stairNeighbors().map(t=>[t.floor.id,(t.direction==='down'?'↓ Bajar a ':'↑ Subir a ')+t.floor.name+' ('+rounded(t.floor.elevationFt-current().elevationFt,2)+' pies)']));put('Flag que bloquea (opcional)','stairBlockFlag',it.stairBlockFlag||'')}if(it.type==='stairs'&&it.autoDescendingSource){const p=document.createElement('p');p.className='tip';p.textContent='Tramo automático: modifica la escalera que colocaste en el piso superior.';fields.append(p)}if(it.type==='light_fixture'){
@@ -2996,7 +3063,7 @@ function escapeAttr(v){return String(v).replaceAll('&','&amp;').replaceAll('"','
 function emptySlab(){return {enabled:false,spans:[],regions:[],micro:1}}
 function slabsForLevels(){const ground=window.FHFloorLevels.mainIndex(project);return project.floors.slice(1).map((_,i)=>i+1<=ground?emptySlab():clone(buildingSlabs(i)))}
 function basementSlabs(){const ground=window.FHFloorLevels.mainIndex(project);return project.floors.map((_,i)=>i<ground?clone(buildingSlabs(i)):null)}
-function exportProject(includeImages){syncStairLinks();recalcAllSpaces();const out=clone(project);out.buildingSlabs=clone(buildingSlabs(window.FHFloorLevels.mainIndex(project)));out.slabsByLevel=slabsForLevels();out.basementSlabs=basementSlabs();out.exportedAt=new Date().toISOString();out.floors.forEach((f,i)=>{f.architectureGraph=buildArchitectureGraph(f.items.filter(it=>STRUCTURAL_TYPES.has(it.type)));f.grid={columns:out.units.columns,rows:out.units.rows,fitToImage:false,cellWidthPx:window.FHMapGrid.cellSize(out.units),cellHeightPx:window.FHMapGrid.cellSize(out.units),feetPerCell:out.units.feetPerCell};if(!includeImages){delete f.reference.data;f.reference.imageIncluded=false}else{f.reference.imageIncluded=true}for(const it of f.items){if(it.type==='peephole_door'){const dx=it.b.x-it.a.x,dy=it.b.y-it.a.y,len=Math.hypot(dx,dy)||1,sign=it.peekSide||1;it.peekTo={x:rounded(-dy/len*sign,5),y:rounded(dx/len*sign,5)};it.peekFrom={x:-it.peekTo.x,y:-it.peekTo.y}}}});return out}
+function exportProject(includeImages){syncStairLinks();recalcAllSpaces();const out=clone(project);out.buildingSlabs=clone(buildingSlabs(window.FHFloorLevels.mainIndex(project)));out.slabsByLevel=slabsForLevels();out.basementSlabs=basementSlabs();out.exportedAt=new Date().toISOString();out.floors.forEach((f,i)=>{f.items=courtyardFloorItems(f.items,i);f.architectureGraph=buildArchitectureGraph(f.items.filter(it=>STRUCTURAL_TYPES.has(it.type)));f.grid={columns:out.units.columns,rows:out.units.rows,fitToImage:false,cellWidthPx:window.FHMapGrid.cellSize(out.units),cellHeightPx:window.FHMapGrid.cellSize(out.units),feetPerCell:out.units.feetPerCell};if(!includeImages){delete f.reference.data;f.reference.imageIncluded=false}else{f.reference.imageIncluded=true}for(const it of f.items){if(it.type==='peephole_door'){const dx=it.b.x-it.a.x,dy=it.b.y-it.a.y,len=Math.hypot(dx,dy)||1,sign=it.peekSide||1;it.peekTo={x:rounded(-dy/len*sign,5),y:rounded(dx/len*sign,5)};it.peekFrom={x:-it.peekTo.x,y:-it.peekTo.y}}}});return out}
 function downloadBlob(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000)}
 function fileBase(){return(project.title||'ForestHorror').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\w-]+/g,'_').slice(0,40)||'ForestHorror'}
 function exportJSON(withImages){const doc=exportProject(withImages);try{window.FHStructureHealth?.validateMap(doc);window.FHAccessConfig?.validateMap(doc)}catch(error){toast(error.message);return}window.FHStyleProperty?.validateMap(doc);window.FHParking?.validateProject(doc);const warnings=[...ForestShared.interactionReferenceWarnings(doc),...ForestShared.progressionReferenceWarnings(doc)];
@@ -3009,6 +3076,7 @@ function importProject(obj){
  window.FHAccessConfig?.validateMap(obj);
  window.FHStyleProperty?.validateMap(obj);window.FHParking?.validateProject(obj);const next=ForestShared.loadProject(obj);
  for(let i=0;i<next.floors.length;i++){
+  next.floors[i].items=next.floors[i].items.filter(it=>!it.inheritedCourtyard);
   if(!next.floors[i].reference)next.floors[i].reference=clone(floorDefault(next.floors[i].id,next.floors[i].name,next.floors[i].elevationFt,i).reference);
  }
  project=next;floorRefArchive.clear();rememberFloorRefs();ensureGridConfig(true);recalcAllSpaces();floorIndex=0;selection=null;history=[];historyIndex=-1;closeInspector();closeModal();loadedImgs=next.floors.map(()=>null);refreshFloorTabs();next.floors.forEach((_,i)=>setupImage(i));record();setTimeout(fitMap,140);toast('Proyecto cargado correctamente');
@@ -3174,7 +3242,7 @@ function makeCurrent3DProject(){
  // Excluir únicamente imágenes de referencia de varios MB; geometría 3D proviene de items.
  return {schema:SCHEMA,version:project.version||1,mainFloorId:project.mainFloorId||undefined,styleSystem:project.styleSystem||0,buildingOwnerId:project.buildingOwnerId||'',buildingOwners:clone(project.buildingOwners||{}),buildingNames:clone(project.buildingNames||{}),properties:clone(project.properties||[]),locationZones:clone(project.locationZones||[]),patterns:clone(project.patterns||[]),title:project.title||'Forest Horror',createdAt:project.createdAt,itemDefs:clone(project.itemDefs||[]),initialGameState:clone(project.initialGameState||{}),weather:clone(project.weather||{enabled:false}),elevatorEvents:clone(project.elevatorEvents||{}),__runtimeSave:fhMapSave,__runtimeCharacter:fhProfile?clone(fhProfile):null,units,buildingSlabs:clone(buildingSlabs(mainIndex)),slabsByLevel,basementSlabs,
   floors:project.floors.map(f=>({id:f.id,name:f.name,elevationFt:f.elevationFt,
-   ceilingHeightFt:f.ceilingHeightFt,lightingManual:!!f.lightingManual,items:clone(window.FHAreaMerge?.forEngine(f.items)||f.items),apartments:clone(f.apartments||[])}))};
+   ceilingHeightFt:f.ceilingHeightFt,lightingManual:!!f.lightingManual,items:clone(courtyardFloorItems(window.FHAreaMerge?.forEngine(f.items)||f.items,project.floors.indexOf(f))),apartments:clone(f.apartments||[])}))};
 }
 function show3DStatus(message){play3DState.textContent=message;play3DState.classList.remove('hide')}
 
@@ -3254,6 +3322,9 @@ function prepareGLBEngineDoc(source){
  const breakerStart=source.indexOf('function circuitsForPanel('),breakerEnd=source.indexOf('\nfunction circuitHUDState(',breakerStart);
  if(breakerStart<0||breakerEnd<=breakerStart)throw Error('No se encontró el control de breakers');
  source=source.slice(0,breakerStart)+ForestShared.circuitsForPanel.toString()+'\n'+source.slice(breakerEnd);
+ const exteriorStart=source.indexOf('function createExteriorClassifier('),exteriorEnd=source.indexOf('\n//',exteriorStart);
+ if(exteriorStart<0||exteriorEnd<=exteriorStart)throw Error('Clasificador exterior incompatible');
+ source=source.slice(0,exteriorStart)+ForestShared.createExteriorClassifier.toString()+'\n'+source.slice(exteriorEnd);
  const attachBefore=' return g;\n}\nfunction windowModel(f,it){';
  const cloneBefore='const clone=source.clone(true);\n   clone.position.y+=floorElev[f];';
  const surfacePositionBefore='g.position.set(a.x*CELL,.03,a.y*CELL);';
@@ -3375,7 +3446,7 @@ function prepareGLBEngineDoc(source){
  const playerMenuScript='<script src="'+new URL('./juego/assets/fh-player-menu.js?v=20261107-help',document.baseURI).href+'"></'+'script>';
  const locationCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-location-hud.css?v=20261106-hud-left-code',document.baseURI).href+'">';
  const locationStrings='<script src="'+new URL('./juego/assets/fh-location-strings.js?v=20261106-location',document.baseURI).href+'"></'+'script>';
- const locationScript='<script src="'+new URL('./juego/assets/fh-location-hud.js?v=20261109-basements1',document.baseURI).href+'"></'+'script>';
+ const locationScript='<script src="'+new URL('./juego/assets/fh-location-hud.js?v=20261110-patio1',document.baseURI).href+'"></'+'script>';
  const hudRedesignCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-hud-redesign.css?v=20261106-hud-redesign',document.baseURI).href+'">';
  const gameUiCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-game-ui.css?v=20261106-common-ui',document.baseURI).href+'">';
  const mobileMenusCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-mobile-menus.css?v=20261107-mobile-ui-75',document.baseURI).href+'">';
@@ -3395,7 +3466,7 @@ function prepareGLBEngineDoc(source){
     ["const areaMaterials={outside:MAT.hall,hall:MAT.hall,building:MAT.building,pavement:MAT.sidewalk,parking:MAT.parking,grass:MAT.grass,dirt:MAT.dirt};",
      "const areaMaterials={outside:MAT.hall,hall:MAT.hall,building:MAT.building,pavement:MAT.sidewalk,parking:MAT.parking,grass:MAT.grass,dirt:MAT.dirt,asphalt:MAT.parking,alley:MAT.parking,sidewalk:MAT.sidewalk,concrete:MAT.tile,gravel:MAT.dirt,cobblestone:MAT.sidewalk,tile_floor:MAT.tile,carpet:MAT.sofa,wood_floor:MAT.wood};"],
     ["for(const it of items){if(areaMaterials[it.type]){const areaFinish=window.FHStyleRuntime?.roomMaterial(THREE,it,DATA)||areaMaterials[it.type];areaSurfaceGrid(f,it.x,it.y,Math.max(.1,it.w),Math.max(.1,it.h),areaFinish,.008)}}",
-     "let groundLayer=0;for(const it of items){if(areaMaterials[it.type]){const areaFinish=window.FHStyleRuntime?.roomMaterial(THREE,it,DATA)||areaMaterials[it.type];const baseY=f>0&&SLABS[f].enabled?.028:.008;areaSurfaceGrid(f,it.x,it.y,Math.max(.1,it.w),Math.max(.1,it.h),areaFinish,Math.min(.035,baseY+groundLayer++*.00015))}}"],
+     "let groundLayer=0;for(const it of items){if(!it.inheritedCourtyard&&areaMaterials[it.type]){const areaFinish=window.FHStyleRuntime?.roomMaterial(THREE,it,DATA)||areaMaterials[it.type];const baseY=f>0&&SLABS[f].enabled?.028:.008;areaSurfaceGrid(f,it.x,it.y,Math.max(.1,it.w),Math.max(.1,it.h),areaFinish,Math.min(.035,baseY+groundLayer++*.00015))}}"],
     ["for(const it of items)if(!['red_wall','wall','half_wall','fence','window','door','peephole_door','room','hall','outside','building','pavement','parking','grass','dirt','opening','spawn'].includes(it.type))",
      "for(const it of items)if(!['red_wall','wall','property_wall','half_wall','fence','window','door','peephole_door','room','hall','outside','building','pavement','parking','grass','dirt','asphalt','alley','sidewalk','concrete','gravel','cobblestone','tile_floor','carpet','wood_floor','parking_decal','opening','spawn'].includes(it.type))"],
     [" // Anillo discreto alrededor del objetivo activo",
@@ -4265,7 +4336,7 @@ function fhRefreshActorVisibility(){
   }else throw Error('Hook de estado meteorológico incompatible con los adaptadores actuales');
   const scripts=[
    '<script src="'+new URL('./juego/assets/fh-weather-core.js?v=20261108-clima1',document.baseURI).href+'"></'+'script>',
-   '<script src="'+new URL('./juego/assets/fh-weather-renderer.js?v=20261108-windowview4',document.baseURI).href+'"></'+'script>',
+   '<script src="'+new URL('./juego/assets/fh-weather-renderer.js?v=20261110-patio1',document.baseURI).href+'"></'+'script>',
    '<script src="'+new URL('./juego/assets/fh-weather-audio.js?v=20261109-ambient1',document.baseURI).href+'"></'+'script>'
   ].join('');
   return doc.replace('</head>',scripts+'</head>');
@@ -4309,7 +4380,7 @@ function fhRefreshActorVisibility(){
    if(count!==expected)throw Error('Hook de luz natural incompatible ('+count+'/'+expected+'): '+oldText.slice(0,70));
    doc=doc.split(oldText).join(newText);
   }
-  const script='<script src="'+new URL('./juego/assets/fh-natural-light.js?v=20261108-exterior-mask3',document.baseURI).href+'"></'+'script>';
+  const script='<script src="'+new URL('./juego/assets/fh-natural-light.js?v=20261110-patio1',document.baseURI).href+'"></'+'script>';
   return doc.replace('</head>',script+'</head>');
  }
 
@@ -4451,6 +4522,20 @@ function addBuildingLevelsToEngine(doc){
   .replace(cloneBefore,'const clone=source.clone(true);\n   window.FHAssets?.mirror(source,clone);\n   clone.position.y+=floorElev[f];')
   .replace(engineSuccessBefore,engineSuccessAfter).replace(engineFailBefore,engineFailAfter).replace(loadFailBefore,loadFailAfter)
   .replace('</head>',localThree+coverageScript+lightsModule+surfaceScript+decorationScript+furnitureStateScript+ruleScript+inventoryCoreScript+bridge+sleepCss+sleepStrings+sleepModule+pcAssemblyModule+computerStrings+computerModule+npcGoapModule+npcCourierModule+deliveryStrings+deliveryModule+styleCore+styleRender+parkingScript+playerMenuCss+playerMenuStrings+skillsModule+skillsStrings+helpCss+helpStrings+helpScript+playerMenuScript+locationCss+locationStrings+locationScript+hudRedesignCss+gameUiCss+hudFrameScript+mobileMenusCss+statusCss+statusStrings+statusScript+phoneCss+phoneStrings+phoneScript+mobileCameraScript+'</head>'))));
+ function addCourtyardsToEngine(doc){
+  const surface='function surfaceRectsMinusVoids(f,x,y,w,h){let rects=[{x,y,w,h}];for(const cut of stairVoids[f]||[])';
+  const replacement="const courtyardVoids=DATA.floors.map(floor=>(floor.items||[]).filter(area=>area.inheritedCourtyard===true).flatMap(area=>(area.spans?.length?area.spans:[area]).map(rect=>({x1:rect.x,z1:rect.y,x2:rect.x+rect.w,z2:rect.y+rect.h}))));\nfunction surfaceRectsMinusVoids(f,x,y,w,h){let rects=[{x,y,w,h}];for(const cut of [...(stairVoids[f]||[]),...(courtyardVoids[f]||[])])";
+  const walk='function onStructuralSlab(x,z,floor=currentFloor){';
+  const walkAfter=walk+"\n if((courtyardVoids[floor]||[]).some(v=>x/CELL>v.x1&&x/CELL<v.x2&&z/CELL>v.z1&&z/CELL<v.z2)){const stairs=DATA.floors[floor]?.items||[];const onStair=stairs.some(landing=>{if(landing.type!=='stairs'||!landing.autoLanding)return false;const original=DATA.floors[floor-1]?.items.find(it=>it.id===landing.linkedSourceId);return original&&ForestShared.stairOnRun(original,x,z,CELL,0,.5)});if(!onStair)return false;}";
+  const allowed='surfaceAllowed:(currentFloor<mainFloorIndex&&DATA.basementSlabs?.[currentFloor]?.enabled||currentFloor>mainFloorIndex&&SLABS[currentFloor].enabled)';
+  if(doc.split(allowed).length!==3)throw Error('Hook de circulación de patios incompatible');
+  doc=doc.split(allowed).join(allowed.slice(0,-1)+'||courtyardVoids[currentFloor]?.length)');
+  for(const [a,b]of [[surface,replacement],[walk,walkAfter]]){
+   if(doc.split(a).length!==2)throw Error('Hook de patio exterior incompatible');
+   doc=doc.replace(a,b);
+  }
+  return doc;
+ }
  function addPreviewDiagnostics(doc){
   const original=doc;
   const edits=[
@@ -4490,7 +4575,7 @@ function addBuildingLevelsToEngine(doc){
    '<script '+(file.includes('diagnostics')?'data-fh-runtime ':'')+'src="'+new URL('./juego/assets/'+file+'?v=20261109-diag2',document.baseURI).href+'"></'+'script>').join('');
   return doc.replace('<head>','<head>'+tags);
  }
- return addPreviewDiagnostics(addFloorVisibilityToEngine(addNaturalLightToEngine(assembled)));
+ return addPreviewDiagnostics(addCourtyardsToEngine(addFloorVisibilityToEngine(addNaturalLightToEngine(assembled))));
 }
 let fhCharacterLaunchPending=false;
 async function start3DPreview(){

@@ -99,6 +99,17 @@
    seed(0,y,{x:-.5/scale,y:(y+.5)/scale});
    seed(w-1,y,{x:columns+.5/scale,y:(y+.5)/scale});
   }
+  // Un patio explícito recibe cielo sin necesitar conexión al borde del mapa.
+  // Sus spans excluyen los recintos cerrados construidos dentro del jardín.
+  const contains=(area,p)=>{
+   if(area.spans?.length)return area.spans.some(rect=>p.x>=rect.x&&p.x<rect.x+rect.w&&p.y>=rect.y&&p.y<rect.y+rect.h);
+   return p.x>=area.x&&p.x<area.x+area.w&&p.y>=area.y&&p.y<area.y+area.h;
+  };
+  const courtyards=items.filter(item=>item.courtyard===true);
+  if(courtyards.length)for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+   const p=pt(x,y);
+   if(courtyards.some(area=>contains(area,p)))add(x,y);
+  }
   while(head<tail){
    const i=queue[head++],x=i%w,y=(i-x)/w,a=pt(x,y);
    for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
