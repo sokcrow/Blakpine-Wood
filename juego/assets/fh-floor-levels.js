@@ -34,7 +34,9 @@
   for(const floor of before)for(const it of floor.items||[]){
    if(it.type!=='stairs')continue;
    const oldPos=oldIndex.get(floor.id),newPos=newIndex.get(floor.id);
-   if(it.autoLanding){
+   const target=before.find(f=>f.id===it.targetFloorId);
+   const descends=it.autoLanding||(target&&target.elevationFt<floor.elevationFt);
+   if(descends){
     if(it.targetFloorId&&after[newPos-1]?.id!==it.targetFloorId)return false;
    }else{
     const destination=it.targetFloorId||before[oldPos+1]?.id;
