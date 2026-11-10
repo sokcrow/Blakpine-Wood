@@ -73,7 +73,7 @@
   return {spans,interiorSpans:difference(supported,spans)};
  }
  function plan(slab,upperOutline,value){
-  if(!value||value.enabled===false||!slab?.enabled)return null;
+  if(value?.enabled===false||!slab?.enabled)return null;
   const config=settings(value),cover=upperOutline?.enabled?(upperOutline.spans||[]).filter(valid):[];
   const {spans,interiorSpans}=partition(slab,upperOutline);
   // Un encuentro con el edificio superior no necesita un segundo muro bajo.
@@ -88,11 +88,11 @@
   return data.floors.map((f,i)=>i<=main?null:plan(slabs[i],data.roofSlabsByFloor?.[i]||slabs[i+1],data.floors[i-1]?.roof));
  }
  // Sólo el mapa recibido por el motor obtiene la tapa final. No se añaden
- // pisos al editor ni al archivo del creador, ni se altera un mapa antiguo.
+ // pisos al editor ni al archivo del creador. La ausencia de roof usa defaults.
  function prepareRuntime(data,label){
   const last=data.floors.length-1,source=data.floors[last],cap=data.roofSlabsByFloor?.[last];
   const main=Math.max(0,data.floors.findIndex(f=>f.id===data.mainFloorId));
-  if(source.__fhRoofCap||last<main||!source.roof||source.roof.enabled===false||!cap?.enabled||!cap.spans?.length)return data;
+  if(source.__fhRoofCap||last<main||source.roof?.enabled===false||!cap?.enabled||!cap.spans?.length)return data;
   let id=source.id+'_roof';while(data.floors.some(f=>f.id===id))id+='_';
   data.floors.push({id,name:label,elevationFt:source.elevationFt+source.ceilingHeightFt,
    ceilingHeightFt:source.ceilingHeightFt,lightingManual:true,items:[],__fhRoofCap:true});

@@ -54,7 +54,7 @@ for(let f=0;f<fhRoofObjects.length;f++)for(const {source,item} of fhRoofObjects[
 }
 // Perfil del borde de la losa:`);
   const tags=['fh-roof-strings.js','fh-roof.js'].map(file=>
-   '<script src="'+new URL('./juego/assets/'+file+'?v=20261110-roof2',root.document.baseURI).href+'"></'+'script>').join('');
+   '<script src="'+new URL('./juego/assets/'+file+'?v=20261110-roof3',root.document.baseURI).href+'"></'+'script>').join('');
   if(!doc.includes('</head>'))throw Error('Falta cabecera del motor para azoteas');
   doc=doc.replace('</head>',()=>tags+'</head>');
   return doc;
