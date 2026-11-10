@@ -66,6 +66,8 @@
   const candidate=[...levels.slice(0,pos),proposed,...levels.slice(pos)];
   if(!linksIntact(original,candidate))
    return fail('Hay escaleras conectadas en ese tramo. Ajusta sus conexiones antes de intercalar pisos.');
+  floor.elevationFt=proposed.elevationFt;
+  candidate[pos]=floor;
   map.floors=candidate;
   map.mainFloorId=main;
   return {ok:true,index:pos,id:floor.id};
@@ -77,13 +79,14 @@
   const from=levels.findIndex(f=>f.id===selectedId),to=from+(direction==='up'?1:-1);
   if(from<0||to<0||to>=levels.length)return fail('No hay otro piso en esa dirección.');
   const a=levels[from],b=levels[to],candidate=levels.slice();
+  const originalA=a.elevationFt,originalB=b.elevationFt;
   // Mover intercambia las dos alturas elegidas; los otros pisos nunca se desplazan.
-  candidate[from]={...b,elevationFt:a.elevationFt};
-  candidate[to]={...a,elevationFt:b.elevationFt};
+  candidate[from]={...b,elevationFt:originalA};
+  candidate[to]={...a,elevationFt:originalB};
   if(!linksIntact(original,candidate))
    return fail('Las escaleras vinculadas impiden intercambiar esas elevaciones. Ajusta primero sus conexiones.');
-  b.elevationFt=a.elevationFt;
-  a.elevationFt=candidate[to].elevationFt;
+  b.elevationFt=originalA;
+  a.elevationFt=originalB;
   map.floors=sorted(levels);
   map.mainFloorId=main;
   return {ok:true,index:map.floors.findIndex(f=>f.id===selectedId)};
