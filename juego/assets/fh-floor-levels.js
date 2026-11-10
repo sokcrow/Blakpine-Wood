@@ -67,9 +67,9 @@
   if(at<0)return fail('El piso seleccionado no existe.');
   const pos=at+(direction==='above'?1:0);
   const lower=levels[pos-1],upper=levels[pos];
-  const elevation=lower?lower.elevationFt+STEP_FT:upper.elevationFt-STEP_FT;
-  if(upper&&elevation>=upper.elevationFt)
-   return fail('No caben 10 pies entre esos niveles. Cambia su elevación manualmente o crea el piso desde otro nivel.');
+  const elevation=levels[at].elevationFt+(direction==='above'?STEP_FT:-STEP_FT);
+  if((lower&&elevation<=lower.elevationFt)||(upper&&elevation>=upper.elevationFt))
+   return fail('No caben 10 pies desde el piso seleccionado sin cruzar otro nivel. Cambia su elevación o crea el piso desde otro nivel.');
   const proposed={...floor,elevationFt:Math.round(elevation*1000)/1000};
   const candidate=[...levels.slice(0,pos),proposed,...levels.slice(pos)];
   if(!linksIntact(original,candidate))
