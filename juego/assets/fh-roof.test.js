@@ -136,7 +136,7 @@ test('geometría Three.js real: pretil de .381 m, colisión perimetral y concret
  for(let i=0;i<13;i++)vm.runInContext(fs.readFileSync(__dirname+'/engine-'+String(i).padStart(2,'0')+'.js','utf8'),sandbox);
  vm.runInContext(fs.readFileSync(__dirname+'/fh-roof-engine-hook.js','utf8'),sandbox);
  const original=Buffer.from(sandbox.window.__FOREST_EMBEDDED_ENGINE__,'base64').toString('utf8'),patched=sandbox.window.FHRoofEngine.patch(original);
- const from=patched.indexOf(' const roof=FH_ROOF_PLANS[f];'),until=patched.indexOf(' const areaMaterials=',from);
+ const from=patched.indexOf(' const roof=FH_ROOF_PLANS[f];',patched.indexOf('function buildFloor(f)')),until=patched.indexOf(' const areaMaterials=',from);
  assert.ok(from>0&&until>from);
  const cut=(a,b)=>original.slice(original.indexOf(a),original.indexOf(b,original.indexOf(a)));
  const runtime={THREE,CELL:1.524,HEIGHT:2.74,WALL_THICK:.13,DATA:{floors:[{id:'roof'}]},
@@ -164,4 +164,53 @@ test('geometría Three.js real: pretil de .381 m, colisión perimetral y concret
  const surface=runtime.stories[0].children.find(m=>m.userData.fhRoofSurface);
  assert.ok(surface.material.map);assert.equal(surface.material.userData.fhTileSize,32);
  assert.ok(surface.userData.fhStructuralSlab);assert.equal(runtime.occlusionRoots[0].length,5);
+});
+test('los contornos rojos reales, sin habitaciones, separan interior y azotea',()=>{
+ const html=fs.readFileSync(__dirname+'/../../index.html','utf8');
+ const cut=(a,b)=>html.slice(html.indexOf(a),html.indexOf(b,html.indexOf(a)));
+ const walls=(x,y,w,h)=>[[x,y,x+w,y],[x+w,y,x+w,y+h],[x+w,y+h,x,y+h],[x,y+h,x,y]].map(([x,y,u,v],i)=>({id:'red'+i,type:'red_wall',a:{x,y},b:{x:u,y:v}}));
+ const data={units:{columns:12,rows:12},mainFloorId:'pb',floors:[
+  {id:'pb',roof:R.settings(),items:walls(1,1,8,8)},
+  {id:'up',roof:R.settings(),items:[]}
+ ]};
+ const env=vm.createContext({project:data});
+ vm.runInContext(cut('function rasterBoundary(','function detectFloorRegions(')+
+  cut('function rasterAreaMask(','function courtyardFloorItems(')+
+  cut('const roofCache=','// Copia el perímetro rojo'),env);
+ const classify=()=>{
+  data.roofSlabsByFloor=data.floors.map((_,i)=>env.buildingSlabs(i));
+  return R.plans(data,[{enabled:false},data.roofSlabsByFloor[0]])[1];
+ };
+ let result=classify();assert.equal(area(result.spans),64);assert.equal(area(result.interiorSpans),0);
+ data.floors[1].items=walls(1,1,4,8);
+ result=classify();assert.equal(area(result.spans),32);assert.equal(area(result.interiorSpans),32);
+ const before=JSON.stringify(result);
+ data.floors[1].items.push({type:'room',id:'stray-room',x:1,y:1,w:8,h:8,surfaceStyle:{preset:'madera',color:'#654321'}});
+ assert.equal(JSON.stringify(classify()),before,'una habitación que invade azotea no cambia los perímetros');
+ data.floors[1].items=walls(1,1,8,8);
+ result=classify();assert.equal(area(result.spans),0);assert.equal(area(result.interiorSpans),64);
+ data.floors[1].items.pop();
+ result=classify();assert.equal(area(result.spans),64,'paredes rojas sin cerrar no definen interior');
+});
+test('los suelos de habitaciones y áreas no pueden cubrir la azotea calculada',()=>{
+ const env={window:{document:{baseURI:'https://example.test/'}},URL};vm.createContext(env);
+ for(let i=0;i<13;i++)vm.runInContext(fs.readFileSync(__dirname+'/engine-'+String(i).padStart(2,'0')+'.js','utf8'),env);
+ vm.runInContext(fs.readFileSync(__dirname+'/fh-roof-engine-hook.js','utf8'),env);
+ const original=Buffer.from(env.window.__FOREST_EMBEDDED_ENGINE__,'base64').toString('utf8');
+ const patched=env.window.FHRoofEngine.patch(original);
+ const start=patched.indexOf('function areaSurfaceGrid('),end=patched.indexOf('function interactionAnchor(',start);
+ assert.ok(start>0&&end>start);
+ const calls=[],roof=R.plan(slab([box(1,1,8,8)]),slab([box(1,1,4,8)]),R.settings());
+ const ctx=vm.createContext({window:{FHRoof:R},FH_ROOF_PLANS:[null,roof],
+  surfaceRectsMinusVoids:(f,x,y,w,h)=>[{x,y,w,h}],surfaceGrid:(f,x,y,w,h,material,ypos)=>calls.push({f,x,y,w,h,material,ypos})});
+ vm.runInContext(patched.slice(start,end),ctx);
+ const wood={preset:'madera'};
+ ctx.areaSurfaceGrid(1,1,1,8,8,wood,.039);
+ assert.equal(area(calls),32);assert.ok(calls.every(r=>r.x+r.w<=5&&r.material===wood&&r.ypos===.039));
+ calls.length=0;
+ ctx.areaSurfaceGrid(1,5,1,4,8,wood,.039);assert.equal(calls.length,0,'ningún acabado tapa el concreto de la azotea');
+ ctx.areaSurfaceGrid(0,1,1,8,8,wood,.039);assert.equal(area(calls),64,'PB y mapas sin azotea mantienen sus suelos');
+ calls.length=0;
+ roof.spans=[box(1,1,8,8)];ctx.areaSurfaceGrid(1,1,1,8,8,wood,.039);
+ assert.equal(calls.length,0,'sin contorno rojo arriba, toda la losa conserva el acabado de azotea');
 });

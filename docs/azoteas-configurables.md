@@ -6,7 +6,8 @@ En el nivel que contiene el perímetro rojo del edificio, abrir **⚙ Niveles �
 - Se pueden cambiar el material y color del piso, el material y color del pretil, y la altura entre 0 y 2 tiles. La altura 0 omite el pretil.
 - La configuración corresponde a la azotea sobre la planta seleccionada y se aplica a sus contornos rojos cerrados.
 - Los patios permanecen abiertos. El pretil sólo sigue los bordes expuestos, sin muros en uniones entre spans ni contra el edificio superior.
-- Los pisos interiores conservan su acabado. Un retranqueo sólo recibe concreto en su terraza expuesta.
+- La losa generada por las paredes rojas inferiores es la superficie de apoyo. La parte encerrada por paredes rojas del nivel superior es interior; el resto es azotea. La presencia o ausencia de habitaciones no cambia esta clasificación.
+- Los pisos interiores conservan su acabado. Los rellenos de habitaciones, pasillos u otros suelos se recortan al llegar a la azotea y no pueden tapar su concreto. Un retranqueo sólo recibe concreto en su terraza expuesta.
 - Si la última planta tiene un contorno rojo cerrado, el motor crea su tapa final a la altura de `ceilingHeightFt`. Esa tapa es derivada: no añade pisos al editor ni al JSON del creador.
 
 ## Compatibilidad y datos

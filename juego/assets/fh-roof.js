@@ -64,16 +64,24 @@
   }
   return result;
  }
- function plan(slab,covered,value){
+ // La losa inferior da soporte; sólo el contorno rojo cerrado ARRIBA
+ // separa interior de azotea. Habitaciones y rellenos no participan.
+ function partition(slab,upperOutline){
+  const supported=slab?.enabled?(slab.spans||[]).filter(valid):[];
+  const enclosed=upperOutline?.enabled?(upperOutline.spans||[]).filter(valid):[];
+  const spans=difference(supported,enclosed);
+  return {spans,interiorSpans:difference(supported,spans)};
+ }
+ function plan(slab,upperOutline,value){
   if(!value||value.enabled===false||!slab?.enabled)return null;
-  const config=settings(value),cover=covered?.enabled?(covered.spans||[]).filter(valid):[];
-  const spans=difference(slab.spans||[],cover);
+  const config=settings(value),cover=upperOutline?.enabled?(upperOutline.spans||[]).filter(valid):[];
+  const {spans,interiorSpans}=partition(slab,upperOutline);
   // Un encuentro con el edificio superior no necesita un segundo muro bajo.
   const edges=boundary(spans).filter(e=>{
    const x=(e.a.x+e.b.x)/2,y=(e.a.y+e.b.y)/2,d=.0001;
    return !contains(cover,x+d,y+d)&&!contains(cover,x-d,y-d);
   });
-  return {...config,spans,edges};
+  return {...config,spans,interiorSpans,edges};
  }
  function plans(data,slabs){
   const main=Math.max(0,data.floors.findIndex(f=>f.id===data.mainFloorId));
@@ -91,5 +99,5 @@
   data.slabsByLevel??=[];data.slabsByLevel[last]=cap;
   return data;
  }
- return Object.freeze({DEFAULTS,settings,difference,boundary,plan,plans,prepareRuntime});
+ return Object.freeze({DEFAULTS,settings,difference,boundary,partition,plan,plans,prepareRuntime});
 });
