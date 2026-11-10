@@ -1553,7 +1553,7 @@ function validate(project){
     if(it.requiresPower!==undefined&&typeof it.requiresPower!=='boolean')err(`${q}.requiresPower`,'debe ser verdadero o falso');
     for(const field of ['shaftId','powerFlag'])if(it[field]!==undefined&&(typeof it[field]!=='string'||!it[field].trim()))err(`${q}.${field}`,'debe ser texto no vacío');
    }
-   if(['door','peephole_door','stairs'].includes(it.type)&&it.stairBlockFlag!==undefined&&(typeof it.stairBlockFlag!=='string'||!it.stairBlockFlag.trim()))err(`${q}.stairBlockFlag`,'identificador de flag obligatorio');
+   if(['door','peephole_door','stairs'].includes(it.type)&&it.stairBlockFlag!==undefined&&(typeof it.stairBlockFlag!=='string'||(it.stairBlockFlag!==''&&!it.stairBlockFlag.trim())))err(`${q}.stairBlockFlag`,'identificador de flag obligatorio');
    if(it.w!==undefined&&(!Number.isFinite(it.w)||it.w<=0))err(`${q}.w`,'debe ser positivo');
    if(it.h!==undefined&&(!Number.isFinite(it.h)||it.h<=0))err(`${q}.h`,'debe ser positivo');
   });
@@ -3307,7 +3307,15 @@ function addLiveTextToEngine(doc){
    ? window.FHComicActionEngine.patch(withLiveText) : withLiveText;
 }
 
+function syncEngineMapValidation(source){
+ const start=source.indexOf('function validate(project){');
+ const end=source.indexOf('// shared/migrate.js',start);
+ if(start<0||end<=start)throw Error('No se encontró la validación compartida del mapa del motor');
+ return source.slice(0,start)+ForestShared.validate.toString()+'\n\n'+source.slice(end);
+}
+
 function prepareGLBEngineDoc(source){
+ source=syncEngineMapValidation(source);
  const fhEconomyScripts=['fh-economy-strings.js','fh-economy-core.js','fh-economy-view.js'].map(name=>
   '<script src="'+new URL('./juego/assets/'+name+'?v=20261109-economy1',document.baseURI).href+'"></'+'script>').join('');
  source=source.replace('</head>',fhEconomyScripts+'</head>');
