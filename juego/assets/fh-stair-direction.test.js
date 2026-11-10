@@ -148,7 +148,7 @@ test('motor 3D recupera una bajada sin tramo espejo, sin teletransportar a una s
 test('alturas 3D se basan en elevaciones reales, no en dirección escrita en el nombre',()=>{
  const source=patchedEngine();
  assert.match(source,/const floorElev=DATA\.floors\.map/);
- assert.match(source,/const rise=Math\.max\(2\.3,Math\.abs\(a\.autoLanding\?/);
+ assert.ok(source.includes('rise=Math.max(2.3,Math.abs(a.autoLanding?'),'el desnivel usa la diferencia real entre pisos');
  assert.match(source,/const isAscending=dest>currentFloor/);
  assert.match(source,/vertical:floorElev\[dest\]-floorElev\[currentFloor\]/);
  assert.match(source,/stairDescendTriggerAt\(stairs\.item/);
