@@ -17,7 +17,7 @@ function integrationEnvironment(){
  for(let i=0;i<=12;i++){
   vm.runInContext(fs.readFileSync(path.join(__dirname,'engine-'+String(i).padStart(2,'0')+'.js'),'utf8'),context);
  }
- for(const file of ['fh-architecture-skins.js','fh-comic-action-engine-hook.js','fh-context-engine-hook.js','fh-structure-engine-hook.js',
+ for(const file of ['fh-roof-engine-hook.js','fh-architecture-skins.js','fh-comic-action-engine-hook.js','fh-context-engine-hook.js','fh-structure-engine-hook.js',
   'fh-internet-catalog.js','fh-internet-visuals.js','fh-electric-catalog.js','fh-electric-visuals.js',
   'fh-water-catalog.js','fh-water-visuals.js','fh-services-engine-hook.js']){
   document.currentScript={src:new URL('juego/assets/'+file,document.baseURI).href};
