@@ -43,6 +43,10 @@ button,select,input{font:inherit}button{color:var(--text);border:1px solid var(-
 #play3dBack{position:absolute;z-index:3;top:calc(env(safe-area-inset-top) + 8px);left:max(8px,env(safe-area-inset-left));min-height:40px;padding:8px 12px;background:#1b293df0;color:#fff;border:1px solid #a4b6cc;border-radius:10px;font-size:12px;font-weight:700}
 #play3dState{position:absolute;z-index:2;left:50%;top:43%;transform:translate(-50%,-50%);max-width:min(85vw,350px);padding:15px 20px;background:#0b1326e6;border:1px solid #758ba8;border-radius:12px;text-align:center;color:#e8f3ff;font-size:14px;line-height:1.6;pointer-events:none}
 #play3dState.hide{display:none}
+#previewDiagnosticOptions{display:flex;align-items:center;gap:8px 16px;flex-wrap:wrap;flex:none;padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--line);font-size:12px}
+#previewDiagnosticOptions[hidden]{display:none}
+#previewDiagnosticOptions label{display:flex;align-items:center;gap:7px;cursor:pointer}
+#previewDiagnosticHint{color:var(--muted)}
 #play3dLandscapeGate[hidden]{display:none}
 #play3dLandscapeGate{position:absolute;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;background:#071019;padding:max(18px,env(safe-area-inset-top)) max(18px,env(safe-area-inset-right)) max(18px,env(safe-area-inset-bottom)) max(18px,env(safe-area-inset-left));touch-action:manipulation}
 #play3dLandscapeCard{width:min(100%,410px);border:2px solid #75837d;background:#151e27;padding:22px;box-shadow:5px 5px 0 #000;display:grid;gap:14px;text-align:center}
@@ -134,7 +138,8 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
 <body>
 <div id="app">
  <header id="head"><div id="brand"><strong>FOREST HORROR</strong><small>EDITOR DE MAPAS · CUADRÍCULA LIBRE</small></div><div id="headActions"><button id="fileBtn" title="Poner una imagen como plantilla">▧ Imagen</button><button id="editorLandscapeBtn" title="Solicitar pantalla completa horizontal">⛶ Horizontal</button><button id="menuBtn" class="primary">☰ Proyecto</button><button id="helpBtn" aria-label="Ayuda">?</button></div></header>
- <div id="subbar"><div id="floorTabs"><button id="floor1Btn" class="selected">Piso 1</button><button id="floor2Btn">Piso 2</button></div><button id="addFloorBtn" title="Añadir nivel">+ Piso</button><button id="editFloorBtn" title="Nombre y elevación del piso">⚙ Piso</button><div id="quickGrid" aria-label="Editar cuadrícula"><label for="quickColumns">Columnas<input id="quickColumns" type="number" inputmode="numeric" min="1" max="500" step="1" aria-label="Número de columnas"></label><label for="quickRows">Filas<input id="quickRows" type="number" inputmode="numeric" min="1" max="500" step="1" aria-label="Número de filas"></label><button id="applyQuickGrid" aria-label="Aplicar columnas y filas" title="Aplicar cuadrícula">✓</button></div><span id="floorElevation">Altura: 0 pies</span><button id="undoBtn" title="Deshacer">↶</button><button id="redoBtn" title="Rehacer">↷</button><button id="fitBtn">⛶ Ajustar</button><button id="gridBtn" class="active">▦ Cuadrícula</button><button id="jointsBtn" class="active" title="Mostrar uniones de paredes y extremos abiertos">◎ Uniones</button><button id="roomsBtn" title="Lista para renombrar habitaciones">⌂ Cuartos</button><button id="copyFloorWallsBtn" title="Copiar perímetro rojo, paredes y accesos al piso superior, respetando muros existentes">▥ Copiar muros ↑</button><button id="spawnQuickBtn" title="Poner punto de aparición">📍 Spawn</button><button id="testBtn" title="Probar este mismo mapa con el sprite en 3D">▶ Probar 3D</button><button id="gridDimensionsBtn" title="Ajustes avanzados de cuadrícula">⚙ Cuadrícula</button><button id="parkingConfigBtn" title="Configurar medidas y símbolos de marcas de estacionamiento">▤ Marcas</button><button id="optionsBtn">⚙ Escala</button></div>
+ <div id="subbar"><div id="floorTabs"><button id="floor1Btn" class="selected">Piso 1</button><button id="floor2Btn">Piso 2</button></div><button id="addFloorBtn" title="Añadir nivel">+ Piso</button><button id="editFloorBtn" title="Nombre y elevación del piso">⚙ Piso</button><div id="quickGrid" aria-label="Editar cuadrícula"><label for="quickColumns">Columnas<input id="quickColumns" type="number" inputmode="numeric" min="1" max="500" step="1" aria-label="Número de columnas"></label><label for="quickRows">Filas<input id="quickRows" type="number" inputmode="numeric" min="1" max="500" step="1" aria-label="Número de filas"></label><button id="applyQuickGrid" aria-label="Aplicar columnas y filas" title="Aplicar cuadrícula">✓</button></div><span id="floorElevation">Altura: 0 pies</span><button id="undoBtn" title="Deshacer">↶</button><button id="redoBtn" title="Rehacer">↷</button><button id="fitBtn">⛶ Ajustar</button><button id="gridBtn" class="active">▦ Cuadrícula</button><button id="jointsBtn" class="active" title="Mostrar uniones de paredes y extremos abiertos">◎ Uniones</button><button id="roomsBtn" title="Lista para renombrar habitaciones">⌂ Cuartos</button><button id="copyFloorWallsBtn" title="Copiar perímetro rojo, paredes y accesos al piso superior, respetando muros existentes">▥ Copiar muros ↑</button><button id="spawnQuickBtn" title="Poner punto de aparición">📍 Spawn</button><button id="testBtn" title="Probar este mismo mapa con el sprite en 3D">▶ Probar 3D</button><button id="previewDiagnosticToggle" type="button" aria-expanded="false" aria-controls="previewDiagnosticOptions">▾</button><button id="gridDimensionsBtn" title="Ajustes avanzados de cuadrícula">⚙ Cuadrícula</button><button id="parkingConfigBtn" title="Configurar medidas y símbolos de marcas de estacionamiento">▤ Marcas</button><button id="optionsBtn">⚙ Escala</button></div>
+ <div id="previewDiagnosticOptions" hidden><label><input id="previewDiagnosticEnabled" type="checkbox"><span id="previewDiagnosticLabel"></span></label><span id="previewDiagnosticHint"></span></div>
  <main id="stage"><canvas id="map" aria-label="Editor de mapa con cuadrícula"></canvas><div id="wifiCoverageLegend" role="status" aria-live="polite" hidden></div><div id="stageHint">Pared: toca inicio y final, o arrastra. Usa Imán en Esquina para colocar exacto. Cierra paredes y coloca una puerta: el cuarto se reconoce solo. Entra a la puerta para marcarla como entrada de apartamento.</div><div id="stageBadge">● Piso 1</div><div id="coords">Casilla —, —</div><div id="zoomControls"><button id="plusBtn" aria-label="Acercar">+</button><div id="zoomLabel">100%</div><button id="minusBtn" aria-label="Alejar">−</button></div></main>
  <section id="palette"><div id="layerSwitch" aria-label="Capas de edición"><button type="button" data-layer="architecture" class="active">▥ Plano</button><button type="button" data-layer="furniture">▣ Muebles</button><button type="button" data-layer="lighting">⚡ Electricidad</button></div><div id="circuitTools" hidden><label for="circuitChooser">Circuito</label><select id="circuitChooser" aria-label="Circuito activo"></select><label for="circuitColor">Color</label><input type="color" id="circuitColor" value="#dc5656" aria-label="Color del circuito"><label class="circuit-all"><input type="checkbox" id="circuitShowAll"> Todos</label><button type="button" id="circuitAudit" title="Verificar habitaciones y dispositivos conectados">▤ Conexiones</button><span id="circuitStatus" role="status" aria-live="polite">Crea un breaker</span></div><button type="button" id="paletteCategoriesToggle" aria-expanded="false">≡ Categorías</button><div id="categories"><button data-cat="structure" class="active">▥ Estructura</button><button data-cat="furniture">▧ Muebles</button><button data-cat="lighting">⚡ Electricidad</button><button data-cat="water">◉ Agua</button><button data-cat="network">⌁ Redes</button><button data-cat="areas">◇ Áreas y accesos</button><button data-cat="parking_marks">▤ Estacionamiento</button><button data-cat="navigate">✋ Editar / mover</button></div><div id="tools"></div><div id="paletteFoot"><label><input id="snapCheck" type="checkbox" checked> Imán</label><div class="snapModes"><button id="snap1Btn" class="active" type="button">Esquina</button><button id="snapHalfBtn" type="button">½</button><button id="snapQuarterBtn" type="button">¼</button></div><label><input id="axisCheck" type="checkbox" checked> Recto H/V</label><span id="autosave">Borrador local</span></div></section>
 </div>
@@ -166,8 +171,8 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
   </div>
  </div>
 </div>
-<script src="./juego/assets/fh-preview-strings.js?v=20261109-diag1"></script>
-<script src="./juego/assets/fh-preview-diagnostics.js?v=20261109-diag1"></script>
+<script src="./juego/assets/fh-preview-strings.js?v=20261109-diag2"></script>
+<script src="./juego/assets/fh-preview-diagnostics.js?v=20261109-diag2"></script>
 <script src="./juego/assets/fh-mobile-camera.js?v=20261108-landscape20"></script>
 <script src="./juego/assets/images.js"></script>
 <script src="./juego/assets/engine-00.js"></script>
@@ -3008,6 +3013,11 @@ function decodeEmbedded3DEngine(base64){
 const play3DLayer=document.getElementById('play3dLayer');
 const play3DFrame=document.getElementById('play3dFrame');
 const play3DState=document.getElementById('play3dState');
+window.FHPreviewDiagnostics?.configureEditor?.({
+ toggle:document.getElementById('previewDiagnosticToggle'),options:document.getElementById('previewDiagnosticOptions'),
+ checkbox:document.getElementById('previewDiagnosticEnabled'),label:document.getElementById('previewDiagnosticLabel'),
+ hint:document.getElementById('previewDiagnosticHint'),onToggle:resize
+});
 let preview3DActive=false,preview3DSent=false,preview3DRunning=false,preview3DTimer=null,preview3DArchitectureError='';
 let preview3DDiagnostics=null,preview3DDiagnosticFailed=false;
 function stop3DWatchdog(){if(preview3DTimer!==null){clearTimeout(preview3DTimer);preview3DTimer=null}}
@@ -4297,7 +4307,7 @@ function fhRefreshActorVisibility(){
   }
   // Instalar el lector ANTES de scripts, GLB y código de arranque del iframe.
   const tags=['fh-preview-strings.js','fh-preview-diagnostics.js'].map(file=>
-   '<script '+(file.includes('diagnostics')?'data-fh-runtime ':'')+'src="'+new URL('./juego/assets/'+file+'?v=20261109-diag1',document.baseURI).href+'"></'+'script>').join('');
+   '<script '+(file.includes('diagnostics')?'data-fh-runtime ':'')+'src="'+new URL('./juego/assets/'+file+'?v=20261109-diag2',document.baseURI).href+'"></'+'script>').join('');
   return doc.replace('<head>','<head>'+tags);
  }
  return addPreviewDiagnostics(addFloorVisibilityToEngine(addNaturalLightToEngine(assembled)));
@@ -4326,6 +4336,7 @@ async function start3DPreview(){
  try{
   preview3DDiagnostics?.dispose();
   preview3DDiagnostics=window.FHPreviewDiagnostics?.mount({container:play3DLayer,frame:play3DFrame,
+   showDuringPlay:document.getElementById('previewDiagnosticEnabled')?.checked===true,
    onFailure:message=>preview3DError(message,true)})||null;
  }catch(diagnosticError){console.warn('[Forest diagnóstico]',diagnosticError);preview3DDiagnostics=null;}
  show3DStatus(PREVIEW_TEXT.preparing);

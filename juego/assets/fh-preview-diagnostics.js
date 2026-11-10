@@ -1,8 +1,21 @@
 /* Diagnóstico local del arranque y de los fotogramas de la vista 3D. */
 (function(root){
  'use strict';
- const BUILD='3d-diag-20261109-1',LIMIT=80;
+ const BUILD='3d-diag-20261109-2',LIMIT=80;
  const T=root.FH_PREVIEW_TEXT||{};
+ function configureEditor({toggle,options,checkbox,label,hint,onToggle}){
+  if(!toggle||!options||!checkbox)return;
+  const key='fh_preview_diagnostics_visible_v1';
+  try{checkbox.checked=root.localStorage?.getItem(key)==='1';}catch{checkbox.checked=false;}
+  if(label)label.textContent=T.showDiagnostic;
+  if(hint)hint.textContent=T.diagnosticAutomatic;
+  toggle.setAttribute('aria-label',T.diagnosticOptions);
+  toggle.title=T.diagnosticOptions;
+  const sync=()=>{toggle.textContent=options.hidden?'▾':'▴';toggle.setAttribute('aria-expanded',String(!options.hidden));};
+  toggle.addEventListener('click',()=>{options.hidden=!options.hidden;sync();onToggle?.();});
+  checkbox.addEventListener('change',()=>{try{root.localStorage?.setItem(key,checkbox.checked?'1':'0');}catch{}});
+  sync();
+ }
  function createRuntime(host){
   let stage='resources',frames=0,lastPulse=0,failed=false,rendererRef=null;
   const send=entry=>host.parent.postMessage({type:'FOREST_PREVIEW_DIAGNOSTIC',build:BUILD,stage,...entry},'*');
@@ -90,10 +103,11 @@
   send({kind:'stage'});
   return Object.freeze(api);
  }
- function mount({container,frame,onFailure}){
+ function mount({container,frame,onFailure,showDuringPlay=false}){
   const doc=container.ownerDocument,entries=[];
   let lastFrame=0,running=false,disposed=false,failed=false,warnings=0;
   const panel=doc.createElement('details');panel.id='fh-preview-diagnostics';
+  panel.hidden=!showDuringPlay;panel.open=showDuringPlay;
   panel.style.cssText='position:absolute;z-index:20;right:8px;bottom:8px;max-width:calc(100% - 16px);color:#eee;background:#101218f2;border:1px solid #9a9da6;padding:10px;font:13px/1.4 system-ui;touch-action:auto';
   panel.addEventListener('toggle',()=>{panel.style.width=panel.open?'min(620px, calc(100% - 16px))':'auto';});
   const summary=doc.createElement('summary');summary.textContent=T.diagnosticTitle+' · '+BUILD;summary.style.cursor='pointer';
@@ -115,9 +129,9 @@
    for(const key of ['message','url','stack'])if(entry[key])safe[key]=String(entry[key]).slice(0,4000);
    safe.line=Number(entry.line)||0;safe.column=Number(entry.column)||0;
    entries.push(safe);if(entries.length>LIMIT)entries.splice(entries.findIndex(e=>e.kind!=='fatal'),1);
-   if(safe.kind==='resource'){warnings++;summary.textContent=T.diagnosticTitle+' · '+BUILD+' · '+T.diagnosticWarnings+': '+warnings;}
+   if(safe.kind==='resource'){warnings++;summary.textContent=T.diagnosticTitle+' · '+BUILD+' · '+T.diagnosticWarnings+': '+warnings;panel.hidden=false;panel.open=true;}
    pre.textContent=history();
-   if(entry.kind==='fatal'&&!failed){failed=true;panel.open=true;onFailure?.(safe.message||T.unknown);}
+   if(entry.kind==='fatal'&&!failed){failed=true;panel.hidden=false;panel.open=true;onFailure?.(safe.message||T.unknown);}
   }
   function receive(event){
    if(event.source!==frame.contentWindow||event.data?.type!=='FOREST_PREVIEW_DIAGNOSTIC')return;
@@ -143,7 +157,7 @@
   record({kind:'stage',stage:'prepare'});
   return {record,dispose(){disposed=true;root.clearInterval(timer);root.removeEventListener('message',receive);doc.removeEventListener('visibilitychange',visible);panel.remove();}};
  }
- const api={BUILD,createRuntime,mount};
+ const api={BUILD,createRuntime,mount,configureEditor};
  root.FHPreviewDiagnostics=Object.freeze(api);
  if(root.parent&&root.parent!==root&&root.document.currentScript?.hasAttribute('data-fh-runtime')){
   root.FHPreviewDiagnostics=createRuntime(root);

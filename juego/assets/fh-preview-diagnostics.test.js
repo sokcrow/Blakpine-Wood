@@ -12,6 +12,7 @@ function environment(){
  const messages=[],nodes=[];
  const document=Object.assign(target(),{baseURI:'https://game.test/',currentScript:null,hidden:false,
   createElement(tag){const el=Object.assign(target(),{tagName:tag.toUpperCase(),style:{},children:[],
+   attributes:{},setAttribute(name,value){this.attributes[name]=value;},
    textContent:'',append(...children){this.children.push(...children);},remove(){this.removed=true;}});nodes.push(el);return el;},
   getElementById(){return {click(){messages.push({back:true});}};}});
  const window=Object.assign(target(),{document,parent:{postMessage(message){messages.push(message);}},
@@ -73,6 +74,7 @@ test('el lector acepta solo su iframe, conserva el error y ofrece copiar y volve
  receive({kind:'fatal',message:'spoof'},{});assert.deepEqual(failures,[]);
  receive({kind:'fatal',stage:'camera',message:'<img src=x onerror=alert(1)>',stack:'stack:123'});
  assert.equal(container.panel.open,true);
+ assert.equal(container.panel.hidden,false);
  const pre=e.nodes.find(x=>x.tagName==='PRE');assert.match(pre.textContent,/stack:123/);assert.equal(pre.innerHTML,undefined);
  const buttons=e.nodes.filter(x=>x.tagName==='BUTTON');
  await [...buttons[0].listeners.get('click')][0]();assert.match(e.messages.find(x=>x.copied).copied,/stack:123/);
@@ -81,6 +83,40 @@ test('el lector acepta solo su iframe, conserva el error y ofrece copiar y volve
  assert.equal(pre.textContent.split('\n').length,80);
  assert.match(pre.textContent,/stack:123/,'Los avisos no deben expulsar el primer error del informe');
  reader.dispose();assert.equal(container.panel.removed,true);assert.equal(e.window.listeners.get('message').size,0);
+});
+
+test('el panel permanece oculto con cargas normales y aparece si falla un recurso',()=>{
+ const e=environment(),container={ownerDocument:e.document,appendChild(node){this.panel=node;}};
+ const reader=e.api.mount({container,frame:{contentWindow:{}},onFailure(){assert.fail('Un recurso recuperable no debe detener el juego');}});
+ assert.equal(container.panel.hidden,true);
+ reader.record({kind:'stage',stage:'playing'});
+ reader.record({kind:'resource-start',url:'https://game.test/puerta.glb'});
+ assert.equal(container.panel.hidden,true,'Una carga en progreso no es un fallo');
+ reader.record({kind:'resource',url:'https://game.test/puerta.glb',message:'HTTP 404'});
+ assert.equal(container.panel.hidden,false);assert.equal(container.panel.open,true);
+});
+
+test('se puede mostrar manualmente el diagnóstico durante una prueba sin fallos',()=>{
+ const e=environment(),container={ownerDocument:e.document,appendChild(node){this.panel=node;}};
+ e.api.mount({container,frame:{contentWindow:{}},showDuringPlay:true});
+ assert.equal(container.panel.hidden,false);assert.equal(container.panel.open,true);
+});
+
+test('la flecha del editor despliega el control apagado por defecto y recuerda activar o apagar',()=>{
+ const e=environment(),saved=new Map();
+ e.window.localStorage={getItem:key=>saved.get(key)||null,setItem:(key,value)=>saved.set(key,value)};
+ const controls=()=>({toggle:e.document.createElement('button'),options:Object.assign(e.document.createElement('div'),{hidden:true}),
+  checkbox:e.document.createElement('input'),label:e.document.createElement('span'),hint:e.document.createElement('span')});
+ const first=controls();e.api.configureEditor(first);
+ assert.equal(first.checkbox.checked,false);assert.equal(first.options.hidden,true);
+ assert.equal(first.toggle.textContent,'▾');
+ first.toggle.dispatch('click',{});
+ assert.equal(first.options.hidden,false);assert.equal(first.toggle.attributes['aria-expanded'],'true');
+ first.checkbox.checked=true;first.checkbox.dispatch('change',{});
+ const next=controls();e.api.configureEditor(next);assert.equal(next.checkbox.checked,true);
+ next.checkbox.checked=false;next.checkbox.dispatch('change',{});
+ const last=controls();e.api.configureEditor(last);assert.equal(last.checkbox.checked,false);
+ first.toggle.dispatch('click',{});assert.equal(first.options.hidden,true);
 });
 test('el watchdog detecta ausencia de fotogramas y respeta pestañas ocultas',()=>{
  const e=environment(),source={},failures=[];
