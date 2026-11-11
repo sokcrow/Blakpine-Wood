@@ -32,10 +32,10 @@ const tick=()=>new Promise(resolve=>setImmediate(resolve));
 let checks=0;
 async function test(name,fn){await fn();checks++;console.log('OK',name)}
 (async()=>{
- await test('Los tres modelos de delivery duplicados no invalidan los 78 GLB',async()=>{
+ await test('Los tres modelos de delivery duplicados no invalidan los 86 GLB',async()=>{
   const {assets}=setup();
   const models=await assets.catalog();
-  assert.equal(models.size,78);
+  assert.equal(models.size,86);
   for(const entry of main.furniture)assert.ok(fs.existsSync(path.join(library,entry.glb)),entry.id);
  });
  await test('Una definición contradictoria sí se rechaza',async()=>{
