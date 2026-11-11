@@ -11,7 +11,7 @@
  const WALLS=new Set(['wall','red_wall','property_wall']);
  // La ventana conserva la instalación; puertas y aberturas cortan ese tramo.
  const WALL_PATHS=new Set([...WALLS,'window']);
- const INFRA=new Set(['generator','generator_ats','generator_tank','power_outlet','power_strip','water_main','water_valve','water_outlet','drain_outlet','drain_main','router','ethernet_port','landline_phone','phone_charger']);
+ const INFRA=new Set(['generator','generator_ats','generator_tank','power_outlet','power_strip','water_main','water_valve','water_outlet','water_tank','water_pump','water_riser','drain_outlet','drain_main','router','ethernet_port','landline_phone','phone_charger','water_pump']);
  const POWER_NEEDS=new Set(['router','phone_charger','light_fixture','tv','landline_phone','elevator']);
  const ELECTRIC_MODELS=new Set(['refrigerador','estufa_horno','microondas','campana_extractora','cafetera','tostadora',
   'lampara_escritorio','monitor_crt','gabinete_pc','teclado_pc','mouse_pc','impresora_matricial','telefono_fijo',
@@ -157,7 +157,7 @@
  function ensureState(state){
   if(!state||typeof state!=='object')throw Error('El estado de partida es obligatorio');
   const s=state.services&&typeof state.services==='object'?state.services:{};
-  for(const prop of ['damage','enabled','wifiKeys','connections','meters','usage','generators','ats','fuelTanks']){
+  for(const prop of ['damage','enabled','wifiKeys','connections','meters','usage','generators','ats','fuelTanks','waterStorage','waterEquipment']){
    if(!s[prop]||typeof s[prop]!=='object'||Array.isArray(s[prop]))s[prop]={};
   }
   if(!Array.isArray(s.calls))s.calls=[];
@@ -550,7 +550,7 @@
     'breaker_panel','generator','generator_ats','power_outlet','power_strip',
     'light_switch','router','ethernet_port','landline_phone','phone_charger'
    ]);
-   if(!it||!allowed.has(it.type))return {ok:false,reason:'unsupported'};
+   if(!it||!allowed.has(it.type)&&!hydraulics?.kind(it))return {ok:false,reason:'unsupported'};
    const before=Number(s.damage[id(it)]);
    if(!Number.isFinite(before)||before<=0)return {ok:false,reason:'notDamaged'};
    s.damage[id(it)]=0;
@@ -664,7 +664,10 @@
    const supply=snapshot.supplies.get(key),powered=!!parent&&number(s.damage[id(it)])<100;
    return {connected:!!parent,powered,via:parent?.id||'',breakerId:supply?.panel.id||'',generated:!!supply?.feed,feet:supply?.feet??null};
   }
+  const hydraulics=globalThis.FHWaterHydraulics?.createRuntime(project,s,{route,
+   powerFor:(f,it)=>electricalStatus(f,it,electrical()).powered})||null;
   function waterStatus(f,it){
+   const advanced=hydraulics?.status(f,it);if(advanced)return advanced;
    if(!requiresWater(it)&&it.type!=='water_outlet')return {connected:true,water:true,legacy:true};
    if(s.contracts.water!=='active')return {connected:false,water:false};
    const mains=values(f,'water_main').filter(x=>active(x));
@@ -868,7 +871,9 @@
    if(!it||!requiresWater(it)||!waterStatus(f,it).water)return {ok:false,reason:'noWater'};
    const mode=String(it.service?.waterMode|| (it.type==='toilet'?'pulse':'continuous'));
    if(mode==='pulse'){
-    const liters=Math.max(0,number(it.service?.litersPerUse,6));
+    const requested=Math.max(0,number(it.service?.litersPerUse,6));
+    const liters=hydraulics?.status(f,it)?hydraulics.consume(f,it,requested):requested;
+    if(!liters)return {ok:false,reason:'noWater'};
     s.meters.waterLiters+=liters;
     if(it.service?.drains!==false&&drainStatus(f,it).draining)s.meters.drainLiters+=liters;
     return {ok:true,mode,liters};
@@ -901,7 +906,8 @@
       if(power.powered)usedWatts+=watts(it,power.generated);
      }
      if(requiresWater(it)&&active(it)&&s.usage[id(it)]===true&&waterStatus(f,it).water){
-      const liters=Math.max(0,number(it.service?.flowLpm))*seconds/60;
+      const requested=Math.max(0,number(it.service?.flowLpm))*seconds/60;
+      const liters=hydraulics?.status(f,it)?hydraulics.consume(f,it,requested):requested;
       waterLiters+=liters;
       if(it.service?.drains!==false&&drainStatus(f,it).draining)drainLiters+=liters;
      }
@@ -923,6 +929,7 @@
    power.currentWatts=usedWatts;power.currentKwh+=deltaKwh;
    s.meters.waterLiters+=waterLiters;
    s.meters.drainLiters+=drainLiters;
+   hydraulics?.tick(seconds/60);
    if(state.phone.placedAt){
     const f=Math.floor(number(state.phone.placedFloor,-1));
     const charger=itemAt(f,state.phone.placedAt);
@@ -969,7 +976,7 @@
   function setService(name,active){if(!Object.prototype.hasOwnProperty.call(s.contracts,name))return false;s.contracts[name]=active?'active':'suspended';return true;}
   syncATS();
   return Object.freeze({state:s,phone:state.phone,graphs,powerGraphs,powerRoute,zoneFor,requiresPower,point,itemAt,defaultsFor,sourceFor,wiredRoute,scopeFor,
-   panelStatus,atsStatus,activateATSManual,tankStatus,generatorStatus,setGeneratorEnabled,repairDamage,generatorCircuitPowered,statusFor,electrical,waterStatus,drainStatus,wifiAt,wifiSampler,connectWifi,internetFor,landlineFor,mobileFor,
+   panelStatus,atsStatus,activateATSManual,tankStatus,generatorStatus,setGeneratorEnabled,repairDamage,generatorCircuitPowered,hydraulics,statusFor,electrical,waterStatus,drainStatus,wifiAt,wifiSampler,connectWifi,internetFor,landlineFor,mobileFor,
    chargePhone,takePhone,useWaterFixture,setUsage,dial,tick,setService,feetPerCell});
  }
  return Object.freeze({INFRA,defaultsFor,wallGraph,ensureState,createRuntime,requiresPower:needsElectricity,LIMITS,rangeFor});
