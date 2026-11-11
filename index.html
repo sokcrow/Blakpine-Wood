@@ -3355,6 +3355,26 @@ function addLiveTextToEngine(doc){
    ? window.FHComicActionEngine.patch(withLiveText) : withLiveText;
 }
 
+function addPreviewReturnToSpawnpoint(doc){
+ const anchor='function changeFloor(next,throughStairs=false,sourceStair=null){';
+ const count=doc.split(anchor).length-1;
+ if(count!==1)throw Error('Hook de regreso al Spawnpoint incompatible: '+count);
+ const action=[
+  'window.FHPreviewReturnToSpawnpoint=function(){',
+  ' const T=window.FH_PLAYER_MENU_STRINGS;',
+  ' const target=configuredSpawn.findIndex(point=>point&&Number.isFinite(point.x)&&Number.isFinite(point.y));',
+  ' if(target<0){notice(T.spawnMissing,3200);return false;}',
+  ' if(!isBuilt[target]){notice(T.spawnNoFloor,3200);return false;}',
+  ' if(peeking)stopPeek();',
+  " if(stairTravel){stairTravel=null;$('fade').style.opacity='0';stairCooldown=0;}",
+  ' changeFloor(target);',
+  ' notice(T.spawnReturned,2200);',
+  ' return true;',
+  '};'
+ ].join('\n');
+ return doc.replace(anchor,action+'\n'+anchor);
+}
+
 function syncEngineMapValidation(source){
  const start=source.indexOf('function validate(project){');
  const end=source.indexOf('// shared/migrate.js',start);
@@ -3493,13 +3513,13 @@ function prepareGLBEngineDoc(source){
  }
   const parkingScript='<script src="'+new URL('./juego/assets/fh-parking.js',document.baseURI).href+'"></'+'script>';
  const playerMenuCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-player-menu.css?v=20261107-help',document.baseURI).href+'">';
- const playerMenuStrings='<script src="'+new URL('./juego/assets/fh-player-menu-strings.js?v=20261106-player-ui',document.baseURI).href+'"></'+'script>';
+ const playerMenuStrings='<script src="'+new URL('./juego/assets/fh-player-menu-strings.js?v=20261110-spawn-return',document.baseURI).href+'"></'+'script>';
  const skillsModule='<script src="'+new URL('./juego/assets/fh-skills.js?v=20261106-skills',document.baseURI).href+'"></'+'script>';
  const skillsStrings='<script src="'+new URL('./juego/assets/fh-skill-strings.js?v=20261106-skills',document.baseURI).href+'"></'+'script>';
  const helpCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-character-help.css?v=20261107-help',document.baseURI).href+'">';
  const helpStrings='<script src="'+new URL('./juego/assets/fh-character-help-strings.js?v=20261107-help',document.baseURI).href+'"></'+'script>';
  const helpScript='<script src="'+new URL('./juego/assets/fh-character-help.js?v=20261107-help',document.baseURI).href+'"></'+'script>';
- const playerMenuScript='<script src="'+new URL('./juego/assets/fh-player-menu.js?v=20261107-help',document.baseURI).href+'"></'+'script>';
+ const playerMenuScript='<script src="'+new URL('./juego/assets/fh-player-menu.js?v=20261110-spawn-return',document.baseURI).href+'"></'+'script>';
  const locationCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-location-hud.css?v=20261106-hud-left-code',document.baseURI).href+'">';
  const locationStrings='<script src="'+new URL('./juego/assets/fh-location-strings.js?v=20261106-location',document.baseURI).href+'"></'+'script>';
  const locationScript='<script src="'+new URL('./juego/assets/fh-location-hud.js?v=20261110-patio1',document.baseURI).href+'"></'+'script>';
@@ -4631,7 +4651,7 @@ function addBuildingLevelsToEngine(doc){
    '<script '+(file.includes('diagnostics')?'data-fh-runtime ':'')+'src="'+new URL('./juego/assets/'+file+'?v=20261109-diag2',document.baseURI).href+'"></'+'script>').join('');
   return doc.replace('<head>','<head>'+tags);
  }
- return addPreviewDiagnostics(addCourtyardsToEngine(addFloorVisibilityToEngine(addNaturalLightToEngine(assembled))));
+ return addPreviewReturnToSpawnpoint(addPreviewDiagnostics(addCourtyardsToEngine(addFloorVisibilityToEngine(addNaturalLightToEngine(assembled)))));
 }
 let fhCharacterLaunchPending=false;
 async function start3DPreview(){
