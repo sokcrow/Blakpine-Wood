@@ -72,12 +72,16 @@ test('ubicación se mantiene centrada, compacta y transitoria después de quitar
  const html=read('../../index.html');
  const locationCss=read('fh-location-hud.css');
  const locationJs=read('fh-location-hud.js');
- assert.match(locationCss,/body\\.fh-player-menu-ready #hud\\.fh-location-hud \\{[\\s\\S]*?position:fixed;[\\s\\S]*?left:50%;[\\s\\S]*?transform:translateX\\(-50%\\);/);
- assert.match(locationCss,/width:min\\(300px,calc\\(100vw - 24px\\)\\)/);
- assert.match(locationCss,/body\\.fh-player-menu-ready #hud\\.fh-location-hud\\.fh-location-hidden \\{[\\s\\S]*?opacity:0;[\\s\\S]*?visibility:hidden;/);
- assert.match(locationJs,/const DISPLAY_MS=2800/);
- assert.ok(html.lastIndexOf('mobileCameraScript+locationCss')>html.indexOf('const locationCss='));
- assert.doesNotMatch(html,/fh-status-hud\\.css/);
+ const restored=locationCss.slice(locationCss.lastIndexOf('/* Ubicación: anuncio compacto, centrado y transitorio.'));
+ assert.ok(restored.includes('position:fixed;'),'No se mantiene en el viewport');
+ assert.ok(restored.includes('left:50%;'),'Debe centrarse horizontalmente');
+ assert.ok(restored.includes('transform:translateX(-50%);'),'El panel debe centrar su propio ancho');
+ assert.ok(restored.includes('width:min(300px,calc(100vw - 24px));'),'El tamaño debe ser compacto');
+ assert.ok(restored.includes('#hud.fh-location-hud.fh-location-hidden {'),'Falta selector de ocultación');
+ assert.ok(restored.includes('opacity:0;')&&restored.includes('visibility:hidden;'),'Debe desaparecer sin bloquear clics');
+ assert.ok(locationJs.includes('const DISPLAY_MS=2800;'),'Conservar duración de 2.8 segundos');
+ assert.ok(html.lastIndexOf('mobileCameraScript+locationCss')>html.indexOf('const locationCss='),'CSS final debe ganar la cascada');
+ assert.ok(!html.includes('fh-status-hud.css'),'No cargar HUD antiguo');
 });
 test('seis estados de miedo con color, utilizando FHLiveText',()=>{
  const live=read('fh-live-text.js'),css=read('fh-mood-fear.css'),ui=read('fh-mood-fear-ui.js');
