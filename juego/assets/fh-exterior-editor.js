@@ -37,10 +37,22 @@
     const b=document.createElement('button'),img=document.createElement('img'),name=document.createElement('strong'),size=document.createElement('small');
     b.type='button';img.alt='';img.src=new URL(entry.thumbnail,base).href;name.textContent=entry.name;
     size.textContent=[entry.widthFt,entry.heightFt,entry.depthFt].join(' × ')+' '+T.feet;
-    b.append(img,name,size);b.onclick=()=>{selected=entry;setCategory('furniture');chooseTool('misc');hide();toast(T.selected+entry.name);};
+    b.append(img,name,size);b.onclick=()=>activate(entry);
     choices.append(b);
    }
   }catch(error){catalog=null;choices.textContent=T.error;console.warn('[Electricidad 03]',error);}
+ }
+ function activate(entry){
+  // Los objetos eléctricos se colocan y seleccionan en Iluminación, no en Muebles.
+  setCategory('lighting');selected=entry;chooseTool('misc');
+  const tools=document.querySelector('#tools');
+  if(tools){
+   let button=document.getElementById('fhExteriorPlaceTool');
+   if(!button){button=document.createElement('button');button.type='button';button.id='fhExteriorPlaceTool';button.dataset.tool='misc';
+    button.onclick=()=>chooseTool('misc');tools.append(button);}
+   button.textContent=T.place+' '+entry.name;button.title=entry.name;button.classList.add('active');
+  }
+  hide();toast(T.selected+entry.name);
  }
  function launcher(){
   const tools=document.querySelector('#tools');if(activeCategory!=='lighting'||!tools||document.getElementById('fhExteriorLauncher'))return;
@@ -48,7 +60,7 @@
   button.onclick=open;tools.append(button);
  }
  const beforeCategory=setCategory;
- setCategory=function(category){if(category!=='furniture')selected=null;beforeCategory(category);launcher();};
+ setCategory=function(category){selected=null;beforeCategory(category);launcher();};
  // Elegir un mueble normal desarma la selección del poste anterior.
  document.getElementById('fhCatModal')?.addEventListener('click',event=>{
   if(event.target.closest?.('.fhCatCard'))selected=null;
@@ -66,6 +78,7 @@
   if(selectedExterior){
    root.FHFurnitureRules.applyCatalogModel(item,selectedExterior,ForestShared,Number(project.units?.feetPerCell)||5);
    item.exteriorCableFt=90;item.exteriorFeedFt=90;item.exteriorGridEnabled=true;
+   item.exteriorKind=G.roleFor(item);
    if(G.roleFor(item)==='lamp'){item.exteriorBrightFt=30;item.exteriorDimFt=30;}
   }
   if(panelItem&&item.exteriorAutoConnect===undefined)item.exteriorAutoConnect=true;
@@ -83,12 +96,55 @@
   };
   holder.append(input);fields.append(holder);
  }
+ // Vista de conexiones físicas; no presume que el contrato esté pagado en la partida.
+ let topologyKey='',topologyCache=null;
+ function topology(){
+  const key=JSON.stringify([project.units?.feetPerCell,(project.floors||[]).map(f=>[f.id,f.elevationFt,
+   (f.items||[]).filter(it=>G.isExternal(it)||it.type==='breaker_panel').map(it=>
+    [it.id,it.modelId,it.type,it.x,it.y,it.enabled,it.exteriorGridEnabled,it.exteriorCableFt,
+     it.exteriorFeedFt,it.exteriorAutoConnect,it.powerSource])])]);
+  if(topologyKey!==key||!topologyCache){topologyKey=key;topologyCache=G.createRuntime(project,{});}
+  return topologyCache;
+ }
+ function statusLine(fields,text){
+  const msg=document.createElement('div');msg.className='tip';msg.style.gridColumn='1/-1';
+  msg.textContent=text;fields.append(msg);
+ }
+ function drawGrid(ctx,z,toPixel){
+  if(typeof toPixel!=='function')return;
+  const grid=topology();const sameFloor=f=>f===floorIndex;
+  ctx.save();ctx.lineWidth=Math.max(.8,1.8/z);
+  for(const link of grid.links()){
+   if(!sameFloor(link.from.f)||!sameFloor(link.to.f))continue;
+   const a=toPixel(link.from.it),b=toPixel(link.to.it);
+   ctx.beginPath();ctx.setLineDash(link.powered?[]:[4/z,4/z]);
+   ctx.strokeStyle=link.powered?'#85ce96':'#ab7770';ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
+  }
+  for(const link of grid.panelLinks()){
+   if(!sameFloor(link.f)||!sameFloor(link.node.f))continue;
+   const a=toPixel(link.node.it),b=toPixel(link.panel);
+   ctx.beginPath();ctx.setLineDash(link.powered?[]:[4/z,4/z]);
+   ctx.strokeStyle=link.powered?'#85ce96':'#ab7770';ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
+  }
+  ctx.restore();
+ }
  const beforeInspector=openInspector;
  openInspector=function(){
   beforeInspector();
   const item=current().items.find(v=>v.id===selection);if(!item)return;
   const fields=document.getElementById('fields');if(!fields)return;
   if(G.isExternal(item)){
+   const role=G.roleFor(item),grid=topology(),node=grid.nodes.find(n=>n.it===item);
+   const title=document.getElementById('inspTitle');if(title)title.textContent=(T.roles[role]||T.infrastructure)+' · '+(item.label||item.modelId);
+   const connected=!!node&&grid.energized(node);
+   if(!grid.hasTransformers)statusLine(fields,T.noTransformer);
+   else if(!connected)statusLine(fields,T.nodeDisconnected);
+   else {
+    const serves=link=>{let parent=link.node;while(parent){if(parent===node)return true;parent=parent.parent;}return false;};
+    const panels=grid.panelLinks().filter(link=>link.powered&&serves(link));
+    if(role==='transformer'&&!panels.length)statusLine(fields,T.noBreakers);
+    else statusLine(fields,T.nodeConnected+(role==='transformer'?' · '+panels.length+' '+T.breakersInReach:''));
+   }
    addInput(fields,item,'exteriorCableFt',T.cable);
    addInput(fields,item,'exteriorFeedFt',T.feed);
    addInput(fields,item,'exteriorGridEnabled',T.enabled,'checkbox',true);
@@ -98,6 +154,9 @@
    }
   }
   if(item.type==='breaker_panel'){
+   const grid=topology(),link=grid.panelConnection(floorIndex,item);
+   const allowed=item.exteriorAutoConnect===true||item.powerSource===undefined||item.powerSource?.kind==='utility';
+   statusLine(fields,!grid.hasTransformers?T.noTransformer:!allowed?T.breakerNotConfigured:!link?T.breakerOutOfRange:link.powered?T.breakerConnected+' '+Math.round(link.feet)+' '+T.feet:T.nodeDisconnected);
    addInput(fields,item,'exteriorAutoConnect',T.auto,'checkbox',false);
    addInput(fields,item,'exteriorFeedFt',T.feed);
   }
@@ -108,5 +167,5 @@
    const note=document.createElement('small');note.textContent=T.batteryNote;fields.append(note);
   }
  };
- launcher();root.FHExteriorEditor=Object.freeze({open});
+ launcher();root.FHExteriorEditor=Object.freeze({open,drawGrid});
 })(window);
