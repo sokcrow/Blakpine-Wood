@@ -204,8 +204,8 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
 <script src="./juego/assets/fh-access-config.js?v=20261107-map-v1"></script>
 <script src="./juego/assets/fh-weather-strings.js?v=20261108-clima1"></script>
 <script src="./juego/assets/fh-weather-editor.js?v=20261108-clima1"></script>
-<script src="./juego/assets/fh-services-strings.js?v=20261110-power-sources-1"></script>
-<script src="./juego/assets/fh-services-core.js?v=20261110-power-sources-1"></script>
+<script src="./juego/assets/fh-services-strings.js?v=20261111-elevator-power-1"></script>
+<script src="./juego/assets/fh-services-core.js?v=20261111-elevator-power-1"></script>
 <script src="./juego/assets/fh-floor-levels.js?v=20261109-basements1"></script>
 <script src="./juego/assets/fh-wifi-editor-overlay.js?v=20261109-wifi-editor-1"></script>
 <script src="./juego/assets/fh-light-strings.js?v=20261109-zones-3"></script>
@@ -449,16 +449,16 @@ function elevatorEntranceDistance(item,x,z,cell=1.524,reach=1.45){
 const hashId=s=>{let h=2166136261;for(const ch of s){h^=ch.charCodeAt(0);h=Math.imul(h,16777619)}return h>>>0};
 const nextRand=c=>{c.rng=(Math.imul(c.rng,1664525)+1013904223)>>>0;return c.rng/4294967296};
 const emit=(cb,type,shaft,payload={})=>cb?.(type,{shaftId:shaft.id,phase:shaft.cabin.phase,floor:shaft.cabin.floor,...payload});
-function createElevatorMachine(floors=[],gameState={},rawConfig={},onEvent=()=>{},powerSupply=()=>true){
+function createElevatorMachine(floors=[],gameState={},rawConfig={},onEvent=()=>{},powerSupply=()=>false){
  const config=elevatorConfig(rawConfig),shafts=new Map();gameState.flags ||= {};gameState.elevators ||= {};
  floors.forEach((floor,f)=>{(floor.items||[]).filter(it=>it.type==='elevator'&&it.enabled===true).forEach(item=>{
   const id=elevatorShaftId(item);
-  if(!shafts.has(id))shafts.set(id,{id,stops:[],requiresPower:false,powerFlag:'breaker_on'});
+  if(!shafts.has(id))shafts.set(id,{id,stops:[],requiresPower:true,powerFlag:''});
   const shaft=shafts.get(id);
   // Different floor can have a distinct call panel, but a single shared cabin.
   shaft.stops.push({f,floorId:floor.id,item,x:num(item.x,0),y:num(item.y,0)});
-  shaft.requiresPower ||= item.requiresPower===true;
-  if(item.powerFlag)shaft.powerFlag=item.powerFlag;
+  shaft.requiresPower=true;
+  if(item.powerFlag&&item.powerFlag!=='breaker_on')shaft.powerFlag=item.powerFlag;
  })});
  for(const [id,shaft] of shafts){
   shaft.stops.sort((a,b)=>a.f-b.f);
@@ -479,12 +479,13 @@ function createElevatorMachine(floors=[],gameState={},rawConfig={},onEvent=()=>{
   // The snapshot is kept in GameState: no hidden state is lost on reload.
   gameState.elevators[id]=cabin;shaft.cabin=cabin;
  }
- const powered=(shaft,f=shaft.cabin.floor)=>(!shaft.requiresPower||gameState.flags[shaft.powerFlag]===true)&&powerSupply(shaft,f)!==false;
+ const powered=(shaft,f=shaft.cabin.floor)=>(!shaft.powerFlag||gameState.flags[shaft.powerFlag]!==false)&&
+  powerSupply(shaft,shaft.cabin.floor)===true&&(f===shaft.cabin.floor||powerSupply(shaft,f)===true);
  const stopAt=(shaft,f)=>shaft.stops.find(s=>s.f===f);
  function setPhase(shaft,phase,seconds=0){const c=shaft.cabin;c.phase=phase;c.timeLeft=seconds;c.doorsOpen=phase==='open';emit(onEvent,'elevator:state',shaft);}
  function openDoors(shaft){setPhase(shaft,'doorsOpening',.75)}
  function enqueue(shaft,kind,f){const c=shaft.cabin;if(!c.queue.some(q=>q.floor===f&&q.kind===kind))c.queue.push({kind,floor:f});}
- function dispatch(shaft){const c=shaft.cabin;if(c.phase!=='idle'||!c.queue.length)return;
+ function dispatch(shaft){const c=shaft.cabin;if(c.phase!=='idle'||!c.queue.length||!powered(shaft,c.queue[0].floor))return;
   const req=c.queue.shift();c.targetFloor=req.floor;
   if(c.targetFloor===c.floor){openDoors(shaft);return;}
   setPhase(shaft,'doorsClosing',.8);
@@ -516,9 +517,10 @@ function createElevatorMachine(floors=[],gameState={},rawConfig={},onEvent=()=>{
   while(remaining>0&&steps++<24){
    if(c.phase==='idle'){dispatch(shaft);if(c.phase==='idle')break;continue;}
    if(c.phase==='open'){
+    if(!powered(shaft))break;
     if(c.passenger&&!c.queue.some(q=>q.kind==='destination'))break;
     if(c.passenger&&c.queue.some(q=>q.kind==='destination')){
-     const req=c.queue.find(q=>q.kind==='destination');c.queue=c.queue.filter(q=>q!==req);c.targetFloor=req.floor;
+     const req=c.queue.find(q=>q.kind==='destination');if(!powered(shaft,req.floor))break;c.queue=c.queue.filter(q=>q!==req);c.targetFloor=req.floor;
      setPhase(shaft,'doorsClosing',.8);continue;
     }
     if(c.timeLeft<=0){setPhase(shaft,'doorsClosing',.8);continue;}
@@ -557,7 +559,7 @@ function createElevatorMachine(floors=[],gameState={},rawConfig={},onEvent=()=>{
    if(c.timeLeft<=1e-7){
     if(c.phase==='doorsOpening'){setPhase(shaft,'open',c.passenger?60:6);emit(onEvent,'elevator:doorsOpen',shaft,{atFloor:c.floor});}
     else if(c.phase==='doorsClosing'){
-     if(!powered(shaft)&&!c.passenger){openDoors(shaft);}else if(c.targetFloor!==c.floor){prepareJourney(shaft)}else{setPhase(shaft,'idle');dispatch(shaft)}
+     if(!powered(shaft,c.targetFloor)){openDoors(shaft);}else if(c.targetFloor!==c.floor){prepareJourney(shaft)}else{setPhase(shaft,'idle');dispatch(shaft)}
     }else if(c.phase==='arriving')openDoors(shaft);
     else if(c.phase==='open')setPhase(shaft,'doorsClosing',.8);
    }else if(step===0)break;
@@ -596,6 +598,7 @@ function createElevatorMachine(floors=[],gameState={},rawConfig={},onEvent=()=>{
    openDoors(shaft);return {ok:true};
   }
   if(action==='close'){
+   if(!powered(shaft))return {ok:false,reason:'noPower'};
    if(c.phase==='doorsClosing')return {ok:true,already:true};
    if(c.phase!=='open'&&c.phase!=='doorsOpening')return {ok:false,reason:'notOpen'};
    setPhase(shaft,'doorsClosing',.8);return {ok:true};
@@ -806,7 +809,7 @@ function roomCircuitAssignments(items,room,zoneId){
  let connected=0;
  const inside=(obj)=>room.spans?.length?room.spans.some(s=>obj.x>=s.x-1e-5&&obj.x<=s.x+s.w+1e-5&&obj.y>=s.y-1e-5&&obj.y<=s.y+s.h+1e-5):
   obj.x>=room.x-1e-5&&obj.x<=room.x+room.w+1e-5&&obj.y>=room.y-1e-5&&obj.y<=room.y+room.h+1e-5;
- for(const obj of items){if(!['light_fixture','light_switch'].includes(obj.type))continue;if((obj.roomId?obj.roomId===roomId:inside(obj))){
+ for(const obj of items){if(!['light_fixture','light_switch','elevator'].includes(obj.type))continue;if((obj.roomId?obj.roomId===roomId:inside(obj))){
   obj.zoneId=zoneId;obj.roomId=roomId;connected++;
  }}
  return connected;
@@ -1943,7 +1946,7 @@ function drawLightingOverlay(c,z){
    const room=rooms.find(r=>(r.roomId||r.id)===it.roomId||r.id===it.roomId);
    return room?.zoneId===circ.zoneId;
   };
-  for(const target of items.filter(it=>['light_fixture','light_switch','power_outlet'].includes(it.type)&&sameCircuit(it))){
+  for(const target of items.filter(it=>['light_fixture','light_switch','power_outlet','elevator'].includes(it.type)&&sameCircuit(it))){
    const source=runtime?.sourceFor(floorIndex,target,circ.zoneId);
    if(source?.panel.id!==owner.id)continue;
    const path=source.route;
@@ -2118,7 +2121,7 @@ function createObject(type,p){
   it.interact={id:'utility_'+it.id,verb:'use',
    label:it.type==='phone_charger'?'Cargar / recoger celular':('Usar '+it.label),effects:[]};
  }
- if(type==='spawn'){it.heightFt=0;it.blocksMovement=false}if(type==='npc_portal'){it.heightFt=0;it.blocksMovement=false;it.label='Entrada / salida NPC'}if(type==='stairs'){const chosen=stairNeighbors(floorIndex).find(v=>v.direction===stairPlacementDirection);if(!chosen){toast('No existe un nivel contiguo para crear esa escalera.');return null}it.targetFloorId=chosen.floor.id;it.stairDirection=chosen.direction;it.heightFt=Math.abs(chosen.floor.elevationFt-current().elevationFt);it.label='Escalera '+(chosen.direction==='down'?'↓':'↑')+' a '+(floorCode(chosen.index)||chosen.floor.name)}if(type==='elevator'){it.enabled=true;it.doorsOpen=false;it.requiresPower=false;it.powerFlag='breaker_on';it.label='Ascensor'}
+ if(type==='spawn'){it.heightFt=0;it.blocksMovement=false}if(type==='npc_portal'){it.heightFt=0;it.blocksMovement=false;it.label='Entrada / salida NPC'}if(type==='stairs'){const chosen=stairNeighbors(floorIndex).find(v=>v.direction===stairPlacementDirection);if(!chosen){toast('No existe un nivel contiguo para crear esa escalera.');return null}it.targetFloorId=chosen.floor.id;it.stairDirection=chosen.direction;it.heightFt=Math.abs(chosen.floor.elevationFt-current().elevationFt);it.label='Escalera '+(chosen.direction==='down'?'↓':'↑')+' a '+(floorCode(chosen.index)||chosen.floor.name)}if(type==='elevator'){it.enabled=true;it.doorsOpen=false;it.requiresPower=true;it.zoneId=room?.zoneId&&(room.zoneId!=='main'||availableCircuits().some(c=>c.zoneId==='main'))?room.zoneId:selectedCircuit()||'';it.label='Ascensor'}
 if(type==='light_fixture'){
  const kind=fixtureKind||'bulb';
  if(!window.FHLights?.isWall(kind)&&!room){toast(window.FH_LIGHT_TEXT.outside);return null;}
@@ -2669,7 +2672,7 @@ addItem(createObject(tool,pos));}
 function setItemField(id,key,val){const it=current().items.find(v=>v.id===id);if(!it)return;if(it.autoDescendingSource){toast('Modifica la escalera que colocaste en el piso superior.');openInspector();return;}if(window.FHStyleEditor&&!window.FHStyleEditor.canEditItem(it)){toast('No tienes permiso para modificar este objeto');return;}
  if(['ax','ay','bx','by'].includes(key)&&current().items.some(s=>s.type==='light_switch'&&s.wallId===id)){toast('Mueve primero el interruptor anclado a esta pared.');openInspector();return}
  if(AREA_TYPES.has(it.type)&&it.type!=='room'&&it.spans?.length&&['w','h'].includes(key)){toast('Para ampliar una zona fusionada, dibuja otra zona contigua del mismo tipo.');openInspector();return}
- const before=clone(it);if(key==='apartmentId'&&it.autoGenerated)it.manualApartmentId=String(val||'').trim();if(key==='zoneId'&&it.type==='room')ForestShared.roomCircuitAssignments(current().items,it,String(val));if(key==='atsLink'||key==='tankLink'){const prefix=key==='atsLink'?'ats':'tank';it[prefix+'Id']=val?.id||'';it[prefix+'FloorId']=val?.floorId||'';}else if(key.startsWith('service.')){
+ const before=clone(it);if(it.type==='elevator'&&(key==='requiresPower'||key==='service.requiresPower'))val=true;if(key==='apartmentId'&&it.autoGenerated)it.manualApartmentId=String(val||'').trim();if(key==='zoneId'&&it.type==='room')ForestShared.roomCircuitAssignments(current().items,it,String(val));if(key==='atsLink'||key==='tankLink'){const prefix=key==='atsLink'?'ats':'tank';it[prefix+'Id']=val?.id||'';it[prefix+'FloorId']=val?.floorId||'';}else if(key.startsWith('service.')){
    it.service||={};const name=key.slice(8);
    it.service[name]=['requiresPower','requiresWater','drains','onDemand'].includes(name)?!!val:
     ['rayos','watts','flowLpm','litersPerUse'].includes(name)?Math.max(0,Number(val)||0):String(val);
@@ -3018,7 +3021,7 @@ if(it.type==='peephole_door'){put('La mirilla apunta hacia','peekSide',it.peekSi
  const note=document.createElement('div');note.className='tip';note.style.gridColumn='1/-1';note.textContent=window.FH_LIGHT_TEXT.note;fields.append(note);
 }if(it.type==='light_switch'){let note=document.createElement('div');note.className='tip';note.style.gridColumn='1/-1';note.textContent='Anclado a pared. La flecha indica la habitación controlada y el lado visible. «Girar» cambia al lado opuesto.';fields.append(note);if(it.wallId){const info=document.createElement('div');info.className='tip';info.style.gridColumn='1/-1';info.textContent='Controla: '+(current().items.find(r=>r.type==='room'&&(r.roomId||r.id)===it.roomId)?.label||'Ninguna habitación en este lado; gira el interruptor');fields.append(info);}else put('ID habitación (mapa anterior)','roomId',it.roomId||'');}
 if(it.type==='breaker_panel')renderBreakerCircuits(it,fields);if(it.type==='light_switch'||it.type==='light_fixture')put('Conectado al circuito','zoneId',it.zoneId||'main','select',circuitSelectOptions(it.zoneId));
-if(it.type==='parking_decal')window.FHParkingEditor?.attachInspector(it,fields);if(it.type==='elevator'){let info=document.createElement('div');info.className='tip';info.style.gridColumn='1/-1';info.textContent='Entrada: lado de la flecha amarilla. Para conectar pisos, coloca otra parada en la misma posición y usa el mismo ID de hueco. Si no defines un ID, se agrupan por coordenadas. No dejes una pared ni una puerta normal delante de la entrada: ambas taparían físicamente el ascensor.';fields.append(info);put('Habilitado','enabled',it.enabled,'checkbox');put('ID de hueco compartido','shaftId',it.shaftId||'');put('Puertas abiertas inicialmente','doorsOpen',!!it.doorsOpen,'checkbox');put('Necesita energía','requiresPower',!!it.requiresPower,'checkbox');put('Flag del interruptor','powerFlag',it.powerFlag||'breaker_on');put('Zona eléctrica (opcional)','zoneId',it.zoneId||'main');}else if(it.type!=='spawn'&&it.type!=='npc_portal'&&it.type!=='light_switch'&&it.type!=='breaker_panel'&&it.type!=='parking_decal')put('Bloquea movimiento','blocksMovement',it.blocksMovement,'checkbox')}}
+if(it.type==='parking_decal')window.FHParkingEditor?.attachInspector(it,fields);if(it.type==='elevator'){let info=document.createElement('div');info.className='tip';info.style.gridColumn='1/-1';info.textContent='Entrada: lado de la flecha amarilla. Para conectar pisos, coloca otra parada en la misma posición y usa el mismo ID de hueco. Si no defines un ID, se agrupan por coordenadas. No dejes una pared ni una puerta normal delante de la entrada: ambas taparían físicamente el ascensor.';fields.append(info);put('Habilitado','enabled',it.enabled,'checkbox');put('ID de hueco compartido','shaftId',it.shaftId||'');put('Puertas abiertas inicialmente','doorsOpen',!!it.doorsOpen,'checkbox');const EP=window.FH_SERVICES_TEXT.elevatorPower;const connection=utilityVisual().runtime?.statusFor(floorIndex,it).power;const powerNote=document.createElement('p');powerNote.className='tip';powerNote.textContent=EP.mandatory+' '+(connection?.powered?EP.connected(connection.via||connection.breakerId):EP.disconnected)+' '+EP.autoHint;fields.append(powerNote);const automaticZone=utilityVisual().runtime?.zoneFor(floorIndex,it)||'';put(EP.circuit,'zoneId',it.zoneId&&it.zoneId!=='main'?it.zoneId:automaticZone,'select',circuitSelectOptions(automaticZone));}else if(it.type!=='spawn'&&it.type!=='npc_portal'&&it.type!=='light_switch'&&it.type!=='breaker_panel'&&it.type!=='parking_decal')put('Bloquea movimiento','blocksMovement',it.blocksMovement,'checkbox')}}
 if(it.autoLanding){const hint=document.createElement('div');hint.className='tip';hint.style.gridColumn='1/-1';hint.textContent='Bajada: solo media longitud de la escalera inferior. La línea verde marca el punto donde comienza la transición. Modifícala desde el piso anterior.';fields.append(hint);fields.querySelectorAll('input,select').forEach(el=>el.disabled=true)}attachServiceInspector(it,fields);window.FHStyleEditor?.attachInspector(it,fields);window.FHStorageEditor?.attachInspector(it,fields,{project,record,openInspector,toast,canEdit:item=>window.FHStyleEditor?.canEditItem(item)!==false});renderAnchorInspector(it,fields);renderInteractionInspector(it,fields);$('#rotateBtn').textContent=it.type==='light_switch'?'↻ Cambiar lado 180°':'⟳ Girar 90°';$('#rotateBtn').style.display=SEGMENT_TYPES.has(it.type)||AREA_TYPES.has(it.type)||it.autoLanding?'none':'';$('#duplicateBtn').style.display=(it.autoGenerated&&!window.FHFurnitureState?.editable(it))||it.autoLanding?'none':'';$('#deleteBtn').style.display=(it.autoGenerated&&!window.FHFurnitureState?.editable(it))||it.autoLanding?'none':'';
 }
 function closeInspector(){$('#inspector').classList.remove('open')}
@@ -3389,6 +3392,9 @@ function syncEngineMapValidation(source){
 
 function prepareGLBEngineDoc(source){
  source=syncEngineMapValidation(source);
+ const elevatorStart=source.indexOf('function createElevatorMachine('),elevatorEnd=source.indexOf('\n// shared/lighting.js',elevatorStart);
+ if(elevatorStart<0||elevatorEnd<=elevatorStart)throw Error(window.FH_SERVICES_TEXT?.elevatorPower?.integrationError||'No se encontró la máquina compartida de elevadores');
+ source=source.slice(0,elevatorStart)+ForestShared.createElevatorMachine.toString()+'\n'+source.slice(elevatorEnd);
  const fhEconomyScripts=['fh-economy-strings.js','fh-economy-core.js','fh-economy-view.js'].map(name=>
   '<script src="'+new URL('./juego/assets/'+name+'?v=20261109-economy1',document.baseURI).href+'"></'+'script>').join('');
  source=source.replace('</head>',fhEconomyScripts+'</head>');
@@ -3419,7 +3425,7 @@ function prepareGLBEngineDoc(source){
  const furnitureStateScript='<script src="'+new URL('./juego/assets/fh-furniture-state.js?v=20261110-editor1',document.baseURI).href+'"></'+'script>';
  const ruleScript='<script src="'+new URL('./juego/assets/fh-furniture-rules.js',document.baseURI).href+'"></'+'script>';
  const inventoryCoreScript='<script src="'+new URL('./juego/assets/fh-inventory-core.js?v=20261108-encimera-1',document.baseURI).href+'"></'+'script>';
- const bridge='<script src="'+new URL('./juego/assets/fh-glb-bridge.js?v=20261110-power-sources-1',document.baseURI).href+'"></'+'script>';
+ const bridge='<script src="'+new URL('./juego/assets/fh-glb-bridge.js?v=20261111-elevator-power-1',document.baseURI).href+'"></'+'script>';
  const localThree='<script src="'+new URL('./juego/assets/vendor/three.min.js',document.baseURI).href+'"></'+'script>';
  const sleepStrings='<script src="'+new URL('./juego/assets/fh-sleep-strings.js?v=20261108-comfort-1',document.baseURI).href+'"></'+'script>';
  const sleepModule='<script src="'+new URL('./juego/assets/fh-sleep.js?v=20261108-comfort-1',document.baseURI).href+'"></'+'script>';
@@ -4923,7 +4929,7 @@ init();
 <script src="./juego/assets/fh-structure-engine-hook.js?v=20261108-architecture-load"></script>
 <script src="./juego/assets/fh-comic-action-engine-hook.js?v=20261107-comic-actions-1"></script>
 <script src="./juego/assets/fh-context-engine-hook.js?v=20261108-elevator-comfort-1"></script>
-<script src="./juego/assets/fh-services-engine-hook.js?v=20261110-power-sources-1"></script>
+<script src="./juego/assets/fh-services-engine-hook.js?v=20261111-elevator-power-1"></script>
 <script src="./juego/assets/fh-electric-catalog.js?v=20261109-servicios-24"></script>
 <script src="./juego/assets/fh-electric-strings.js?v=20261109-servicios-24"></script>
 <script src="./juego/assets/fh-electric-visuals.js?v=20261109-wall-mount-1"></script>
@@ -4939,7 +4945,7 @@ init();
 <script src="./juego/assets/fh-furniture-state.js?v=20261110-editor1"></script>
 <script src="./juego/assets/fh-furniture-editor-strings.js?v=20261110-editor1"></script>
 <script src="./juego/assets/fh-furniture-editor.js?v=20261110-editor1"></script>
-<script src="./juego/assets/fh-generators-editor.js?v=20261110-power-sources-1"></script>
+<script src="./juego/assets/fh-generators-editor.js?v=20261111-elevator-power-1"></script>
 <script src="./juego/assets/fh-roof-editor.js?v=20261110-roof3"></script>
 </body>
 </html>
