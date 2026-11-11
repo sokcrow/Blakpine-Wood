@@ -268,6 +268,20 @@
       area.append(row);
     }
     host.append(area);
+    if(typeof global.FHPreviewReturnToSpawnpoint==='function'){
+      const reset=node('section','fh-settings-area');
+      reset.append(node('h4','fh-status-column-heading',label('spawnSection')));
+      const row=node('div','fh-setting-row');
+      const info=node('div','fh-setting-copy');
+      info.append(node('h5','fh-setting-name',label('spawnSettingName')));
+      info.append(node('p','fh-setting-help',label('spawnHelp')));
+      const go=action(label('spawnReturn'),()=>{
+        closeMenu(false);
+        global.FHPreviewReturnToSpawnpoint();
+      });
+      go.className='fh-setting-control';
+      row.append(info,go);reset.append(row);host.append(reset);
+    }
     const exit=node('section','fh-settings-exit');
     exit.append(node('h4','fh-status-column-heading',label('settingsExitTitle')));
     exit.append(node('p','fh-setting-help',label('settingsExitHelp')));
