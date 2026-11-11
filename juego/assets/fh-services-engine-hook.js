@@ -9,7 +9,9 @@
  function patch(doc){
   const base=new URL('./juego/assets/',root.document.baseURI).href;
   const core='<script src="'+base+'fh-services-core.js?v=20261111-elevator-power-1"></'+'script>';
-  const strings='<script src="'+base+'fh-services-strings.js?v=20261111-elevator-power-1"></'+'script>';
+  const exteriorCore='<script src="'+base+'fh-exterior-grid.js?v=20261111-exterior-03"></'+'script>';
+   const exteriorVisual='<script src="'+base+'fh-exterior-visuals.js?v=20261111-exterior-03"></'+'script>';
+   const strings='<script src="'+base+'fh-services-strings.js?v=20261111-elevator-power-1"></'+'script>';
   // El motor incrusta subdocumentos HTML como cadenas: hay varios </head>.
   // Insertar en el primer cierre (cabecera del documento exterior), como
   // hacen los otros adaptadores, y no exigir una ocurrencia única.
@@ -19,7 +21,7 @@
   const miniStrings='<script src="'+base+'fh-repair-minigames-strings.js?v=20261111-repair-1"></'+'script>';
   const miniCss='<link rel="stylesheet" href="'+base+'fh-repair-minigames.css?v=20261111-repair-1">';
   const miniHud='<script src="'+base+'fh-repair-minigames.js?v=20261111-repair-1"></'+'script>';
-  doc=doc.slice(0,outerHead)+core+strings+miniCore+miniStrings+miniCss+miniHud+doc.slice(outerHead);
+  doc=doc.slice(0,outerHead)+exteriorCore+exteriorVisual+core+strings+miniCore+miniStrings+miniCss+miniHud+doc.slice(outerHead);
 
   const pc='window.FHComputerRuntime=window.FHComputer?.createRuntime({';
   const pcOptions=[
@@ -110,7 +112,8 @@
    '  return false;',
    ' }',
    '};',
-   'const fhServicesVisuals=[];',
+   'const fhExteriorVisuals=window.FHExteriorVisuals?.install({THREE,DATA,CELL,stories,service:window.FHServicesRuntime,applyFOW:installVisibility});',
+    'const fhServicesVisuals=[];',
    'for(let f=0;f<DATA.floors.length;f++){',
    ' for(const it of DATA.floors[f].items||[]){',
    '  if(!window.FHServices?.INFRA.has(it.type))continue;',
@@ -131,6 +134,7 @@
    ' }',
    '}',
    'function fhServicesSyncVisuals(){',
+    ' fhExteriorVisuals?.update();',
    ' const service=window.FHServicesRuntime,session=window.FHComputerRuntime?.session;',
    ' if(session&&service){const item=service.itemAt(session.floor,session.stationId);if(!item||!service.statusFor(session.floor,item).power.powered)window.FHComputerRuntime.close();}',
    ' if(typeof watchingTvId!=="undefined"&&watchingTvId&&service){const tv=service.itemAt(currentFloor,watchingTvId);if(!tv||!service.statusFor(currentFloor,tv).power.powered){watchingTvId=null;GameState.flags.tv_on=false;}}',

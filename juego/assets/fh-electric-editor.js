@@ -91,7 +91,7 @@
  setCategory=function(cat){previousSetCategory(cat);launcher();};
  const prevCreate=createObject;
  createObject=function(type,p){
-  const meta=window.__fhWaterCreatingFloor?null:active[type];
+  const meta=(window.__fhWaterCreatingFloor||window.__fhExteriorCreatingFloor)?null:active[type];
   if(meta?.mount==='wall'&&!structuralWall(p)){
    toast(T.wallRequired||'Necesita una pared estructural.');return null;
   }

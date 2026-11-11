@@ -181,6 +181,7 @@
  }
  function createRuntime(project,state={},options={}){
   const s=ensureState(state),floors=Array.isArray(project?.floors)?project.floors:[];
+   const exteriorGrid=(typeof globalThis!=='undefined'?globalThis.FHExteriorGrid:null)?.createRuntime(project,state)||null;
   const feetPerCell=Math.max(.1,number(project?.units?.feetPerCell,5));
   const graphs=floors.map(f=>wallGraph(f.items||[]));
   const powerGraphs=floors.map(f=>wallGraph(f.items||[],{doorways:true}));
@@ -331,7 +332,9 @@
   for(const g of generators){
    const old=s.generators[g.key];
    s.generators[g.key]={enabled:old?.enabled===undefined?g.it.enabled===true:old.enabled===true,
-    remainingHours:Math.max(0,number(old?.remainingHours,Math.max(0,number(g.it.autonomyHours,24)))),running:false};
+    remainingHours:Math.max(0,number(old?.remainingHours,Math.max(0,number(g.it.autonomyHours,24)))),running:false,
+    ...(g.it.generatorKind==='emergency'&&exteriorGrid?.hasTransformers?{
+     electricChargeHours:exteriorGrid.initialElectricCharge(g.it,old,!!g.it.tankId)}:{})};
   }
   const accessories=elements.flatMap((items,f)=>items.filter(it=>['generator_ats','generator_tank'].includes(it.type))
    .map(it=>({it,f,key:floors[f].id+':'+id(it)})));
@@ -355,19 +358,29 @@
      episode:Math.max(0,Math.floor(number(old?.episode)))};
    }
   }
+  const electricBackup=g=>g.it.generatorKind==='emergency'&&exteriorGrid?.hasTransformers===true;
+  function fuelReserveHours(g,tank){
+   if(!tank||tank===false)return 0;
+   const rate=Math.max(0,number(g.it.fuelLitersPerHour,1));
+   return rate>0&&number(s.damage[id(tank.it)])<100?s.fuelTanks[tank.key].liters/rate:0;
+  }
   function reserveHours(g){
    const tank=linked(g,'generator_tank');
    if(tank===false)return 0;
-   if(!tank)return s.generators[g.key].remainingHours;
-   const rate=Math.max(0,number(g.it.fuelLitersPerHour,1));
-   return rate>0&&number(s.damage[id(tank.it)])<100?s.fuelTanks[tank.key].liters/rate:0;
+   const electric=electricBackup(g)?Math.max(0,number(s.generators[g.key].electricChargeHours)):0;
+   return tank?fuelReserveHours(g,tank)+electric:electricBackup(g)?electric:s.generators[g.key].remainingHours;
+  }
+  function activeReserveHours(g){
+   const tank=linked(g,'generator_tank');
+   const fuel=fuelReserveHours(g,tank);
+   return fuel>0?fuel:reserveHours(g);
   }
   const baseReady=g=>s.generators[g.key].enabled&&reserveHours(g)>0&&
    Math.max(0,number(g.it.capacityWatts,2400))>0&&number(s.damage[id(g.it)])<100;
   function primaryAvailable(feed){
    if(feed.circuit.panel.powerSource!==undefined){
     const main=explicitFeed(feed.circuit,false);
-    return main===null?mainAvailable(feed.f)&&mainAvailable(feed.circuit.ownerFloor):!!main&&baseReady(main.g);
+    return main===null?utilityAvailable(feed.f,feed.circuit):main===false?exteriorAutoAvailable(feed.f,feed.circuit):!!main&&baseReady(main.g);
    }
    const sample={roomId:feed.target.roomId||'',x:feed.circuit.panel.x,y:feed.circuit.panel.y};
    const normal=feeds.find(other=>other.g.it.generatorKind!=='emergency'&&feedMatches(other,feed.f,feed.circuit,sample));
@@ -448,6 +461,28 @@
   function mainAvailable(f){
    return s.contracts.electricity==='active'&&flagOn('power_global')&&flagOn('power_floor:'+String(floors[f]?.id||f));
   }
+  function utilityAvailable(f,c){
+   if(!mainAvailable(f)||!mainAvailable(c.ownerFloor))return false;
+   // Un mapa que no usa Electricidad 03 conserva el suministro previo.
+   if(!exteriorGrid?.hasTransformers)return true;
+   return exteriorGrid.panelConnection(c.ownerFloor,c.panel)?.powered===true;
+  }
+  function exteriorAutoAvailable(f,c){
+   // No anula las fuentes explícitas del panel salvo permiso del creador.
+   return c.panel.exteriorAutoConnect===true&&exteriorGrid?.hasTransformers===true&&utilityAvailable(f,c);
+  }
+  function exteriorChargeAvailable(g){
+   if(!exteriorGrid?.hasTransformers||!mainAvailable(g.f))return false;
+   if(exteriorGrid.generatorConnection(g.f,g.it)?.powered)return true;
+   // Un respaldo alejado del poste se recarga a través del breaker del edificio.
+   return powerScopes.some(scopes=>scopes.some(c=>{
+    if(c.panel.powerSource!==undefined&&c.panel.powerSource?.kind!=='utility'&&c.panel.exteriorAutoConnect!==true)return false;
+    if(!utilityAvailable(c.f,c))return false;
+    const a=point(g.it),b=point(c.panel),horizontal=dist(a,b)*feetPerCell;
+    const vertical=Math.abs(number(floors[g.f].elevationFt)-number(floors[c.ownerFloor].elevationFt));
+    return Math.hypot(horizontal,vertical)<=Math.max(0,number(c.panel.sourceCableFt,90));
+   }));
+  }
   function circuitOn(f,c){
    const panel=c.panel;
    if(panel.enabled===false||panel.on===false||number(s.damage[id(panel)])>=100||
@@ -459,14 +494,15 @@
    if(c.panel.powerSource!==undefined){
     const primary=explicitFeed(c);
     if(primary&&generatorReady(primary.g))return primary;
-    if(primary===null&&mainAvailable(f)&&mainAvailable(c.ownerFloor))return null;
+    if(primary===null&&utilityAvailable(f,c))return null;
+    if(primary===false&&exteriorAutoAvailable(f,c))return null;
     const backup=explicitFeed(c,true);return backup&&generatorReady(backup.g)?backup:false;
    }
    const matching=feeds.filter(feed=>feedMatches(feed,f,c,it));
    const normal=matching.find(feed=>feed.g.it.generatorKind!=='emergency');
    if(normal&&generatorReady(normal.g))return normal;
    // An explicit normal generator replaces the utility feed for its destinations.
-   const primary=normal?false:mainAvailable(f);
+   const primary=normal?false:utilityAvailable(f,c);
    if(primary)return null;
    return matching.find(feed=>feed.g.it.generatorKind==='emergency'&&generatorReady(feed.g))||false;
   }
@@ -536,7 +572,7 @@
    const saved=s.generators[g.key],allocation=generatorAllocation();
    saved.remainingHours=reserveHours(g);saved.running=allocation.running.has(g.key);
    const tank=linked(g,'generator_tank');
-   return {...saved,fuelLiters:tank?s.fuelTanks[tank.key].liters:null,fuelLinked:!!g.it.tankId,kind:g.it.generatorKind==='emergency'?'emergency':'normal',
+   return {...saved,electricChargeHours:electricBackup(g)?saved.electricChargeHours:null,electricCapacityHours:electricBackup(g)?exteriorGrid.electricCapacity(g.it):null,fuelRemainingHours:tank?fuelReserveHours(g,tank):null,fuelLiters:tank?s.fuelTanks[tank.key].liters:null,fuelLinked:!!g.it.tankId,kind:g.it.generatorKind==='emergency'?'emergency':'normal',
     suppliedTargets:feeds.filter(feed=>feed.g===g&&allocation.accepted.has(feed.key)).length,
     watts:feeds.filter(feed=>feed.g===g&&allocation.accepted.has(feed.key)).reduce((n,feed)=>n+(allocation.loads.get(feed.key)||0),0)};
   }
@@ -937,8 +973,13 @@
     const saved=s.generators[g.key];saved.running=allocation.running.has(g.key);
     if(saved.running){
      const tank=linked(g,'generator_tank');
-     if(tank)s.fuelTanks[tank.key].liters=Math.max(0,s.fuelTanks[tank.key].liters-seconds/3600*Math.max(0,number(g.it.fuelLitersPerHour,1)));
-     else saved.remainingHours=Math.max(0,saved.remainingHours-seconds/3600);
+     if(tank&&fuelReserveHours(g,tank)>0){
+      s.fuelTanks[tank.key].liters=Math.max(0,s.fuelTanks[tank.key].liters-seconds/3600*Math.max(0,number(g.it.fuelLitersPerHour,1)));
+     }else if(electricBackup(g))exteriorGrid.changeElectricCharge(saved,g.it,seconds/3600,'discharge');
+     else if(!tank)saved.remainingHours=Math.max(0,saved.remainingHours-seconds/3600);
+    }else if(electricBackup(g)&&exteriorChargeAvailable(g)&&number(s.damage[id(g.it)])<100){
+     // El transformador sólo recarga energía eléctrica, incluso con tanque conectado.
+     exteriorGrid.changeElectricCharge(saved,g.it,seconds/3600,'charge');
     }
     saved.remainingHours=reserveHours(g);
    }
@@ -950,9 +991,9 @@
    // Split exactly at exhaustion: no frame receives energy after the reserve is empty.
    while(remaining>1e-9){
     const allocation=generatorAllocation();
-    const limits=generators.filter(g=>allocation.running.has(g.key)).map(g=>reserveHours(g)*60/rate);
+    const limits=generators.filter(g=>allocation.running.has(g.key)).map(g=>activeReserveHours(g)*60/rate);
     const step=Math.min(remaining,...limits);
-    if(step<=1e-9){for(const g of generators)if(allocation.running.has(g.key)&&reserveHours(g)*60/rate<=1e-9){const tank=linked(g,'generator_tank');if(tank)s.fuelTanks[tank.key].liters=0;s.generators[g.key].remainingHours=0;}allocationCache=null;continue;}
+    if(step<=1e-9){for(const g of generators)if(allocation.running.has(g.key)&&activeReserveHours(g)*60/rate<=1e-9){const tank=linked(g,'generator_tank');if(tank&&fuelReserveHours(g,tank)>0)s.fuelTanks[tank.key].liters=0;else if(electricBackup(g))s.generators[g.key].electricChargeHours=0;else {if(tank)s.fuelTanks[tank.key].liters=0;s.generators[g.key].remainingHours=0;}}allocationCache=null;continue;}
     tickStep(step,rate);remaining-=step;
    }
    for(const g of generators)generatorStatus(g.f,g.it);
@@ -968,7 +1009,7 @@
   }
   function setService(name,active){if(!Object.prototype.hasOwnProperty.call(s.contracts,name))return false;s.contracts[name]=active?'active':'suspended';return true;}
   syncATS();
-  return Object.freeze({state:s,phone:state.phone,graphs,powerGraphs,powerRoute,zoneFor,requiresPower,point,itemAt,defaultsFor,sourceFor,wiredRoute,scopeFor,
+  return Object.freeze({state:s,exteriorGrid,phone:state.phone,graphs,powerGraphs,powerRoute,zoneFor,requiresPower,point,itemAt,defaultsFor,sourceFor,wiredRoute,scopeFor,
    panelStatus,atsStatus,activateATSManual,tankStatus,generatorStatus,setGeneratorEnabled,repairDamage,generatorCircuitPowered,statusFor,electrical,waterStatus,drainStatus,wifiAt,wifiSampler,connectWifi,internetFor,landlineFor,mobileFor,
    chargePhone,takePhone,useWaterFixture,setUsage,dial,tick,setService,feetPerCell});
  }
