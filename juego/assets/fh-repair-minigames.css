@@ -1,0 +1,70 @@
+/* Mantenimiento: panel pixel art sin radios, sombras difusas ni fuentes externas. */
+#fhRepairMini[hidden]{display:none!important}
+#fhRepairMini{position:fixed;inset:0;z-index:320;display:grid;place-items:center;
+ padding:16px;background:rgba(3,6,8,.9);touch-action:manipulation}
+#fhRepairMini *{box-sizing:border-box}
+#fhRepairMini .fh-rm-frame{width:min(760px,100%);max-height:min(90dvh,850px);overflow:auto;
+ color:#e7e9df;background:#151d22;border:4px solid #b4c1b1;outline:3px solid #070d10;
+ box-shadow:inset 0 0 0 3px #39494a,8px 8px 0 #06090b;padding:22px;
+ font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;line-height:1.45;
+ overscroll-behavior:contain}
+#fhRepairMini .fh-rm-eyebrow{color:#c2a980;font-size:11px;font-weight:800;letter-spacing:.12em;
+ padding-bottom:8px;border-bottom:2px dashed #455757}
+#fhRepairMini h2{margin:14px 0 10px;font-size:clamp(18px,3.4vw,27px);line-height:1.25;
+ letter-spacing:.055em;font-family:inherit;text-transform:uppercase}
+#fhRepairMini .fh-rm-hint{margin:0 0 16px;color:#cad4cf;font-size:13px}
+#fhRepairMini .fh-rm-damage{color:#e8b875;font-weight:800;font-size:12px;margin:0 0 12px}
+#fhRepairMini .fh-rm-stage{background:#0c1417;border:3px solid #536968;
+ box-shadow:inset 0 0 0 3px #1b2b30;padding:16px;min-height:220px}
+#fhRepairMini .fh-rm-section-label{font-size:12px;letter-spacing:.1em;color:#9ec9b8;
+ font-weight:bold;margin:0 0 10px}
+#fhRepairMini .fh-rm-order{border:2px solid #324849;padding:9px;margin-bottom:18px;
+ color:#e8c98b;font-size:12px;line-height:1.7;word-break:normal}
+#fhRepairMini .fh-rm-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+#fhRepairMini .fh-rm-switches{grid-template-columns:repeat(4,minmax(0,1fr))}
+#fhRepairMini .fh-rm-controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+#fhRepairMini .fh-rm-cell{background:#1d2b30;border:2px solid #5a6e6b;padding:10px;min-width:0}
+#fhRepairMini .fh-rm-cell.is-done{border-color:#8bbba2;background:#20392e}
+#fhRepairMini .fh-rm-label{font-size:12px;font-weight:800;letter-spacing:.05em;overflow-wrap:anywhere}
+#fhRepairMini .fh-rm-value{font-size:clamp(21px,5vw,34px);font-weight:800;
+ text-align:center;margin:8px 0;color:#e4c991}
+#fhRepairMini .fh-rm-target{font-size:12px;color:#b9cbc2;text-align:center;margin-bottom:9px}
+#fhRepairMini button{border:2px solid #a9b6a9;border-radius:0;background:#324448;color:#f4f1df;
+ font:800 12px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+ cursor:pointer;min-height:46px;padding:10px 9px;box-shadow:3px 3px 0 #050b0e;
+ transition:none;overflow-wrap:anywhere}
+#fhRepairMini button:hover:not(:disabled){background:#49615f}
+#fhRepairMini button:active:not(:disabled){transform:translate(2px,2px);box-shadow:1px 1px 0 #050b0e}
+#fhRepairMini button:disabled{opacity:.6;cursor:default;box-shadow:none}
+#fhRepairMini button:focus-visible{outline:3px solid #ffe4a2;outline-offset:3px}
+#fhRepairMini .fh-rm-switches button{min-height:78px}
+#fhRepairMini .fh-rm-switches .fh-rm-label{display:block}
+#fhRepairMini .fh-rm-switches button.is-done{background:#285044;border-color:#88c0a6}
+#fhRepairMini .fh-rm-button-row{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+#fhRepairMini .fh-rm-track{font-size:39px;font-weight:900;line-height:1;text-align:center;color:#eccf91;
+ padding:10px 0}
+#fhRepairMini .fh-rm-track-reference{font-size:12px;text-align:center;color:#acc5b2;margin-bottom:8px}
+#fhRepairMini .fh-rm-wirecols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+#fhRepairMini .fh-rm-wirecols>div{display:grid;gap:8px;align-content:start}
+#fhRepairMini .fh-rm-wire{display:flex;align-items:center;justify-content:space-between;gap:6px;text-align:left}
+#fhRepairMini .fh-rm-wire.is-selected{border-color:#f3d48e;background:#554e32}
+#fhRepairMini .fh-rm-wire.is-done{border-color:#86bda0;background:#28483c}
+#fhRepairMini .fh-rm-wire-symbol{font-size:19px;margin-right:8px}
+#fhRepairMini .fh-rm-foot{display:flex;align-items:center;justify-content:space-between;
+ gap:12px;flex-wrap:wrap;border-top:2px dashed #455757;margin-top:16px;padding-top:13px}
+#fhRepairMini .fh-rm-progress{font-weight:800;font-size:12px;color:#b7d6bf}
+#fhRepairMini .fh-rm-message{font-size:12px;min-height:18px;margin:12px 0 0;color:#e4c991}
+#fhRepairMini .fh-rm-cancel{background:#4b3034}
+#fhRepairMini .fh-rm-finish{background:#34543e;border-color:#a3d2a9}
+#fhRepairMini .fh-rm-complete{border:3px solid #83bb98;background:#1f3f33;
+ padding:24px 12px;text-align:center;font-weight:900;color:#d9f1df;letter-spacing:.06em}
+@media(max-width:560px){
+ #fhRepairMini{padding:9px}
+ #fhRepairMini .fh-rm-frame{padding:13px;max-height:95dvh}
+ #fhRepairMini .fh-rm-stage{padding:10px}
+ #fhRepairMini .fh-rm-switches{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #fhRepairMini .fh-rm-controls{grid-template-columns:1fr}
+ #fhRepairMini .fh-rm-wirecols{gap:8px}
+ #fhRepairMini .fh-rm-wire{font-size:11px}
+}
+@media(prefers-reduced-motion:reduce){#fhRepairMini button{transition:none}}
