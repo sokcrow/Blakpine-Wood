@@ -19,6 +19,10 @@
  function before(gameState){
   if(!gameState?.clock)return;
   if(gameState.sleepState!==state)initialize(gameState);
+  // Leer el estado actual del controlador antes de elegir la velocidad.
+  // Así despertar manualmente no deja un fotograma más de aceleración.
+  const liveStage=root.FHSleep?.status?.()?.stage;
+  if(liveStage)pose({stage:liveStage});
   const clock=gameState.clock;
   if(state.lastMinute===null)state.lastMinute=absolute(clock);
   // El modo de prueba tiene exactamente un jugador local; para multiplayer
@@ -55,7 +59,9 @@
   const stage=status?.stage||'awake';
   if(stage===lastStage && !(stage==='asleep'&&!state.sleeping&&state.awakeMinutes>=MIN_AWAKE))return;
   lastStage=stage;
-  if(stage==='asleep'&&state.awakeMinutes>=MIN_AWAKE&&!state.sleeping){
+  // La velocidad sigue al sueño real: la vigilia mínima no puede dejar
+  // al personaje visualmente dormido con el reloj todavía en modo despierto.
+  if(stage==='asleep'&&!state.sleeping){
    state.sleeping=true;state.sleepMinutes=0;state.restedMinutes=0;
   }else if(stage!=='asleep'&&stage!=='resting'&&stage!=='drowsy'&&state.sleeping){
    state.sleeping=false;
