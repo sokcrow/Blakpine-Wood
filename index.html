@@ -211,7 +211,7 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
 <script src="./juego/assets/fh-services-strings.js?v=20261111-elevator-power-1"></script>
 <script src="./juego/assets/fh-exterior-grid.js?v=20261111-exterior-03"></script>
 <script src="./juego/assets/fh-exterior-strings.js?v=20261111-exterior-03"></script>
-<script src="./juego/assets/fh-services-core.js?v=20261111-elevator-power-1"></script>
+<script src="./juego/assets/fh-services-core.js?v=20261111-wall-wiring-overlay-1"></script>
 <script src="./juego/assets/fh-floor-levels.js?v=20261109-basements1"></script>
 <script src="./juego/assets/fh-wifi-editor-overlay.js?v=20261109-wifi-editor-1"></script>
 <script src="./juego/assets/fh-light-strings.js?v=20261109-zones-3"></script>
@@ -1955,7 +1955,7 @@ function drawLightingOverlay(c,z){
    return room?.zoneId===circ.zoneId;
   };
   for(const target of items.filter(it=>['light_fixture','light_switch','power_outlet','elevator'].includes(it.type)&&sameCircuit(it))){
-   const source=runtime?.sourceFor(floorIndex,target,circ.zoneId);
+   const source=runtime?.wiringSourceFor(floorIndex,target,circ.zoneId);
    if(source?.panel.id!==owner.id)continue;
    const path=source.route;
    if(path){paths.push(path);terminals.push(path.to)}
@@ -4990,7 +4990,7 @@ init();
 <script src="./juego/assets/fh-structure-engine-hook.js?v=20261108-architecture-load"></script>
 <script src="./juego/assets/fh-comic-action-engine-hook.js?v=20261107-comic-actions-1"></script>
 <script src="./juego/assets/fh-context-engine-hook.js?v=20261108-elevator-comfort-1"></script>
-<script src="./juego/assets/fh-services-engine-hook.js?v=20261111-elevator-power-1"></script>
+<script src="./juego/assets/fh-services-engine-hook.js?v=20261111-wall-wiring-overlay-1"></script>
 <script src="./juego/assets/fh-electric-catalog.js?v=20261109-servicios-24"></script>
 <script src="./juego/assets/fh-electric-strings.js?v=20261109-servicios-24"></script>
 <script src="./juego/assets/fh-electric-visuals.js?v=20261109-wall-mount-1"></script>
