@@ -40,7 +40,7 @@ test('tocar al personaje abre; tocarlo de nuevo o el suelo cierra',()=>{
  click(evt(100,95));assert.equal(UI.selected(),'personaje-a');
  click(evt(250,200));assert.equal(UI.selected(),null);
 });
-test('Escape y X son formas de cerrar, con control accesible',()=>{
+test('Escape también cierra, sin agregar botones innecesarios',()=>{
  const old=globalThis.addEventListener,handlers={};
  try{
   globalThis.addEventListener=(kind,fn)=>{handlers[kind]=fn};
@@ -49,8 +49,7 @@ test('Escape y X son formas de cerrar, con control accesible',()=>{
   handlers.keydown({key:'Escape'});
   assert.equal(UI.selected(),null);
   const code=read('fh-mood-fear-ui.js');
-  assert.match(code,/fh-character-close/);
-  assert.match(code,/closeButton\.addEventListener\('click'/);
+  assert.doesNotMatch(code,/fh-character-close|closeButton/);
   assert.match(code,/root\.document\?\.addEventListener\?\.\('pointerdown'/);
  }finally{
   if(old===undefined)delete globalThis.addEventListener;
@@ -68,6 +67,17 @@ test('el motor no carga el HUD duplicado; los recursos permanecen en el flotante
  assert.match(css,/\.fh-character-floating\{/);
  assert.match(css,/border:2px solid #814399/);
  assert.doesNotMatch(css,/#fhStatusHUD/);
+});
+test('ubicación se mantiene centrada, compacta y transitoria después de quitar el HUD lateral',()=>{
+ const html=read('../../index.html');
+ const locationCss=read('fh-location-hud.css');
+ const locationJs=read('fh-location-hud.js');
+ assert.match(locationCss,/body\\.fh-player-menu-ready #hud\\.fh-location-hud \\{[\\s\\S]*?position:fixed;[\\s\\S]*?left:50%;[\\s\\S]*?transform:translateX\\(-50%\\);/);
+ assert.match(locationCss,/width:min\\(300px,calc\\(100vw - 24px\\)\\)/);
+ assert.match(locationCss,/body\\.fh-player-menu-ready #hud\\.fh-location-hud\\.fh-location-hidden \\{[\\s\\S]*?opacity:0;[\\s\\S]*?visibility:hidden;/);
+ assert.match(locationJs,/const DISPLAY_MS=2800/);
+ assert.ok(html.lastIndexOf('mobileCameraScript+locationCss')>html.indexOf('const locationCss='));
+ assert.doesNotMatch(html,/fh-status-hud\\.css/);
 });
 test('seis estados de miedo con color, utilizando FHLiveText',()=>{
  const live=read('fh-live-text.js'),css=read('fh-mood-fear.css'),ui=read('fh-mood-fear-ui.js');

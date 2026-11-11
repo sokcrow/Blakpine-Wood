@@ -48,20 +48,6 @@
 .fh-character-fill-pg{background:var(--pg)}
 .fh-character-fill-sp{background:var(--sp)}
 .fh-character-fill-pe{background:var(--pe)}
-.fh-character-floating .fh-character-close{
- position:absolute;right:7px;top:6px;
- display:grid;place-items:center;box-sizing:border-box;
- width:25px;height:25px;min-height:25px;min-width:25px;
- margin:0;padding:0;
- border:1px solid #d3cbd4;border-radius:0;
- background:#111113;color:#f0eaf1;
- font:700 19px/1 Georgia,serif;cursor:pointer;
- pointer-events:auto;touch-action:manipulation;
-}
-.fh-character-floating .fh-character-close:hover,
-.fh-character-floating .fh-character-close:focus-visible{
- background:#e8e3eb;color:#090909;outline:2px solid #9d76ad;outline-offset:2px;
-}
 /* Avisos de miedo: la misma capa espacial que ZZZ y abrir puertas.
    Solo se muestra el nombre del estado, nunca puntos internos ni pérdida de PS. */
 #fhSpatialLayer .fh-sound.fh-fear-comic{

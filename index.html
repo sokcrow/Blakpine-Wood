@@ -3546,7 +3546,7 @@ function prepareGLBEngineDoc(source){
  const helpStrings='<script src="'+new URL('./juego/assets/fh-character-help-strings.js?v=20261107-help',document.baseURI).href+'"></'+'script>';
  const helpScript='<script src="'+new URL('./juego/assets/fh-character-help.js?v=20261107-help',document.baseURI).href+'"></'+'script>';
  const playerMenuScript='<script src="'+new URL('./juego/assets/fh-player-menu.js?v=20261110-spawn-return',document.baseURI).href+'"></'+'script>';
- const locationCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-location-hud.css?v=20261106-hud-left-code',document.baseURI).href+'">';
+ const locationCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-location-hud.css?v=20261111-location-recenter-1',document.baseURI).href+'">';
  const locationStrings='<script src="'+new URL('./juego/assets/fh-location-strings.js?v=20261106-location',document.baseURI).href+'"></'+'script>';
  const locationScript='<script src="'+new URL('./juego/assets/fh-location-hud.js?v=20261110-patio1',document.baseURI).href+'"></'+'script>';
  const hudRedesignCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-hud-redesign.css?v=20261106-hud-redesign',document.baseURI).href+'">';
@@ -4642,7 +4642,7 @@ function floorSightThroughOpening(f,at,target,openings){
    ['script','fh-mood-fear-ui.js']
   ];
   const tags=resources.map(([kind,file])=>{
-   const url=new URL('./juego/assets/'+file+'?v=20261111-mood-fear-3',document.baseURI).href;
+   const url=new URL('./juego/assets/'+file+'?v=20261111-mood-fear-4',document.baseURI).href;
    return kind==='link'?'<link rel="stylesheet" href="'+url+'">':'<script src="'+url+'"></'+'script>';
   }).join('');
   if(!doc.includes('</head>'))throw Error('Falta head del motor para Mood/Miedo');
@@ -4695,7 +4695,7 @@ function floorSightThroughOpening(f,at,target,openings){
   .replace(attachBefore,' window.FHAssets?.attach(g,a);\n'+attachBefore)
   .replace(cloneBefore,'const clone=source.clone(true);\n   window.FHAssets?.mirror(source,clone);\n   clone.position.y+=floorElev[f];')
   .replace(engineSuccessBefore,engineSuccessAfter).replace(engineFailBefore,engineFailAfter).replace(loadFailBefore,loadFailAfter)
-  .replace('</head>',localThree+coverageScript+lightsModule+surfaceScript+decorationScript+furnitureStateScript+ruleScript+inventoryCoreScript+bridge+sleepCss+sleepStrings+sleepModule+unifiedSleepScript+pcAssemblyModule+computerStrings+computerModule+npcGoapModule+npcCourierModule+deliveryStrings+deliveryModule+styleCore+styleRender+parkingScript+roadsScript+playerMenuCss+playerMenuStrings+skillsModule+skillsStrings+helpCss+helpStrings+helpScript+playerMenuScript+locationCss+locationStrings+locationScript+hudRedesignCss+gameUiCss+hudFrameScript+mobileMenusCss+phoneCss+phoneStrings+phoneScript+mobileCameraScript+'</head>'))));
+  .replace('</head>',localThree+coverageScript+lightsModule+surfaceScript+decorationScript+furnitureStateScript+ruleScript+inventoryCoreScript+bridge+sleepCss+sleepStrings+sleepModule+unifiedSleepScript+pcAssemblyModule+computerStrings+computerModule+npcGoapModule+npcCourierModule+deliveryStrings+deliveryModule+styleCore+styleRender+parkingScript+roadsScript+playerMenuCss+playerMenuStrings+skillsModule+skillsStrings+helpCss+helpStrings+helpScript+playerMenuScript+locationStrings+locationScript+hudRedesignCss+gameUiCss+hudFrameScript+mobileMenusCss+phoneCss+phoneStrings+phoneScript+mobileCameraScript+locationCss+'</head>'))));
  function addCourtyardsToEngine(doc){
   const surface='function surfaceRectsMinusVoids(f,x,y,w,h){let rects=[{x,y,w,h}];for(const cut of stairVoids[f]||[])';
   const replacement="const courtyardVoids=DATA.floors.map(floor=>(floor.items||[]).filter(area=>area.inheritedCourtyard===true).flatMap(area=>(area.spans?.length?area.spans:[area]).map(rect=>({x1:rect.x,z1:rect.y,x2:rect.x+rect.w,z2:rect.y+rect.h}))));\nfunction surfaceRectsMinusVoids(f,x,y,w,h){let rects=[{x,y,w,h}];for(const cut of [...(stairVoids[f]||[]),...(courtyardVoids[f]||[])])";

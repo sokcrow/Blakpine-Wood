@@ -9,17 +9,13 @@
  const moods=['bueno','neutral','malo'];
  const make=(tag,cls,text)=>{const e=root.document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e;};
  const words=()=>root.FH_MOOD_FEAR_TEXT||{keys:{},reasons:{}};
- let panel=null,face=null,name=null,bars=null,closeButton=null,selectedId=null;
+ let panel=null,face=null,name=null,bars=null,selectedId=null;
  let clickTarget=null,clickHandler=null,currentLocator=null,dismissHandlersBound=false;
  function setup(){
   if(!root.document?.body)return false;
   if(panel?.isConnected)return true;
   panel=make('aside','fh-character-floating');panel.hidden=true;
   panel.setAttribute('aria-label','Estado del personaje seleccionado');
-  closeButton=make('button','fh-character-close','×');
-  closeButton.type='button';
-  closeButton.setAttribute('aria-label',words().close||'Cerrar estado del personaje');
-  closeButton.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();select(null);});
   const mood=make('div','fh-character-mood');
   face=make('img','fh-character-mood-icon');
   face.alt='';face.draggable=false;mood.append(face);
@@ -34,7 +30,7 @@
    track.append(fill);line.append(label,track);stats.append(line);
    bars[key]={fill,track};
   }
-  panel.append(mood,stats,closeButton);
+  panel.append(mood,stats);
   root.document.body.append(panel);
   return true;
  }
