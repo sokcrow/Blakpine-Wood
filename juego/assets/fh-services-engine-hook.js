@@ -15,7 +15,11 @@
   // hacen los otros adaptadores, y no exigir una ocurrencia única.
   const outerHead=doc.indexOf('</head>');
   if(outerHead<0)throw Error('Hook de servicios incompatible: falta cabecera exterior');
-  doc=doc.slice(0,outerHead)+core+strings+doc.slice(outerHead);
+  const miniCore='<script src="'+base+'fh-repair-minigames-core.js?v=20261111-repair-1"></'+'script>';
+  const miniStrings='<script src="'+base+'fh-repair-minigames-strings.js?v=20261111-repair-1"></'+'script>';
+  const miniCss='<link rel="stylesheet" href="'+base+'fh-repair-minigames.css?v=20261111-repair-1">';
+  const miniHud='<script src="'+base+'fh-repair-minigames.js?v=20261111-repair-1"></'+'script>';
+  doc=doc.slice(0,outerHead)+core+strings+miniCore+miniStrings+miniCss+miniHud+doc.slice(outerHead);
 
   const pc='window.FHComputerRuntime=window.FHComputer?.createRuntime({';
   const pcOptions=[
@@ -44,9 +48,15 @@
    '  calls.push({from:String(from||""),to:routerId,direction:"incoming",at:GameState.clock?.minutes||0});',
    '  notice("Llamada recibida en teléfono fijo.");saveProgress();return true;',
    ' },',
+   ' repair:(it,f)=>{',
+   '  const service=window.FHServicesRuntime;',
+   '  if(!service||!window.FHRepairMiniGames?.supports(it))return false;',
+   '  return window.FHRepairMiniGames.open({item:it,floor:f,service,onRepaired:()=>{fhServicesSyncVisuals();saveProgress();}});',
+   ' },',
    ' handle:(it,f)=>{',
    '  const service=window.FHServicesRuntime,T=window.FH_SERVICES_TEXT||{};',
    '  if(!service){notice(T.noPower||"Sin electricidad.");return true;}',
+   '  if(Number(service.state.damage[it.id])>0&&window.FHRepairMiniGames?.supports(it))return window.FHServicesGame.repair(it,f);',
    '  if(it.type==="generator"){',
    '   const status=service.generatorStatus(f,it);if(!status)return false;',
    '   service.setGeneratorEnabled(f,it.id,!status.enabled);notice(T.generator.status(service.generatorStatus(f,it)));',
@@ -180,7 +190,9 @@
    '  if(it.type==="generator"){const status=window.FHServicesRuntime?.generatorStatus(currentFloor,it);if(status)actions=[{id:"generator",label:window.FH_SERVICES_TEXT.generator.action(status),run:()=>window.FHServicesGame.handle(it,currentFloor)},{id:"generator-status",label:window.FH_SERVICES_TEXT.generator.inspect,run:()=>notice(window.FH_SERVICES_TEXT.generator.status(window.FHServicesRuntime.generatorStatus(currentFloor,it)))}];}',
    '  if(it.type==="generator_ats"){const status=window.FHServicesRuntime.atsStatus(currentFloor,it);const t=window.FH_SERVICES_TEXT.generator;actions=[{id:"ats-status",label:t.atsStatus(status),run:()=>notice(t.atsStatus(window.FHServicesRuntime.atsStatus(currentFloor,it)))},{id:"ats-manual",label:t.manual,disabled:!status.connected||!status.outage||status.damaged,run:()=>window.FHServicesGame.handle(it,currentFloor)}];}',
    '  if(it.type==="generator_tank")actions=[{id:"tank-status",label:window.FH_SERVICES_TEXT.generator.inspect,run:()=>window.FHServicesGame.handle(it,currentFloor)}];',
-   '  if(window.FHServicesRuntime?.requiresPower(it)&&!st?.power.powered||it.service?.requiresWater===true&&!st?.water.water){',
+   '  if(Number(window.FHServicesRuntime?.state.damage[it.id])>0&&window.FHRepairMiniGames?.supports(it)){',
+   '   actions=[{id:"repair",label:window.FH_REPAIR_MINI_TEXT.title,run:()=>window.FHServicesGame.repair(it,currentFloor)}];',
+   '  }else if(window.FHServicesRuntime?.requiresPower(it)&&!st?.power.powered||it.service?.requiresWater===true&&!st?.water.water){',
    '   actions=[{id:"blocked",label:window.FHServicesRuntime?.requiresPower(it)&&!st?.power.powered?"🔴⚡ Sin electricidad":"🔴💧 Sin agua",disabled:true}];',
    '  }',
    ' }',
