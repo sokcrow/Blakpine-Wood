@@ -65,7 +65,11 @@ test('el motor no carga el HUD duplicado; los recursos permanecen en el flotante
  assert.match(ui,/for\(const key of \['pg','sp','pe'\]\)/);
  assert.doesNotMatch(ui,/fh-character-count|PS ·|title\+loss/);
  assert.match(css,/\.fh-character-floating\{/);
- assert.match(css,/border:2px solid #814399/);
+ assert.match(css,/\.fh-character-floating\{[\s\S]*?clip-path:polygon\(/);
+ assert.match(css,/\.fh-character-floating::before\{[\s\S]*?background:linear-gradient\([\s\S]*?clip-path:polygon\(/);
+ assert.match(css,/background:linear-gradient\(135deg,#c43be0/);
+ assert.match(css,/border:0;outline:0;box-shadow:none;border-radius:0/);
+ assert.doesNotMatch(css,/border:2px solid #814399/);
  assert.doesNotMatch(css,/#fhStatusHUD/);
 });
 test('ubicación se mantiene centrada, compacta y transitoria después de quitar el HUD lateral',()=>{
