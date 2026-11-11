@@ -1,39 +1,79 @@
-/* Blakpine Wood — marco morado largo, negro/plata, rostros pixelados transparentes. */
+/* Estado de personaje: una sola tarjeta anclada a la cabeza.
+   Negro/blanco, marco violeta fino y Mood pixelado sin fondo. */
 .fh-character-floating{
- --pg:#d74e4a;--sp:#42bbd9;--pe:#40bc73;
- position:fixed;z-index:46;left:0;top:0;transform:translate(-50%,-100%);
- box-sizing:border-box;display:grid;grid-template-columns:58px minmax(0,1fr);
- width:clamp(245px,29vw,355px);gap:8px;align-items:center;padding:9px 10px;
- background:linear-gradient(160deg,#0e0d12f2,#030305f6);
- border:2px solid #813d96;outline:1px solid #ebe6ed;outline-offset:-5px;
- box-shadow:0 3px 0 #08060b,0 5px 0 #34203a;
- color:#f3eff5;font:700 11px/1.1 Georgia,serif;
+ --pg:#dc4148;--sp:#3bb6df;--pe:#3ed076;
+ position:fixed;z-index:46;top:0;left:0;
+ transform:translate(-50%,-100%);
+ display:grid;grid-template-columns:54px minmax(0,1fr);
+ align-items:center;gap:9px;box-sizing:border-box;
+ width:min(334px,calc(100vw - 20px));min-height:85px;
+ padding:10px 13px 10px 10px;
+ background:linear-gradient(155deg,rgba(23,22,25,.97),rgba(4,4,5,.98));
+ border:2px solid #814399;
+ outline:1px solid #edeaf0;outline-offset:-5px;
+ box-shadow:0 3px 0 #09080b,0 6px 17px #000a;
+ color:#f2f0f3;font:700 11px/1.1 Georgia,serif;
  pointer-events:none;user-select:none;
 }
-.fh-character-floating[hidden],.fh-fear-pop[hidden],body.fh-sleeping .fh-character-floating{display:none!important}
-.fh-character-mood{display:grid;place-items:center;min-height:54px;border-right:1px solid #9b83a2a6;padding-right:7px}
-.fh-character-mood-icon{display:block;width:48px;height:48px;object-fit:contain;image-rendering:pixelated;background:transparent;border:0}
+.fh-character-floating[hidden],body.fh-sleeping .fh-character-floating{display:none!important}
+.fh-character-mood{
+ display:grid;place-items:center;min-height:56px;
+ padding-right:7px;border-right:1px solid #a39ca8;
+}
+.fh-character-mood-icon{
+ display:block;width:49px;height:49px;
+ object-fit:contain;image-rendering:pixelated;
+ background:transparent;border:none;
+}
 .fh-character-mood-icon[hidden]{display:none!important}
-.fh-character-name{height:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;letter-spacing:.09em;text-transform:uppercase;margin-bottom:4px}
-.fh-character-line{display:grid;grid-template-columns:19px minmax(0,1fr) 44px;gap:5px;align-items:center;margin-top:3px}
-.fh-character-stat{font:800 9px/1 monospace;letter-spacing:0;color:#eae8ed}
-.fh-character-track{height:8px;padding:1px;border:1px solid #c9b5d3;box-sizing:border-box;background:#080809;overflow:hidden}
-.fh-character-fill{height:100%;display:block;transition:width .12s linear}
+.fh-character-data{min-width:0}
+.fh-character-name{
+ height:16px;margin-bottom:5px;padding-right:22px;
+ font:700 11px/1.2 Georgia,serif;letter-spacing:.08em;
+ color:#fff;text-transform:uppercase;
+ white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.fh-character-line{
+ display:grid;grid-template-columns:20px minmax(0,1fr);
+ gap:6px;align-items:center;margin-top:5px;
+}
+.fh-character-stat{
+ font:800 10px/1 monospace;letter-spacing:0;color:#eee9ed;
+}
+.fh-character-track{
+ height:10px;padding:1px;box-sizing:border-box;overflow:hidden;
+ background:#0a0a0c;border:1px solid #dad5db;
+}
+.fh-character-fill{height:100%;display:block;transition:width .13s linear}
 .fh-character-fill-pg{background:var(--pg)}
 .fh-character-fill-sp{background:var(--sp)}
 .fh-character-fill-pe{background:var(--pe)}
-.fh-character-count{font:700 9px/1.1 monospace;text-align:right;color:#ddd4e0;font-variant-numeric:tabular-nums}
-/* El miedo utiliza #fhSpatialLayer y la proyección de FHLiveText. */
+.fh-character-floating .fh-character-close{
+ position:absolute;right:7px;top:6px;
+ display:grid;place-items:center;box-sizing:border-box;
+ width:25px;height:25px;min-height:25px;min-width:25px;
+ margin:0;padding:0;
+ border:1px solid #d3cbd4;border-radius:0;
+ background:#111113;color:#f0eaf1;
+ font:700 19px/1 Georgia,serif;cursor:pointer;
+ pointer-events:auto;touch-action:manipulation;
+}
+.fh-character-floating .fh-character-close:hover,
+.fh-character-floating .fh-character-close:focus-visible{
+ background:#e8e3eb;color:#090909;outline:2px solid #9d76ad;outline-offset:2px;
+}
+/* Avisos de miedo: la misma capa espacial que ZZZ y abrir puertas.
+   Solo se muestra el nombre del estado, nunca puntos internos ni pérdida de PS. */
 #fhSpatialLayer .fh-sound.fh-fear-comic{
  --fear:#25d53a;
- position:absolute;display:block;max-width:min(68vw,310px);
- padding:5px 11px 6px;color:#080808;
+ position:absolute;display:block;max-width:min(72vw,310px);
+ padding:5px 12px 6px;color:#080808;
  background:var(--fear);border:3px solid #060606;
  outline:1px solid #f0eae2;outline-offset:-5px;
  box-shadow:3px 3px 0 #050505;
  text-align:center;white-space:normal;
- text-transform:uppercase;letter-spacing:.055em;
- font:900 clamp(12px,2.4vw,20px)/1.1 Impact,'Arial Black',sans-serif;
+ text-transform:uppercase;letter-spacing:.05em;
+ font:900 clamp(12px,2.4vw,20px)/1.12 Impact,'Arial Black',sans-serif;
  text-shadow:1px 1px 0 #ffffff55;
  animation:fh-fear-spatial 2.1s ease-out both;
 }
@@ -49,73 +89,18 @@
  62%{opacity:1;translate:0 -12px;scale:1}
  100%{opacity:0;translate:0 -28px;scale:.98}
 }
-/* HUD original: sustituido visualmente por marco morado largo con Mood integrado. */
-#fhStatusHUD{
- --fh-status-pg:#e33e42;--fh-status-sp:#36b7e8;--fh-status-pe:#3bd56b;
- width:min(335px,calc(100vw - 24px));
- min-height:92px;display:grid;grid-template-columns:64px minmax(0,1fr);
- column-gap:10px;row-gap:5px;align-items:center;
- padding:12px 13px;
- background:linear-gradient(140deg,#100e15f5,#030304f4);
- border:2px solid #814193;
- outline:1px solid #e4dbe9;outline-offset:-6px;
- box-shadow:3px 4px 0 #070608;color:#f4f1f5;
- font-family:Georgia,serif;text-shadow:0 1px 1px #000;
-}
-#fhStatusHUD .fh-status-mood{
- grid-column:1;grid-row:1 / span 3;
- display:flex;flex-direction:column;justify-content:center;align-items:center;
- height:100%;min-height:57px;border-right:1px solid #87728d;
- padding:0 8px 0 0;gap:3px;
-}
-#fhStatusHUD .fh-status-mood-icon{
- width:47px;height:47px;object-fit:contain;
- image-rendering:pixelated;border:0;background:transparent;
-}
-#fhStatusHUD .fh-status-mood-icon[hidden]{display:none!important}
-#fhStatusHUD .fh-status-mood-label{
- color:#e6dce9;font:700 9px/1.1 Georgia,serif;
- letter-spacing:.09em;text-transform:uppercase;
-}
-#fhStatusHUD .fh-status-row{
- grid-column:2;position:relative;min-width:0;margin:0;
- display:grid;grid-template-columns:1fr;row-gap:2px;
-}
-#fhStatusHUD .fh-status-row+.fh-status-row{margin-top:0}
-#fhStatusHUD .fh-status-heading{
- margin:0;display:flex;justify-content:space-between;align-items:center;
- gap:5px;line-height:1;
-}
-#fhStatusHUD .fh-status-label{font:800 10px/1 monospace;letter-spacing:.05em}
-#fhStatusHUD .fh-status-count{font:700 9px/1 monospace;color:#e4dce5}
-#fhStatusHUD .fh-status-track,
-#fhStatusHUD .fh-status-track--pe{
- display:block;width:100%;height:9px;min-height:9px;
- padding:1px;overflow:hidden;background:#09090b;
- border:1px solid #cab5d3;box-sizing:border-box;
-}
-#fhStatusHUD .fh-status-fill{
- display:block;height:100%;transition:width .13s linear;
-}
-#fhStatusHUD .fh-status-fill--pe{background:var(--fh-status-pe)}
-@media(max-width:860px){
- #fhStatusHUD{top:calc(74px + env(safe-area-inset-top,0px));}
-}
 @media(max-width:650px){
- #fhStatusHUD{
-  width:min(302px,calc(100vw - 20px));
-  grid-template-columns:48px minmax(0,1fr);
-  column-gap:6px;row-gap:4px;padding:8px 9px;min-height:75px;
+ .fh-character-floating{
+  grid-template-columns:43px minmax(0,1fr);
+  width:min(282px,calc(100vw - 20px));
+  min-height:76px;padding:8px 9px;gap:6px;
  }
- #fhStatusHUD .fh-status-mood{min-height:46px;padding-right:4px}
- #fhStatusHUD .fh-status-mood-icon{width:36px;height:36px}
- #fhStatusHUD .fh-status-mood-label{font-size:8px}
+ .fh-character-mood{min-height:44px;padding-right:5px}
+ .fh-character-mood-icon{width:39px;height:39px}
+ .fh-character-name{font-size:10px}
+ .fh-character-line{gap:4px;margin-top:4px}
 }
-@media(max-width:650px){
- .fh-character-floating{width:210px;grid-template-columns:42px minmax(0,1fr);padding:7px;gap:5px}
- .fh-character-mood-icon{width:38px;height:38px}
- .fh-character-mood{min-height:41px;padding-right:3px}
- .fh-character-line{grid-template-columns:16px minmax(0,1fr) 35px;gap:3px}
- .fh-character-count{font-size:8px}.fh-character-name{font-size:10px}
+@media(prefers-reduced-motion:reduce){
+ #fhSpatialLayer .fh-sound.fh-fear-comic{animation:none;opacity:1}
+ .fh-character-fill{transition:none}
 }
-@media(prefers-reduced-motion:reduce){#fhSpatialLayer .fh-sound.fh-fear-comic{animation:none;opacity:1}.fh-character-fill{transition:none}#fhStatusHUD .fh-status-fill{transition:none}}

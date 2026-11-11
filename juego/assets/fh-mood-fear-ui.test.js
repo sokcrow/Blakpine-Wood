@@ -1,4 +1,4 @@
-/* Regresión: Mood integrado al HUD y miedo en la misma capa espacial que ZZZ. */
+/* Regresiones: horror sin cifras reveladas, un HUD flotante y cierre explícito. */
 'use strict';
 const test=require('node:test');
 const assert=require('node:assert/strict');
@@ -6,60 +6,73 @@ const fs=require('node:fs');
 const path=require('node:path');
 const UI=require('./fh-mood-fear-ui.js');
 const read=name=>fs.readFileSync(path.join(__dirname,name),'utf8');
-
-test('avisos de miedo se envían a FHLiveText con posición y nivel; no a un popup fijo',()=>{
- const previousText=globalThis.FH_MOOD_FEAR_TEXT,previousLive=globalThis.FHLiveText;
- const received=[],removed=[];
+test('el miedo usa la capa de ZZZ sin enseñar pérdida ni porcentaje de PS',()=>{
+ const oldText=globalThis.FH_MOOD_FEAR_TEXT,oldLive=globalThis.FHLiveText;
+ const sent=[];
  try{
   globalThis.FH_MOOD_FEAR_TEXT={keys:{nervioso:'Nervioso'}};
-  globalThis.FHLiveText={
-   clearKind:kind=>removed.push(kind),
-   soundAt:spec=>{received.push(spec);return true;}
-  };
-  assert.equal(UI.fearChange({key:'nervioso',damage:3},{x:4,y:2,z:7,floor:1}),true);
-  assert.deepEqual(removed,['fear']);
-  assert.equal(received.length,1);
-  assert.equal(received[0].kind,'fear');
-  assert.equal(received[0].fearLevel,'nervioso');
-  assert.equal(received[0].text,'Nervioso −3 PS');
-  assert.equal(received[0].floor,1);
-  assert.equal(received[0].x,4);
-  assert.equal(received[0].self,true);
+  globalThis.FHLiveText={clearKind:()=>{},soundAt:spec=>{sent.push(spec);return true;}};
+  assert.equal(UI.fearChange({key:'nervioso',damage:25,percent:30},{x:4,y:2,z:7,floor:1}),true);
+  assert.equal(sent.length,1);
+  assert.equal(sent[0].kind,'fear');
+  assert.equal(sent[0].text,'Nervioso');
+  assert.equal(sent[0].fearLevel,'nervioso');
+  assert.equal(sent[0].floor,1);
   assert.equal(UI.fearChange({key:'nervioso',damage:0},null),false);
  }finally{
-  if(previousText===undefined)delete globalThis.FH_MOOD_FEAR_TEXT;
-  else globalThis.FH_MOOD_FEAR_TEXT=previousText;
-  if(previousLive===undefined)delete globalThis.FHLiveText;
-  else globalThis.FHLiveText=previousLive;
+  if(oldText===undefined)delete globalThis.FH_MOOD_FEAR_TEXT;
+  else globalThis.FH_MOOD_FEAR_TEXT=oldText;
+  if(oldLive===undefined)delete globalThis.FHLiveText;
+  else globalThis.FHLiveText=oldLive;
  }
 });
-
-test('un clic sobre el cuerpo proyectado selecciona, no exige tocar la cabeza',()=>{
+test('tocar al personaje abre; tocarlo de nuevo o el suelo cierra',()=>{
  let click;
- const canvas={addEventListener:(type,fn)=>{if(type==='click')click=fn;},removeEventListener(){}};
- UI.bind(canvas,()=>({id:'personaje-a',x:100,y:40,bodyX:100,bodyY:125}));
- let prevented=0,stopped=0;
- click({button:0,clientX:100,clientY:95,preventDefault(){prevented++},stopImmediatePropagation(){stopped++}});
- assert.equal(prevented,1);
- assert.equal(stopped,1);
+ const canvas={
+  addEventListener:(kind,fn)=>{if(kind==='click')click=fn;},
+  removeEventListener(){},
+ };
  UI.select(null);
+ UI.bind(canvas,()=>({id:'personaje-a',x:100,y:40,bodyX:100,bodyY:125}));
+ const evt=(x,y)=>({button:0,clientX:x,clientY:y,preventDefault(){},stopImmediatePropagation(){}});
+ click(evt(100,95));assert.equal(UI.selected(),'personaje-a');
+ click(evt(100,95));assert.equal(UI.selected(),null);
+ click(evt(100,95));assert.equal(UI.selected(),'personaje-a');
+ click(evt(250,200));assert.equal(UI.selected(),null);
 });
-
-test('Mood se dibuja en HUD original y PG/PS/PE usan barras de ancho continuo',()=>{
- const status=read('fh-status-hud.js'),css=read('fh-mood-fear.css'),index=read('../../index.html');
- assert.match(status,/function update\(resources,mental\)/);
- assert.match(status,/fh-status-mood-icon/);
- assert.match(status,/const fill=node\(doc,'span','fh-status-fill fh-status-fill--'\+key\)/);
- assert.match(index,/FHStatusHUD\?\.update\(window\.FHCharacterRuntime\?\.character\?\.resources,window\.FHCharacterRuntime\?\.character\?\.mental\)/);
- assert.match(css,/#fhStatusHUD \.fh-status-mood/);
- assert.match(css,/#fhStatusHUD \.fh-status-fill--pe/);
+test('Escape y X son formas de cerrar, con control accesible',()=>{
+ const old=globalThis.addEventListener,handlers={};
+ try{
+  globalThis.addEventListener=(kind,fn)=>{handlers[kind]=fn};
+  UI.bind({addEventListener(){},removeEventListener(){}},()=>null);
+  UI.select('a');
+  handlers.keydown({key:'Escape'});
+  assert.equal(UI.selected(),null);
+  const code=read('fh-mood-fear-ui.js');
+  assert.match(code,/fh-character-close/);
+  assert.match(code,/closeButton\.addEventListener\('click'/);
+  assert.match(code,/root\.document\?\.addEventListener\?\.\('pointerdown'/);
+ }finally{
+  if(old===undefined)delete globalThis.addEventListener;
+  else globalThis.addEventListener=old;
+ }
 });
-
-test('el color del miedo lo define una clase del texto espacial, nunca fh-fear-pop',()=>{
+test('el motor no carga el HUD duplicado; los recursos permanecen en el flotante',()=>{
+ const html=read('../../index.html'),ui=read('fh-mood-fear-ui.js'),css=read('fh-mood-fear.css');
+ assert.doesNotMatch(html,/FHStatusHUD\?\.update/);
+ assert.doesNotMatch(html,/fh-status-hud\.js/);
+ assert.doesNotMatch(html,/fh-status-hud\.css/);
+ assert.match(ui,/fh-character-mood-icon/);
+ assert.match(ui,/for\(const key of \['pg','sp','pe'\]\)/);
+ assert.doesNotMatch(ui,/fh-character-count|PS ·|title\+loss/);
+ assert.match(css,/\.fh-character-floating\{/);
+ assert.match(css,/border:2px solid #814399/);
+ assert.doesNotMatch(css,/#fhStatusHUD/);
+});
+test('seis estados de miedo con color, utilizando FHLiveText',()=>{
  const live=read('fh-live-text.js'),css=read('fh-mood-fear.css'),ui=read('fh-mood-fear-ui.js');
  assert.match(live,/fh-sound fh-fear-comic fh-fear-comic--/);
- assert.match(css,/#fhSpatialLayer \.fh-sound\.fh-fear-comic/);
+ assert.match(ui,/root\.FHLiveText\.soundAt\(/);
  for(const key of ['relajado','calmado','nervioso','atemorizado','sin_esperanza','abrumado'])
-  assert.ok(css.includes('fh-fear-comic--'+key),'Falta color '+key);
- assert.doesNotMatch(ui,/fh-fear-pop/);
+  assert.ok(css.includes('fh-fear-comic--'+key),'Falta '+key);
 });

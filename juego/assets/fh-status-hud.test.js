@@ -22,10 +22,11 @@ test('Cada PE es un cuadrito; se admiten cambios del máximo',()=>{
  assert.deepEqual(H.segmentStates({pe:-3,peMax:3}),[false,false,false]);
  assert.deepEqual(H.segmentStates({pe:12,peMax:10}),Array(10).fill(true));
 });
-test('El motor pasa los recursos de FHCharacterRuntime durante el ciclo HUD',()=>{
- assert.match(editor,/FHStatusHUD\?\.update\(window\.FHCharacterRuntime\?\.character\?\.resources\)/);
+test('El motor no carga el HUD de esquina duplicado',()=>{
+ assert.doesNotMatch(editor,/FHStatusHUD\?\.update/);
  for(const file of ['fh-status-strings.js','fh-status-hud.js','fh-status-hud.css'])
-  assert.ok(editor.includes('juego/assets/'+file),'Falta recurso: '+file);
+  assert.ok(!editor.includes('juego/assets/'+file),'Ya no debe cargarse: '+file);
+ assert.match(editor,/juego\/assets\/fh-mood-fear-ui\.js/);
 });
 test('La ubicación se centra y desaparece; el estado va a la esquina sin caja',()=>{
  assert.match(css,/left:50%;\s*transform:translateX\(-50%\)/);

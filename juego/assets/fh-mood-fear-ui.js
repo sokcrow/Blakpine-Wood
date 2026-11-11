@@ -9,13 +9,17 @@
  const moods=['bueno','neutral','malo'];
  const make=(tag,cls,text)=>{const e=root.document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e;};
  const words=()=>root.FH_MOOD_FEAR_TEXT||{keys:{},reasons:{}};
- let panel=null,face=null,name=null,bars=null,selectedId=null;
- let clickTarget=null,clickHandler=null,currentLocator=null;
+ let panel=null,face=null,name=null,bars=null,closeButton=null,selectedId=null;
+ let clickTarget=null,clickHandler=null,currentLocator=null,dismissHandlersBound=false;
  function setup(){
   if(!root.document?.body)return false;
   if(panel?.isConnected)return true;
   panel=make('aside','fh-character-floating');panel.hidden=true;
   panel.setAttribute('aria-label','Estado del personaje seleccionado');
+  closeButton=make('button','fh-character-close','×');
+  closeButton.type='button';
+  closeButton.setAttribute('aria-label',words().close||'Cerrar estado del personaje');
+  closeButton.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();select(null);});
   const mood=make('div','fh-character-mood');
   face=make('img','fh-character-mood-icon');
   face.alt='';face.draggable=false;mood.append(face);
@@ -27,16 +31,16 @@
    const label=make('span','fh-character-stat',key==='sp'?'PS':key.toUpperCase());
    const track=make('div','fh-character-track fh-character-track-'+key);
    const fill=make('span','fh-character-fill fh-character-fill-'+key);
-   const count=make('span','fh-character-count');
-   track.append(fill);line.append(label,track,count);stats.append(line);
-   bars[key]={fill,track,count};
+   track.append(fill);line.append(label,track);stats.append(line);
+   bars[key]={fill,track};
   }
-  panel.append(mood,stats);
+  panel.append(mood,stats,closeButton);
   root.document.body.append(panel);
   return true;
  }
  function hide(){if(panel)panel.hidden=true;}
  function select(id){selectedId=id==null?null:String(id);if(selectedId===null)hide();return selectedId;}
+ function selected(){return selectedId;}
  function project(THREE,camera,renderer,world){
   if(!THREE?.Vector3||!camera||!world||!renderer?.domElement)return null;
   const v=new THREE.Vector3(world.x,world.y,world.z).project(camera);
@@ -65,12 +69,21 @@
    const height=Math.abs((Number.isFinite(at.bodyY)?at.bodyY:at.y+48)-at.y);
    const radius=Math.min(36,Math.max(18,height*.27));
    if(distanceToActor(event.clientX,event.clientY,at)<=radius){
-    select(at.id);
+    select(selectedId===String(at.id)?null:at.id);
     event.preventDefault();
     event.stopImmediatePropagation();
    }else select(null);
   };
   canvas.addEventListener('click',clickHandler,true);
+  if(!dismissHandlersBound&&typeof root.addEventListener==='function'){
+   dismissHandlersBound=true;
+   root.addEventListener('keydown',event=>{if(event.key==='Escape'&&selectedId!==null)select(null);});
+   root.document?.addEventListener?.('pointerdown',event=>{
+    if(selectedId===null)return;
+    if(event.target===clickTarget||clickTarget?.contains?.(event.target)||panel?.contains?.(event.target))return;
+    select(null);
+   },true);
+  }
  }
  function render(character,position){
   if(!setup())return false;
@@ -95,8 +108,7 @@
    bars[key].track.setAttribute('aria-label',key==='pg'?'Puntos de golpe':key==='sp'?'Puntos de sanidad':'Puntos de energía');
    bars[key].track.setAttribute('aria-valuemax',String(max));
    bars[key].track.setAttribute('aria-valuenow',String(val));
-   bars[key].count.textContent=Math.max(0,Math.round(val))+'/'+Math.round(max);
-  }
+   }
   return true;
  }
  function fearChange(payload,position){
@@ -104,14 +116,13 @@
   const dict=words();
   const title=dict.keys?.[payload.key];
   if(!title)return false;
-  const loss=payload.damage>0?' −'+payload.damage+' PS':'';
   // Se dibuja sobre la escena mediante el mismo sistema espacial que ZZZ y abrir puertas.
   root.FHLiveText.clearKind?.('fear');
   return root.FHLiveText.soundAt({
-   kind:'fear',fearLevel:payload.key,text:title+loss,
+   kind:'fear',fearLevel:payload.key,text:title,
    x:position.x,y:position.y,z:position.z,floor:position.floor,
    level:1,self:true
   });
  }
- return Object.freeze({setup,select,render,bind,project,fearChange,hide});
+ return Object.freeze({setup,select,selected,render,bind,project,fearChange,hide});
 });
