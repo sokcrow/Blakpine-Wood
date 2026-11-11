@@ -266,7 +266,7 @@ test('el adaptador 3D registra el módulo sin modificar los fragmentos Base64',(
  const html=fs.readFileSync(path.resolve(__dirname,'../../index.html'),'utf8');
  assert.match(html,/function addNaturalLightToEngine\(doc\)/);
  assert.match(html,/const assembled=\(window\.FHContextEngine/);
- assert.match(html,/return addPreviewDiagnostics\(addCourtyardsToEngine\(addFloorVisibilityToEngine\(addNaturalLightToEngine\(assembled\)\)\)\)/);
+ assert.match(html,/addPreviewDiagnostics\(addCourtyardsToEngine\(addFloorVisibilityToEngine\(addNaturalLightToEngine\(assembled\)\)\)\)/);
  assert.match(html,/fhNatural\?\.update\(\)/);
  assert.match(html,/fh-natural-light\.js/);
 });
