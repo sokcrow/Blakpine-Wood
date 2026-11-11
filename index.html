@@ -3550,8 +3550,8 @@ function prepareGLBEngineDoc(source){
  const helpScript='<script src="'+new URL('./juego/assets/fh-character-help.js?v=20261107-help',document.baseURI).href+'"></'+'script>';
  const playerMenuScript='<script src="'+new URL('./juego/assets/fh-player-menu.js?v=20261110-spawn-return',document.baseURI).href+'"></'+'script>';
  const locationCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-location-hud.css?v=20261111-location-divider-1',document.baseURI).href+'">';
- const locationStrings='<script src="'+new URL('./juego/assets/fh-location-strings.js?v=20261106-location',document.baseURI).href+'"></'+'script>';
- const locationScript='<script src="'+new URL('./juego/assets/fh-location-hud.js?v=20261110-patio1',document.baseURI).href+'"></'+'script>';
+ const locationStrings='<script src="'+new URL('./juego/assets/fh-location-strings.js?v=20261111-roof-outside1',document.baseURI).href+'"></'+'script>';
+ const locationScript='<script src="'+new URL('./juego/assets/fh-location-hud.js?v=20261111-roof-outside1',document.baseURI).href+'"></'+'script>';
  const hudRedesignCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-hud-redesign.css?v=20261106-hud-redesign',document.baseURI).href+'">';
  const gameUiCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-game-ui.css?v=20261106-common-ui',document.baseURI).href+'">';
  const mobileMenusCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-mobile-menus.css?v=20261107-mobile-ui-75',document.baseURI).href+'">';
@@ -3561,7 +3561,7 @@ function prepareGLBEngineDoc(source){
  const phoneScript='<script src="'+new URL('./juego/assets/fh-phone.js?v=20261109-wifi-compact-status-3',document.baseURI).href+'"></'+'script>';
  const mobileCameraScript='<script src="'+new URL('./juego/assets/fh-mobile-camera.js?v=20261108-landscape20',document.baseURI).href+'"></'+'script>';
  const locationHudHook='if(now-lastHud>90){lastHud=now;hudUpdate()}';
- const locationHudAfter='if(now-lastHud>90){lastHud=now;hudUpdate();window.FHLocationHUD?.update(DATA,currentFloor,{x:user.x/CELL,y:user.z/CELL})}';
+ const locationHudAfter='if(now-lastHud>90){lastHud=now;hudUpdate();window.FHLocationHUD?.update(DATA,currentFloor,{x:user.x/CELL,y:user.z/CELL},FH_ROOF_PLANS[currentFloor])}';
  if(source.split(locationHudHook).length!==2)throw Error('El HUD original cambió: actualiza el adaptador de ubicación.');
   function addParkingToEngine(doc){
    const anchors=[
@@ -4438,7 +4438,7 @@ function fhRefreshActorVisibility(){
   }else throw Error('Hook de estado meteorológico incompatible con los adaptadores actuales');
   const scripts=[
    '<script src="'+new URL('./juego/assets/fh-weather-core.js?v=20261108-clima1',document.baseURI).href+'"></'+'script>',
-   '<script src="'+new URL('./juego/assets/fh-weather-renderer.js?v=20261110-patio1',document.baseURI).href+'"></'+'script>',
+   '<script src="'+new URL('./juego/assets/fh-weather-renderer.js?v=20261111-roof-outside1',document.baseURI).href+'"></'+'script>',
    '<script src="'+new URL('./juego/assets/fh-weather-audio.js?v=20261109-ambient1',document.baseURI).href+'"></'+'script>'
   ].join('');
   return doc.replace('</head>',scripts+'</head>');
@@ -4452,7 +4452,7 @@ function fhRefreshActorVisibility(){
    "const fhWeatherEnabled=DATA.weather?.enabled===true;",
    "const fhWeather=window.FHWeatherCore?.createRuntime({gameState:GameState,config:DATA.weather||{}});",
    "window.FHWeatherRuntime=fhWeatherEnabled?fhWeather:null;",
-   "const fhWeatherExposure=fhWeatherEnabled&&fhWeather?window.FHWeatherRenderer?.createExteriorExposure({floors:DATA.floors,units:DATA.units,cell:CELL,slabs:SLABS,natural:window.FHNaturalLight}):null;",
+   "const fhWeatherExposure=fhWeatherEnabled&&fhWeather?window.FHWeatherRenderer?.createExteriorExposure({floors:DATA.floors,units:DATA.units,cell:CELL,slabs:SLABS,roofPlans:FH_ROOF_PLANS,natural:window.FHNaturalLight}):null;",
    "const fhWeatherRenderer=fhWeatherEnabled&&fhWeather?window.FHWeatherRenderer?.createRuntime({THREE,scene,columns:GRID_X,rows:GRID_Z,cell:CELL,actor:()=>({x:user.x,z:user.z}),floorY:()=>floorElev[currentFloor],floorIndex:()=>currentFloor,isOutside:(x,z)=>fhWeatherExposure?.(currentFloor,x,z)===true}):null;",
    "const fhWeatherAudio=fhWeatherEnabled&&fhWeather?window.FHWeatherAudio?.createRuntime({outside:()=>fhWeatherExposure?.(currentFloor,user.x,user.z)===true}):null;",
    "window.FHWeatherAudioRuntime=fhWeatherAudio;",

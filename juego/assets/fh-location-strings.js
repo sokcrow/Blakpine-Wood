@@ -2,6 +2,7 @@
 (function(root){
  root.FH_LOCATION_TEXT=Object.freeze({
   exterior:'EXTERIOR',
+  roof:'AZOTEA',
   building:'EDIFICIO',
   property:'PROPIEDAD'
  });

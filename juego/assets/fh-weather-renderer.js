@@ -59,7 +59,7 @@
    Number.isFinite(item.w)&&Number.isFinite(item.h)&&item.w>0&&item.h>0&&
    x>=item.x&&x<item.x+item.w&&y>=item.y&&y<item.y+item.h;
  }
- function createExteriorExposure({floors=[],units={},cell=1.524,slabs=[],natural}={}){
+ function createExteriorExposure({floors=[],units={},cell=1.524,slabs=[],roofPlans=[],natural}={}){
   const cols=Math.max(1,Math.floor(Number(units.columns)||16));
   const rows=Math.max(1,Math.floor(Number(units.rows)||22));
   const interiors=floors.map(f=>(f?.items||[]).filter(it=>['room','hall','building'].includes(it.type)));
@@ -71,6 +71,11 @@
    if(level<0||level>=floors.length||!Number.isFinite(x)||!Number.isFinite(z))return false;
    const px=x/cell,py=z/cell;
    if(px<0||py<0||px>=cols||py>=rows)return false;
+   // La losa sostén del techo NO es una cubierta sobre el jugador.
+// Las superficies de FHRoof ganan a las etiquetas de habitaciones antiguas.
+   const roof=roofPlans[level];
+   if(roof?.spans?.some(sp=>areaHasPoint(sp,px,py)))return true;
+   if(roof?.interiorSpans?.some(sp=>areaHasPoint(sp,px,py)))return false;
    // El patio explícito prevalece sobre áreas antiguas de edificio o habitación.
    // Sin toggle se conserva la prioridad de los interiores de mapas anteriores.
    const courtyard=outdoors[level].some(it=>it.courtyard===true&&areaHasPoint(it,px,py));

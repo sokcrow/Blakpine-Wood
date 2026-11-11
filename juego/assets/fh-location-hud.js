@@ -53,7 +53,7 @@
   levels.sort((a,b)=>basement?b.v-a.v||a.i-b.i:a.v-b.v||a.i-b.i);
   return (basement?'B':'F')+(levels.findIndex(x=>x.i===index)+1);
  }
- function resolve(map,floorIndex,point,propertyApi=root.FHStyleProperty){
+ function resolve(map,floorIndex,point,propertyApi=root.FHStyleProperty,roofPlan){
   const floor=map?.floors?.[floorIndex],floorId=floor?.id;
   if(!floor)return {kind:'exterior',floorCode:'',primary:text('exterior','EXTERIOR'),secondary:'',scopeKey:'missing-floor'};
   const properties=(map.properties||[]).filter(p=>p.floorId===floorId&&inPolygon(point,p.polygon));
@@ -82,7 +82,11 @@
   const common=regions.find(z=>z.kind==='common');
   const exterior=regions.find(z=>z.kind==='exterior');
   const courtyard=areas.find(it=>it.courtyard===true);
-  if(courtyard){
+  if(roofPlan?.spans?.some(sp=>inArea(point,sp))){
+    return {kind:'exterior',floorCode:'',primary:text('exterior','EXTERIOR'),
+     secondary:text('roof','AZOTEA'),scopeKey:scope(floorId,'roof')};
+   }
+   if(courtyard){
    return {kind:'exterior',floorCode:'',primary:text('exterior','EXTERIOR'),
     secondary:label(courtyard.label),scopeKey:scope(floorId,'courtyard',courtyard.id)};
   }
@@ -139,8 +143,8 @@
   host=h;last='';visible=null;
   return true;
  }
- function update(map,floorIndex,point){
-  const value=resolve(map,floorIndex,point);
+ function update(map,floorIndex,point,roofPlan){
+  const value=resolve(map,floorIndex,point,root.FHStyleProperty,roofPlan);
   if(!ensure())return value;
   const key=[value.scopeKey,value.kind,value.floorCode,value.primary,value.secondary].join('\u0000');
   // El motor heredado puede escribir en regionLabel durante hudUpdate().

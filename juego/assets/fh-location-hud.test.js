@@ -150,6 +150,23 @@ test('Cambiar de parcela con la misma etiqueta también reactiva el anuncio',()=
  assert.equal(a.primary,b.primary);
  assert.notEqual(a.scopeKey,b.scopeKey);
 });
+test('P2: al caminar de habitación a azotea cambia a EXTERIOR / AZOTEA',()=>{
+ const Roof=require('./fh-roof.js'),slab=spans=>({enabled:true,spans});
+ const m={title:'Hospital',mainFloorId:'pb',floors:[
+  {id:'pb',elevationFt:0,items:[...redBox()]},
+  {id:'p2',elevationFt:10,items:[
+   ...redBox(0,0,6,10),{id:'sala',type:'room',label:'Sala',x:0,y:0,w:10,h:10}
+  ]}
+ ],properties:[{id:'depto',floorId:'p2',name:'Departamento',polygon:poly(0,0,10,10)}]};
+ const roof=Roof.plan(slab([{x:0,y:0,w:10,h:10}]),slab([{x:0,y:0,w:6,h:10}]));
+ const inside=H.resolve(m,1,{x:3,y:5},P,roof);
+ const outside=H.resolve(m,1,{x:8,y:5},P,roof);
+ assert.equal(inside.kind,'property');
+ assert.deepEqual([outside.kind,outside.floorCode,outside.primary,outside.secondary],
+  ['exterior','','EXTERIOR','AZOTEA']);
+ assert.notEqual(inside.scopeKey,outside.scopeKey,'se anuncia cambio de recinto');
+ assert.equal(H.resolve(m,1,{x:8,y:5},P).kind,'property','sin azotea comportamiento anterior');
+});
 test('La ubicación dura 2.8 segundos y no se reinicia al permanecer en el mismo recinto',()=>{
  const state=H.createVisibilityState(2800);
  assert.equal(state.update('sala-a',0),true);

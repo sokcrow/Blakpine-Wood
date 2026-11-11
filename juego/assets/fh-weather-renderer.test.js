@@ -173,10 +173,29 @@ test('contorno abierto con dormitorio marcado sigue seco; patio descubierto sí 
   slabs:[{enabled:true,spans:[{x:9,y:9,w:2,h:2}]}]});
  assert.equal(roof(0,9.5,9.5),false,'el techo prevalece incluso sobre una etiqueta de exterior');
 });
+test('P2: azotea abierta es exterior aunque se solape con habitación',()=>{
+ const Roof=require('./fh-roof.js');
+ const box=(x,y,w,h)=>({x,y,w,h}),slab=spans=>({enabled:true,spans});
+ const roof=Roof.plan(slab([box(0,0,10,10)]),slab([box(0,0,6,10)]));
+ const floors=[{id:'pb',items:[]},{id:'p2',items:[
+  {type:'room',x:0,y:0,w:10,h:10},{type:'outside',x:1,y:1,w:2,h:2}]}];
+ const natural={computeAccess:()=>({width:12,height:12,scale:1,exteriorMask:new Uint8Array(144).fill(1)})};
+ const options={floors,units:{columns:12,rows:12},cell:1,
+  slabs:[null,slab([box(0,0,10,10)])],natural};
+ assert.equal(Renderer.createExteriorExposure(options)(1,8,5),false,'bug anterior reproducido');
+ const exposure=Renderer.createExteriorExposure({...options,roofPlans:[null,roof]});
+ assert.equal(exposure(1,8,5),true,'azotea descubierta');
+ assert.equal(exposure(1,3,5),false,'interior cerrado');
+ assert.equal(exposure(1,2,2),false,'exterior solapado no abre habitación');
+ assert.equal(exposure(1,10.5,5),true,'suelo descubierto');
+ assert.equal(exposure(0,8,5),true,'PB conserva el comportamiento');
+ assert.equal(exposure(2,8,5),false,'nivel inexistente');
+});
 test('el puente 3D usa una sola exposición atmosférica, no el clasificador de fachadas',()=>{
  const fs=require('node:fs'),path=require('node:path');
  const html=fs.readFileSync(path.resolve(__dirname,'../../index.html'),'utf8');
  assert.match(html,/createExteriorExposure\(\{floors:DATA\.floors/);
+  assert.match(html,/slabs:SLABS,roofPlans:FH_ROOF_PLANS,natural:/);
  assert.match(html,/isOutside:\(x,z\)=>fhWeatherExposure\?\.\(currentFloor,x,z\)===true/);
  assert.doesNotMatch(html,/isOutside:\(x,z\)=>floorExteriorClassifiers/);
 });
