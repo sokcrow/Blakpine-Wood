@@ -105,7 +105,7 @@
      return connection?[{panel:it,f,...connection}]:[];
     }));}
   return Object.freeze({nodes,links,panelLinks,hasTransformers,cellFt,energized,
-   panelConnection,generatorConnection});
+   panelConnection,generatorConnection,electricCapacity,initialElectricCharge,changeElectricCharge});
  }
  return Object.freeze({CONFIG,roleFor,isExternal,createRuntime,electricCapacity,initialElectricCharge,changeElectricCharge});
 });
