@@ -26,7 +26,7 @@ test('El motor no carga el HUD de esquina duplicado',()=>{
  assert.doesNotMatch(editor,/FHStatusHUD\?\.update/);
  for(const file of ['fh-status-strings.js','fh-status-hud.js','fh-status-hud.css'])
   assert.ok(!editor.includes('juego/assets/'+file),'Ya no debe cargarse: '+file);
- assert.match(editor,/juego\/assets\/fh-mood-fear-ui\.js/);
+ assert.match(editor,/\['script','fh-mood-fear-ui\.js'\]/);
 });
 test('La ubicación se centra y desaparece; el estado va a la esquina sin caja',()=>{
  assert.match(css,/left:50%;\s*transform:translateX\(-50%\)/);
