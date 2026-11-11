@@ -111,6 +111,7 @@ test('integración: el adaptador no condiciona el reloj a activar meteorología'
  }
  assert.ok(html.includes('weather:()=>fhWeatherEnabled?fhWeather?.view():null'));
  assert.ok(html.includes('window.FHUnifiedSleep?.before(GameState);if(fhWeather?.update(dt))visibilityDirty=true;window.FHUnifiedSleep?.after(GameState)'));
+ assert.ok(html.includes('fh-unified-sleep.js?v=20261111-unified2'),'el navegador debe recibir la versión corregida del reloj');
 });
 
 
