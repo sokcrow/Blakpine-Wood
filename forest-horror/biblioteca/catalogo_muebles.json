@@ -1774,7 +1774,8 @@
       "front": "+Z",
       "metersPerFoot": 0.3048,
       "geometryBackMinMeters": null,
-      "forSale": false
+      "forSale": false,
+      "environment": "exterior"
     },
     {
       "id": "poste_luz_concreto",
@@ -1794,7 +1795,8 @@
       "front": "+Z",
       "metersPerFoot": 0.3048,
       "geometryBackMinMeters": null,
-      "forSale": false
+      "forSale": false,
+      "environment": "exterior"
     },
     {
       "id": "poste_luz_con_brazo",
@@ -1814,7 +1816,8 @@
       "front": "+Z",
       "metersPerFoot": 0.3048,
       "geometryBackMinMeters": null,
-      "forSale": false
+      "forSale": false,
+      "environment": "exterior"
     },
     {
       "id": "poste_luz_doble_brazo",
@@ -1834,7 +1837,8 @@
       "front": "+Z",
       "metersPerFoot": 0.3048,
       "geometryBackMinMeters": null,
-      "forSale": false
+      "forSale": false,
+      "environment": "exterior"
     },
     {
       "id": "transformador_poste_simple",
@@ -1854,7 +1858,8 @@
       "front": "+Z",
       "metersPerFoot": 0.3048,
       "geometryBackMinMeters": null,
-      "forSale": false
+      "forSale": false,
+      "environment": "exterior"
     },
     {
       "id": "transformador_poste_doble",
@@ -1874,7 +1879,8 @@
       "front": "+Z",
       "metersPerFoot": 0.3048,
       "geometryBackMinMeters": null,
-      "forSale": false
+      "forSale": false,
+      "environment": "exterior"
     },
     {
       "id": "transformador_caja_superficie",
@@ -1894,7 +1900,8 @@
       "front": "+Z",
       "metersPerFoot": 0.3048,
       "geometryBackMinMeters": null,
-      "forSale": false
+      "forSale": false,
+      "environment": "exterior"
     },
     {
       "id": "caja_distribucion_exterior",
@@ -1914,7 +1921,8 @@
       "front": "+Z",
       "metersPerFoot": 0.3048,
       "geometryBackMinMeters": null,
-      "forSale": false
+      "forSale": false,
+      "environment": "exterior"
     }
   ]
 }

@@ -13,11 +13,18 @@ const deliveryCode=fs.readFileSync(path.join(__dirname,'fh-delivery.js'),'utf8')
 const index=fs.readFileSync(path.join(root,'index.html'),'utf8');
 const shop=fs.readFileSync(path.join(__dirname,'fh-terminal.html'),'utf8');
 
-test('Los 78 artículos y las tres cajas tienen ambiente interior y los GLB del repositorio existen',()=>{
- assert.equal(main.furniture.length,78);
- for(const entry of main.furniture){
+test('Los 78 artículos interiores siguen disponibles; ocho modelos exteriores quedan fuera de Hamazon',()=>{
+ const interiors=main.furniture.filter(entry=>entry.environment!=='exterior');
+ const exteriors=main.furniture.filter(entry=>entry.environment==='exterior');
+ assert.equal(interiors.length,78);
+ assert.equal(exteriors.length,8);
+ for(const entry of interiors){
   assert.equal(entry.environment,'interior',entry.id);
   assert.ok(entry.category,entry.id+' conserva categoría anterior');
+  assert.ok(fs.existsSync(path.join(library,entry.glb)),entry.id+' conserva GLB real');
+ }
+ for(const entry of exteriors){
+  assert.equal(entry.forSale,false,entry.id+' no se vende en Hamazon');
   assert.ok(fs.existsSync(path.join(library,entry.glb)),entry.id+' conserva GLB real');
  }
  for(const box of boxes.furniture){
