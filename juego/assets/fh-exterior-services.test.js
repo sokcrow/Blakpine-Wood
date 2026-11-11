@@ -62,3 +62,26 @@ test('mapas v1 sin transformadores conservan los generadores de combustible orig
  assert.equal(runtime.generatorStatus(0,generator).electricChargeHours,null);
  assert.equal(runtime.state.fuelTanks['ground:tank'].liters,2);
 });
+
+
+test('un panel antiguo con ATS usa la conexión física y activa el respaldo si queda fuera de alcance',()=>{
+ const transformer={id:'trafo',type:'misc',modelId:'transformador_poste_simple',x:0,y:0};
+ function panelAt(x){
+  const panel={id:'panel_antiguo',type:'breaker_panel',x,y:0,zoneId:'main',enabled:true,
+   circuits:[{id:'main',zoneId:'main'}]}; // Sin powerSource: mapa v1 original.
+  const generator={id:'emergencia',type:'generator',generatorKind:'emergency',x:x+1,y:0,
+   enabled:true,atsId:'ats',autonomyHours:6,capacityWatts:2400,
+   targets:[{floorId:'ground',panelId:panel.id,circuitId:'main'}]};
+  const ats={id:'ats',type:'generator_ats',x:x+2,y:0};
+  const project={units:{feetPerCell:5},floors:[{id:'ground',elevationFt:0,items:[transformer,panel,generator,ats]}]};
+  const runtime=Services.createRuntime(project,{flags:{}},{random:()=>.5});
+  return {runtime,panel,ats};
+ }
+ const near=panelAt(5);
+ assert.equal(near.runtime.panelStatus(0,near.panel).circuits[0].source.kind,'utility');
+ assert.equal(near.runtime.atsStatus(0,near.ats).outage,false);
+ const far=panelAt(40); // 200 pies: desconectado del transformador.
+ assert.equal(far.runtime.exteriorGrid.panelConnection(0,far.panel),null);
+ assert.equal(far.runtime.atsStatus(0,far.ats).outage,true);
+ assert.equal(far.runtime.panelStatus(0,far.panel).circuits[0].source.kind,'generator');
+});
