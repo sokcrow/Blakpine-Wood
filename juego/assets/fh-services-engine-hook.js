@@ -8,8 +8,8 @@
  };
  function patch(doc){
   const base=new URL('./juego/assets/',root.document.baseURI).href;
-  const core='<script src="'+base+'fh-services-core.js?v=20261110-power-sources-1"></'+'script>';
-  const strings='<script src="'+base+'fh-services-strings.js?v=20261110-power-sources-1"></'+'script>';
+  const core='<script src="'+base+'fh-services-core.js?v=20261111-elevator-power-1"></'+'script>';
+  const strings='<script src="'+base+'fh-services-strings.js?v=20261111-elevator-power-1"></'+'script>';
   // El motor incrusta subdocumentos HTML como cadenas: hay varios </head>.
   // Insertar en el primer cierre (cabecera del documento exterior), como
   // hacen los otros adaptadores, y no exigir una ocurrencia única.
@@ -191,6 +191,7 @@
   if(doc.includes(television))doc=once(doc,television,television+'\n if(window.FHServicesRuntime?.statusFor(currentFloor,tv)?.power.powered!==true){notice(window.FH_SERVICES_TEXT?.noPower||"Sin electricidad.");return {ok:false,reason:"noPower"};}','televisor');
   const elevator="return lighting.powered(stop.f,stop.item.zoneId||'');";
   if(doc.includes(elevator))doc=once(doc,elevator,'return window.FHServicesRuntime?.statusFor(stop.f,stop.item).power.powered===true;','ascensor');
+  else if(doc.includes('const elevatorSystem=ForestShared.createElevatorMachine'))throw Error('No se encontró la consulta de suministro del elevador');
 
   // fixturePowered ya consulta sourceFor; no recalcular los enchufes por cada foco.
   doc=root.FHInternetVisuals?.patchEngineDoc(doc)||doc;

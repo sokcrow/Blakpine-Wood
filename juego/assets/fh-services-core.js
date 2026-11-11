@@ -188,7 +188,14 @@
   const pcStations=new Set(elements.flatMap((items,f)=>options.isPc?items.filter(it=>options.isPc(it,f)).map(id):[]));
   const powerRouteCache=floors.map(()=>new Map());
   const cableDistance=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
-  const zoneFor=(f,it)=>String(it.zoneId||(elements[f]||[]).find(r=>r.type==='room'&&(r.roomId||r.id)===it.roomId)?.zoneId||roomOn(f,it)?.zoneId||'');
+  const zoneFor=(f,it)=>{
+   const room=(elements[f]||[]).find(r=>r.type==='room'&&(r.roomId||r.id)===it.roomId)||roomOn(f,it);
+   const zone=String(it.zoneId||'');
+   // Older elevator inspectors used "main" as a placeholder, not a real assignment.
+   // A declared main circuit is still respected; otherwise inherit the room's circuit.
+   if(it.type==='elevator'&&(!zone||zone==='main'&&!(powerScopes[f]||[]).some(c=>c.zoneId==='main')))return String(room?.zoneId||'');
+   return String(zone||room?.zoneId||'');
+  };
   function powerRoute(f,panel,target){
    if(!powerGraphs[f])return null;
    const panelLeadFt=LIMITS[panel.breakerType||'medium']?.rangeFt||180;
@@ -632,7 +639,7 @@
   function electricalStatus(f,it,snapshot){
    const key=f+':'+id(it);
    if(['light_fixture','elevator'].includes(it.type)){
-    const source=sourceFor(f,it);
+    const source=it.type==='elevator'&&(!active(it)||number(s.damage[id(it)])>=100)?null:sourceFor(f,it);
     return {connected:!!source,powered:!!source,via:source?.panel.id||'',generated:!!source?.feed,feet:source?.feet??null};
    }
    if(it.type==='power_outlet'){

@@ -2,6 +2,12 @@
 (function(root){
  'use strict';
  root.FH_SERVICES_TEXT=Object.freeze({
+  elevatorPower:Object.freeze({
+   mandatory:'Este elevador necesita electricidad siempre.',circuit:'Circuito eléctrico del elevador',
+   autoHint:'Hereda el circuito de su habitación al colocarlo o al conectar la habitación. También puedes elegir un circuito válido.',
+   disconnected:'Sin conexión eléctrica operativa.',connected:panel=>'Suministro conectado al breaker '+panel+'.',
+   integrationError:'No se encontró la máquina compartida de elevadores en el motor 3D.'
+  }),
   powerSource:Object.freeze({
    title:'Origen de electricidad',primary:'Fuente principal',backup:'Generador de respaldo',none:'Sin fuente',utility:'Red exterior explícita',legacy:'Red principal heredada (mapa antiguo)',
    missing:'Fuente no disponible',on:'Con energía',off:'Sin energía',floor:'Piso destino del circuito',range:'Cable de este circuito (pies)',feedRange:'Cable de fuente a panel (pies)',priority:'Prioridad de respaldo (mayor primero)',
