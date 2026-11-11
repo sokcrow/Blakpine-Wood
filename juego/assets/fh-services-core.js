@@ -506,18 +506,35 @@
    if(primary)return null;
    return matching.find(feed=>feed.g.it.generatorKind==='emergency'&&generatorReady(feed.g))||false;
   }
-  function sourcesFor(f,it,zone='',uncapped=false){
+  // El cable instalado es independiente de que el breaker tenga suministro.
+  // Una sola consulta geométrica sostiene tanto el dibujo como la energía real.
+  function cableCandidates(f,it,zone=''){
    zone=zone||zoneFor(f,it);
    if(!zone)return [];
-   const sources=[];
+   const cables=[];
    for(const c of powerScopes[f]||[]){
-    if(c.zoneId!==zone||!circuitOn(f,c))continue;
+    if(c.zoneId!==zone)continue;
+    const path=powerRoute(f,c.panel,it),verticalFt=c.verticalFt||0;
+    if(!path||path.feet+verticalFt>c.rangeFt+1e-7)continue;
+    cables.push({c,feet:path.feet+verticalFt,route:{...path,verticalFt,feet:path.feet+verticalFt,
+     sourceFloorId:floors[c.ownerFloor].id,targetFloorId:floors[f].id}});
+   }
+   return cables;
+  }
+  function wiringSourceFor(f,it,zone=''){
+   const cable=cableCandidates(f,it,zone).sort((a,b)=>a.feet-b.feet)[0];
+   return cable?{...cable.c,route:cable.route,feet:cable.feet}:null;
+  }
+  function sourcesFor(f,it,zone='',uncapped=false){
+   const sources=[];
+   for(const {c,route,feet} of cableCandidates(f,it,zone)){
+    if(!circuitOn(f,c))continue;
+    // Conservar el objeto del circuito: los generadores lo comparan por identidad.
     const feed=feedFor(f,c,it);
     if(feed===false)continue;
-    const path=powerRoute(f,c.panel,it),verticalFt=c.verticalFt||0,sourceFeet=feed?.cableFeet||0;
-    if(path&&path.feet+verticalFt<=c.rangeFt+1e-7)sources.push({...c,
-     route:{...path,verticalFt,feet:path.feet+verticalFt,sourceFloorId:floors[c.ownerFloor].id,targetFloorId:floors[f].id},
-     distributionRangeFt:c.rangeFt,rangeFt:c.rangeFt+sourceFeet,feet:path.feet+verticalFt+sourceFeet,feed:feed||null});
+    const sourceFeet=feed?.cableFeet||0;
+    sources.push({...c,route,distributionRangeFt:c.rangeFt,
+     rangeFt:c.rangeFt+sourceFeet,feet:feet+sourceFeet,feed:feed||null});
    }
    sources.sort((a,b)=>Number(!!a.feed)-Number(!!b.feed)||a.feet-b.feet);
    // Keep assignment stable when shedding a destination; do not silently move
@@ -1009,7 +1026,7 @@
   }
   function setService(name,active){if(!Object.prototype.hasOwnProperty.call(s.contracts,name))return false;s.contracts[name]=active?'active':'suspended';return true;}
   syncATS();
-  return Object.freeze({state:s,exteriorGrid,phone:state.phone,graphs,powerGraphs,powerRoute,zoneFor,requiresPower,point,itemAt,defaultsFor,sourceFor,wiredRoute,scopeFor,
+  return Object.freeze({state:s,exteriorGrid,phone:state.phone,graphs,powerGraphs,powerRoute,zoneFor,requiresPower,point,itemAt,defaultsFor,sourceFor,wiringSourceFor,wiredRoute,scopeFor,
    panelStatus,atsStatus,activateATSManual,tankStatus,generatorStatus,setGeneratorEnabled,repairDamage,generatorCircuitPowered,statusFor,electrical,waterStatus,drainStatus,wifiAt,wifiSampler,connectWifi,internetFor,landlineFor,mobileFor,
    chargePhone,takePhone,useWaterFixture,setUsage,dial,tick,setService,feetPerCell});
  }
