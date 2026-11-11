@@ -8,8 +8,8 @@
  };
  function patch(doc){
   const base=new URL('./juego/assets/',root.document.baseURI).href;
-  const core='<script src="'+base+'fh-services-core.js?v=20261110-generators-2"></'+'script>';
-  const strings='<script src="'+base+'fh-services-strings.js?v=20261110-generators-2"></'+'script>';
+  const core='<script src="'+base+'fh-services-core.js?v=20261110-power-sources-1"></'+'script>';
+  const strings='<script src="'+base+'fh-services-strings.js?v=20261110-power-sources-1"></'+'script>';
   // El motor incrusta subdocumentos HTML como cadenas: hay varios </head>.
   // Insertar en el primer cierre (cabecera del documento exterior), como
   // hacen los otros adaptadores, y no exigir una ocurrencia única.

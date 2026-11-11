@@ -302,16 +302,20 @@
    }
    return impacts.reduce((sum,v)=>sum+v.loss,0);
   };
-  const powerScopes=floors.map((floor,f)=>{
-   const circuits=[];
-   for(const panel of values(f,'breaker_panel')){
+  const powerScopes=floors.map(()=>[]);
+  floors.forEach((floor,ownerFloor)=>{
+   for(const panel of values(ownerFloor,'breaker_panel')){
     const list=Array.isArray(panel.circuits)&&panel.circuits.length?panel.circuits:[{zoneId:panel.zoneId||'main'}];
-    for(const c of list)circuits.push({panel,circuitId:String(c.id||c.zoneId||panel.zoneId||'main'),powerFlag:String(c.powerFlag||panel.powerFlag||''),zoneId:String(c.zoneId||c.id||panel.zoneId||'main'),
-     breakerFlag:'power_breaker:'+id(panel)+':'+String(c.id||c.zoneId||panel.zoneId||'main'),
-     rangeFt:rangeFor(panel,c),
-     capacityWatts:Math.max(0,number(c.capacityWatts??panel.capacityWatts,LIMITS[panel.breakerType||'medium']?.capacityWatts||2400))});
+    for(const spec of list){
+     const f=spec.floorId?floors.findIndex(floor=>floor.id===spec.floorId):Number.isInteger(spec.floorIndex)?spec.floorIndex:ownerFloor;
+     if(!powerScopes[f]||f!==ownerFloor&&panel.powerSource===undefined)continue;
+     powerScopes[f].push({panel,ownerFloor,f,spec,circuitId:String(spec.id||spec.zoneId||panel.zoneId||'main'),
+      powerFlag:String(spec.powerFlag||panel.powerFlag||''),zoneId:String(spec.zoneId||spec.id||panel.zoneId||'main'),
+      breakerFlag:'power_breaker:'+id(panel)+':'+String(spec.id||spec.zoneId||panel.zoneId||'main'),
+      verticalFt:f===ownerFloor?0:Math.abs(number(floors[f].elevationFt)-number(floor.elevationFt)),
+      rangeFt:rangeFor(panel,spec),capacityWatts:Math.max(0,number(spec.capacityWatts??panel.capacityWatts,LIMITS[panel.breakerType||'medium']?.capacityWatts||2400))});
+    }
    }
-   return circuits;
   });
   const flagOn=k=>s.enabled[k]!==false&&state.flags?.[k]!==false;
   // Logical generator feeds terminate at a real panel/circuit on the destination floor.
@@ -354,6 +358,10 @@
   const baseReady=g=>s.generators[g.key].enabled&&reserveHours(g)>0&&
    Math.max(0,number(g.it.capacityWatts,2400))>0&&number(s.damage[id(g.it)])<100;
   function primaryAvailable(feed){
+   if(feed.circuit.panel.powerSource!==undefined){
+    const main=explicitFeed(feed.circuit,false);
+    return main===null?mainAvailable(feed.f)&&mainAvailable(feed.circuit.ownerFloor):!!main&&baseReady(main.g);
+   }
    const sample={roomId:feed.target.roomId||'',x:feed.circuit.panel.x,y:feed.circuit.panel.y};
    const normal=feeds.find(other=>other.g.it.generatorKind!=='emergency'&&feedMatches(other,feed.f,feed.circuit,sample));
    return normal?baseReady(normal.g):mainAvailable(feed.f);
@@ -394,9 +402,32 @@
    const f=floors.findIndex(floor=>floor.id===target.floorId);
    const circuit=(powerScopes[f]||[]).find(c=>id(c.panel)===String(target.panelId)&&c.circuitId===String(target.circuitId));
    const room=target.roomId&&(elements[f]||[]).find(r=>r.type==='room'&&String(r.roomId||r.id)===String(target.roomId));
-   if(!circuit||target.roomId&&!room)return [];
+   if(!circuit||circuit.panel.powerSource!==undefined||target.roomId&&!room)return [];
    return [{g,target,f,circuit,key:g.key+':'+i,priority:number(target.priority)}];
   }));
+  // Explicit panel references survive deletion of a generator; they never fall back to the utility.
+  const explicitFeeds=[];
+  for(const scopes of powerScopes)for(const c of scopes){
+   if(c.panel.powerSource===undefined)continue;
+   for(const backup of [false,true]){
+    const ref=backup?c.panel.backupSource:c.panel.powerSource;
+    if(ref?.kind!=='generator')continue;
+    const g=generators.find(g=>floors[g.f].id===ref.floorId&&id(g.it)===String(ref.itemId));
+    if(!g||((g.it.generatorKind==='emergency')!==backup))continue;
+    const horizontal=(Math.abs(number(g.it.x)-number(c.panel.x))+Math.abs(number(g.it.y)-number(c.panel.y)))*feetPerCell;
+    const cableFeet=horizontal+Math.abs(number(floors[g.f].elevationFt)-number(floors[c.ownerFloor].elevationFt));
+    if(cableFeet>Math.max(0,number(c.panel.sourceCableFt,90))+1e-7)continue;
+    explicitFeeds.push({g,f:c.f,circuit:c,key:g.key+':panel:'+floors[c.ownerFloor].id+':'+id(c.panel)+':'+c.circuitId,
+     target:{floorId:floors[c.f].id,panelId:id(c.panel),circuitId:c.circuitId},priority:number(c.spec.priority),backup,cableFeet});
+   }
+  }
+  feeds.push(...explicitFeeds);
+  function explicitFeed(c,backup=false){
+   const ref=backup?c.panel.backupSource:c.panel.powerSource;
+   if(!backup&&ref?.kind==='utility')return null;
+   if(ref?.kind!=='generator')return false;
+   return explicitFeeds.find(feed=>feed.circuit===c&&feed.backup===backup)||false;
+  }
   let allocationCache=null;
   const roomIdFor=(f,it)=>String(it.roomId||roomOn(f,it)?.roomId||roomOn(f,it)?.id||'');
   const feedMatches=(feed,f,c,it)=>feed.f===f&&feed.circuit===c&&
@@ -418,6 +449,12 @@
   }
   function feedFor(f,c,it){
    syncATS();
+   if(c.panel.powerSource!==undefined){
+    const primary=explicitFeed(c);
+    if(primary&&generatorReady(primary.g))return primary;
+    if(primary===null&&mainAvailable(f)&&mainAvailable(c.ownerFloor))return null;
+    const backup=explicitFeed(c,true);return backup&&generatorReady(backup.g)?backup:false;
+   }
    const matching=feeds.filter(feed=>feedMatches(feed,f,c,it));
    const normal=matching.find(feed=>feed.g.it.generatorKind!=='emergency');
    if(normal&&generatorReady(normal.g))return normal;
@@ -434,8 +471,10 @@
     if(c.zoneId!==zone||!circuitOn(f,c))continue;
     const feed=feedFor(f,c,it);
     if(feed===false)continue;
-    const path=powerRoute(f,c.panel,it);
-    if(path&&path.feet<=c.rangeFt+1e-7)sources.push({...c,route:path,feet:path.feet,feed:feed||null});
+    const path=powerRoute(f,c.panel,it),verticalFt=c.verticalFt||0,sourceFeet=feed?.cableFeet||0;
+    if(path&&path.feet+verticalFt<=c.rangeFt+1e-7)sources.push({...c,
+     route:{...path,verticalFt,feet:path.feet+verticalFt,sourceFloorId:floors[c.ownerFloor].id,targetFloorId:floors[f].id},
+     distributionRangeFt:c.rangeFt,rangeFt:c.rangeFt+sourceFeet,feet:path.feet+verticalFt+sourceFeet,feed:feed||null});
    }
    sources.sort((a,b)=>Number(!!a.feed)-Number(!!b.feed)||a.feet-b.feet);
    // Keep assignment stable when shedding a destination; do not silently move
@@ -471,6 +510,16 @@
     }
    }
    allocationCache={signature,accepted,running,loads};return allocationCache;
+  }
+  function panelStatus(ownerFloor,panel){
+   syncATS();const circuits=powerScopes.flat().filter(c=>c.ownerFloor===ownerFloor&&c.panel===panel).map(c=>{
+    const feed=feedFor(c.f,c,{x:panel.x,y:panel.y}),on=circuitOn(c.f,c);
+    const powered=on&&c.verticalFt<=c.rangeFt+1e-7&&feed!==false&&(!feed||generatorAllocation().accepted.has(feed.key));
+    return {circuitId:c.circuitId,zoneId:c.zoneId,floorId:floors[c.f].id,powered,verticalFt:c.verticalFt,rangeFt:c.rangeFt,
+     source:feed?{kind:'generator',itemId:id(feed.g.it),floorId:floors[feed.g.f].id,label:feed.g.it.label||id(feed.g.it),backup:!!feed.backup}:feed===null?{kind:'utility'}:{kind:'none'},
+     sourceFeet:feed?.cableFeet||0};
+   });
+   return {legacy:panel.powerSource===undefined,circuits,powered:circuits.some(c=>c.powered)};
   }
   function generatorCircuitPowered(f,zone=''){
    return feeds.some(feed=>feed.f===f&&(!zone||feed.circuit.zoneId===zone)&&generatorAllocation().accepted.has(feed.key));
@@ -900,7 +949,7 @@
   function setService(name,active){if(!Object.prototype.hasOwnProperty.call(s.contracts,name))return false;s.contracts[name]=active?'active':'suspended';return true;}
   syncATS();
   return Object.freeze({state:s,phone:state.phone,graphs,powerGraphs,powerRoute,zoneFor,requiresPower,point,itemAt,defaultsFor,sourceFor,wiredRoute,scopeFor,
-   atsStatus,activateATSManual,tankStatus,generatorStatus,setGeneratorEnabled,generatorCircuitPowered,statusFor,electrical,waterStatus,drainStatus,wifiAt,wifiSampler,connectWifi,internetFor,landlineFor,mobileFor,
+   panelStatus,atsStatus,activateATSManual,tankStatus,generatorStatus,setGeneratorEnabled,generatorCircuitPowered,statusFor,electrical,waterStatus,drainStatus,wifiAt,wifiSampler,connectWifi,internetFor,landlineFor,mobileFor,
    chargePhone,takePhone,useWaterFixture,setUsage,dial,tick,setService,feetPerCell});
  }
  return Object.freeze({INFRA,defaultsFor,wallGraph,ensureState,createRuntime,requiresPower:needsElectricity,LIMITS,rangeFor});

@@ -348,3 +348,15 @@ test('siete props de piso usan el collider existente; ATS de pared no bloquea mo
   assert.ok(root.isGroup);
  }
 });
+
+for(const [name,create] of [['compartido',shared.createLightingSystem],['motor preparado',factoryFrom(engine.prepared)],['motor con servicios',factoryFrom(engine.patched)]]){
+ test(name+': generador y breaker abajo alimentan arriba sólo con fuente y alcance explícitos',()=>{
+  const r={...room,roomId:'A',zoneId:'a'},l={...lamp,roomId:'A',zoneId:'a',x:1,y:1,watts:100};
+  const p={...panel,id:'p',x:0,y:0,powerFlag:'',powerSource:{kind:'generator',floorId:'lower',itemId:'g'},circuits:[{id:'a',zoneId:'a',floorId:'upper',rangeFt:30}]};
+  const g={id:'g',type:'generator',enabled:true,generatorKind:'normal',autonomyHours:24,capacityWatts:500};
+  const floors=[{id:'lower',elevationFt:-12,items:[g,p]},{id:'upper',elevationFt:0,items:[r,l,{id:'w',type:'wall',a:{x:0,y:0},b:{x:10,y:0}}]}];
+  const state={flags:{}},service=Services.createRuntime({floors,units:{feetPerCell:5}},state);
+  const light=create(floors,state,{fixturePowered:(f,it,z)=>!!service.sourceFor(f,it,z),generatorPowered:(f,it,z)=>!!service.sourceFor(f,it,z)?.feed});
+  assert.equal(light.fixtureLit(1,r,l),true);service.setGeneratorEnabled(0,'g',false);assert.equal(light.fixtureLit(1,r,l),false);
+ });
+}

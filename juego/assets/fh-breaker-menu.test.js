@@ -26,7 +26,7 @@ function setup(empty=false){
  const elements=Object.fromEntries(['circuitChooser','circuitColor','circuitStatus','circuitAuditList','closeCircuitAudit'].map(id=>[id,new Element('div')]));
  elements.circuitChooser.tagName='select';
  const window={},state={html:''};
- const ctx=vm.createContext({window,document:{createElement:tag=>new Element(tag)},
+ const ctx=vm.createContext({window,project:{floors:[floor]},document:{createElement:tag=>new Element(tag)},
   current:()=>floor,$:selector=>elements[selector.slice(1)],
   modal:(html,ready)=>{state.html=html;elements.circuitAuditList.replaceChildren();ready()},closeModal(){}});
  const sharedStart=editor.indexOf('const ForestShared=(()=>{'),sharedEnd=editor.indexOf("\n'use strict';",sharedStart);
@@ -194,4 +194,11 @@ test('cambiar tipo de breaker refresca el alcance en el inspector sin reescribir
  ctx.openInspector();ctx.setItemField('saved','breakerType','small');
  assert.deepEqual(displayed.slice(-2),[0,0],'mantener los 0 ft guardados');
  assert.equal(existing.rangeFt,0);
+});
+
+test('el selector del piso superior ofrece el circuito del breaker inferior y conserva su origen',()=>{
+ const {ctx,items}=setup();items[0].circuits[0].floorId='upper';items[0].powerSource={kind:'utility'};
+ const upper={id:'upper',items:[{id:'room-upper',type:'room',zoneId:'a1'}]};ctx.project.floors.push(upper);ctx.current=()=>upper;
+ const circuits=ctx.availableCircuits();assert.equal(circuits.length,1);assert.equal(circuits[0].ownerFloorId,'f');assert.equal(circuits[0].panelId,'breaker-A');
+ ctx.setZoneColor('a1','#123456');assert.equal(items[0].circuits[0].circuitColor,'#123456');
 });

@@ -204,8 +204,8 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
 <script src="./juego/assets/fh-access-config.js?v=20261107-map-v1"></script>
 <script src="./juego/assets/fh-weather-strings.js?v=20261108-clima1"></script>
 <script src="./juego/assets/fh-weather-editor.js?v=20261108-clima1"></script>
-<script src="./juego/assets/fh-services-strings.js?v=20261110-generators-2"></script>
-<script src="./juego/assets/fh-services-core.js?v=20261110-generators-2"></script>
+<script src="./juego/assets/fh-services-strings.js?v=20261110-power-sources-1"></script>
+<script src="./juego/assets/fh-services-core.js?v=20261110-power-sources-1"></script>
 <script src="./juego/assets/fh-floor-levels.js?v=20261109-basements1"></script>
 <script src="./juego/assets/fh-wifi-editor-overlay.js?v=20261109-wifi-editor-1"></script>
 <script src="./juego/assets/fh-light-strings.js?v=20261109-zones-3"></script>
@@ -1851,7 +1851,13 @@ function render(){const r=canvas.getBoundingClientRect();let d=canvas.width/Math
 function zoomAt(mult,cx=canvas.clientWidth/2,cy=canvas.clientHeight/2){let s=Math.max(.0001,Math.min(7,view.scale*mult));let world=toWorld({x:cx,y:cy});view.scale=s;view.tx=cx-world.x*s;view.ty=cy-world.y*s;render()}
 function layerForCategory(cat){return cat==='lighting'?'lighting':['furniture','water','network'].includes(cat)?'furniture':'architecture'}
 function layerForItem(it){return LIGHTING_TYPES.has(it.type)?'lighting':SEGMENT_TYPES.has(it.type)||AREA_TYPES.has(it.type)||it.type==='parking_decal'||['stairs','elevator','spawn','npc_portal'].includes(it.type)?'architecture':'furniture'}
-function availableCircuits(){return ForestShared.editorCircuits(current())}
+function availableCircuits(){
+ return project.floors.flatMap(floor=>ForestShared.editorCircuits(floor).flatMap(c=>{
+  const panel=floor.items.find(it=>it.id===c.panelId),spec=panel?.circuits?.find(s=>String(s.id||s.zoneId)===c.id);
+  const targetId=spec?.floorId||(Number.isInteger(spec?.floorIndex)?project.floors[spec.floorIndex]?.id:floor.id);
+  return targetId===current().id?[{...c,ownerFloorId:floor.id}]:[];
+ }));
+}
 function selectedCircuit(){return $('#circuitChooser')?.value||''}
 function circuitInfo(zone){return availableCircuits().find(c=>c.zoneId===zone)}
 function circuitColorFor(zone){return circuitInfo(zone)?.circuitColor||'#93a0ad'}
@@ -1865,7 +1871,7 @@ function electricalZoneGroups(circuits=availableCircuits()){
 }
 function setZoneColor(zone,color){
  for(const c of availableCircuits().filter(c=>c.zoneId===zone)){
-  const panel=current().items.find(it=>it.id===c.panelId);
+  const panel=(project.floors.find(f=>f.id===c.ownerFloorId)||current()).items.find(it=>it.id===c.panelId);
   const spec=panel?.circuits?.find(spec=>(spec.id||spec.zoneId)===c.id);
   if(spec)spec.circuitColor=color;else if(panel)panel.circuitColor=color;
  }
@@ -1891,12 +1897,7 @@ function setLayer(layer){activeLayer=layer;document.body.classList.toggle('layer
 // Grafo común: los cables se ven sobre las paredes, nunca cruzan habitaciones.
 const utilityVisualCache={signature:'',graph:null,runtime:null};
 function utilityVisual(){
- const signature=JSON.stringify([floorIndex,project.units.feetPerCell,
-  project.floors.map(f=>[f.id,f.items.filter(it=>it.type==='generator')]),
-  current().items.filter(it=>['wall','red_wall','property_wall','window','door','peephole_door','opening','room','breaker_panel',
-   'light_fixture','light_switch','power_outlet','water_main','water_outlet',
-   'drain_main','drain_outlet','router','ethernet_port','landline_phone'].includes(it.type)),
-  project.properties||[]]);
+ const signature=JSON.stringify([floorIndex,project.units.feetPerCell,project.floors.map(f=>[f.id,f.elevationFt,f.items.filter(it=>window.FHServices?.INFRA.has(it.type)||window.FHServices?.requiresPower(it)||['wall','red_wall','property_wall','window','door','peephole_door','opening','room','breaker_panel','light_switch'].includes(it.type))]),project.properties||[]]);
  if(utilityVisualCache.signature!==signature){
   utilityVisualCache.signature=signature;
   utilityVisualCache.graph=window.FHServices?.wallGraph(current().items,{doorways:true})||null;
@@ -1927,13 +1928,14 @@ function drawWallPaths(c,z,paths,color,selected=true){
 }
 function drawLightingOverlay(c,z){
  const items=current().items,zone=selectedCircuit(),all=$('#circuitShowAll')?.checked||false;
+ window.FHGeneratorsEditor?.drawPanelSources(c,z);
  window.FHLightEditorOverlay?.draw(c,z);
  const {graph,runtime}=utilityVisual();
  if(!graph)return;
  const rooms=items.filter(it=>it.type==='room');
  for(const circ of availableCircuits()){
   if(!all&&circ.zoneId!==zone)continue;
-  const owner=items.find(it=>it.id===circ.panelId);
+  const owner=(project.floors.find(f=>f.id===circ.ownerFloorId)||current()).items.find(it=>it.id===circ.panelId);
   if(!owner)continue;
   const color=circ.circuitColor||'#dfa65c',selected=circ.zoneId===zone,paths=[],terminals=[];
   const sameCircuit=it=>{
@@ -1951,6 +1953,7 @@ function drawLightingOverlay(c,z){
   c.save();c.globalAlpha=selected?.85:.32;c.fillStyle=color;
   for(const point of terminals){const p=toPixel(point);c.beginPath();c.arc(p.x,p.y,2.2/z,0,Math.PI*2);c.fill()}
   const origin=toPixel(owner);c.strokeStyle=color;c.lineWidth=2/z;
+  if(circ.ownerFloorId&&circ.ownerFloorId!==current().id){c.fillStyle=color;c.font=(11/z)+'px system-ui';c.fillText(window.FH_SERVICES_TEXT.powerSource.origin(owner.label||owner.id,project.floors.find(f=>f.id===circ.ownerFloorId)?.name||circ.ownerFloorId),origin.x+7/z,origin.y-7/z);}
   c.beginPath();c.arc(origin.x,origin.y,5/z,0,Math.PI*2);c.stroke();c.restore();
  }
 }
@@ -2134,7 +2137,7 @@ if(type==='light_switch'){const mount=ForestShared.switchWallMount(current().ite
  it.x=mount.point.x;it.y=mount.point.y;it.wallId=mount.wallId;it.rotation=mount.rotation;
  it.roomId=mount.room?.roomId||mount.room?.id||'';it.apartmentId=mount.room?.apartmentId||'';
  it.blocksMovement=false;it.label='Interruptor';it.zoneId=mount.room?.zoneId&&mount.room.zoneId!=='main'?mount.room.zoneId:selectedCircuit()||'main';it.heightFt=4}
-if(type==='breaker_panel'){const count=current().items.filter(i=>i.type==='breaker_panel').length+1;it.blocksMovement=false;it.label=`Panel ${count}`;it.powerScope='zone';it.powerFlag='';it.heightFt=5;const circuit=ForestShared.nextCircuit(current(),it);circuit.name=`Zona ${availableCircuits().length+1}`;it.zoneId=circuit.zoneId;it.circuitColor=circuit.circuitColor;it.circuits=[circuit];}
+if(type==='breaker_panel'){it.powerSource={kind:'none'};it.backupSource={kind:'none'};it.sourceCableFt=90;const count=current().items.filter(i=>i.type==='breaker_panel').length+1;it.blocksMovement=false;it.label=`Panel ${count}`;it.powerScope='zone';it.powerFlag='';it.heightFt=5;const circuit=ForestShared.nextCircuit(current(),it);circuit.name=`Zona ${availableCircuits().length+1}`;it.zoneId=circuit.zoneId;it.circuitColor=circuit.circuitColor;it.circuits=[circuit];}
 if(ForestShared.PROP_ACTIONS[type]){
  it.anchors=ForestShared.defaultPropAnchors(it);
  const preset=type==='bed'?ForestShared.interactionPreset('bed','lie'):type==='tv'?ForestShared.interactionPreset('tv','watch'):ForestShared.interactionPreset(type);
@@ -2670,7 +2673,7 @@ function setItemField(id,key,val){const it=current().items.find(v=>v.id===id);if
    it.service||={};const name=key.slice(8);
    it.service[name]=['requiresPower','requiresWater','drains','onDemand'].includes(name)?!!val:
     ['rayos','watts','flowLpm','litersPerUse'].includes(name)?Math.max(0,Number(val)||0):String(val);
-  }else if(key.startsWith('style.')){it.style||={};it.style[key.slice(6)]=key==='style.window'?!!val:String(val)}else if(key==='partialOpen'){it.partialOpen=Number(val)}else if(key==='peekSide'){it.peekSide=Number(val)}else if(key==='open'||key==='locked'||key==='blocksMovement'||key==='enabled'||key==='doorsOpen'||key==='requiresPower'||key==='opened'){it[key]=!!val}else if(['x','y','w','h','rotation','heightFt','widthFt','lightRadiusFt','lightDimFalloffFt','beamAngleDeg','slots','capacityRayos','radiusFt','rangeFt','flowLpm','wifiRadiusFt','ethernetLengthFt','cableLengthFt','chargePerHour','rayos','watts','ethernetLeadFt','autonomyHours','capacityWatts','fuelLitersPerHour','capacityLiters','initialFuelLiters'].includes(key)){it[key]=Number.isFinite(Number(val))?Number(val):0}else if(['ax','ay','bx','by'].includes(key)){let pt=key[0]==='a'?it.a:it.b;pt[key[1]]=Number(val)||0}else{it[key]=val}
+  }else if(key.startsWith('style.')){it.style||={};it.style[key.slice(6)]=key==='style.window'?!!val:String(val)}else if(key==='partialOpen'){it.partialOpen=Number(val)}else if(key==='peekSide'){it.peekSide=Number(val)}else if(key==='open'||key==='locked'||key==='blocksMovement'||key==='enabled'||key==='doorsOpen'||key==='requiresPower'||key==='opened'){it[key]=!!val}else if(['x','y','w','h','rotation','heightFt','widthFt','lightRadiusFt','lightDimFalloffFt','beamAngleDeg','slots','capacityRayos','radiusFt','rangeFt','flowLpm','wifiRadiusFt','ethernetLengthFt','cableLengthFt','chargePerHour','rayos','watts','ethernetLeadFt','autonomyHours','capacityWatts','fuelLitersPerHour','capacityLiters','initialFuelLiters','sourceCableFt'].includes(key)){it[key]=Number.isFinite(Number(val))?Number(val):0}else if(['ax','ay','bx','by'].includes(key)){let pt=key[0]==='a'?it.a:it.b;pt[key[1]]=Number(val)||0}else{it[key]=val}
  if(AREA_TYPES.has(it.type)&&it.type!=='room'&&before.spans?.length&&['x','y'].includes(key)){const d=it[key]-before[key];it.spans=before.spans.map(sp=>({...sp,[key]:rounded(sp[key]+d,6)}))}
  if(it.type==='stairs'&&key==='targetFloorId'&&!it.autoLanding){
   const dest=stairNeighbors().find(t=>t.floor.id===val);
@@ -2786,7 +2789,7 @@ function modalCircuitAudit(){
    for(const circ of zone.circuits){
    const card=document.createElement('div');card.style.cssText='padding:8px 10px;margin-top:6px;background:#1b2b35';card.style.borderLeft='3px solid '+circ.circuitColor;
    const h=document.createElement('strong');h.textContent=T.breakerIdentity(circ.panelLabel,circ.panelId);card.append(h);
-   const owner=items.find(it=>it.id===circ.panelId),spec=owner?.circuits?.find(c=>(c.id||c.zoneId)===circ.id),type=owner?.breakerType||'medium';
+   const owner=(project.floors.find(f=>f.id===circ.ownerFloorId)||current()).items.find(it=>it.id===circ.panelId),spec=owner?.circuits?.find(c=>(c.id||c.zoneId)===circ.id),type=owner?.breakerType||'medium';
    const info=document.createElement('div');info.textContent=T.breakerRange(T.breakerTypes[type]||type,window.FHServices?.rangeFor(owner||{},spec)??180);card.append(info);
    section.append(card);
    }
@@ -2818,15 +2821,17 @@ function renderBreakerCircuits(panel,fields){
    if(oldZone==='main')toast('Breaker configurado. Selecciona los cuartos para conectarlos; no se conectó todo automáticamente.');
   };fields.append(convert);
  }
- const circuits=availableCircuits().filter(c=>c.panelId===panel.id);
+ const circuits=ForestShared.editorCircuits(current()).filter(c=>c.panelId===panel.id);
  circuits.forEach((circ,index)=>{
   const card=document.createElement('section');card.className='breaker-circuit-card';card.style.cssText='grid-column:1/-1;display:grid;gap:7px;padding:10px;border:1px solid #687b86;background:#15232d;';
-  const n=ForestShared.circuitCounts(current().items,circ.zoneId);
+  const destination=panel.circuits?.find(c=>String(c.id||c.zoneId)===circ.id)?.floorId||current().id;
+  const n=ForestShared.circuitCounts(project.floors.find(f=>f.id===destination)?.items||[],circ.zoneId);
   const head=document.createElement('strong');head.textContent=`Palanca ${index+1} · ${circ.name}`;card.append(head);
    const id=document.createElement('small');id.style.cssText='overflow-wrap:anywhere;color:#a4c4ce';id.textContent=`ID permanente: ${circ.id}`;card.append(id);
   const counts=document.createElement('small');counts.textContent=`Conectado: ${n.rooms} habitaciones, ${n.lamps} lámparas y ${n.switches} interruptores`;card.append(counts);
   if(legacy){fields.append(card);return}
   const spec=panel.circuits.find(c=>String(c.id||c.zoneId)===circ.id);
+  window.FHGeneratorsEditor?.attachCircuitFields(panel,spec,card);
   const zoneLabel=document.createElement('label');zoneLabel.textContent=window.FH_LIGHT_TEXT.zoneLabel;
   const zoneChoice=document.createElement('select');
   for(const zone of electricalZoneGroups()){
@@ -2843,7 +2848,7 @@ function renderBreakerCircuits(panel,fields){
   for(const [val,name] of [['zone',window.FH_LIGHT_TEXT.zoneScope]]){const option=document.createElement('option');option.value=val;option.textContent=name;select.append(option)}
   select.value='zone';select.onchange=()=>{spec.powerScope=select.value;record();openInspector()};scope.append(select);card.append(scope);
   const btns=document.createElement('div');btns.style.cssText='display:flex;gap:6px;flex-wrap:wrap';
-  const choose=document.createElement('button');choose.type='button';choose.textContent='Asignar esta zona';choose.onclick=()=>{refreshCircuits(circ.zoneId);setCategory('lighting');$('#circuitChooser').value=circ.zoneId;refreshCircuits(circ.zoneId);chooseTool('zone_assign');closeInspector();toast(`Toca los cuartos o lámparas para conectarlos a ${circ.name}`)};btns.append(choose);
+  const choose=document.createElement('button');choose.type='button';choose.textContent='Asignar esta zona';choose.onclick=()=>{const target=project.floors.findIndex(f=>f.id===(spec?.floorId||current().id));if(target>=0)changeFloor(target);refreshCircuits(circ.zoneId);setCategory('lighting');$('#circuitChooser').value=circ.zoneId;refreshCircuits(circ.zoneId);chooseTool('zone_assign');closeInspector();toast(`Toca los cuartos o lámparas para conectarlos a ${circ.name}`)};btns.append(choose);
   const remove=document.createElement('button');remove.type='button';remove.textContent='Eliminar circuito';remove.disabled=panel.circuits.length<=1;remove.title='Conserva al menos una palanca por panel';remove.onclick=()=>{if(n.rooms+n.lamps+n.switches){toast('Primero cambia de circuito sus habitaciones y dispositivos.');return}panel.circuits=panel.circuits.filter(c=>String(c.id||c.zoneId)!==circ.id);record();refreshCircuits();openInspector()};btns.append(remove);card.append(btns);fields.append(card);
  });
  const add=document.createElement('button');add.type='button';add.textContent='＋ Añadir palanca / circuito';add.style.cssText='grid-column:1/-1;min-height:44px;border:1px solid #d9b876';
@@ -2898,7 +2903,7 @@ function attachServiceInspector(it,fields){
    makeField(T.capacity,'capacityWatts',it.capacityWatts??2400,'number'));
   const group=document.createElement('fieldset');group.style.cssText='grid-column:1/-1;max-height:320px;overflow:auto';
   const legend=document.createElement('legend');legend.textContent=T.targets;group.append(legend);
-  for(const floor of project.floors)for(const panel of floor.items.filter(x=>x.type==='breaker_panel')){
+  for(const floor of project.floors)for(const panel of floor.items.filter(x=>x.type==='breaker_panel'&&x.powerSource===undefined)){
    const circuits=panel.circuits?.length?panel.circuits:[{zoneId:panel.zoneId||'main'}];
    for(const circuit of circuits){
     const circuitId=String(circuit.id||circuit.zoneId||panel.zoneId||'main'),zone=String(circuit.zoneId||circuit.id||panel.zoneId||'main');
@@ -3414,7 +3419,7 @@ function prepareGLBEngineDoc(source){
  const furnitureStateScript='<script src="'+new URL('./juego/assets/fh-furniture-state.js?v=20261110-editor1',document.baseURI).href+'"></'+'script>';
  const ruleScript='<script src="'+new URL('./juego/assets/fh-furniture-rules.js',document.baseURI).href+'"></'+'script>';
  const inventoryCoreScript='<script src="'+new URL('./juego/assets/fh-inventory-core.js?v=20261108-encimera-1',document.baseURI).href+'"></'+'script>';
- const bridge='<script src="'+new URL('./juego/assets/fh-glb-bridge.js?v=20261110-generators-2',document.baseURI).href+'"></'+'script>';
+ const bridge='<script src="'+new URL('./juego/assets/fh-glb-bridge.js?v=20261110-power-sources-1',document.baseURI).href+'"></'+'script>';
  const localThree='<script src="'+new URL('./juego/assets/vendor/three.min.js',document.baseURI).href+'"></'+'script>';
  const sleepStrings='<script src="'+new URL('./juego/assets/fh-sleep-strings.js?v=20261108-comfort-1',document.baseURI).href+'"></'+'script>';
  const sleepModule='<script src="'+new URL('./juego/assets/fh-sleep.js?v=20261108-comfort-1',document.baseURI).href+'"></'+'script>';
@@ -4918,7 +4923,7 @@ init();
 <script src="./juego/assets/fh-structure-engine-hook.js?v=20261108-architecture-load"></script>
 <script src="./juego/assets/fh-comic-action-engine-hook.js?v=20261107-comic-actions-1"></script>
 <script src="./juego/assets/fh-context-engine-hook.js?v=20261108-elevator-comfort-1"></script>
-<script src="./juego/assets/fh-services-engine-hook.js?v=20261110-generators-2"></script>
+<script src="./juego/assets/fh-services-engine-hook.js?v=20261110-power-sources-1"></script>
 <script src="./juego/assets/fh-electric-catalog.js?v=20261109-servicios-24"></script>
 <script src="./juego/assets/fh-electric-strings.js?v=20261109-servicios-24"></script>
 <script src="./juego/assets/fh-electric-visuals.js?v=20261109-wall-mount-1"></script>
@@ -4934,7 +4939,7 @@ init();
 <script src="./juego/assets/fh-furniture-state.js?v=20261110-editor1"></script>
 <script src="./juego/assets/fh-furniture-editor-strings.js?v=20261110-editor1"></script>
 <script src="./juego/assets/fh-furniture-editor.js?v=20261110-editor1"></script>
-<script src="./juego/assets/fh-generators-editor.js?v=20261110-generators-2"></script>
+<script src="./juego/assets/fh-generators-editor.js?v=20261110-power-sources-1"></script>
 <script src="./juego/assets/fh-roof-editor.js?v=20261110-roof3"></script>
 </body>
 </html>

@@ -93,3 +93,26 @@ test('inspector vincula equipos entre pisos y excluye accesorios ocupados',async
  const saved=f.calls.find(c=>c.key==='tankLink');assert.equal(saved.value.id,'tank');assert.equal(saved.value.floorId,'upper');
  assert.ok(f.calls.some(c=>Array.isArray(c)&&c[1]==='fuelLitersPerHour'));
 });
+
+test('breaker nuevo nace sin fuente ni respaldo implícitos',()=>{
+ const source=fs.readFileSync(path.join(__dirname,'../../index.html'),'utf8'),start=source.indexOf('function createObject(type,p){'),end=source.indexOf('\nfunction sanitizeId',start);
+ const win={FHLights:{kindForTool:()=>null}},floor={id:'basement',items:[]};
+ const ctx={window:win,project:{units:{feetPerCell:5}},current:()=>floor,numId:()=> 'new-panel',OBJECT_SIZES:{},roomHasPosition:()=>false,
+  availableCircuits:()=>[],ForestShared:{PROP_ACTIONS:{},nextCircuit:()=>({id:'a',zoneId:'a',circuitColor:'#ffffff'})}};
+ vm.runInNewContext(source.slice(start,end),ctx);const panel=ctx.createObject('breaker_panel',{x:1,y:1});
+ assert.equal(panel.powerSource.kind,'none');assert.equal(panel.backupSource.kind,'none');assert.equal(panel.sourceCableFt,90);
+});
+test('inspector del breaker elige fuente y respaldo permanentes entre pisos',async()=>{
+ const f=await editorFixture(),panel={id:'p',type:'breaker_panel',powerSource:{kind:'none'},circuits:[{id:'a',zoneId:'a'}]};
+ f.floor.items.push(panel);f.upper.items.push({id:'main',type:'generator',generatorKind:'normal',enabled:true},{id:'backup',type:'generator',generatorKind:'emergency'});
+ f.win.FHServices=require('./fh-services-core.js');
+ f.ctx.utilityVisual=()=>({runtime:f.win.FHServices.createRuntime(f.ctx.project,{})});
+ const fields=f.fields();f.win.FHGeneratorsEditor.attachInspector(panel,fields);
+ const label=fields.children.find(n=>n.textContent===f.win.FH_SERVICES_TEXT.powerSource.primary),select=label.children[0];
+ const reference={kind:'generator',floorId:'upper',itemId:'main'};
+ select.value=JSON.stringify(reference);select.onchange();
+ assert.deepEqual(JSON.parse(JSON.stringify(f.calls.find(c=>c.key==='powerSource').value)),reference);
+ const card=f.fields();f.win.FHGeneratorsEditor.attachCircuitFields(panel,panel.circuits[0],card);
+ const floorSelect=card.children[0].children[0];floorSelect.value='upper';floorSelect.onchange();assert.equal(panel.circuits[0].floorId,'upper');
+ const length=card.children[1].children[0];length.value=35;length.onchange();assert.equal(panel.circuits[0].rangeFt,35);
+});
