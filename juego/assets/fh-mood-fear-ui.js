@@ -20,14 +20,20 @@
   face=make('img','fh-character-mood-icon');
   face.alt='';face.draggable=false;mood.append(face);
   const stats=make('div','fh-character-data');
-  name=make('div','fh-character-name');stats.append(name);
+  name=make('span','fh-character-name');
   bars={};
   for(const key of ['pg','sp','pe']){
-   const line=make('div','fh-character-line');
+   const line=make('div','fh-character-line fh-character-line--'+key);
    const label=make('span','fh-character-stat',key==='sp'?'PS':key.toUpperCase());
    const track=make('div','fh-character-track fh-character-track-'+key);
    const fill=make('span','fh-character-fill fh-character-fill-'+key);
-   track.append(fill);line.append(label,track);stats.append(line);
+   track.append(fill);
+   if(key==='pg'){
+    // El nombre siempre queda visible sobre el relleno rojo, incluso con pocos PG.
+    track.append(label,name);
+    line.append(track);
+   }else line.append(label,track);
+   stats.append(line);
    bars[key]={fill,track};
   }
   panel.append(mood,stats);

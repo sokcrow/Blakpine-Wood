@@ -4643,7 +4643,7 @@ function floorSightThroughOpening(f,at,target,openings){
    ['script','fh-mood-fear-ui.js']
   ];
   const tags=resources.map(([kind,file])=>{
-   const url=new URL('./juego/assets/'+file+'?v=20261111-mood-fear-4',document.baseURI).href;
+   const url=new URL('./juego/assets/'+file+'?v=20261111-mood-fear-5',document.baseURI).href;
    return kind==='link'?'<link rel="stylesheet" href="'+url+'">':'<script src="'+url+'"></'+'script>';
   }).join('');
   if(!doc.includes('</head>'))throw Error('Falta head del motor para Mood/Miedo');

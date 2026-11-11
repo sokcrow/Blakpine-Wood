@@ -89,6 +89,27 @@ test('ubicación se mantiene centrada, compacta y transitoria después de quitar
  assert.ok(locationJs.includes("host.classList.toggle('fh-location-has-secondary',Boolean(value.secondary))"),'Línea solo con habitación');
 
 });
+test('PG es la barra mayor con nombre dentro; PS y PE son iguales',()=>{
+ const ui=read('fh-mood-fear-ui.js'),css=read('fh-mood-fear.css');
+ assert.match(ui,/fh-character-line fh-character-line--/);
+ assert.match(ui,/if\(key==='pg'\)\{/);
+ assert.match(ui,/track\.append\(label,name\)/);
+ assert.doesNotMatch(ui,/stats\.append\(name\)/);
+ assert.match(css,/\.fh-character-track-pg\{height:24px\}/);
+ assert.match(css,/\.fh-character-line--sp,\.fh-character-line--pe\{width:86%;height:10px\}/);
+ assert.match(css,/\.fh-character-name\{[\s\S]*?position:absolute/);
+});
+test('miedo usa letras de color con contorno negro sin recuadro',()=>{
+ const css=read('fh-mood-fear.css');
+ const start=css.indexOf('#fhSpatialLayer .fh-sound.fh-fear-comic{');
+ const end=css.indexOf('#fhSpatialLayer .fh-fear-comic--relajado',start);
+ assert.ok(start>=0&&end>start);
+ const rule=css.slice(start,end);
+ assert.match(rule,/color:var\(--fear\)/);
+ assert.match(rule,/background:transparent;border:0;outline:0;box-shadow:none/);
+ assert.match(rule,/-webkit-text-stroke:1\.4px #050505/);
+ assert.doesNotMatch(rule,/background:var\(--fear\)|border:3px|padding:5px/);
+});
 test('seis estados de miedo con color, utilizando FHLiveText',()=>{
  const live=read('fh-live-text.js'),css=read('fh-mood-fear.css'),ui=read('fh-mood-fear-ui.js');
  assert.match(live,/fh-sound fh-fear-comic fh-fear-comic--/);

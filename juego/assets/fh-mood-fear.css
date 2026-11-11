@@ -26,41 +26,55 @@
  background:transparent;border:none;
 }
 .fh-character-mood-icon[hidden]{display:none!important}
-.fh-character-data{min-width:0}
-.fh-character-name{
- height:16px;margin-bottom:5px;padding-right:22px;
- font:700 11px/1.2 Georgia,serif;letter-spacing:.08em;
- color:#fff;text-transform:uppercase;
- white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-}
+.fh-character-data{min-width:0;display:flex;flex-direction:column;gap:6px}
 .fh-character-line{
- display:grid;grid-template-columns:20px minmax(0,1fr);
- gap:6px;align-items:center;margin-top:5px;
+ display:grid;grid-template-columns:22px minmax(0,1fr);
+ gap:6px;align-items:center;min-width:0;
 }
-.fh-character-stat{
- font:800 10px/1 monospace;letter-spacing:0;color:#eee9ed;
-}
+.fh-character-stat{font:800 10px/1 monospace;letter-spacing:0;color:#eee9ed}
 .fh-character-track{
- height:10px;padding:1px;box-sizing:border-box;overflow:hidden;
+ position:relative;box-sizing:border-box;overflow:hidden;
+ height:10px;min-width:0;width:100%;
  background:#0a0a0c;border:1px solid #dad5db;
 }
 .fh-character-fill{height:100%;display:block;transition:width .13s linear}
 .fh-character-fill-pg{background:var(--pg)}
 .fh-character-fill-sp{background:var(--sp)}
 .fh-character-fill-pe{background:var(--pe)}
+/* PG usa todo el ancho y la mayor altura; el nombre está dentro de la barra. */
+.fh-character-line--pg{grid-template-columns:minmax(0,1fr)}
+.fh-character-track-pg{height:24px}
+.fh-character-track-pg .fh-character-stat{
+ position:absolute;z-index:1;top:50%;left:7px;
+ transform:translateY(-50%);color:#fff;
+ font-size:10px;text-shadow:1px 1px 0 #000,-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000;
+}
+.fh-character-name{
+ position:absolute;z-index:1;inset:0 4px 0 29px;
+ display:flex;align-items:center;justify-content:center;
+ overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+ font:700 11px/1.1 Georgia,serif;letter-spacing:.04em;
+ text-transform:uppercase;color:#fff;
+ text-shadow:1px 1px 0 #000,-1px 1px 0 #000,1px -1px 0 #000,-1px -1px 0 #000;
+ pointer-events:none;
+}
+/* PS y PE tienen exactamente el mismo ancho y altura, menores que PG. */
+.fh-character-line--sp,.fh-character-line--pe{width:86%;height:10px}
 /* Avisos de miedo: la misma capa espacial que ZZZ y abrir puertas.
    Solo se muestra el nombre del estado, nunca puntos internos ni pérdida de PS. */
 #fhSpatialLayer .fh-sound.fh-fear-comic{
  --fear:#25d53a;
  position:absolute;display:block;max-width:min(72vw,310px);
- padding:5px 12px 6px;color:#080808;
- background:var(--fear);border:3px solid #060606;
- outline:1px solid #f0eae2;outline-offset:-5px;
- box-shadow:3px 3px 0 #050505;
+ padding:0;margin:0;color:var(--fear);
+ background:transparent;border:0;outline:0;box-shadow:none;
  text-align:center;white-space:normal;
  text-transform:uppercase;letter-spacing:.05em;
- font:900 clamp(12px,2.4vw,20px)/1.12 Impact,'Arial Black',sans-serif;
- text-shadow:1px 1px 0 #ffffff55;
+ font:900 clamp(18px,3vw,29px)/1.12 Impact,'Arial Black',sans-serif;
+ -webkit-text-stroke:1.4px #050505;
+ paint-order:stroke fill;
+ text-shadow:-2px -2px 0 #050505,2px -2px 0 #050505,
+             -2px 2px 0 #050505,2px 2px 0 #050505,
+             0 3px 2px #000b;
  animation:fh-fear-spatial 2.1s ease-out both;
 }
 #fhSpatialLayer .fh-fear-comic--relajado{--fear:#25d53a}
@@ -84,7 +98,8 @@
  .fh-character-mood{min-height:44px;padding-right:5px}
  .fh-character-mood-icon{width:39px;height:39px}
  .fh-character-name{font-size:10px}
- .fh-character-line{gap:4px;margin-top:4px}
+ .fh-character-line{gap:4px}
+ .fh-character-track-pg{height:22px}
 }
 @media(prefers-reduced-motion:reduce){
  #fhSpatialLayer .fh-sound.fh-fear-comic{animation:none;opacity:1}
