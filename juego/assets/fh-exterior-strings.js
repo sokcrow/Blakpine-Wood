@@ -1,6 +1,16 @@
 /* Blakpine-Wood · Textos de Electricidad 03. */
 (function(root){'use strict';root.FH_EXTERIOR_TEXT=Object.freeze({
  picker:'Postes y transformadores',close:'Cerrar',loading:'Cargando infraestructura exterior…',
+ place:'Colocar:',infrastructure:'Infraestructura eléctrica',
+ roles:{pole:'Poste eléctrico',lamp:'Luminaria exterior',transformer:'Transformador eléctrico',junction:'Caja de distribución'},
+ noTransformer:'Sin transformador: la red exterior no tiene fuente.',
+ noBreakers:'Transformador activo, pero no alimenta ningún breaker: coloca un panel dentro del alcance y asígnale Red pública o conexión automática.',
+ nodeDisconnected:'Sin alimentación: verifica distancia, cableado y estado del transformador.',
+ nodeConnected:'Conexión eléctrica configurada (sujeta a cortes durante la partida)',
+ breakersInReach:'breakers dentro del alcance',
+ breakerNotConfigured:'El breaker no usa la red exterior: activa la conexión automática o selecciona Red pública.',
+ breakerOutOfRange:'El breaker está fuera del alcance de los transformadores y postes conectados.',
+ breakerConnected:'Acometida exterior conectada a',
  error:'No se pudo cargar el catálogo de infraestructura.',selected:'Seleccionado: ',feet:'pies',
  cable:'Cable entre postes (pies)',feed:'Distancia máxima hasta un edificio (pies)',
  auto:'Conectar automáticamente este breaker a la red exterior',enabled:'Conexión eléctrica habilitada',
