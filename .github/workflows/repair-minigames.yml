@@ -1,0 +1,37 @@
+name: Reparaciones pixel art - pruebas
+
+on:
+  pull_request:
+    paths:
+      - 'juego/assets/fh-repair-minigames*'
+      - 'juego/assets/fh-services-core.js'
+      - 'juego/assets/fh-services-engine-hook.js'
+      - '.github/workflows/repair-minigames.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'juego/assets/fh-repair-minigames*'
+      - 'juego/assets/fh-services-core.js'
+      - 'juego/assets/fh-services-engine-hook.js'
+      - '.github/workflows/repair-minigames.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  minigames:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verificar sintaxis de interfaz y puentes
+        run: |
+          node --check juego/assets/fh-repair-minigames-core.js
+          node --check juego/assets/fh-repair-minigames-strings.js
+          node --check juego/assets/fh-repair-minigames.js
+          node --check juego/assets/fh-services-core.js
+          node --check juego/assets/fh-services-engine-hook.js
+      - name: Probar minijuegos, infraestructura y motor
+        run: node --test juego/assets/fh-repair-minigames.test.js juego/assets/fh-services-engine-hook.test.js juego/assets/fh-generators.test.js juego/assets/fh-strict-breaker.test.js
