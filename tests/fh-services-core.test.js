@@ -568,3 +568,55 @@ test('ATS: enlaces entre pisos funcionan y el estado no afecta a edificios sin A
  assert.equal(runtime.sourceFor(1,fx.a),null);assert.equal(runtime.activateATSManual(1,'ats'),true);assert.ok(runtime.sourceFor(1,fx.a));
  const legacy=generatorFixture();legacy.state.flags.power_global=false;assert.ok(legacy.sys.sourceFor(1,legacy.a));
 });
+
+test('panel explícito sin fuente no usa suministro implícito ni destinos antiguos',()=>{
+ const fx=generatorFixture({kind:'normal'});fx.panel.powerSource={kind:'none'};
+ const runtime=FH.createRuntime(fx.project,fx.state);
+ assert.equal(runtime.sourceFor(1,fx.a),null);assert.equal(runtime.panelStatus(1,fx.panel).powered,false);
+});
+test('referencia al generador permanece al borrarlo: no vuelve la red principal',()=>{
+ const fx=generatorFixture({kind:'normal',capacity:500});fx.panel.powerSource={kind:'generator',floorId:'basement',itemId:'backup'};
+ let runtime=FH.createRuntime(fx.project,fx.state);assert.ok(runtime.sourceFor(1,fx.a));
+ fx.project.floors[0].items=[];runtime=FH.createRuntime(JSON.parse(JSON.stringify(fx.project)),JSON.parse(JSON.stringify(fx.state)));
+ assert.equal(runtime.sourceFor(1,fx.a),null);assert.equal(fx.panel.powerSource.itemId,'backup');
+});
+test('generador apagado corta el panel explícito aunque la red principal esté activa',()=>{
+ const fx=generatorFixture({kind:'normal',capacity:500});fx.panel.powerSource={kind:'generator',floorId:'basement',itemId:'backup'};
+ const runtime=FH.createRuntime(fx.project,fx.state);assert.ok(runtime.sourceFor(1,fx.a));
+ runtime.setGeneratorEnabled(0,'backup',false);assert.equal(runtime.sourceFor(1,fx.a),null);
+});
+test('breaker del sótano sirve arriba: altura y cable local cuentan dentro del alcance',()=>{
+ const fx=generatorFixture({kind:'normal',capacity:500});fx.project.floors[0].elevationFt=-12;fx.project.floors[1].elevationFt=0;
+ fx.project.floors[1].items=fx.project.floors[1].items.filter(it=>it!==fx.panel);fx.project.floors[0].items.push(fx.panel);
+ fx.panel.powerSource={kind:'generator',floorId:'basement',itemId:'backup'};
+ fx.panel.circuits=[{id:'a',zoneId:'a',floorId:'upper',rangeFt:30}];
+ const runtime=FH.createRuntime(fx.project,fx.state),source=runtime.sourceFor(1,fx.a);
+ assert.ok(source);assert.equal(source.ownerFloor,0);assert.equal(source.route.verticalFt,12);assert.equal(source.feet,22);
+ assert.equal(source.route.sourceFloorId,'basement');assert.equal(source.route.targetFloorId,'upper');
+ fx.panel.circuits[0].rangeFt=20;assert.equal(FH.createRuntime(fx.project,fx.state).sourceFor(1,fx.a),null);
+});
+test('fuente fuera del cable de entrada y piso destino inexistente quedan sin energía',()=>{
+ const fx=generatorFixture({kind:'normal',capacity:500});fx.generator.x=20;
+ fx.panel.powerSource={kind:'generator',floorId:'basement',itemId:'backup'};fx.panel.sourceCableFt=10;
+ assert.equal(FH.createRuntime(fx.project,fx.state).sourceFor(1,fx.a),null);
+ fx.generator.x=0;fx.panel.circuits[0].floorId='missing';
+ assert.equal(FH.createRuntime(fx.project,fx.state).sourceFor(1,fx.a),null);
+});
+test('respaldo explícito responde al fallo del generador principal y se detiene al regresar',()=>{
+ const fx=generatorFixture({kind:'normal',capacity:500});
+ const backup={...fx.generator,id:'emergency',generatorKind:'emergency',enabled:true};fx.project.floors[0].items.push(backup);
+ fx.panel.powerSource={kind:'generator',floorId:'basement',itemId:'backup'};
+ fx.panel.backupSource={kind:'generator',floorId:'basement',itemId:'emergency'};
+ const runtime=FH.createRuntime(fx.project,fx.state);
+ assert.equal(runtime.sourceFor(1,fx.a).feed.g.it.id,'backup');runtime.setGeneratorEnabled(0,'backup',false);
+ assert.equal(runtime.sourceFor(1,fx.a).feed.g.it.id,'emergency');runtime.tick(60);
+ assert.equal(runtime.generatorStatus(0,backup).remainingHours,71);runtime.setGeneratorEnabled(0,'backup',true);runtime.tick(60);
+ assert.equal(runtime.generatorStatus(0,backup).remainingHours,71);assert.equal(runtime.generatorStatus(0,backup).running,false);
+});
+test('red exterior sólo explícita en panel configurado; panel antiguo conserva compatibilidad',()=>{
+ const fx=generatorFixture();fx.project.floors[0].items=[];
+ assert.ok(FH.createRuntime(fx.project,fx.state).sourceFor(1,fx.a));
+ fx.panel.powerSource={kind:'utility'};let runtime=FH.createRuntime(fx.project,fx.state);assert.ok(runtime.sourceFor(1,fx.a));
+ runtime.setService('electricity',false);assert.equal(runtime.sourceFor(1,fx.a),null);
+ fx.panel.powerSource={kind:'none'};runtime=FH.createRuntime(fx.project,{});assert.equal(runtime.sourceFor(1,fx.a),null);
+});

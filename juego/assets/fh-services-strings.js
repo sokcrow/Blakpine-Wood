@@ -2,6 +2,15 @@
 (function(root){
  'use strict';
  root.FH_SERVICES_TEXT=Object.freeze({
+  powerSource:Object.freeze({
+   title:'Origen de electricidad',primary:'Fuente principal',backup:'Generador de respaldo',none:'Sin fuente',utility:'Red exterior explícita',legacy:'Red principal heredada (mapa antiguo)',
+   missing:'Fuente no disponible',on:'Con energía',off:'Sin energía',floor:'Piso destino del circuito',range:'Cable de este circuito (pies)',feedRange:'Cable de fuente a panel (pies)',priority:'Prioridad de respaldo (mayor primero)',
+   hint:'El breaker distribuye energía. Asigna una fuente y un piso destino por circuito. Borrar el generador no conecta otra fuente. El tramo vertical consume cable.',
+   origin:(source,floor)=>'Origen: '+source+' · '+floor,
+   route:(floor,vertical,range)=>'Destino: '+floor+' · Vertical: '+vertical.toFixed(1)+' pies · Cable disponible: '+range.toFixed(1)+' pies',
+   feed:feet=>'Fuente → panel: '+feet.toFixed(1)+' pies',
+   vertical:floor=>'Conexión vertical → '+floor
+  }),
   generator:Object.freeze({
    picker:'Generadores y respaldo',feet:'pies',estimate:h=>'Autonomía inicial estimada: '+h.toFixed(2)+' h',close:'Cerrar',chooseModel:'Modelo del equipo',loading:'Cargando modelos…',loadError:'No se pudo cargar el catálogo de generadores.',wallRequired:'El ATS debe colocarse sobre una pared estructural.',
    ats:'Tablero de transferencia automática',tank:'Tanque de combustible',noLink:'Sin asignar',atsLink:'ATS opcional',tankLink:'Tanque de combustible',fuelRate:'Consumo de combustible (litros/hora)',fuelCapacity:'Capacidad del tanque (litros)',initialFuel:'Combustible inicial (litros)',fuelNote:'Con tanque conectado, la autonomía se calcula con litros restantes ÷ litros/hora. Sin tanque se conserva la reserva en horas.',
@@ -11,7 +20,7 @@
    normal:'Generador normal',emergency:'Generador de emergencia',kind:'Tipo de generador',
    enabled:'Encendido / respaldo automático habilitado',autonomy:'Autonomía inicial (horas del juego)',
    capacity:'Capacidad (vatios)',targets:'Destinos y prioridades',inspect:'Ver reserva y estado',wholeCircuit:'Circuito completo',
-   priority:'Prioridad (mayor primero)',note:'Sin destinos seleccionados no suministra energía. Los números de prioridad mayores se alimentan primero; cada destino se conecta completo o se desconecta si no cabe. Las conexiones entre pisos usan los IDs del piso, panel y circuito. Un generador normal sustituye la red principal en sus destinos. La reserva no se consume con la partida cerrada. Equipos sin consumo configurado: 200 W al usar generadores.',
+   priority:'Prioridad (mayor primero)',note:'En breakers nuevos, configura la fuente desde el inspector del panel. La lista de destinos de este generador conserva conexiones de paneles antiguos. Los números de prioridad mayores se alimentan primero; cada destino se conecta completo o se desconecta si no cabe. Las conexiones entre pisos usan los IDs del piso, panel y circuito. Un generador normal sustituye la red principal en sus destinos. La reserva no se consume con la partida cerrada. Equipos sin consumo configurado: 200 W al usar generadores.',
    turnOn:'Encender generador',turnOff:'Apagar generador',enable:'Habilitar respaldo automático',disable:'Deshabilitar respaldo automático',
    running:'En funcionamiento',standby:'En espera',off:'Apagado',empty:'Reserva agotada',reserve:'Reserva restante',hours:'h',
    action:(status)=>status.kind==='emergency'?(status.enabled?'Deshabilitar respaldo automático':'Habilitar respaldo automático'):(status.enabled?'Apagar generador':'Encender generador'),
