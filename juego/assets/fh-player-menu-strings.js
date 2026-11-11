@@ -61,6 +61,13 @@
     pixelsHelp: 'La escala pixelada permanece en 2x.',
     decorateHelp: 'Activa la selección, movimiento y giro de muebles sin detener al personaje.',
     fullscreenHelp: 'Alterna la vista a pantalla completa u horizontal.',
+    spawnSection: 'Herramientas de prueba',
+    spawnSettingName: 'Punto de aparición',
+    spawnHelp: 'Regresa al Spawnpoint del mapa sin reiniciar la partida.',
+    spawnReturn: 'Volver al Spawnpoint',
+    spawnMissing: 'No hay un Spawnpoint válido en este mapa.',
+    spawnNoFloor: 'El piso del Spawnpoint no tiene arquitectura jugable.',
+    spawnReturned: 'Has vuelto al Spawnpoint.',
     settingsExitTitle: 'Salir de la partida',
     settingsExitHelp: 'Regresa al editor mediante la acción original del juego.',
     settingUnavailable: 'Control no disponible'
