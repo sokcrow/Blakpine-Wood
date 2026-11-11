@@ -7,6 +7,7 @@ on:
       - 'juego/assets/fh-sleep.js'
       - 'juego/assets/fh-game-clock.test.js'
       - 'juego/assets/fh-weather-core.js'
+      - 'index.html'
       - '.github/workflows/game-clock-tests.yml'
   push:
     branches: [main]
@@ -15,6 +16,7 @@ on:
       - 'juego/assets/fh-sleep.js'
       - 'juego/assets/fh-game-clock.test.js'
       - 'juego/assets/fh-weather-core.js'
+      - 'index.html'
       - '.github/workflows/game-clock-tests.yml'
 
 permissions:
