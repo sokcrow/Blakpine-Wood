@@ -1,0 +1,173 @@
+/* Nameplate rojo: bloques diagonales, contorno negro y doble filete interior. */
+@import url('https://fonts.googleapis.com/css2?family=Anton&display=swap');
+#fhNameplateHUD.fh-np {
+ --fh-np-red:#c21e2b;
+ --fh-np-ink:#080708;
+ --fh-np-bevel:#fff1e8;
+ --fh-np-teal:#13b3c8;
+ --fh-np-green:#60c58a;
+ position:fixed;
+ z-index:36;
+ top:calc(16px + env(safe-area-inset-top,0px));
+ left:calc(16px + env(safe-area-inset-left,0px));
+ width:336px;
+ max-width:calc(100vw - 32px);
+ box-sizing:border-box;
+ color:white;
+ pointer-events:none;
+ user-select:none;
+ font-family:'Anton',Impact,'Arial Narrow',sans-serif;
+}
+#fhNameplateHUD[hidden],body.fh-sleeping #fhNameplateHUD {display:none!important}
+#fhNameplateHUD .fh-np-head {
+ position:relative;
+ display:grid;
+ grid-template-columns:70px minmax(0,1fr);
+ align-items:stretch;
+ height:70px;
+}
+#fhNameplateHUD .fh-np-mood-frame {
+ position:relative;
+ z-index:2;
+ margin-right:-7px;
+ height:76px;
+ background:var(--fh-np-ink);
+ clip-path:polygon(0 0,calc(100% - 16px) 0,100% 16px,100% 100%,12px 100%,0 calc(100% - 12px));
+}
+#fhNameplateHUD .fh-np-mood-bevel {
+ position:absolute;inset:5px;
+ background:var(--fh-np-bevel);
+ clip-path:polygon(0 0,calc(100% - 13px) 0,100% 13px,100% 100%,9px 100%,0 calc(100% - 9px));
+}
+#fhNameplateHUD .fh-np-mood-core {
+ position:absolute;inset:2px;
+ display:grid;place-items:center;
+ background:var(--fh-np-red);
+ clip-path:polygon(0 0,calc(100% - 11px) 0,100% 11px,100% 100%,7px 100%,0 calc(100% - 7px));
+}
+#fhNameplateHUD .fh-np-mood-mark {
+ position:relative;top:-1px;
+ display:block;
+ font:900 41px/1 Arial,'DejaVu Sans',sans-serif;
+ color:#fff;
+ -webkit-text-stroke:.5px #4d0b12;
+ text-shadow:1px 2px 0 #8c1420;
+}
+#fhNameplateHUD .fh-np-main-frame {
+ position:relative;
+ z-index:1;
+ margin-left:-12px;
+ height:70px;
+ min-width:0;
+ background:var(--fh-np-ink);
+ clip-path:polygon(10px 0,calc(100% - 15px) 0,100% 15px,100% 100%,0 100%,0 10px);
+}
+#fhNameplateHUD .fh-np-main-bevel {
+ position:absolute;inset:5px;
+ background:var(--fh-np-bevel);
+ clip-path:polygon(8px 0,calc(100% - 12px) 0,100% 12px,100% 100%,0 100%,0 8px);
+}
+#fhNameplateHUD .fh-np-main-core {
+ position:absolute;inset:2px;
+ overflow:hidden;
+ background:#49161c;
+ clip-path:polygon(6px 0,calc(100% - 10px) 0,100% 10px,100% 100%,0 100%,0 6px);
+}
+#fhNameplateHUD .fh-np-health-fill {
+ position:absolute;
+ z-index:0;
+ inset:0 auto 0 0;
+ width:0;
+ height:100%;
+ background:linear-gradient(180deg,#de3540 0%,#c21e2b 60%,#a81727 100%);
+ transition:width .25s ease-out;
+}
+#fhNameplateHUD .fh-np-health-rule {
+ position:absolute;
+ z-index:1;
+ left:10px;right:10px;bottom:17px;height:1px;
+ background:#37090f99;
+ box-shadow:0 1px 0 #ff9a9870;
+}
+#fhNameplateHUD .fh-np-name {
+ position:absolute;
+ z-index:2;
+ top:4px;left:16px;right:10px;
+ overflow:hidden;
+ white-space:nowrap;
+ text-overflow:ellipsis;
+ text-transform:uppercase;
+ font:900 27px/1.32 'Anton','DejaVu Sans Condensed',Impact,'Arial Narrow',sans-serif;
+ letter-spacing:.065em;
+ color:#fff;
+ -webkit-text-stroke:.5px #441015;
+ text-shadow:1px 2px 0 #4a0a10;
+}
+#fhNameplateHUD .fh-np-pg-readout {
+ position:absolute;
+ inset:0;
+ z-index:0;
+ pointer-events:none;
+}
+#fhNameplateHUD .fh-np-lower {
+ display:flex;
+ flex-direction:column;
+ gap:5px;
+ width:calc(100% - 64px);
+ margin-left:64px;
+ margin-top:7px;
+}
+#fhNameplateHUD .fh-np-meter {
+ position:relative;
+ box-sizing:border-box;
+ width:100%;height:18px;
+ background:var(--fh-np-ink);
+ clip-path:polygon(8px 0,100% 0,calc(100% - 10px) 100%,0 100%,0 8px);
+}
+#fhNameplateHUD .fh-np-meter-bevel {
+ position:absolute;inset:4px;
+ background:var(--fh-np-bevel);
+ clip-path:polygon(5px 0,100% 0,calc(100% - 7px) 100%,0 100%,0 5px);
+}
+#fhNameplateHUD .fh-np-meter-well {
+ position:absolute;inset:2px;
+ overflow:hidden;
+ background:#14282b;
+ clip-path:polygon(3px 0,100% 0,calc(100% - 5px) 100%,0 100%,0 3px);
+}
+#fhNameplateHUD .fh-np-meter-fill {
+ position:absolute;left:0;top:0;height:100%;width:0;
+ transition:width .25s ease-out;
+ background:var(--fh-np-teal);
+}
+#fhNameplateHUD .fh-np-meter--pe .fh-np-meter-well {background:#1c2a22}
+#fhNameplateHUD .fh-np-meter--pe .fh-np-meter-fill {background:var(--fh-np-green)}
+@media (max-width:900px) and (orientation:landscape) and (max-height:450px) {
+ #fhNameplateHUD.fh-np {
+  width:252px;
+  top:calc(9px + env(safe-area-inset-top,0px));
+  left:calc(9px + env(safe-area-inset-left,0px));
+ }
+ #fhNameplateHUD .fh-np-head {grid-template-columns:54px minmax(0,1fr);height:55px}
+ #fhNameplateHUD .fh-np-mood-frame {height:60px;margin-right:-6px}
+ #fhNameplateHUD .fh-np-mood-mark {font-size:30px}
+ #fhNameplateHUD .fh-np-main-frame {height:55px;margin-left:-10px}
+ #fhNameplateHUD .fh-np-name {font-size:20px;left:13px;top:2px}
+ #fhNameplateHUD .fh-np-health-rule {bottom:12px}
+ #fhNameplateHUD .fh-np-lower {width:calc(100% - 49px);margin-left:49px;margin-top:6px;gap:4px}
+ #fhNameplateHUD .fh-np-meter {height:15px}
+}
+@media (max-width:450px) and (orientation:portrait) {
+ #fhNameplateHUD.fh-np {width:min(272px,calc(100vw - 24px));top:12px;left:12px}
+ #fhNameplateHUD .fh-np-head {grid-template-columns:58px minmax(0,1fr);height:58px}
+ #fhNameplateHUD .fh-np-mood-frame {height:64px;margin-right:-6px}
+ #fhNameplateHUD .fh-np-mood-mark {font-size:32px}
+ #fhNameplateHUD .fh-np-main-frame {height:58px;margin-left:-10px}
+ #fhNameplateHUD .fh-np-name {font-size:21px;top:2px;left:13px}
+ #fhNameplateHUD .fh-np-health-rule {bottom:12px}
+ #fhNameplateHUD .fh-np-lower {width:calc(100% - 53px);margin-left:53px;margin-top:6px;gap:4px}
+ #fhNameplateHUD .fh-np-meter {height:15px}
+}
+@media (prefers-reduced-motion:reduce) {
+ #fhNameplateHUD .fh-np-health-fill,#fhNameplateHUD .fh-np-meter-fill {transition:none}
+}

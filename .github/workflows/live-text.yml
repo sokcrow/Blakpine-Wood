@@ -6,6 +6,7 @@ on:
       - 'index.html'
       - 'juego/assets/fh-live-*'
       - 'juego/assets/fh-mood-fear-*'
+      - 'juego/assets/fh-nameplate-hud*'
       - 'juego/assets/fh-delivery*'
       - '.github/workflows/live-text.yml'
   push:
@@ -14,6 +15,7 @@ on:
       - 'index.html'
       - 'juego/assets/fh-live-*'
       - 'juego/assets/fh-mood-fear-*'
+      - 'juego/assets/fh-nameplate-hud*'
       - 'juego/assets/fh-delivery*'
       - '.github/workflows/live-text.yml'
 
@@ -30,3 +32,7 @@ jobs:
           node-version: '22'
       - name: Verificar Typewriter y entregas
         run: node --test juego/assets/fh-live-text.test.js juego/assets/fh-live-courier.test.js juego/assets/fh-delivery-runtime.test.js juego/assets/fh-mood-fear-core.test.js juego/assets/fh-mood-fear-ui.test.js
+      - name: Verificar HUD de estado existente (solicitado)
+        run: node --test juego/assets/fh-status-hud.test.js
+      - name: Verificar HUD Nameplate nuevo
+        run: node --test juego/assets/fh-nameplate-hud.test.js

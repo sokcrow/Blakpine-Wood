@@ -4640,7 +4640,9 @@ function floorSightThroughOpening(f,at,target,openings){
    ['script','fh-mood-fear-strings.js'],
    ['script','fh-mood-fear-core.js'],
    ['script','fh-mood-fear-art.js'],
-   ['script','fh-mood-fear-ui.js']
+   ['script','fh-mood-fear-ui.js'],
+   ['link','fh-nameplate-hud.css'],
+   ['script','fh-nameplate-hud.js']
   ];
   const tags=resources.map(([kind,file])=>{
    const url=new URL('./juego/assets/'+file+'?v=20261111-mood-fear-8',document.baseURI).href;
