@@ -89,15 +89,16 @@ test('ubicación se mantiene centrada, compacta y transitoria después de quitar
  assert.ok(locationJs.includes("host.classList.toggle('fh-location-has-secondary',Boolean(value.secondary))"),'Línea solo con habitación');
 
 });
-test('PG es la barra mayor con nombre dentro; PS y PE son iguales',()=>{
+test('HUD compacto sin etiquetas: nombre dentro de PG y PS/PE idénticas',()=>{
  const ui=read('fh-mood-fear-ui.js'),css=read('fh-mood-fear.css');
  assert.match(ui,/fh-character-line fh-character-line--/);
- assert.match(ui,/if\(key==='pg'\)\{/);
- assert.match(ui,/track\.append\(label,name\)/);
- assert.doesNotMatch(ui,/stats\.append\(name\)/);
- assert.match(css,/\.fh-character-track-pg\{height:24px\}/);
- assert.match(css,/\.fh-character-line--sp,\.fh-character-line--pe\{width:86%;height:10px\}/);
+ assert.match(ui,/if\(key==='pg'\)track\.append\(name\)/);
+ assert.doesNotMatch(ui,/fh-character-stat|track\.append\(label,name\)|stats\.append\(name\)/);
+ assert.match(css,/width:min\(270px,calc\(100vw - 20px\)\)/);
+ assert.match(css,/\.fh-character-track-pg\{height:20px\}/);
+ assert.match(css,/\.fh-character-line--sp,\.fh-character-line--pe\{width:84%\}/);
  assert.match(css,/\.fh-character-name\{[\s\S]*?position:absolute/);
+ assert.doesNotMatch(css,/\.fh-character-stat/);
 });
 test('miedo usa letras de color con contorno negro sin recuadro',()=>{
  const css=read('fh-mood-fear.css');

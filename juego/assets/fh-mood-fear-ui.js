@@ -24,15 +24,11 @@
   bars={};
   for(const key of ['pg','sp','pe']){
    const line=make('div','fh-character-line fh-character-line--'+key);
-   const label=make('span','fh-character-stat',key==='sp'?'PS':key.toUpperCase());
    const track=make('div','fh-character-track fh-character-track-'+key);
    const fill=make('span','fh-character-fill fh-character-fill-'+key);
    track.append(fill);
-   if(key==='pg'){
-    // El nombre siempre queda visible sobre el relleno rojo, incluso con pocos PG.
-    track.append(label,name);
-    line.append(track);
-   }else line.append(label,track);
+   if(key==='pg')track.append(name);
+   line.append(track);
    stats.append(line);
    bars[key]={fill,track};
   }
@@ -92,7 +88,7 @@
   const id=character?.id!=null?String(character.id):'';
   if(!character||!position||!id||selectedId!==id){hide();return false;}
   panel.hidden=false;
-  const half=(panel.offsetWidth||310)/2,viewport=root.innerWidth||1280;
+  const half=(panel.offsetWidth||270)/2,viewport=root.innerWidth||1280;
   panel.style.left=Math.max(Math.min(half+8,viewport/2),Math.min(Math.max(viewport-half-8,viewport/2),position.x))+'px';
   panel.style.top=Math.max(112,position.y-18)+'px';
   name.textContent=String(character.name||'').slice(0,60);
