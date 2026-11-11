@@ -71,6 +71,7 @@ test('el HTML generado integra radial y decoración sin afectar el editor 2D',()
  assert.doesNotMatch(output,/radial\.update\(actions\.length\?/);
 
  assert.match(output,/fhContextRefresh\(\)/);
+  assert.match(output,/FH_ROOF_PLANS\[currentFloor\]\);fhContextRefresh\(\)/);
  assert.match(output,/fh-interaction-radial\.js/);
  assert.match(output,/fh-safe-lock\.js/);
  assert.match(output,/\$\('use'\)\.addEventListener\('click',fhUseButtonClick\)/);

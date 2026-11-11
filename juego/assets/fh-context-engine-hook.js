@@ -289,7 +289,7 @@ function fhContextRefresh(){
     "function useFurniture(item,selectedSeat=null){\n if(item.interact?.verb==='storage')return window.FHStorageRuntime?.open(item,currentFloor);\n if(item.runtimeDeliveryFurniture&&item.interact?.verb==='decorate')return fhStartDecoration(item,currentFloor);",'abrir almacenamiento');
   doc=one(doc,'function toggleDoor(){',
     'function toggleDoor(){if(window.FHStorageRuntime?.isOpen)return;','bloqueo con panel');
-  const refresh="window.FHLocationHUD?.update(DATA,currentFloor,{x:user.x/CELL,y:user.z/CELL})";
+  const refresh="window.FHLocationHUD?.update(DATA,currentFloor,{x:user.x/CELL,y:user.z/CELL},FH_ROOF_PLANS[currentFloor])";
   doc=one(doc,refresh,refresh+';fhContextRefresh()','refresco');
   doc=one(doc,"if((k==='e'||k===' ')&&!e.repeat)toggleDoor();",
           "if((k==='e'||k===' ')&&!e.repeat&&!(k===' '&&document.activeElement===$('use'))){if(playerPose.occupied||!window.FHInteractionRadial?.activatePrimary())toggleDoor();}",'teclado');
