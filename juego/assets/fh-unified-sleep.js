@@ -20,6 +20,7 @@
   if(!gameState?.clock)return;
   if(gameState.sleepState!==state)initialize(gameState);
   const clock=gameState.clock;
+  if(state.lastMinute===null)state.lastMinute=absolute(clock);
   // El modo de prueba tiene exactamente un jugador local; para multiplayer
   // el host debe entregar el consenso real, nunca inferirlo de la postura local.
   const multiplayer=root.FHMultiplayerSleepConsensus;
