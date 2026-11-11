@@ -56,22 +56,36 @@ test('Escape también cierra, sin agregar botones innecesarios',()=>{
   else globalThis.addEventListener=old;
  }
 });
-test('el motor no carga el HUD duplicado; los recursos permanecen en el flotante',()=>{
+test('un solo Nameplate al seleccionar: el UI viejo no dibuja panel',()=>{
  const html=read('../../index.html'),ui=read('fh-mood-fear-ui.js'),css=read('fh-mood-fear.css');
- assert.doesNotMatch(html,/FHStatusHUD\?\.update/);
- assert.doesNotMatch(html,/fh-status-hud\.js/);
- assert.doesNotMatch(html,/fh-status-hud\.css/);
- assert.match(ui,/fh-character-mood-icon/);
- assert.match(ui,/for\(const key of \['pg','sp','pe'\]\)/);
- assert.doesNotMatch(ui,/fh-character-count|PS ·|title\+loss/);
- assert.match(css,/\.fh-character-floating\{/);
- assert.match(css,/\.fh-character-floating\{[\s\S]*?clip-path:polygon\(/);
- assert.match(css,/\.fh-character-floating::before\{[\s\S]*?background:linear-gradient\([\s\S]*?clip-path:polygon\(/);
- assert.match(css,/background:linear-gradient\(135deg,#ffffff 0%,#e0e0e2 50%,#f8f8f9 100%\)/);
- assert.doesNotMatch(css,/#c43be0|#9a20b7|#6a128b/);
- assert.match(css,/border:0;outline:0;box-shadow:none;border-radius:0/);
- assert.doesNotMatch(css,/border:2px solid #814399/);
- assert.doesNotMatch(css,/#fhStatusHUD/);
+ assert.doesNotMatch(html,/FHStatusHUD\?\.update|fh-status-hud\.js|fh-status-hud\.css/);
+ assert.match(html,/\['script','fh-nameplate-hud\.js'\]/);
+ assert.match(ui,/root\.FHNameplateHUD\?\.update\?\.\(character,position\)/);
+ assert.match(ui,/root\.FHNameplateHUD\?\.hide\?\.\(\)/);
+ assert.doesNotMatch(ui,/fh-character-floating|body\.append\(panel\)/);
+ assert.doesNotMatch(css,/\.fh-character-floating/);
+ assert.match(css,/#fhSpatialLayer \.fh-sound\.fh-fear-comic/);
+});
+test('la selección dirige solo al Nameplate y permite cerrarlo',()=>{
+ const old=globalThis.FHNameplateHUD;
+ let calls=0,closed=0;
+ try{
+  globalThis.FHNameplateHUD={
+   update:(character,position)=>{calls++;return Boolean(character?.id&&position);},
+   hide:()=>{closed++;},
+   mount:()=>true
+  };
+  UI.select('personaje-a');
+  assert.equal(UI.render({id:'personaje-a',name:'X'}, {x:100,y:150}),true);
+  assert.equal(calls,1);
+  UI.select(null);
+  assert.equal(UI.render({id:'personaje-a'},{x:100,y:150}),false);
+  assert.equal(calls,1);
+  assert.ok(closed>=1);
+ }finally{
+  if(old===undefined)delete globalThis.FHNameplateHUD;
+  else globalThis.FHNameplateHUD=old;
+ }
 });
 test('ubicación se mantiene centrada, compacta y transitoria después de quitar el HUD lateral',()=>{
  const html=read('../../index.html');
@@ -94,19 +108,13 @@ test('ubicación se mantiene centrada, compacta y transitoria después de quitar
  assert.ok(locationJs.includes("host.classList.toggle('fh-location-has-secondary',Boolean(value.secondary))"),'Línea solo con habitación');
 
 });
-test('HUD compacto sin etiquetas: nombre dentro de PG y PS/PE idénticas',()=>{
- const ui=read('fh-mood-fear-ui.js'),css=read('fh-mood-fear.css');
- assert.match(ui,/fh-character-line fh-character-line--/);
- assert.match(ui,/if\(key==='pg'\)track\.append\(name\)/);
- assert.doesNotMatch(ui,/fh-character-stat|track\.append\(label,name\)|stats\.append\(name\)/);
- assert.match(css,/width:min\(270px,calc\(100vw - 20px\)\)/);
- assert.match(css,/\.fh-character-track-pg\{height:20px\}/);
- assert.match(css,/\.fh-character-line--sp,\.fh-character-line--pe\{width:100%\}/);
- assert.match(css,/\.fh-character-data\{[\s\S]*?width:100%;min-width:0;display:grid;grid-template-columns:minmax\(0,1fr\)/);
- assert.match(css,/\.fh-character-track-pg\{height:20px\}/);
- assert.match(css,/\.fh-character-track\{[\s\S]*?width:100%;height:8px/);
- assert.match(css,/\.fh-character-name\{[\s\S]*?position:absolute/);
- assert.doesNotMatch(css,/\.fh-character-stat/);
+test('el HUD integrado conserva nombre y recursos sin etiquetas',()=>{
+ const ui=read('fh-mood-fear-ui.js'),np=read('fh-nameplate-hud.js');
+ assert.match(ui,/root\.FHNameplateHUD\?\.update/);
+ assert.match(np,/const RESOURCE_KEYS = Object\.freeze\(\['pg', 'sp', 'pe'\]\)/);
+ assert.match(np,/const name = typeof character\.name/);
+ assert.match(np,/fh-np-health-fill/);
+ assert.doesNotMatch(np,/fh-character-stat|fh-status-count/);
 });
 test('miedo usa letras de color con contorno negro sin recuadro',()=>{
  const css=read('fh-mood-fear.css');

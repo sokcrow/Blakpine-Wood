@@ -6,38 +6,15 @@
  if(root)root.FHMoodFearUI=api;
 })(typeof window!=='undefined'?window:globalThis,function(root){
  'use strict';
- const moods=['bueno','neutral','malo'];
- const make=(tag,cls,text)=>{const e=root.document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e;};
- const words=()=>root.FH_MOOD_FEAR_TEXT||{keys:{},reasons:{}};
- let panel=null,face=null,name=null,bars=null,selectedId=null;
+ let selectedId=null;
  let clickTarget=null,clickHandler=null,currentLocator=null,dismissHandlersBound=false;
- function setup(){
-  if(!root.document?.body)return false;
-  if(panel?.isConnected)return true;
-  panel=make('aside','fh-character-floating');panel.hidden=true;
-  panel.setAttribute('aria-label','Estado del personaje seleccionado');
-  const mood=make('div','fh-character-mood');
-  face=make('img','fh-character-mood-icon');
-  face.alt='';face.draggable=false;mood.append(face);
-  const stats=make('div','fh-character-data');
-  name=make('span','fh-character-name');
-  bars={};
-  for(const key of ['pg','sp','pe']){
-   const line=make('div','fh-character-line fh-character-line--'+key);
-   const track=make('div','fh-character-track fh-character-track-'+key);
-   const fill=make('span','fh-character-fill fh-character-fill-'+key);
-   track.append(fill);
-   if(key==='pg')track.append(name);
-   line.append(track);
-   stats.append(line);
-   bars[key]={fill,track};
-  }
-  panel.append(mood,stats);
-  root.document.body.append(panel);
-  return true;
+ function setup(){return Boolean(root.FHNameplateHUD?.mount?.());}
+ function hide(){root.FHNameplateHUD?.hide?.();}
+ function select(id){
+  selectedId=id==null?null:String(id);
+  if(selectedId===null)hide();
+  return selectedId;
  }
- function hide(){if(panel)panel.hidden=true;}
- function select(id){selectedId=id==null?null:String(id);if(selectedId===null)hide();return selectedId;}
  function selected(){return selectedId;}
  function project(THREE,camera,renderer,world){
   if(!THREE?.Vector3||!camera||!world||!renderer?.domElement)return null;
@@ -78,36 +55,16 @@
    root.addEventListener('keydown',event=>{if(event.key==='Escape'&&selectedId!==null)select(null);});
    root.document?.addEventListener?.('pointerdown',event=>{
     if(selectedId===null)return;
-    if(event.target===clickTarget||clickTarget?.contains?.(event.target)||panel?.contains?.(event.target))return;
+    if(event.target===clickTarget||clickTarget?.contains?.(event.target)||
+       root.document?.getElementById?.('fhNameplateHUD')?.contains?.(event.target))return;
     select(null);
    },true);
   }
  }
  function render(character,position){
-  if(!setup())return false;
   const id=character?.id!=null?String(character.id):'';
   if(!character||!position||!id||selectedId!==id){hide();return false;}
-  panel.hidden=false;
-  const half=(panel.offsetWidth||270)/2,viewport=root.innerWidth||1280;
-  panel.style.left=Math.max(Math.min(half+8,viewport/2),Math.min(Math.max(viewport-half-8,viewport/2),position.x))+'px';
-  panel.style.top=Math.max(112,position.y-18)+'px';
-  name.textContent=String(character.name||'').slice(0,60);
-  const mood=moods.includes(character.mental?.mood)?character.mental.mood:'neutral';
-  const art=root.FH_MOOD_FEAR_IMAGES?.[mood]||'';
-  face.hidden=!art;
-  if(art&&face.src!==art)face.src=art;
-  face.alt=(words().mood||'Humor')+': '+(words()[mood==='bueno'?'good':mood==='malo'?'bad':'neutral']||mood);
-  for(const key of ['pg','sp','pe']){
-   const r=character.resources||{};
-   const val=Number.isFinite(r[key])?r[key]:0;
-   const max=Number.isFinite(r[key+'Max'])&&r[key+'Max']>0?r[key+'Max']:1;
-   bars[key].fill.style.width=Math.max(0,Math.min(100,val/max*100))+'%';
-   bars[key].track.setAttribute('role','progressbar');
-   bars[key].track.setAttribute('aria-label',key==='pg'?'Puntos de golpe':key==='sp'?'Puntos de sanidad':'Puntos de energía');
-   bars[key].track.setAttribute('aria-valuemax',String(max));
-   bars[key].track.setAttribute('aria-valuenow',String(val));
-   }
-  return true;
+  return root.FHNameplateHUD?.update?.(character,position)??false;
  }
  function fearChange(payload,position){
   if(!payload||!position||!root.FHLiveText?.soundAt)return false;

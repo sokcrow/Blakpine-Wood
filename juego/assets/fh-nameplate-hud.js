@@ -7,13 +7,10 @@
 })(typeof window !== 'undefined' ? window : globalThis, function (root) {
  'use strict';
  const RESOURCE_KEYS = Object.freeze(['pg', 'sp', 'pe']);
- const MOOD_ICONS = Object.freeze({bueno:'☺', neutral:'−', malo:'☹'});
+ const MOOD_ICONS = Object.freeze({bueno:'☺', neutral:'●', malo:'☹'});
  const MOOD_TEXT_KEYS = Object.freeze({bueno:'good', neutral:'neutral', malo:'bad'});
  const LABELS = Object.freeze({pg:'Puntos de golpe', sp:'Puntos de sanidad', pe:'Puntos de energía'});
  let ui = null;
- let active = false;
- let frameId = null;
- let lastUpdate = -Infinity;
  const cached = {name:null,mood:null,pg:null,sp:null,pe:null};
 
  function reading(resources, key) {
@@ -46,11 +43,14 @@
   const moodFrame = node('div', 'fh-np-mood-frame');
   const moodBevel = node('div', 'fh-np-mood-bevel');
   const moodCore = node('div', 'fh-np-mood-core');
+  const moodImage = node('img', 'fh-np-mood-image');
+  moodImage.alt = '';moodImage.draggable = false;moodImage.hidden = true;
+  moodImage.setAttribute('aria-hidden','true');
   const moodMark = node('span', 'fh-np-mood-mark', '◇');
   moodMark.setAttribute('aria-hidden', 'true');
   moodFrame.setAttribute('role', 'img');
   moodFrame.setAttribute('aria-label', 'Humor sin datos');
-  moodCore.append(moodMark);
+  moodCore.append(moodImage, moodMark);
   moodBevel.append(moodCore);
   moodFrame.append(moodBevel);
   const main = node('div', 'fh-np-main-frame');
@@ -85,26 +85,32 @@
   }
   host.append(head, lower);
   root.document.body.append(host);
-  ui = {host, name, moodFrame, moodMark, bars};
+  ui = {host, name, moodFrame, moodImage, moodMark, bars};
   cached.name = cached.mood = cached.pg = cached.sp = cached.pe = null;
   return true;
  }
- function update(character = root.FHCharacterRuntime?.character ?? null) {
+ function hide() {
+  if (ui?.host) ui.host.hidden = true;
+  return false;
+ }
+ // El HUD únicamente se muestra tras seleccionar un personaje en la escena.
+ function update(character = root.FHCharacterRuntime?.character ?? null, position = null) {
   if (!mount()) return false;
   const pg = reading(character?.resources, 'pg');
-  if (!character || !pg) {
-   ui.host.hidden = true;
-   return false;
-  }
-  ui.host.hidden = false;
+  if (!character || !pg || !position ||
+      !Number.isFinite(position.x) || !Number.isFinite(position.y))return hide();
   const name = typeof character.name === 'string' ? character.name.trim() : '';
   if (cached.name !== name) {
    ui.name.textContent = name;
    cached.name = name;
   }
   const mood = character.mental?.mood;
-  if (cached.mood !== mood) {
+  const art = root.FH_MOOD_FEAR_IMAGES?.[mood] || '';
+  if (cached.mood !== mood || (art && ui.moodImage.getAttribute('src') !== art)) {
    ui.moodMark.textContent = moodIcon(mood);
+   ui.moodImage.hidden = !art;
+   ui.moodMark.hidden = Boolean(art);
+   if (art && ui.moodImage.getAttribute('src') !== art) ui.moodImage.setAttribute('src', art);
    const words = root.FH_MOOD_FEAR_TEXT;
    const translated = words?.[MOOD_TEXT_KEYS[mood]];
    ui.moodFrame.setAttribute('aria-label', typeof translated === 'string'
@@ -121,33 +127,14 @@
    bar.track.setAttribute('aria-valuemax', String(info?.maximum ?? 1));
    bar.track.setAttribute('aria-valuenow', String(info?.current ?? 0));
   }
+  ui.host.hidden = false;
+  const half = (ui.host.offsetWidth || 336) / 2;
+  const vw = root.innerWidth || 1280;
+  const x = Math.max(half + 8, Math.min(vw - half - 8, position.x));
+  const h = ui.host.offsetHeight || 116;
+  ui.host.style.left = x + 'px';
+  ui.host.style.top = Math.max(h + 8, position.y - 17) + 'px';
   return true;
  }
- function tick(time) {
-  if (!active) return;
-  if (!Number.isFinite(time) || time - lastUpdate >= 90 || time < lastUpdate) {
-   lastUpdate = Number.isFinite(time) ? time : 0;
-   update();
-  }
-  frameId = root.requestAnimationFrame(tick);
- }
- function start() {
-  if (active) return true;
-  if (!root.document || typeof root.requestAnimationFrame !== 'function') return false;
-  if (root.document.readyState === 'loading') {
-   root.document.addEventListener('DOMContentLoaded', start, {once:true});
-   return true;
-  }
-  if (!mount()) return false;
-  active = true;
-  frameId = root.requestAnimationFrame(tick);
-  return true;
- }
- function stop() {
-  active = false;
-  if (frameId != null && typeof root.cancelAnimationFrame === 'function') root.cancelAnimationFrame(frameId);
-  frameId = null;
- }
- if (root.document) start();
- return Object.freeze({reading, moodIcon, mount, update, start, stop});
+ return Object.freeze({reading, moodIcon, mount, update, hide});
 });

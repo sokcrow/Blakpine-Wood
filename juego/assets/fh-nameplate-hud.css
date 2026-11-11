@@ -7,11 +7,12 @@
  --fh-np-teal:#13b3c8;
  --fh-np-green:#60c58a;
  position:fixed;
- z-index:36;
- top:calc(16px + env(safe-area-inset-top,0px));
- left:calc(16px + env(safe-area-inset-left,0px));
- width:336px;
- max-width:calc(100vw - 32px);
+ z-index:46;
+ top:0;
+ left:0;
+ transform:translate(-50%,-100%);
+ width:min(336px,calc(100vw - 16px));
+ max-width:calc(100vw - 16px);
  box-sizing:border-box;
  color:white;
  pointer-events:none;
@@ -53,6 +54,17 @@
  -webkit-text-stroke:.5px #4d0b12;
  text-shadow:1px 2px 0 #8c1420;
 }
+#fhNameplateHUD .fh-np-mood-image {
+ display:block;
+ width:46px;height:46px;
+ max-width:100%;max-height:100%;
+ object-fit:contain;
+ image-rendering:pixelated;
+ background:transparent;
+ filter:drop-shadow(1px 2px 0 #080708);
+}
+#fhNameplateHUD .fh-np-mood-image[hidden],
+#fhNameplateHUD .fh-np-mood-mark[hidden]{display:none!important}
 #fhNameplateHUD .fh-np-main-frame {
  position:relative;
  z-index:1;
@@ -112,61 +124,60 @@
 #fhNameplateHUD .fh-np-lower {
  display:flex;
  flex-direction:column;
- gap:5px;
- width:calc(100% - 64px);
- margin-left:64px;
- margin-top:7px;
+ gap:1px;
+ width:calc(100% - 58px);
+ margin-left:58px;
+ margin-top:0;
 }
 #fhNameplateHUD .fh-np-meter {
  position:relative;
  box-sizing:border-box;
- width:100%;height:18px;
+ width:100%;height:21px;
  background:var(--fh-np-ink);
  clip-path:polygon(8px 0,100% 0,calc(100% - 10px) 100%,0 100%,0 8px);
 }
 #fhNameplateHUD .fh-np-meter-bevel {
- position:absolute;inset:4px;
- background:var(--fh-np-bevel);
+ position:absolute;inset:2px;
+ background:#31bbc9;
  clip-path:polygon(5px 0,100% 0,calc(100% - 7px) 100%,0 100%,0 5px);
 }
 #fhNameplateHUD .fh-np-meter-well {
- position:absolute;inset:2px;
+ position:absolute;inset:1px;
  overflow:hidden;
- background:#14282b;
+ background:#082a33;
  clip-path:polygon(3px 0,100% 0,calc(100% - 5px) 100%,0 100%,0 3px);
 }
 #fhNameplateHUD .fh-np-meter-fill {
  position:absolute;left:0;top:0;height:100%;width:0;
  transition:width .25s ease-out;
- background:var(--fh-np-teal);
+ background:#09d9ee;
 }
-#fhNameplateHUD .fh-np-meter--pe .fh-np-meter-well {background:#1c2a22}
-#fhNameplateHUD .fh-np-meter--pe .fh-np-meter-fill {background:var(--fh-np-green)}
+#fhNameplateHUD .fh-np-meter--pe .fh-np-meter-bevel {background:#4bbe7c}
+#fhNameplateHUD .fh-np-meter--pe .fh-np-meter-well {background:#102c1d}
+#fhNameplateHUD .fh-np-meter--pe .fh-np-meter-fill {background:#51e584}
 @media (max-width:900px) and (orientation:landscape) and (max-height:450px) {
- #fhNameplateHUD.fh-np {
-  width:252px;
-  top:calc(9px + env(safe-area-inset-top,0px));
-  left:calc(9px + env(safe-area-inset-left,0px));
- }
+ #fhNameplateHUD.fh-np {width:min(252px,calc(100vw - 16px))}
  #fhNameplateHUD .fh-np-head {grid-template-columns:54px minmax(0,1fr);height:55px}
  #fhNameplateHUD .fh-np-mood-frame {height:60px;margin-right:-6px}
  #fhNameplateHUD .fh-np-mood-mark {font-size:30px}
+ #fhNameplateHUD .fh-np-mood-image {width:34px;height:34px}
  #fhNameplateHUD .fh-np-main-frame {height:55px;margin-left:-10px}
  #fhNameplateHUD .fh-np-name {font-size:20px;left:13px;top:2px}
  #fhNameplateHUD .fh-np-health-rule {bottom:12px}
- #fhNameplateHUD .fh-np-lower {width:calc(100% - 49px);margin-left:49px;margin-top:6px;gap:4px}
- #fhNameplateHUD .fh-np-meter {height:15px}
+ #fhNameplateHUD .fh-np-lower {width:calc(100% - 44px);margin-left:44px;margin-top:0;gap:1px}
+ #fhNameplateHUD .fh-np-meter {height:18px}
 }
 @media (max-width:450px) and (orientation:portrait) {
- #fhNameplateHUD.fh-np {width:min(272px,calc(100vw - 24px));top:12px;left:12px}
+ #fhNameplateHUD.fh-np {width:min(272px,calc(100vw - 16px))}
  #fhNameplateHUD .fh-np-head {grid-template-columns:58px minmax(0,1fr);height:58px}
  #fhNameplateHUD .fh-np-mood-frame {height:64px;margin-right:-6px}
  #fhNameplateHUD .fh-np-mood-mark {font-size:32px}
+ #fhNameplateHUD .fh-np-mood-image {width:38px;height:38px}
  #fhNameplateHUD .fh-np-main-frame {height:58px;margin-left:-10px}
  #fhNameplateHUD .fh-np-name {font-size:21px;top:2px;left:13px}
  #fhNameplateHUD .fh-np-health-rule {bottom:12px}
- #fhNameplateHUD .fh-np-lower {width:calc(100% - 53px);margin-left:53px;margin-top:6px;gap:4px}
- #fhNameplateHUD .fh-np-meter {height:15px}
+ #fhNameplateHUD .fh-np-lower {width:calc(100% - 48px);margin-left:48px;margin-top:0;gap:1px}
+ #fhNameplateHUD .fh-np-meter {height:18px}
 }
 @media (prefers-reduced-motion:reduce) {
  #fhNameplateHUD .fh-np-health-fill,#fhNameplateHUD .fh-np-meter-fill {transition:none}
