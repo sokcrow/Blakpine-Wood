@@ -52,10 +52,10 @@
  }
  function pose(status){
   const stage=status?.stage||'awake';
-  if(stage===lastStage && !(stage==='asleep'&&!state.sleeping&&state.awakeMinutes>=MIN_AWAKE&&state.restedMinutes<FULL_REST))return;
+  if(stage===lastStage && !(stage==='asleep'&&!state.sleeping&&state.awakeMinutes>=MIN_AWAKE))return;
   lastStage=stage;
-  if(stage==='asleep'&&state.awakeMinutes>=MIN_AWAKE&&state.restedMinutes<FULL_REST&&!state.sleeping){
-   state.sleeping=true;state.sleepMinutes=0;
+  if(stage==='asleep'&&state.awakeMinutes>=MIN_AWAKE&&!state.sleeping){
+   state.sleeping=true;state.sleepMinutes=0;state.restedMinutes=0;
   }else if(stage!=='asleep'&&stage!=='resting'&&stage!=='drowsy'&&state.sleeping){
    state.sleeping=false;
   }
