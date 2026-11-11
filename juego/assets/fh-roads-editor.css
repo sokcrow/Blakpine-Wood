@@ -1,0 +1,5 @@
+.fh-road-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.fh-road-grid fieldset{min-width:0;border:1px solid var(--line);margin:8px 0;padding:8px}
+.fh-road-grid legend{font-size:12px}
+.dialog select{min-width:0;width:100%;padding:10px 8px;background:#080e1a;color:#fff;border:1px solid #4e607b;border-radius:7px}
+.dialog .fh-road-grid input:focus,.dialog select:focus{outline:2px solid #baa6ff;outline-offset:2px}
