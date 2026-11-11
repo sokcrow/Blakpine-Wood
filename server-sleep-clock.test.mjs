@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ServerSleepClock } from './server-sleep-clock.js';
+import { ServerSleepClock } from './server-sleep-clock.mjs';
 
 test('normal: 1 minuto de juego por segundo real', () => {
   const c = new ServerSleepClock();
