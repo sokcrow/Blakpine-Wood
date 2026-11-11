@@ -41,9 +41,9 @@
    state.sleepMinutes+=delta;
    state.restedMinutes=Math.min(FULL_REST,state.restedMinutes+delta);
    if(state.sleepMinutes>=FULL_REST-1e-6){
-    state.sleeping=false;state.sleepMinutes=0;state.awakeMinutes=0;
+    state.sleeping=false;state.sleepMinutes=0;state.awakeMinutes=0;lastStage='waking';
     state.restedMinutes=FULL_REST;
-    root.FHSleep?.requestWake?.(()=>root.FHUnifiedSleep?.onAutoWake?.());
+    root.FHSleep?.requestWake?.(()=>root.FHUnifiedSleepAutoWake?.());
    }
   }else{
    state.awakeMinutes+=delta;
@@ -52,9 +52,9 @@
  }
  function pose(status){
   const stage=status?.stage||'awake';
-  if(stage===lastStage)return;
+  if(stage===lastStage && !(stage==='asleep'&&!state.sleeping&&state.awakeMinutes>=MIN_AWAKE&&state.restedMinutes<FULL_REST))return;
   lastStage=stage;
-  if(stage==='asleep'&&state.awakeMinutes>=MIN_AWAKE){
+  if(stage==='asleep'&&state.awakeMinutes>=MIN_AWAKE&&state.restedMinutes<FULL_REST&&!state.sleeping){
    state.sleeping=true;state.sleepMinutes=0;
   }else if(stage!=='asleep'&&stage!=='resting'&&stage!=='drowsy'&&state.sleeping){
    state.sleeping=false;
