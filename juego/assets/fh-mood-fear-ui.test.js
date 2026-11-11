@@ -82,6 +82,12 @@ test('ubicación se mantiene centrada, compacta y transitoria después de quitar
  assert.ok(locationJs.includes('const DISPLAY_MS=2800;'),'Conservar duración de 2.8 segundos');
  assert.ok(html.lastIndexOf('mobileCameraScript+locationCss')>html.indexOf('const locationCss='),'CSS final debe ganar la cascada');
  assert.ok(!html.includes('fh-status-hud.css'),'No cargar HUD antiguo');
+ assert.ok(locationCss.includes('#hud.fh-location-hud #fhFloorCode {display:none!important}'),'No debe mostrarse círculo PB');
+ assert.ok(locationCss.includes('.fh-location-has-secondary #floorLabel'),'Separador entre distrito y habitación');
+ assert.ok(locationCss.includes('border-bottom:1px solid rgba(245,241,236,.85);'),'Separador blanco');
+ assert.ok(locationCss.includes('::after {display:none}'),'No dejar la antigua línea al pie');
+ assert.ok(locationJs.includes("host.classList.toggle('fh-location-has-secondary',Boolean(value.secondary))"),'Línea solo con habitación');
+
 });
 test('seis estados de miedo con color, utilizando FHLiveText',()=>{
  const live=read('fh-live-text.js'),css=read('fh-mood-fear.css'),ui=read('fh-mood-fear-ui.js');

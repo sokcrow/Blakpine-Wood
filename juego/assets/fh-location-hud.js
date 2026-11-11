@@ -148,6 +148,7 @@
    first.textContent=value.primary;second.textContent=value.secondary;
    code.textContent=value.floorCode;code.hidden=value.kind==='exterior';
    host.classList.toggle('fh-location-exterior',value.kind==='exterior');
+   host.classList.toggle('fh-location-has-secondary',Boolean(value.secondary));
    second.hidden=!value.secondary;
    last=key;
   }

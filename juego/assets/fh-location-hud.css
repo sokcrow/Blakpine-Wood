@@ -237,3 +237,32 @@ body.fh-player-menu-ready #hud.fh-location-hud.fh-location-exterior::after {left
   transition:none;
  }
 }
+
+/* El aviso de ubicación usa solo dos renglones, separados por una línea.
+   No reservar columna para PB/F/B ni dibujar el subrayado al pie del marco. */
+#hud.fh-location-hud #fhFloorCode {display:none!important}
+body.fh-player-menu-ready #hud.fh-location-hud,
+body.fh-player-menu-ready #hud.fh-location-hud.fh-location-exterior {
+ grid-template-columns:minmax(0,1fr);
+ padding-left:19px;
+ padding-right:19px;
+}
+body.fh-player-menu-ready #hud.fh-location-hud::after {display:none}
+body.fh-player-menu-ready #hud.fh-location-hud .fh-location-text {gap:0}
+body.fh-player-menu-ready #hud.fh-location-hud.fh-location-has-secondary #floorLabel {
+ border-bottom:1px solid rgba(245,241,236,.85);
+ padding-bottom:5px;
+ margin-bottom:6px;
+}
+@media(max-width:650px) {
+ body.fh-player-menu-ready #hud.fh-location-hud,
+ body.fh-player-menu-ready #hud.fh-location-hud.fh-location-exterior {
+  grid-template-columns:minmax(0,1fr);
+  padding-left:13px;
+  padding-right:13px;
+ }
+ body.fh-player-menu-ready #hud.fh-location-hud.fh-location-has-secondary #floorLabel {
+  padding-bottom:4px;
+  margin-bottom:5px;
+ }
+}
