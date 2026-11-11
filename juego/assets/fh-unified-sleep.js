@@ -19,6 +19,10 @@
  function before(gameState){
   if(!gameState?.clock)return;
   if(gameState.sleepState!==state)initialize(gameState);
+  // Leer el estado actual del controlador antes de elegir la velocidad.
+  // Así despertar manualmente no deja un fotograma más de aceleración.
+  const liveStage=root.FHSleep?.status?.()?.stage;
+  if(liveStage)pose({stage:liveStage});
   const clock=gameState.clock;
   if(state.lastMinute===null)state.lastMinute=absolute(clock);
   // El modo de prueba tiene exactamente un jugador local; para multiplayer
