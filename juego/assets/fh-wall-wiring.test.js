@@ -134,6 +134,29 @@ test('el overlay eléctrico continúa por ventanas, puertas y aberturas',()=>{
   assert.equal(lines.reduce((sum,l)=>sum+Math.hypot(l.to.x-l.from.x,l.to.y-l.from.y),0),5);
  }
 });
+test('el cable instalado permanece visible sin energía y respeta el largo del breaker',()=>{
+ for(const mode of ['sin fuente','breaker apagado']){
+  const {project,breaker,socket}=network('window');
+  if(mode==='sin fuente')breaker.powerSource={kind:'none'};
+  else breaker.enabled=false;
+  const runtime=FH.createRuntime(project,{});
+  assert.equal(runtime.sourceFor(0,socket,'a'),null,mode+': sin suministro real');
+  assert.equal(runtime.statusFor(0,socket).power.powered,false,mode+': toma apagada');
+  const installed=runtime.wiringSourceFor(0,socket,'a');
+  assert.equal(installed?.panel.id,breaker.id,mode+': conexión física conservada');
+  assert.equal(installed.route.feet,25);
+  const ctx=overlayEnvironment(project),lines=[];
+  let from=null,to=null;
+  const canvas={save(){},restore(){},beginPath(){from=to=null},
+   moveTo(x,y){from={x,y}},lineTo(x,y){to={x,y}},stroke(){if(from&&to)lines.push({from,to})},arc(){},fill(){}};
+  ctx.drawLightingOverlay(canvas,1);
+  assert.ok(lines.some(l=>l.from.x===1&&Math.abs(l.to.x-1.66)<1e-6),mode+': se ve sobre la ventana');
+  assert.equal(lines.reduce((sum,l)=>sum+Math.hypot(l.to.x-l.from.x,l.to.y-l.from.y),0),5);
+  breaker.circuits[0].rangeFt=24.9;
+  lines.length=0;ctx.drawLightingOverlay(canvas,1);
+  assert.equal(lines.length,0,mode+': no se inventan cables fuera del alcance');
+ }
+});
 test('editor y motor 3D cargan la misma versión corregida del grafo',()=>{
  const hook=fs.readFileSync(path.join(__dirname,'fh-services-engine-hook.js'),'utf8');
  const coreVersion=editor.match(/fh-services-core\.js\?v=([a-zA-Z0-9-]+)/)?.[1];
