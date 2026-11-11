@@ -4620,6 +4620,50 @@ function floorSightThroughOpening(f,at,target,openings){
   ].map(file=>'<script src="'+new URL('./juego/assets/'+file,document.baseURI).href+'"></'+'script>').join('');
   return doc.replace('</head>',tags+'</head>');
  }
+
+ function addMoodFearToEngine(doc){
+  const resources=[
+   ['link','fh-mood-fear.css'],
+   ['script','fh-mood-fear-strings.js'],
+   ['script','fh-mood-fear-core.js'],
+   ['script','fh-mood-fear-art.js'],
+   ['script','fh-mood-fear-ui.js']
+  ];
+  const tags=resources.map(([kind,file])=>{
+   const url=new URL('./juego/assets/'+file+'?v=20261111-mood-fear-1',document.baseURI).href;
+   return kind==='link'?'<link rel="stylesheet" href="'+url+'">':'<script src="'+url+'"></'+'script>';
+  }).join('');
+  if(!doc.includes('</head>'))throw Error('Falta head del motor para Mood/Miedo');
+  doc=doc.replace('</head>',tags+'</head>');
+  const initBefore='window.FHSurvivalRuntime=fhSurvival;';
+  const initAfter=initBefore+`\n`+
+   `if(GameState.character?.id&&restored?.characterId===GameState.character.id&&restored?.character?.mental)GameState.character.mental=structuredClone(restored.character.mental);\n`+
+   `const fhFear=GameState.character?.resources&&window.FHMoodFear?.createRuntime(GameState.character,{\n`+
+   ` onChange:(_state,kind,payload)=>{fhSurvivalDirty=true;if(kind==='fear')window.FHMoodFearUI?.fearChange(payload);},\n`+
+   ` onSanityLoss:()=>{fhSurvivalDirty=true},\n`+
+   ` onOverwhelmed:payload=>GameEvents.emit('character:overwhelmed',payload)\n`+
+   `});\n`+
+   `window.FHMoodFearRuntime=fhFear;\n`+
+   `GameEvents.on('horror:stimulus',p=>fhFear?.stimulus(p?.type||'paranormal',{...p,minute:fhSurvivalMinute()}));\n`+
+   `window.FHScareRuntime=Object.freeze({\n`+
+   ` scare:(type,options={})=>fhFear?.stimulus(type,{...options,minute:fhSurvivalMinute()}),\n`+
+   ` setMood:mood=>fhFear?.setMood(mood),\n`+
+   ` read:()=>fhFear?.read()\n`+
+   `});`;
+  const updateBefore='fhSurvivalUI?.update();';
+  const updateAfter=`fhFear?.tick(fhNow,{darkness:fhDark,sleeping:fhSleeping});\n`+
+   `const fhHead=window.FHMoodFearUI?.project(THREE,cam,renderer,{x:user.x,y:floorElev[currentFloor]+HERO_H*1.12,z:user.z});\n`+
+   `window.FHMoodFearUI?.bind(renderer.domElement,()=>fhHead&&GameState.character?.id?{...fhHead,id:GameState.character.id}:null);\n`+
+   `window.FHMoodFearUI?.render(GameState.character,fhHead);\n`+
+   updateBefore;
+  for(const [a,b]of [[initBefore,initAfter],[updateBefore,updateAfter]]){
+   const count=doc.split(a).length-1;
+   if(count!==1)throw Error('Hook Mood/Miedo incompatible: '+a+' ('+count+')');
+   doc=doc.replace(a,b);
+  }
+  return doc;
+ }
+
  const assembled=(window.FHContextEngine?.patch||((doc)=>doc))(addActorPresentationToEngine(addLiveTextToEngine(addDeliveryToEngine(addParkingToEngine(addStylesToEngine(addLightToEngine(source.replace('const MAX_INVENTORY_SLOTS=8;','const MAX_INVENTORY_SLOTS=10;'))))).replace(furnitureVisibilityHook,furnitureRenderHook).replace(cameraBefore,cameraLightAfter).replace(cameraStartBefore,cameraStartAfter).replace(sleepCameraBefore,sleepCameraAfter).replace(loopBefore,loopAfter)
   .replace(maskBefore,maskAfter).replace(wakeHUDBefore,wakeHUDAfter).replace(locationHudHook,locationHudAfter)
   .split(wakeBefore).join(wakeAfter)
@@ -4693,7 +4737,7 @@ function floorSightThroughOpening(f,at,target,openings){
    '<script '+(file.includes('diagnostics')?'data-fh-runtime ':'')+'src="'+new URL('./juego/assets/'+file+'?v=20261109-diag2',document.baseURI).href+'"></'+'script>').join('');
   return doc.replace('<head>','<head>'+tags);
  }
- return addPreviewReturnToSpawnpoint(addPreviewDiagnostics(addCourtyardsToEngine(addFloorVisibilityToEngine(addNaturalLightToEngine(assembled)))));
+ return addPreviewReturnToSpawnpoint(addPreviewDiagnostics(addCourtyardsToEngine(addMoodFearToEngine(addFloorVisibilityToEngine(addNaturalLightToEngine(assembled))))));
 }
 let fhCharacterLaunchPending=false;
 async function start3DPreview(){
