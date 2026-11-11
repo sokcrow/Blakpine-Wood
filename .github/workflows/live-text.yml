@@ -7,6 +7,7 @@ on:
       - 'juego/assets/fh-live-*'
       - 'juego/assets/fh-mood-fear-*'
       - 'juego/assets/fh-nameplate-hud*'
+      - 'juego/assets/fh-status-hud.test.js'
       - 'juego/assets/fh-delivery*'
       - '.github/workflows/live-text.yml'
   push:
@@ -16,6 +17,7 @@ on:
       - 'juego/assets/fh-live-*'
       - 'juego/assets/fh-mood-fear-*'
       - 'juego/assets/fh-nameplate-hud*'
+      - 'juego/assets/fh-status-hud.test.js'
       - 'juego/assets/fh-delivery*'
       - '.github/workflows/live-text.yml'
 
