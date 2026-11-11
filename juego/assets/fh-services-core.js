@@ -544,6 +544,19 @@
    const g=generators.find(g=>g.f===f&&id(g.it)===String(itemId));if(!g)return false;
    s.generators[g.key].enabled=!!enabled;allocationCache=null;generatorStatus(f,g.it);return true;
   }
+  // El minijuego sólo autoriza esta mutación tras resolverse por completo.
+  function repairDamage(f,itemId){
+   const it=itemAt(f,itemId),allowed=new Set([
+    'breaker_panel','generator','generator_ats','power_outlet','power_strip',
+    'light_switch','router','ethernet_port','landline_phone','phone_charger'
+   ]);
+   if(!it||!allowed.has(it.type))return {ok:false,reason:'unsupported'};
+   const before=Number(s.damage[id(it)]);
+   if(!Number.isFinite(before)||before<=0)return {ok:false,reason:'notDamaged'};
+   s.damage[id(it)]=0;
+   allocationCache=null;
+   return {ok:true,itemId:id(it),before,after:0};
+  }
   function active(it){return s.enabled[id(it)]!==false&&it.enabled!==false&&it.on!==false;}
   function rayos(it){return Math.max(0,number(it.rayos,it.service?.rayos??0));}
   function watts(it,generated=false){
@@ -956,7 +969,7 @@
   function setService(name,active){if(!Object.prototype.hasOwnProperty.call(s.contracts,name))return false;s.contracts[name]=active?'active':'suspended';return true;}
   syncATS();
   return Object.freeze({state:s,phone:state.phone,graphs,powerGraphs,powerRoute,zoneFor,requiresPower,point,itemAt,defaultsFor,sourceFor,wiredRoute,scopeFor,
-   panelStatus,atsStatus,activateATSManual,tankStatus,generatorStatus,setGeneratorEnabled,generatorCircuitPowered,statusFor,electrical,waterStatus,drainStatus,wifiAt,wifiSampler,connectWifi,internetFor,landlineFor,mobileFor,
+   panelStatus,atsStatus,activateATSManual,tankStatus,generatorStatus,setGeneratorEnabled,repairDamage,generatorCircuitPowered,statusFor,electrical,waterStatus,drainStatus,wifiAt,wifiSampler,connectWifi,internetFor,landlineFor,mobileFor,
    chargePhone,takePhone,useWaterFixture,setUsage,dial,tick,setService,feetPerCell});
  }
  return Object.freeze({INFRA,defaultsFor,wallGraph,ensureState,createRuntime,requiresPower:needsElectricity,LIMITS,rangeFor});
