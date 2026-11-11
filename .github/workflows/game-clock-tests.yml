@@ -1,0 +1,32 @@
+name: Reloj y sueño - regresión
+
+on:
+  pull_request:
+    paths:
+      - 'juego/assets/fh-unified-sleep.js'
+      - 'juego/assets/fh-sleep.js'
+      - 'juego/assets/fh-game-clock.test.js'
+      - 'juego/assets/fh-weather-core.js'
+      - '.github/workflows/game-clock-tests.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'juego/assets/fh-unified-sleep.js'
+      - 'juego/assets/fh-sleep.js'
+      - 'juego/assets/fh-game-clock.test.js'
+      - 'juego/assets/fh-weather-core.js'
+      - '.github/workflows/game-clock-tests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  clock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Reloj, clima y sueño
+        run: node --test juego/assets/fh-game-clock.test.js juego/assets/fh-weather-core.test.js server-sleep-clock.test.mjs
