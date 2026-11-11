@@ -4666,7 +4666,7 @@ function floorSightThroughOpening(f,at,target,openings){
    ` read:()=>fhFear?.read()\n`+
    `});`;
   const updateBefore='fhSurvivalUI?.update();';
-  const updateAfter=`fhFear?.tick(fhNow,{darkness:fhDark,sleeping:fhSleeping});\n`+
+  const updateAfter=`window.FHMoodFearRuntime?.tick(fhNow,{darkness:fhDark,sleeping:fhSleeping});\n`+
    `const fhHead=window.FHMoodFearUI?.project(THREE,cam,renderer,{x:user.x,y:floorElev[currentFloor]+HERO_H*1.12,z:user.z});\n`+
    `const fhFeet=window.FHMoodFearUI?.project(THREE,cam,renderer,{x:user.x,y:floorElev[currentFloor]+.15,z:user.z});\nwindow.FHMoodFearUI?.bind(renderer.domElement,()=>fhHead&&GameState.character?.id?{...fhHead,id:GameState.character.id,bodyX:fhFeet?.x,bodyY:fhFeet?.y}:null);\n`+
    `window.FHMoodFearUI?.render(GameState.character,fhHead);\n`+
