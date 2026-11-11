@@ -314,3 +314,33 @@ test('si el panel de diagnóstico falla al montarse, el motor sigue construyénd
 
 
 
+
+test('el shader del motor conserva negro opaco y profundidad en el suelo sin luz',()=>{
+ const {context,motor}=integrationEnvironment(),html=context.prepareGLBEngineDoc(motor);
+ const from=html.indexOf('const fhSightMaskedMaterials=new WeakSet();'),to=html.indexOf('const heroMaterial=',from);
+ assert.ok(from>0&&to>from,'instalador real de FOW localizado');
+ const THREE=require('./vendor/three.min.js'),scene=new THREE.Scene();
+ const floor=new THREE.Mesh(new THREE.PlaneGeometry(6,6),new THREE.MeshLambertMaterial({color:0xffffff}));
+ scene.add(floor);
+ const env=vm.createContext({scene,hero:null,shadow:null,MAX_X:20,MAX_Z:20,sightUniform:{value:null}});
+ vm.runInContext(html.slice(from,to),env);env.installVisibility();
+ const shader={uniforms:{},vertexShader:'#include <common>\n#include <begin_vertex>',
+  fragmentShader:'#include <common>\n#include <dithering_fragment>'};
+ floor.material.onBeforeCompile(shader);
+ assert.equal(floor.material.depthWrite,true);assert.equal(floor.material.depthTest,true);assert.equal(floor.material.transparent,false);
+ assert.match(shader.fragmentShader,/gl_FragColor.rgb\*=clamp\(fhLight,0\.,1\.\);/);
+ assert.doesNotMatch(shader.fragmentShader,/if\s*\(fhLight\s*</,'la oscuridad no elimina fragmentos del piso');
+ assert.ok(shader.uniforms.uSight);
+});
+
+test('el motor ensamblado exige apertura y losa libre al mirar abajo y no dibuja terreno de sótano',()=>{
+ const {context,motor}=integrationEnvironment(),html=context.prepareGLBEngineDoc(motor);
+ assert.match(html,/if\(inside&&f!==currentFloor\)/);
+ assert.match(html,/facadeCandidate\(currentFloor,f,inside,inCameraVolume\(bounds\),upperWindows.length>0,mainFloorIndex\)/);
+ const start=html.indexOf('function exteriorGroundVisible('),end=html.indexOf('function updateAdjacentVisibility(',start);
+ const env=vm.createContext({mainFloorIndex:1});
+ vm.runInContext(html.slice(start,end),env);
+ assert.equal(env.exteriorGroundVisible(0,{},[],false,[]),false,'el sótano no entra ni en el muestreo exterior');
+ assert.match(html,/if\(inside&&!floorSightThroughOpening\(f,at,/);
+ assert.match(html,/slab.spans\|\|\[\]\).flatMap\(sp=>surfaceRectsMinusVoids\(index,/);
+});
