@@ -4446,18 +4446,19 @@ function fhRefreshActorVisibility(){
   doc=addWeatherToEngine(doc);
   const before='installVisibility();window.FHAssets?.setSightMaskInstaller(installVisibility);';
   const after=[
-   "const fhWeather=DATA.weather?.enabled===true?window.FHWeatherCore?.createRuntime({gameState:GameState,config:DATA.weather}):null;",
-   "window.FHWeatherRuntime=fhWeather;",
-   "const fhWeatherExposure=fhWeather?window.FHWeatherRenderer?.createExteriorExposure({floors:DATA.floors,units:DATA.units,cell:CELL,slabs:SLABS,natural:window.FHNaturalLight}):null;",
-   "const fhWeatherRenderer=fhWeather?window.FHWeatherRenderer?.createRuntime({THREE,scene,columns:GRID_X,rows:GRID_Z,cell:CELL,actor:()=>({x:user.x,z:user.z}),floorY:()=>floorElev[currentFloor],floorIndex:()=>currentFloor,isOutside:(x,z)=>fhWeatherExposure?.(currentFloor,x,z)===true}):null;",
-   "const fhWeatherAudio=fhWeather?window.FHWeatherAudio?.createRuntime({outside:()=>fhWeatherExposure?.(currentFloor,user.x,user.z)===true}):null;",
+   "const fhWeatherEnabled=DATA.weather?.enabled===true;",
+   "const fhWeather=window.FHWeatherCore?.createRuntime({gameState:GameState,config:DATA.weather||{}});",
+   "window.FHWeatherRuntime=fhWeatherEnabled?fhWeather:null;",
+   "const fhWeatherExposure=fhWeatherEnabled&&fhWeather?window.FHWeatherRenderer?.createExteriorExposure({floors:DATA.floors,units:DATA.units,cell:CELL,slabs:SLABS,natural:window.FHNaturalLight}):null;",
+   "const fhWeatherRenderer=fhWeatherEnabled&&fhWeather?window.FHWeatherRenderer?.createRuntime({THREE,scene,columns:GRID_X,rows:GRID_Z,cell:CELL,actor:()=>({x:user.x,z:user.z}),floorY:()=>floorElev[currentFloor],floorIndex:()=>currentFloor,isOutside:(x,z)=>fhWeatherExposure?.(currentFloor,x,z)===true}):null;",
+   "const fhWeatherAudio=fhWeatherEnabled&&fhWeather?window.FHWeatherAudio?.createRuntime({outside:()=>fhWeatherExposure?.(currentFloor,user.x,user.z)===true}):null;",
    "window.FHWeatherAudioRuntime=fhWeatherAudio;",
    "window.addEventListener('beforeunload',()=>{fhWeatherRenderer?.dispose();fhWeatherAudio?.dispose();});",
    "const fhNatural=window.FHNaturalLight?.createRuntime({DATA,CELL,",
    " clock:()=>GameState.clock?.minutes,floor:()=>currentFloor,",
    " doorOpen:(f,id,it)=>doorList[f]?.find(d=>d.id===id)?.open??it?.open,",
    " doorTransparent:it=>ForestShared.doorSpec(it)?.transparent===true,",
-   " weather:()=>fhWeather?.view()});",
+   " weather:()=>fhWeatherEnabled?fhWeather?.view():null});",
    "installVisibility();window.FHAssets?.setSightMaskInstaller(installVisibility);"
   ].join('\n');
   const tickBefore='window.FHDeliveryRuntime?.update(dt);window.FHPhoneRuntime?.update(dt);';
