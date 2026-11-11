@@ -384,7 +384,7 @@
    }
    const sample={roomId:feed.target.roomId||'',x:feed.circuit.panel.x,y:feed.circuit.panel.y};
    const normal=feeds.find(other=>other.g.it.generatorKind!=='emergency'&&feedMatches(other,feed.f,feed.circuit,sample));
-   return normal?baseReady(normal.g):mainAvailable(feed.f);
+   return normal?baseReady(normal.g):utilityAvailable(feed.f,feed.circuit);
   }
   function syncATS(){
    for(const a of accessories.filter(a=>a.it.type==='generator_ats')){
