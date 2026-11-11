@@ -4,7 +4,7 @@
  root.FH_STATUS_TEXT=Object.freeze({
   title:'Estado del personaje',
   pg:'PG',pgFull:'Puntos de golpe',
-  sp:'SP',spFull:'Puntos de sanidad',
+  sp:'PS',spFull:'Puntos de sanidad',
   pe:'PE',peFull:'Puntos de energía',poison:'Veneno'
  });
 })(typeof window!=='undefined'?window:globalThis);

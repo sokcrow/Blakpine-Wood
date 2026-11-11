@@ -3547,7 +3547,7 @@ function prepareGLBEngineDoc(source){
  const phoneScript='<script src="'+new URL('./juego/assets/fh-phone.js?v=20261109-wifi-compact-status-3',document.baseURI).href+'"></'+'script>';
  const mobileCameraScript='<script src="'+new URL('./juego/assets/fh-mobile-camera.js?v=20261108-landscape20',document.baseURI).href+'"></'+'script>';
  const locationHudHook='if(now-lastHud>90){lastHud=now;hudUpdate()}';
- const locationHudAfter='if(now-lastHud>90){lastHud=now;hudUpdate();window.FHLocationHUD?.update(DATA,currentFloor,{x:user.x/CELL,y:user.z/CELL});window.FHStatusHUD?.update(window.FHCharacterRuntime?.character?.resources)}';
+ const locationHudAfter='if(now-lastHud>90){lastHud=now;hudUpdate();window.FHLocationHUD?.update(DATA,currentFloor,{x:user.x/CELL,y:user.z/CELL});window.FHStatusHUD?.update(window.FHCharacterRuntime?.character?.resources,window.FHCharacterRuntime?.character?.mental)}';
  if(source.split(locationHudHook).length!==2)throw Error('El HUD original cambió: actualiza el adaptador de ubicación.');
   function addParkingToEngine(doc){
    const anchors=[
@@ -4631,7 +4631,7 @@ function floorSightThroughOpening(f,at,target,openings){
    ['script','fh-mood-fear-ui.js']
   ];
   const tags=resources.map(([kind,file])=>{
-   const url=new URL('./juego/assets/'+file+'?v=20261111-mood-fear-1',document.baseURI).href;
+   const url=new URL('./juego/assets/'+file+'?v=20261111-mood-fear-2',document.baseURI).href;
    return kind==='link'?'<link rel="stylesheet" href="'+url+'">':'<script src="'+url+'"></'+'script>';
   }).join('');
   if(!doc.includes('</head>'))throw Error('Falta head del motor para Mood/Miedo');
@@ -4640,7 +4640,7 @@ function floorSightThroughOpening(f,at,target,openings){
   const initAfter=initBefore+`\n`+
    `if(GameState.character?.id&&restored?.characterId===GameState.character.id&&restored?.character?.mental)GameState.character.mental=structuredClone(restored.character.mental);\n`+
    `const fhFear=GameState.character?.resources&&window.FHMoodFear?.createRuntime(GameState.character,{\n`+
-   ` onChange:(_state,kind,payload)=>{fhSurvivalDirty=true;if(kind==='fear')window.FHMoodFearUI?.fearChange(payload);},\n`+
+   ` onChange:(_state,kind,payload)=>{fhSurvivalDirty=true;if(kind==='fear')window.FHMoodFearUI?.fearChange(payload,{x:user.x,y:floorElev[currentFloor]+HERO_H*1.22,z:user.z,floor:currentFloor});},\n`+
    ` onSanityLoss:()=>{fhSurvivalDirty=true},\n`+
    ` onOverwhelmed:payload=>GameEvents.emit('character:overwhelmed',payload)\n`+
    `});\n`+
@@ -4654,7 +4654,7 @@ function floorSightThroughOpening(f,at,target,openings){
   const updateBefore='fhSurvivalUI?.update();';
   const updateAfter=`fhFear?.tick(fhNow,{darkness:fhDark,sleeping:fhSleeping});\n`+
    `const fhHead=window.FHMoodFearUI?.project(THREE,cam,renderer,{x:user.x,y:floorElev[currentFloor]+HERO_H*1.12,z:user.z});\n`+
-   `window.FHMoodFearUI?.bind(renderer.domElement,()=>fhHead&&GameState.character?.id?{...fhHead,id:GameState.character.id}:null);\n`+
+   `const fhFeet=window.FHMoodFearUI?.project(THREE,cam,renderer,{x:user.x,y:floorElev[currentFloor]+.15,z:user.z});\nwindow.FHMoodFearUI?.bind(renderer.domElement,()=>fhHead&&GameState.character?.id?{...fhHead,id:GameState.character.id,bodyX:fhFeet?.x,bodyY:fhFeet?.y}:null);\n`+
    `window.FHMoodFearUI?.render(GameState.character,fhHead);\n`+
    updateBefore;
   for(const [a,b]of [[initBefore,initAfter],[updateBefore,updateAfter]]){

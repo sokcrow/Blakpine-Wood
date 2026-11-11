@@ -279,11 +279,15 @@
     if (!word) return true;
     ensure();
     if (spatialItems.length >= 8) { const old = spatialItems.shift();old.el.remove(); }
-    const sleep=spec?.kind==='sleep';
-    const el = global.document.createElement('div');el.className=sleep?'fh-sound fh-sleep-comic':'fh-sound';el.textContent=word;elements.layer.appendChild(el);
-    const entry = { el,kind:sleep?'sleep':'normal',x:spec.x,z:spec.z,y:spec.y,floor:spec.floor,
+    const sleep=spec?.kind==='sleep',fear=spec?.kind==='fear';
+    const fearLevels=['relajado','calmado','nervioso','atemorizado','sin_esperanza','abrumado'];
+    const fearLevel=fearLevels.includes(spec?.fearLevel)?spec.fearLevel:'calmado';
+    const el=global.document.createElement('div');
+    el.className=sleep?'fh-sound fh-sleep-comic':fear?'fh-sound fh-fear-comic fh-fear-comic--'+fearLevel:'fh-sound';
+    el.textContent=word;elements.layer.appendChild(el);
+    const entry = { el,kind:sleep?'sleep':fear?'fear':'normal',x:spec.x,z:spec.z,y:spec.y,floor:spec.floor,
       screenX:screenSleep?spec.screenX:null,screenY:screenSleep?spec.screenY:null,
-      self:spec.self===true, expires:global.performance.now()+(sleep?2600:580),nextSight:0,shown:false };
+      self:spec.self===true, expires:global.performance.now()+(sleep?2600:fear?2100:580),nextSight:0,shown:false };
     spatialItems.push(entry);tick();return true;
   }
   // Comparte tipografía, animación, capa y proyección con el texto «¡TOC!».

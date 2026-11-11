@@ -9,8 +9,8 @@
  const moods=['bueno','neutral','malo'];
  const make=(tag,cls,text)=>{const e=root.document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e;};
  const words=()=>root.FH_MOOD_FEAR_TEXT||{keys:{},reasons:{}};
- let panel=null,face=null,name=null,bars=null,notice=null,selectedId=null;
- let clickTarget=null,clickHandler=null,currentLocator=null,noticeTimeout=null;
+ let panel=null,face=null,name=null,bars=null,selectedId=null;
+ let clickTarget=null,clickHandler=null,currentLocator=null;
  function setup(){
   if(!root.document?.body)return false;
   if(panel?.isConnected)return true;
@@ -32,9 +32,7 @@
    bars[key]={fill,track,count};
   }
   panel.append(mood,stats);
-  notice=make('div','fh-fear-pop');notice.hidden=true;
-  notice.setAttribute('role','status');notice.setAttribute('aria-live','polite');
-  root.document.body.append(panel,notice);
+  root.document.body.append(panel);
   return true;
  }
  function hide(){if(panel)panel.hidden=true;}
@@ -46,6 +44,14 @@
   const box=renderer.domElement.getBoundingClientRect();
   return {x:box.left+(v.x+1)*box.width/2,y:box.top+(1-v.y)*box.height/2};
  }
+ function distanceToActor(px,py,at){
+  const x=Number.isFinite(at?.bodyX)?at.bodyX:at.x;
+  const y=Number.isFinite(at?.bodyY)?at.bodyY:at.y+48;
+  const dx=x-at.x,dy=y-at.y;
+  const ratio=dx*dx+dy*dy;
+  const t=ratio>0?Math.max(0,Math.min(1,((px-at.x)*dx+(py-at.y)*dy)/ratio)):0;
+  return Math.hypot(px-at.x-t*dx,py-at.y-t*dy);
+ }
  function bind(canvas,locator){
   if(!canvas||typeof locator!=='function')return;
   currentLocator=locator;
@@ -55,7 +61,14 @@
   clickHandler=event=>{
    if(event.button!==0)return;
    const at=currentLocator?.();
-   if(at&&Math.hypot(event.clientX-at.x,event.clientY-at.y)<=38)select(at.id);
+   if(!at){select(null);return;}
+   const height=Math.abs((Number.isFinite(at.bodyY)?at.bodyY:at.y+48)-at.y);
+   const radius=Math.min(36,Math.max(18,height*.27));
+   if(distanceToActor(event.clientX,event.clientY,at)<=radius){
+    select(at.id);
+    event.preventDefault();
+    event.stopImmediatePropagation();
+   }else select(null);
   };
   canvas.addEventListener('click',clickHandler,true);
  }
@@ -64,8 +77,9 @@
   const id=character?.id!=null?String(character.id):'';
   if(!character||!position||!id||selectedId!==id){hide();return false;}
   panel.hidden=false;
-  panel.style.left=position.x+'px';
-  panel.style.top=Math.max(64,position.y-18)+'px';
+  const half=(panel.offsetWidth||310)/2,viewport=root.innerWidth||1280;
+  panel.style.left=Math.max(Math.min(half+8,viewport/2),Math.min(Math.max(viewport-half-8,viewport/2),position.x))+'px';
+  panel.style.top=Math.max(112,position.y-18)+'px';
   name.textContent=String(character.name||'').slice(0,60);
   const mood=moods.includes(character.mental?.mood)?character.mental.mood:'neutral';
   const art=root.FH_MOOD_FEAR_IMAGES?.[mood]||'';
@@ -85,19 +99,19 @@
   }
   return true;
  }
- function fearChange(payload){
-  if(!payload||!setup())return;
-  if(noticeTimeout)root.clearTimeout?.(noticeTimeout);
+ function fearChange(payload,position){
+  if(!payload||!position||!root.FHLiveText?.soundAt)return false;
   const dict=words();
-  notice.className='fh-fear-pop fh-fear-pop--'+payload.key;
-  const lost=payload.damage>0?'−'+payload.damage+' PS · '+payload.percent+'%':'0 PS';
-  notice.replaceChildren(
-   make('strong','fh-fear-pop-name',dict.keys?.[payload.key]||payload.key),
-   make('span','fh-fear-pop-loss',lost),
-   make('small','fh-fear-pop-reason',dict.reasons?.[payload.reason]||'')
-  );
-  notice.hidden=false;
-  noticeTimeout=root.setTimeout?.(()=>{notice.hidden=true;},2800);
+  const title=dict.keys?.[payload.key];
+  if(!title)return false;
+  const loss=payload.damage>0?' −'+payload.damage+' PS':'';
+  // Se dibuja sobre la escena mediante el mismo sistema espacial que ZZZ y abrir puertas.
+  root.FHLiveText.clearKind?.('fear');
+  return root.FHLiveText.soundAt({
+   kind:'fear',fearLevel:payload.key,text:title+loss,
+   x:position.x,y:position.y,z:position.z,floor:position.floor,
+   level:1,self:true
+  });
  }
  return Object.freeze({setup,select,render,bind,project,fearChange,hide});
 });

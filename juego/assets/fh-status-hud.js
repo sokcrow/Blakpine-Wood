@@ -10,10 +10,10 @@
  const FALLBACK=Object.freeze({
   title:'Estado del personaje',
   pg:'PG',pgFull:'Puntos de golpe',
-  sp:'SP',spFull:'Puntos de sanidad',
+  sp:'PS',spFull:'Puntos de sanidad',
   pe:'PE',peFull:'Puntos de energía',poison:'Veneno'
  });
- let host=null,panel=null,rows=null,peCells=[],previous={},pendingChanges={};
+ let host=null,panel=null,rows=null,peCells=[],moodFace=null,moodLabel=null,previous={},pendingChanges={};
 
  function reading(resources,key){
   if(!resources||!KEYS.includes(key))return null;
@@ -51,7 +51,7 @@
   track.setAttribute('role','progressbar');
   track.setAttribute('aria-label',strings[key+'Full']);
   track.setAttribute('aria-valuemin','0');
-  const fill=key==='pe'?null:node(doc,'span','fh-status-fill fh-status-fill--'+key);
+  const fill=node(doc,'span','fh-status-fill fh-status-fill--'+key);
   if(fill)track.append(fill);
   row.append(heading,track);
   return {row,track,fill,value};
@@ -67,6 +67,10 @@
   panel.id='fhStatusHUD';
   panel.setAttribute('aria-label',strings.title);
   panel.hidden=true;
+  const mood=node(doc,'div','fh-status-mood');
+  moodFace=node(doc,'img','fh-status-mood-icon');moodFace.alt='';moodFace.draggable=false;
+  moodLabel=node(doc,'span','fh-status-mood-label');
+  mood.append(moodFace,moodLabel);panel.append(mood);
   rows={};
   for(const key of KEYS){
    rows[key]=buildRow(doc,key);
@@ -100,7 +104,7 @@
   const amount=key==='pe'?Math.trunc(Math.abs(delta)):Math.round(Math.abs(delta)*10)/10;
   if(!amount)return '';
   const poison=kind==='poison'&&key==='pg'&&delta<0?(labels().poison||'Veneno')+' ':'';
-  return poison+(delta>0?'+':'−')+amount+' '+key.toUpperCase();
+  return poison+(delta>0?'+':'−')+amount+' '+(key==='sp'?'PS':key.toUpperCase());
  }
  function showChange(key,delta,kind){
   const tone=changeTone(key,delta,kind),label=changeLabel(key,delta,kind);
@@ -120,8 +124,12 @@
   pendingChanges[key]={delta,until:Date.now()+2000};
   return true;
  }
- function update(resources){
+ function update(resources,mental){
   if(!ensure())return false;
+  const mood=['bueno','neutral','malo'].includes(mental?.mood)?mental.mood:'neutral';
+  const art=root.FH_MOOD_FEAR_IMAGES?.[mood]||'';
+  if(moodFace){moodFace.hidden=!art;if(art&&moodFace.getAttribute('src')!==art)moodFace.setAttribute('src',art);moodFace.alt='Humor: '+(root.FH_MOOD_FEAR_TEXT?.[mood==='bueno'?'good':mood==='malo'?'bad':'neutral']||mood);}
+  if(moodLabel)moodLabel.textContent=root.FH_MOOD_FEAR_TEXT?.mood||'Humor';
   let visible=false;
   for(const key of KEYS){
    const data=reading(resources,key),refs=rows[key];
@@ -138,13 +146,8 @@
    refs.value.textContent=data.current+' / '+data.maximum;
    refs.track.setAttribute('aria-valuenow',String(data.current));
    refs.track.setAttribute('aria-valuemax',String(data.maximum));
-   if(key==='pe'){
-    syncPE(data.maximum);
-    for(let i=0;i<peCells.length;i++)peCells[i].classList.toggle('is-filled',i<data.current);
-   }else{
-    const percent=data.percent+'%';
-    if(refs.fill.style.width!==percent)refs.fill.style.width=percent;
-   }
+   const percent=data.percent+'%';
+   if(refs.fill.style.width!==percent)refs.fill.style.width=percent;
   }
   panel.hidden=!visible;
   return visible;

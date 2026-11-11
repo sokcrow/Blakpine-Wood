@@ -81,6 +81,6 @@ test('Paleta de Heal, DMG, consumo de PE y veneno',()=>{
  assert.equal(H.changeTone('fake',-2),null);
  assert.equal(H.changeLabel('pe',4),'+4 PE');
  assert.equal(H.changeLabel('pg',-5,'poison'),'Veneno −5 PG');
- assert.equal(H.changeLabel('sp',-1.25),'−1.3 SP');
+ assert.equal(H.changeLabel('sp',-1.25),'−1.3 PS');
  assert.equal(H.changeLabel('pg',Number.NaN),'');
 });
