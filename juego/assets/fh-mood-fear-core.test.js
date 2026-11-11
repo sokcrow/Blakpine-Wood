@@ -21,8 +21,8 @@ test('El evento Paranormal causa exactamente 30% al subir a Atemorizado',()=>{
 });
 test('Los escalones de PS son diferenciales',()=>{
  const c=character(),f=M.createRuntime(c);
- assert.equal(f.stimulus('creature',{intensity:18,minute:1}).damage,10);
- assert.equal(f.stimulus('creature',{intensity:20,minute:2}).damage,20);
+ assert.equal(f.stimulus('creature',{intensity:18,minute:1,sourceId:'criatura-a'}).damage,10);
+ assert.equal(f.stimulus('creature',{intensity:20,minute:2,sourceId:'criatura-b'}).damage,20);
  assert.equal(c.resources.sp,70);
 });
 test('Eldritch puede sobrepasar la Voluntad',()=>{
