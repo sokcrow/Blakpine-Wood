@@ -6,6 +6,7 @@
  if(root)root.FHMoodFearUI=api;
 })(typeof window!=='undefined'?window:globalThis,function(root){
  'use strict';
+ const words=()=>root.FH_MOOD_FEAR_TEXT||{keys:{},reasons:{}};
  let selectedId=null;
  let clickTarget=null,clickHandler=null,currentLocator=null,dismissHandlersBound=false;
  function setup(){return Boolean(root.FHNameplateHUD?.mount?.());}
