@@ -1,17 +1,17 @@
 /* Estado de personaje: una sola tarjeta anclada a la cabeza.
-   Negro/blanco, marco violeta fino y Mood pixelado sin fondo. */
-/* Silueta pixelada tipo cómic: marco morado exterior real y hueco negro interior.
+   Blanco/negro, contorno blanco escalonado y Mood pixelado sin fondo. */
+/* Silueta pixelada tipo cómic: contorno blanco y hueco negro interior.
    Dos capas recortadas con escalones, sin border rectangular ni bordes redondeados. */
 .fh-character-floating{
  --pg:#dc4148;--sp:#3bb6df;--pe:#3ed076;
  position:fixed;z-index:46;top:0;left:0;
  transform:translate(-50%,-100%);
  isolation:isolate;
- display:grid;grid-template-columns:44px minmax(0,1fr);
- align-items:center;gap:6px;box-sizing:border-box;
+ display:grid;grid-template-columns:40px minmax(0,1fr);
+ align-items:center;gap:5px;box-sizing:border-box;
  width:min(270px,calc(100vw - 20px));min-height:64px;
- padding:10px 13px 10px 12px;
- background:linear-gradient(135deg,#c43be0 0%,#9a20b7 38%,#6a128b 100%);
+ padding:9px 11px;
+ background:linear-gradient(135deg,#ffffff 0%,#e0e0e2 50%,#f8f8f9 100%);
  border:0;outline:0;box-shadow:none;border-radius:0;
  clip-path:polygon(
    9px 0,calc(100% - 20px) 0,
@@ -30,7 +30,7 @@
 .fh-character-floating::before{
  content:'';position:absolute;inset:5px 6px 6px 6px;
  z-index:0;pointer-events:none;
- background:linear-gradient(130deg,#15121a,#050507 54%,#0d0912);
+ background:linear-gradient(130deg,#171719,#060607 54%,#111113);
  clip-path:polygon(
    9px 0,calc(100% - 13px) 0,
    calc(100% - 13px) 4px,calc(100% - 5px) 4px,
@@ -56,7 +56,7 @@
 }
 .fh-character-mood-icon[hidden]{display:none!important}
 .fh-character-data{
- min-width:0;display:flex;flex-direction:column;gap:4px;
+ width:100%;min-width:0;display:grid;grid-template-columns:minmax(0,1fr);align-content:center;gap:4px;
 }
 .fh-character-line{width:100%;min-width:0}
 .fh-character-track{
@@ -64,7 +64,7 @@
  overflow:hidden;background:#0a0a0c;border:1px solid #dad5db;
 }
 .fh-character-track-pg{height:20px}
-.fh-character-line--sp,.fh-character-line--pe{width:84%}
+.fh-character-line--sp,.fh-character-line--pe{width:100%}
 .fh-character-fill{height:100%;display:block;transition:width .13s linear}
 .fh-character-fill-pg{background:var(--pg)}
 .fh-character-fill-sp{background:var(--sp)}

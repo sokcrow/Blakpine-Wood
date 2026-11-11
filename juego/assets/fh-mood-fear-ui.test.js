@@ -67,7 +67,8 @@ test('el motor no carga el HUD duplicado; los recursos permanecen en el flotante
  assert.match(css,/\.fh-character-floating\{/);
  assert.match(css,/\.fh-character-floating\{[\s\S]*?clip-path:polygon\(/);
  assert.match(css,/\.fh-character-floating::before\{[\s\S]*?background:linear-gradient\([\s\S]*?clip-path:polygon\(/);
- assert.match(css,/background:linear-gradient\(135deg,#c43be0/);
+ assert.match(css,/background:linear-gradient\(135deg,#ffffff 0%,#e0e0e2 50%,#f8f8f9 100%\)/);
+ assert.doesNotMatch(css,/#c43be0|#9a20b7|#6a128b/);
  assert.match(css,/border:0;outline:0;box-shadow:none;border-radius:0/);
  assert.doesNotMatch(css,/border:2px solid #814399/);
  assert.doesNotMatch(css,/#fhStatusHUD/);
@@ -100,7 +101,10 @@ test('HUD compacto sin etiquetas: nombre dentro de PG y PS/PE idénticas',()=>{
  assert.doesNotMatch(ui,/fh-character-stat|track\.append\(label,name\)|stats\.append\(name\)/);
  assert.match(css,/width:min\(270px,calc\(100vw - 20px\)\)/);
  assert.match(css,/\.fh-character-track-pg\{height:20px\}/);
- assert.match(css,/\.fh-character-line--sp,\.fh-character-line--pe\{width:84%\}/);
+ assert.match(css,/\.fh-character-line--sp,\.fh-character-line--pe\{width:100%\}/);
+ assert.match(css,/\.fh-character-data\{[\s\S]*?width:100%;min-width:0;display:grid;grid-template-columns:minmax\(0,1fr\)/);
+ assert.match(css,/\.fh-character-track-pg\{height:20px\}/);
+ assert.match(css,/\.fh-character-track\{[\s\S]*?width:100%;height:8px/);
  assert.match(css,/\.fh-character-name\{[\s\S]*?position:absolute/);
  assert.doesNotMatch(css,/\.fh-character-stat/);
 });
