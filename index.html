@@ -4712,7 +4712,7 @@ function floorSightThroughOpening(f,at,target,openings){
    ['script','fh-mood-fear-ui.js']
   ];
   const tags=resources.map(([kind,file])=>{
-   const url=new URL('./juego/assets/'+file+'?v=20261111-nameplate-priority-2',document.baseURI).href;
+   const url=new URL('./juego/assets/'+file+'?v=20261112-hud-foot-hold-1',document.baseURI).href;
    return kind==='link'?'<link rel="stylesheet" href="'+url+'">':'<script src="'+url+'"></'+'script>';
   }).join('');
   if(!doc.includes('</head>'))throw Error('Falta head del motor para Mood/Miedo');
@@ -5065,7 +5065,7 @@ init();
 <script src="./juego/assets/fh-structure-strings.js?v=20261108-architecture-load"></script>
 <script src="./juego/assets/fh-structure-engine-hook.js?v=20261108-architecture-load"></script>
 <script src="./juego/assets/fh-comic-action-engine-hook.js?v=20261107-comic-actions-1"></script>
-<script src="./juego/assets/fh-context-engine-hook.js?v=20261111-roof-outside1"></script>
+<script src="./juego/assets/fh-context-engine-hook.js?v=20261112-hud-foot-hold-1"></script>
 <script src="./juego/assets/fh-services-engine-hook.js?v=20261112-double-outlet-only-1"></script>
 <script src="./juego/assets/fh-electric-catalog.js?v=20261112-duplex-uv-1"></script>
 <script src="./juego/assets/fh-electric-strings.js?v=20261109-servicios-24"></script>
