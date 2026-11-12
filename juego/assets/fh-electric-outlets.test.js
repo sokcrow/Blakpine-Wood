@@ -197,9 +197,10 @@ test('el GLB del enchufe elimina el mueble libre superpuesto aunque el registro 
  story.add(free,service,neighbor);
  // La infraestructura registraba sólo su último placeholder: el mueble quedó sin registrar.
  rendered.set(fx.outlet.id,[{root:service}]);
- const [entry]=api.install({THREE,DATA:fx.project,CELL:1.524,stories:[story],renderedByItem:[rendered],
+ const [entry]=api.install({THREE,DATA:{floors:[{items:[fx.wall,fx.outlet]}]},CELL:1.524,stories:[story],renderedByItem:[rendered],
   ForestShared:shared(),applyFOW(){}});
  for(let i=0;i<20&&entry.root.userData.fhModelState!=='ready';i++)await settle();
+ assert.equal(entry.meta.id,'enchufe_doble');
  assert.equal(entry.root.userData.fhModelState,'ready');
  assert.equal(free.parent,null,'retira la representación anterior de mueble libre');
  assert.equal(service.parent,null,'retira el provisional de servicios');
@@ -222,7 +223,7 @@ test('si falla el GLB del enchufe conserva el provisional morado y su identifica
  const free=new THREE.Mesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshStandardMaterial());
  free.userData.fhItemId=fx.outlet.id;
  story.add(free,old);const rendered=new Map([[fx.outlet.id,[{root:old}]]]);
- const entries=api.install({THREE,DATA:fx.project,CELL:1.524,stories:[story],renderedByItem:[rendered],ForestShared:shared(),applyFOW(){}});
+ const entries=api.install({THREE,DATA:{floors:[{items:[fx.wall,fx.outlet]}]},CELL:1.524,stories:[story],renderedByItem:[rendered],ForestShared:shared(),applyFOW(){}});
  await settle();
  assert.equal(entries[0].root.userData.fhModelState,'error');assert.equal(old.parent,story);
  assert.equal(free.parent,story,'si el GLB falla, no retirar el mueble previo');
