@@ -1,0 +1,41 @@
+name: Agua — GLB originales, electricidad y tuberías
+on:
+  push:
+    paths:
+      - 'juego/assets/fh-water-*.js'
+      - 'juego/assets/fh-boilers-*.js'
+      - 'juego/assets/fh-services-core.js'
+      - 'forest-horror/biblioteca/agua/calderas/**'
+      - 'forest-horror/biblioteca/agua/almacenamiento/**'
+      - 'index.html'
+      - '.github/workflows/agua-equipment-hotfix.yml'
+  pull_request:
+    paths:
+      - 'juego/assets/fh-water-*.js'
+      - 'juego/assets/fh-boilers-*.js'
+      - 'juego/assets/fh-services-core.js'
+      - 'forest-horror/biblioteca/agua/calderas/**'
+      - 'forest-horror/biblioteca/agua/almacenamiento/**'
+      - 'index.html'
+      - '.github/workflows/agua-equipment-hotfix.yml'
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Integración y carga de los GLB originales
+        run: node --test juego/assets/fh-water-equipment.test.js
+      - name: Regresiones de redes
+        run: |
+          node --test juego/assets/fh-water-hot.test.js
+          node --test juego/assets/fh-water-potable.test.js
+          node --test tests/fh-services-core.test.js
+      - name: Sintaxis y módulos del editor/motor
+        run: |
+          node --check juego/assets/fh-boilers-editor.js
+          node --check juego/assets/fh-boilers-catalog.js
+          node --check juego/assets/fh-water-visuals.js
+          node --check juego/assets/fh-services-core.js
