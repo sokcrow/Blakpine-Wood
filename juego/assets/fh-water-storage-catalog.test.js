@@ -93,3 +93,72 @@ test('las reservas siguen entrando en el cálculo de agua potable',()=>{
  assert.equal(game.services.waterTanks['pb:tank'].liters,50);
  assert.equal(core.waterNetwork.enabled,true);
 });
+
+function visualRuntime(){
+ const THREE={...require('./vendor/three.min.js')},requests=[],warnings=[];
+ THREE.GLTFLoader=class{
+  load(url,done,progress,fail){
+   requests.push(url);
+   if(url.includes('fallido'))return fail(Error('recurso ausente'));
+   done({scene:new THREE.Group()});
+  }
+ };
+ const window={document:{currentScript:{src:'https://example.test/juego/assets/fh-water-visuals.js'}},
+  FHWaterStorageCatalog:catalog,FHWaterCatalog:{models:[]}};
+ vm.runInNewContext(visuals,{window,URL,console:{warn(...args){warnings.push(args);}}});
+ return {THREE,api:window.FHWaterVisuals,requests,warnings,window};
+}
+const settleVisuals=()=>new Promise(resolve=>setImmediate(resolve));
+
+test('depósitos pendientes se muestran sin descargas, avisos ni pérdida de FOW',async()=>{
+ const {THREE,api,requests,warnings}=visualRuntime();
+ const items=catalog.models.map(m=>({id:m.id,type:m.type,modelId:m.id,x:2,y:3}));
+ const DATA={floors:[{items}]},story=new THREE.Group(),rendered=new Map(),masked=[];
+ const before=JSON.stringify(DATA);
+ for(const it of items){const old=new THREE.Group();story.add(old);rendered.set(it.id,[{root:old}]);}
+ const originals=story.children.slice();
+ const result=api.install({THREE,DATA,CELL:1.524,stories:[story],renderedByItem:[rendered],
+  applyFOW:object=>masked.push(object)});
+ await settleVisuals();
+ assert.equal(requests.length,0,'no solicitar GLB inexistentes');
+ assert.equal(warnings.length,0,'no provocar un error para activar el respaldo');
+ assert.equal(masked.length,2);
+ for(const {root,meta,pose} of result){
+  assert.equal(meta.glbAvailable,false);
+  assert.equal(root.userData.fhModelState,'fallback');
+  assert.equal(root.children.length,1);
+  assert.equal(root.children[0].name,'FH_AGUA_03_RESPALDO');
+  assert.ok(root.children[0].children.some(node=>node.isMesh));
+  assert.ok(masked.includes(root.children[0]));
+  assert.equal(root.parent,story);
+  assert.equal(root.position.x,pose.x);
+  assert.equal(root.position.z,pose.z);
+  assert.equal(rendered.get(meta.id)[0].root,root);
+ }
+ assert.ok(originals.every(old=>old.parent===null));
+ assert.equal(JSON.stringify(DATA),before,'sin mutar mapas ni colisiones');
+});
+
+test('GLB publicados siguen cargando y el error real conserva el respaldo',async()=>{
+ const {THREE,api,requests,warnings}=visualRuntime();
+ const published={...catalog.models[0],glbAvailable:true};
+ const scene=await api.load(published,THREE);
+ assert.ok(scene.isGroup);
+ assert.equal(requests.length,1);
+ assert.ok(requests[0].endsWith(published.glb));
+ await api.load({id:'medidor_agua',glb:'modelos_glb/medidor_agua.glb'},THREE);
+ assert.equal(requests.length,2,'catálogos anteriores sin el flag siguen descargando');
+ // Una nueva instancia del runtime evita reutilizar la caché del caso anterior.
+ const failed=visualRuntime();
+ failed.window.FHWaterStorageCatalog={models:[{...published,glb:'fallido.glb'}]};
+ const story=new failed.THREE.Group();
+ const result=failed.api.install({THREE:failed.THREE,DATA:{floors:[{items:[
+  {id:'tank',type:'water_cistern',x:0,y:0}]}]},CELL:1.524,
+  stories:[story],renderedByItem:[new Map()]});
+ await settleVisuals();
+ assert.equal(failed.requests.length,1);
+ assert.equal(failed.warnings.length,1);
+ assert.equal(result[0].root.userData.fhModelState,'fallback');
+ assert.ok(result[0].root.children[0].children.some(node=>node.isMesh));
+ assert.equal(warnings.length,0);
+});

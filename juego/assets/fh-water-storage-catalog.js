@@ -10,6 +10,8 @@
    category:'Almacenamiento de agua',mount:'floor',placement:'floor',
    widthFt:8,heightFt:4.5,depthFt:5,mountHeightFt:0,
    waterRole:'main_reservoir',blocksMovement:true,
+   // El pack original aún no está publicado; usar el respaldo sin solicitar un 404.
+   glbAvailable:false,
    glb:'almacenamiento/modelos_glb/cisterna_principal.glb',
    thumbnail:'almacenamiento/miniaturas/cisterna_principal.png'
   }),
@@ -18,6 +20,7 @@
    category:'Almacenamiento de agua',mount:'floor',placement:'floor',
    widthFt:4,heightFt:6,depthFt:4,mountHeightFt:0,
    waterRole:'elevated_reservoir',blocksMovement:true,
+   glbAvailable:false,
    glb:'almacenamiento/modelos_glb/tinaco_elevado.glb',
    thumbnail:'almacenamiento/miniaturas/tinaco_elevado.png'
   })

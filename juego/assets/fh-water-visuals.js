@@ -80,6 +80,7 @@
   });return loaderPromise;
  }
  function load(meta,THREE){
+  if(meta.glbAvailable===false)return Promise.resolve(storageFallback(THREE,meta));
   if(!loaded.has(meta.id))loaded.set(meta.id,loader(THREE).then(l=>new Promise((resolve,reject)=>{
    if(!base)return reject(Error('Kit Agua 01 sin ruta de instalación'));
    l.load(new URL(meta.glb,base).href,gltf=>{
@@ -160,7 +161,7 @@
     load(meta,THREE).then(scene=>{
      if(!root3D.parent)return;
      const instance=scene.clone(true);if(typeof applyFOW==='function')applyFOW(instance);
-     root3D.add(instance);root3D.userData.fhModelState='ready';
+     root3D.add(instance);root3D.userData.fhModelState=meta.glbAvailable===false?'fallback':'ready';
      for(const old of originals)if(old.parent&&old!==root3D)old.parent.remove(old);
      renderedByItem[f]?.set?.(it.id,[{root:root3D}]);
     }).catch(error=>{
