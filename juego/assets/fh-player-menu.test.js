@@ -229,3 +229,16 @@ test('Dinero consulta saldos e intentos rechazados sin cambiar el libro',()=>{
  assert.match(detail.textContent,/Fondos insuficientes/);
  assert.equal(writes,0);
 });
+
+test('el radial puede abrir directamente la pestaña Inventario existente',()=>{
+ const {global,document}=scene({current:structuredClone(example)});
+ const playerMenu=global.FHPlayerMenu;
+ playerMenu.close();
+ assert.equal(playerMenu.isOpen(),false);
+ assert.equal(playerMenu.openSection('inventada'),false);
+ assert.equal(playerMenu.openSection('inventory'),true);
+ assert.equal(playerMenu.isOpen(),true);
+ assert.equal(document.getElementById('fhPlayerMenu').dataset.fhSection,'inventory');
+ playerMenu.close();
+ assert.equal(playerMenu.isOpen(),false);
+});
