@@ -111,6 +111,30 @@ async function test(name,fn){await fn();checks++;console.log('OK',name)}
   assert.equal(other.children[0].position.x,0,'las cajas no se desplazan');
   assert.equal(arm.children[0].isGLB,true,'sin deformar geometría');
  });
+ await test('Los ocho modelos de generadores, incluidos auxiliares, giran 180° sólo en la malla',async()=>{
+  const t=setup();t.assets.setSightMaskInstaller(t.mask);
+  assert.equal(generators.furniture.length,8);
+  assert.ok(generators.furniture.every(entry=>entry.front==='+Z'),'se conserva el frente lógico original');
+  for(const entry of generators.furniture){
+   const root=group(),mirror=group();
+   root.rotation.y=.42;
+   t.assets.mirror(root,mirror);
+   const item={type:entry.type,modelId:entry.id,rotation:90};
+   t.assets.attach(root,item);
+   await tick();
+   assert.equal(root.userData.fhModelState,'ready',entry.id);
+   assert.ok(Math.abs(root.children[0].rotation.y-Math.PI)<1e-10,entry.id+' girado una vez');
+   assert.ok(Math.abs(mirror.children[0].rotation.y-Math.PI)<1e-10,entry.id+' también en piso reflejado');
+   assert.equal(root.rotation.y,.42,entry.id+' conserva rotación del objeto');
+   t.assets.attach(root,item);
+   await tick();
+   assert.ok(Math.abs(root.children[0].rotation.y-Math.PI)<1e-10,entry.id+' no acumula otro giro al recargar');
+  }
+  const other=group();
+  t.assets.attach(other,{type:'misc',modelId:'monitor_crt'});
+  await tick();
+  assert.equal(other.children[0].rotation.y,0,'otros GLB no deben girarse');
+ });
  await test('Los objetos sin modelo asignado no se inventan como GLB',async()=>{
   const t=setup(),root=group();t.assets.attach(root,{type:'plant'});
   assert.equal(root.children[0].userData.procedural,true);

@@ -26,19 +26,41 @@ test('el miedo usa la capa de ZZZ sin enseñar pérdida ni porcentaje de PS',()=
   else globalThis.FHLiveText=oldLive;
  }
 });
-test('solo tocar al personaje alterna el HUD; el suelo no lo cierra',()=>{
- let click;
- const canvas={
-  addEventListener:(kind,fn)=>{if(kind==='click')click=fn;},
-  removeEventListener(){},
+test('mantener 400 ms sobre los pies alterna el HUD; tocar suelo y torso no lo cierra',()=>{
+ const listeners={};
+ const canvas={addEventListener:(kind,fn)=>{listeners[kind]=fn;},removeEventListener(){}};
+ let now=0,serial=0;const pending=new Map();let sceneTaps=0;
+ const clock={
+  now:()=>now,
+  setTimeout:(fn,ms)=>{const id=++serial;pending.set(id,{at:now+ms,fn});return id;},
+  clearTimeout:id=>pending.delete(id)
+ };
+ const advance=ms=>{
+  const end=now+ms;
+  for(const [id,task]of pending){
+   if(task.at<=end){now=task.at;pending.delete(id);task.fn();}
+  }
+  now=end;
+ };
+ const evt=(x,y)=>({button:0,pointerId:1,clientX:x,clientY:y,
+  preventDefault(){},stopImmediatePropagation(){}});
+ const gesture=(x,y,ms)=>{
+  const e=evt(x,y);listeners.pointerdown(e);advance(ms);listeners.pointerup(e);
  };
  UI.select(null);
  UI.bind(canvas,()=>({id:'personaje-a',x:100,y:40,bodyX:100,bodyY:125}));
- const evt=(x,y)=>({button:0,clientX:x,clientY:y,preventDefault(){},stopImmediatePropagation(){}});
- click(evt(100,95));assert.equal(UI.selected(),'personaje-a');
- click(evt(100,95));assert.equal(UI.selected(),null);
- click(evt(100,95));assert.equal(UI.selected(),'personaje-a');
- click(evt(250,200));assert.equal(UI.selected(),'personaje-a');
+ require('./fh-safe-lock.js');
+ globalThis.FHSafeLock.bind(canvas,{
+  onTap:()=>{sceneTaps++;},
+  onHold:event=>{if(!UI.tap(event))sceneTaps++;}
+ },{threshold:400,clock});
+ assert.equal(listeners.click,undefined,'el HUD no debe capturar clicks separados');
+ gesture(100,125,399);assert.equal(UI.selected(),null);
+ gesture(100,95,400);assert.equal(UI.selected(),null,'torso fuera de hitbox');
+ gesture(100,125,400);assert.equal(UI.selected(),'personaje-a');
+ gesture(250,200,100);assert.equal(UI.selected(),'personaje-a');
+ gesture(100,125,400);assert.equal(UI.selected(),null);
+ assert.equal(sceneTaps,3,'los gestos fuera de los pies llegan al contexto');
  UI.select(null);
 });
 test('Escape y un puntero fuera del personaje no descartan la selección',()=>{
@@ -186,20 +208,21 @@ test('PG, PS y PE activan placa temporal prioritaria y siguen la cabeza proyecta
  }
 });
 
-test('tap proyectado solo consume la unidad y respeta la selección al tocar fuera',()=>{
+test('tap proyectado desde el hold sólo reconoce los pies y conserva la selección fuera',()=>{
  const canvas={addEventListener(){},removeEventListener(){}};
  UI.select(null);
  UI.bind(canvas,()=>({id:'actor',x:100,y:40,bodyX:100,bodyY:125}));
  assert.equal(UI.tap({button:0,clientX:250,clientY:230}),false);
  assert.equal(UI.selected(),null);
- assert.equal(UI.targetAt({button:0,clientX:100,clientY:90}).id,'actor');
- assert.equal(UI.tap({button:0,clientX:100,clientY:90}),true);
+ assert.equal(UI.targetAt({button:0,clientX:100,clientY:90}),null,'el torso queda fuera');
+ assert.equal(UI.targetAt({button:0,clientX:100,clientY:125}).id,'actor');
+ assert.equal(UI.tap({button:0,clientX:100,clientY:125}),true);
  assert.equal(UI.selected(),'actor');
  assert.equal(UI.tap({button:0,clientX:250,clientY:230}),false);
  assert.equal(UI.selected(),'actor');
- assert.equal(UI.tap({button:0,clientX:100,clientY:90}),true);
+ assert.equal(UI.tap({button:0,clientX:100,clientY:125}),true);
  assert.equal(UI.selected(),null);
- assert.equal(UI.targetAt({button:2,clientX:100,clientY:90}),null);
+ assert.equal(UI.targetAt({button:2,clientX:100,clientY:125}),null);
 });
 test('cerrar manualmente una alerta no la reabre hasta otro cambio real',()=>{
  const old=globalThis.FHNameplateHUD,originalNow=Date.now,canvas={addEventListener(){},removeEventListener(){}};
@@ -213,7 +236,7 @@ test('cerrar manualmente una alerta no la reabre hasta otro cambio real',()=>{
   assert.equal(UI.render(character,{x:100,y:40}),false);
   character.resources.pg=18;
   assert.equal(UI.render(character,{x:100,y:40}),true);
-  assert.equal(UI.tap({button:0,clientX:100,clientY:90}),true);
+  assert.equal(UI.tap({button:0,clientX:100,clientY:125}),true);
   assert.equal(UI.render(character,{x:100,y:40}),false);
   time+=50;character.resources.pg=19;
   assert.equal(UI.render(character,{x:100,y:40}),true);

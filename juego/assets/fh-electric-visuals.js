@@ -15,17 +15,10 @@
   :null;
  const scriptBase=global.document?.currentScript?.src
   ?new URL('.',global.document.currentScript.src):null;
- const DEFAULT=Object.freeze({breaker_panel:'breaker_pequeno',power_outlet:'enchufe_doble',light_switch:'interruptor_pared'});
+ const DEFAULT=global.FHElectricCatalog?.DEFAULT||Object.freeze({});
  const catalog=()=>global.FHElectricCatalog?.models||[];
  const byId=id=>catalog().find(m=>m.id===id)||null;
- const choose=it=>{
-  // El modelo del breaker se decide por su tipo REAL, no por un skin anterior.
-  if(it?.type==='breaker_panel')
-   return byId(it.breakerType==='medium'||it.breakerType==='large'?'breaker_grande':'breaker_pequeno');
-  const selected=byId(it?.utilitySkin);
-  if(selected&&selected.type===it.type)return selected;
-  return byId(DEFAULT[it?.type])||null;
- };
+ const choose=it=>global.FHElectricCatalog?.modelFor(it)||null;
  const normal=rotation=>{const r=(Number(rotation)||0)*Math.PI/180;return {x:-Math.sin(r),y:Math.cos(r)};};
  function frontAllowed(it,x,y){
   const meta=choose(it);
@@ -51,7 +44,7 @@
   if(!wall||!['wall','red_wall','property_wall'].includes(wall.type))return null;
   return {x:mount.point.x*CELL+mount.normal.x*(HALF_WALL+CLEARANCE),
    z:mount.point.y*CELL+mount.normal.y*(HALF_WALL+CLEARANCE),
-   y:(Number.isFinite(Number(it.utilityMountHeightFt))?Number(it.utilityMountHeightFt):meta.mountHeightFt)*FT,
+   y:(it.utilityMountHeightFt!=null&&Number.isFinite(Number(it.utilityMountHeightFt))?Number(it.utilityMountHeightFt):meta.mountHeightFt)*FT,
    rotation:-mount.rotation*Math.PI/180,mount:'wall',wallId:mount.wallId};
  }
  let loaderPromise=null;const loaded=new Map();
@@ -70,7 +63,9 @@
   if(!loaded.has(meta.id)){
    const req=loader(THREE).then(l=>new Promise((resolve,reject)=>{
     if(!base)return reject(Error('No hay ruta del kit'));
-    l.load(new URL(meta.glb,base).href,result=>{
+    const modelURL=new URL(meta.glb,base);
+    if(meta.assetVersion)modelURL.searchParams.set('v',meta.assetVersion);
+    l.load(modelURL.href,result=>{
      const scene=result.scene;
      scene.traverse(node=>{
       if(!node.isMesh)return;
@@ -146,7 +141,7 @@
   doc=once(doc,'function useFurniture(item,selectedSeat=null){',
    'function useFurniture(item,selectedSeat=null){\n if(window.FHElectricVisuals?.onUse(item,currentFloor,window.FHServicesRuntime,notice,user.x/CELL,user.z/CELL))return;');
   const rootUrl=new URL('./juego/assets/',global.document?.baseURI||'https://localhost/');
-  const scripts=['fh-electric-catalog.js','fh-electric-strings.js','fh-electric-meter-hud.js','fh-electric-visuals.js?v=20261112-purple-pc-power-1'].map(p=>
+  const scripts=['fh-electric-catalog.js?v=20261112-duplex-uv-1','fh-electric-strings.js','fh-electric-meter-hud.js','fh-electric-visuals.js?v=20261112-outlet-auto-1'].map(p=>
    '<script src="'+new URL(p,rootUrl).href+'"></scr'+'ipt>').join('');
   const where=doc.indexOf('</head>');if(where<0)throw Error('Electricidad 01: falta la cabecera del motor');
   return doc.slice(0,where)+scripts+doc.slice(where);

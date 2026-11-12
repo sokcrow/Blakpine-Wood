@@ -1,0 +1,28 @@
+name: Sótanos — estructura nativa y continuidad
+on:
+  push:
+    paths:
+      - 'index.html'
+      - 'juego/assets/fh-basement-structure.js'
+      - 'juego/assets/fh-basement-structure.test.js'
+      - '.github/workflows/sotanos-nativos.yml'
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'juego/assets/fh-basement-structure.js'
+      - 'juego/assets/fh-basement-structure.test.js'
+      - '.github/workflows/sotanos-nativos.yml'
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validación y pruebas de continuidad de sótanos
+        run: |
+          node --check juego/assets/fh-basement-structure.js
+          node --test juego/assets/fh-basement-structure.test.js

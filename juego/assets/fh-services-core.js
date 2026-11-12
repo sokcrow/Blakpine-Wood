@@ -186,6 +186,7 @@
   return s;
  }
  function createRuntime(project,state={},options={}){
+  (options.electricCatalog||root?.FHElectricCatalog)?.upgradeMap?.(project);
   const s=ensureState(state),floors=Array.isArray(project?.floors)?project.floors:[];
    const exteriorGrid=(typeof globalThis!=='undefined'?globalThis.FHExteriorGrid:null)?.createRuntime(project,state)||null;
   const feetPerCell=Math.max(.1,number(project?.units?.feetPerCell,5));
@@ -196,6 +197,13 @@
    project,s,waterNetwork,(f,it)=>electricalStatus(f,it,hotElectricalSnapshot||electrical()).powered)||null;
   const powerGraphs=floors.map(f=>wallGraph(f.items||[],{doorways:true}));
   const elements=floors.map(f=>f.items||[]);
+  // Agua residual: con alcantarillado explorable las tomas descargan en
+  // el drenaje más cercano. La red potable continúa independiente.
+  // Los mapas anteriores sin premades preservan su comportamiento original.
+  const sewerCore=options.drainageCore||(typeof globalThis!=='undefined'?globalThis.FHDrainage:null);
+  const hasSewer=!!sewerCore&&elements.some(items=>items.some(it=>sewerCore.isSection(it)));
+  const sewerTargets=hasSewer?elements.map((items,f)=>new Map(items.filter(it=>it.type==='drain_outlet')
+   .map(it=>[String(it.id),sewerCore.nearest(project,f,it)]))):null;
   const assembly=options.pcAssembly||root?.FHPcAssembly;
   const surfacePlacement=options.surfacePlacement||root?.FHSurfacePlacement;
   const surfaceProvider=options.surfaceProvider||root?.FHFurnitureRules?.supportSurfacesFor;
@@ -230,10 +238,13 @@
    // Older elevator inspectors used "main" as a placeholder, not a real assignment.
    // A declared main circuit is still respected; otherwise inherit the room's circuit.
    if(it.type==='elevator'&&(!zone||zone==='main'&&!(powerScopes[f]||[]).some(c=>c.zoneId==='main')))return String(room?.zoneId||'');
-   // Las habitaciones nuevas usan "main" como valor provisional. Un equipo directo
-   // sin zona propia puede tomar cualquier breaker alcanzable si no existe "main".
-   if(directPower(it)&&!zone&&room?.zoneId==='main'&&
-    !(powerScopes[f]||[]).some(c=>c.zoneId==='main'))return '';
+   // "main" en una habitación nueva es provisional si no hay circuito con ese ID.
+   // Las tomas, equipos eléctricos y calderas directas eligen un breaker alcanzable.
+   if((it.type==='power_outlet'||it.type==='power_strip'||requiresPower(it)||directPower(it))&&
+    (!zone||zone==='main'&&!(powerScopes[f]||[]).some(c=>c.zoneId==='main'))){
+    const inherited=String(room?.zoneId||'');
+    return inherited==='main'&&!(powerScopes[f]||[]).some(c=>c.zoneId==='main')?'':inherited;
+   }
    return String(zone||room?.zoneId||'');
   };
   function powerRoute(f,panel,target){
@@ -551,7 +562,7 @@
   // Una sola consulta geométrica sostiene tanto el dibujo como la energía real.
   function cableCandidates(f,it,zone=''){
    zone=zone||zoneFor(f,it);
-   if(!zone&&!directPower(it))return [];
+   if(!zone&&!directPower(it)&&it.type!=='power_outlet')return [];
    const cables=[];
    for(const c of powerScopes[f]||[]){
     if(zone&&c.zoneId!==zone)continue;
@@ -813,6 +824,12 @@
   function drainStatus(f,it){
    if(!it||it.service?.drains===false)return {connected:false,draining:false};
    if(it.type==='drain_outlet'){
+    if(sewerTargets){
+     const target=sewerTargets[f]?.get(String(it.id));
+     const connected=!!target&&active(it)&&number(s.damage[id(it)])<100;
+     return {connected,draining:connected,mode:'alcantarillado',via:target?.itemId||null,
+      floorIndex:target?.floorIndex??null};
+    }
     if(it.drainMode==='automatic'&&active(it)&&number(s.damage[id(it)])<100)
      return {connected:true,draining:true,mode:'exterior'};
     const connected=values(f,'drain_main').some(main=>active(main)&&

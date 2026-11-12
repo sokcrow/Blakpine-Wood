@@ -4,7 +4,7 @@
 (function(){
  'use strict';
  const models=window.FHElectricCatalog?.models||[];
- const T=window.FH_ELECTRIC_TEXT||{};if(models.length!==8)return;
+ const T=window.FH_ELECTRIC_TEXT||{};if(!models.length)return;
  const byId=id=>models.find(m=>m.id===id)||null;
  const base=new URL('./forest-horror/biblioteca/electricidad/',document.baseURI);
  const active={};let opener=null;
@@ -36,12 +36,16 @@
   return m&&['wall','red_wall','property_wall'].includes(current().items.find(w=>w.id===m.wallId)?.type)?m:null;
  }
  function setSkin(it,meta,point){
-  if(!it||meta.type!==it.type)return false;
+  if(!it||!meta)return false;
+  if(![meta.type,'misc','furniture'].includes(it.type))return false;
   if(meta.mount==='wall'){
    const m=structuralWall(point||{x:it.x,y:it.y},point?undefined:it.rotation,point?undefined:it.wallId);
    if(!m){toast(T.wallRequired||'Necesita una pared estructural.');return false;}
    Object.assign(it,{x:m.point.x,y:m.point.y,rotation:m.rotation,wallId:m.wallId,roomId:m.room?.roomId||it.roomId||''});
   }else if(meta.mount==='ceiling'){delete it.wallId;}
+  it.type=meta.type;
+  window.FHElectricCatalog.normalizeItem(Object.assign(it,{utilitySkin:meta.id}),Number(project.units?.feetPerCell)||5);
+  it.label=meta.name;
   it.utilitySkin=meta.id;it.utilityMountHeightFt=meta.mount==='ceiling'?0:meta.mountHeightFt;
   it.utilityWidthFt=meta.widthFt;it.utilityHeightFt=meta.heightFt;it.utilityDepthFt=meta.depthFt;
   const cell=Number(project.units?.feetPerCell)||5;
@@ -72,7 +76,8 @@
   opener=document.activeElement;overlay.hidden=false;choices.replaceChildren();
   for(const m of models){
    const b=document.createElement('button');b.type='button';b.setAttribute('aria-pressed',String(active[m.type]?.id===m.id));
-   const img=document.createElement('img');img.src=new URL(m.thumbnail,base).href;img.alt='';
+   const thumbnailURL=new URL(m.thumbnail,base);if(m.assetVersion)thumbnailURL.searchParams.set('v',m.assetVersion);
+   const img=document.createElement('img');img.src=thumbnailURL.href;img.alt='';
    const title=document.createElement('strong');title.textContent=m.name;
    const where=document.createElement('small');where.textContent=m.mount==='ceiling'?(T.ceiling||'Techo'):(T.wall||'Pared');
    b.append(img,title,where);b.onclick=()=>selectModel(m);choices.append(b);
@@ -91,7 +96,8 @@
  setCategory=function(cat){previousSetCategory(cat);launcher();};
  const prevCreate=createObject;
  createObject=function(type,p){
-  const meta=(window.__fhWaterCreatingFloor||window.__fhExteriorCreatingFloor)?null:active[type];
+  const meta=(window.__fhWaterCreatingFloor||window.__fhExteriorCreatingFloor)?null:
+   active[type]||(type==='power_outlet'?window.FHElectricCatalog.modelFor({type}):null);
   if(meta?.mount==='wall'&&!structuralWall(p)){
    toast(T.wallRequired||'Necesita una pared estructural.');return null;
   }
@@ -123,5 +129,7 @@
   };
   label.append(select);fields.append(label);
  };
+ window.FHElectricCatalog.upgradeMap(project);
  launcher();window.FHElectricEditor=Object.freeze({setSkin,open});
 })();
+
