@@ -9,6 +9,9 @@
  function patch(doc){
   const base=new URL('./juego/assets/',root.document.baseURI).href;
   const potable='<script src="'+base+'fh-water-potable.js?v=20261112-potable-01"></'+'script>';
+  const hot='<script src="'+base+'fh-water-hot.js?v=20261112-hot-04"></'+'script>';
+  const boilerCatalog='<script src="'+base+'fh-boilers-catalog.js?v=20261112-boilers-04"></'+'script>';
+  const boilerStrings='<script src="'+base+'fh-boilers-strings.js?v=20261112-boilers-04"></'+'script>';
   const core='<script src="'+base+'fh-services-core.js?v=20261111-wall-wiring-overlay-1"></'+'script>';
   const exteriorCore='<script src="'+base+'fh-exterior-grid.js?v=20261111-pole-collision-1"></'+'script>';
    const exteriorVisual='<script src="'+base+'fh-exterior-visuals.js?v=20261111-exterior-03"></'+'script>';
@@ -22,7 +25,7 @@
   const miniStrings='<script src="'+base+'fh-repair-minigames-strings.js?v=20261111-repair-1"></'+'script>';
   const miniCss='<link rel="stylesheet" href="'+base+'fh-repair-minigames.css?v=20261111-repair-1">';
   const miniHud='<script src="'+base+'fh-repair-minigames.js?v=20261111-repair-1"></'+'script>';
-  doc=doc.slice(0,outerHead)+exteriorCore+exteriorVisual+potable+core+strings+miniCore+miniStrings+miniCss+miniHud+doc.slice(outerHead);
+  doc=doc.slice(0,outerHead)+exteriorCore+exteriorVisual+potable+hot+boilerCatalog+boilerStrings+core+strings+miniCore+miniStrings+miniCss+miniHud+doc.slice(outerHead);
 
   const pc='window.FHComputerRuntime=window.FHComputer?.createRuntime({';
   const pcOptions=[
@@ -68,6 +71,7 @@
    '  if(it.type==="generator_ats"){service.activateATSManual(f,it.id);notice(T.generator.atsStatus(service.atsStatus(f,it)));saveProgress();return true;}',
    '  if(it.type==="generator_tank"){notice(T.generator.tankStatus(service.tankStatus(f,it)));return true;}',
    '  const status=service.statusFor(f,it);',
+   '  if(service.hotWater?.isBoiler(it)){notice(window.FH_BOILERS_TEXT?.report?.(service.hotWaterStatus(f,it))||"Caldera de agua caliente.");return true;}',
    '  if(it.type==="water_cistern"||it.type==="water_tinaco"){',
    '   const liters=Math.max(0,Number(status.water.liters)||0);',
    '   const capacity=Math.max(0,Number(it.capacityLiters)||0);',

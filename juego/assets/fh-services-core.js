@@ -186,7 +186,10 @@
    const exteriorGrid=(typeof globalThis!=='undefined'?globalThis.FHExteriorGrid:null)?.createRuntime(project,state)||null;
   const feetPerCell=Math.max(.1,number(project?.units?.feetPerCell,5));
   const graphs=floors.map(f=>wallGraph(f.items||[]));
-  const waterNetwork=(typeof globalThis!=='undefined'?globalThis.FHWaterPotable:null)?.createRuntime(project,s,wallGraph)||null;
+  const waterNetwork=(options.waterCore||(typeof globalThis!=='undefined'?globalThis.FHWaterPotable:null))?.createRuntime(project,s,wallGraph)||null;
+  let hotElectricalSnapshot=null;
+  const hotWater=(options.hotCore||(typeof globalThis!=='undefined'?globalThis.FHWaterHot:null))?.createRuntime(
+   project,s,waterNetwork,(f,it)=>electricalStatus(f,it,hotElectricalSnapshot||electrical()).powered)||null;
   const powerGraphs=floors.map(f=>wallGraph(f.items||[],{doorways:true}));
   const elements=floors.map(f=>f.items||[]);
   const pcStations=new Set(elements.flatMap((items,f)=>options.isPc?items.filter(it=>options.isPc(it,f)).map(id):[]));
@@ -985,6 +988,8 @@
    s.meters.waterLiters+=waterLiters;
    s.meters.drainLiters+=drainLiters;
    waterNetwork?.tick(seconds/60);
+   hotElectricalSnapshot=snap;
+   try{hotWater?.tick(seconds/60)}finally{hotElectricalSnapshot=null;}
    if(state.phone.placedAt){
     const f=Math.floor(number(state.phone.placedFloor,-1));
     const charger=itemAt(f,state.phone.placedAt);
@@ -1024,10 +1029,12 @@
    }
    for(const g of generators)generatorStatus(g.f,g.it);
   }
+  function hotWaterStatus(f,it){return hotWater?.status(f,it)||{connected:false,hotWater:false};}
   function statusFor(f,it){
    const snap=electrical(),power=electricalStatus(f,it,snap),water=waterStatus(f,it);
+   const hot=hotWater?.enabled&&(hotWater.isBoiler(it)||hotWater.wantsHot(it))?hotWaterStatus(f,it):null;
    const network=it.type==='ethernet_port'?ethernetAssignments(f):null;
-   return {power,water,drain:drainStatus(f,it),internet:internetFor(f,it),broken:number(s.damage[id(it)])>=100,
+   return {power,water,hotWater:hot,drain:drainStatus(f,it),internet:internetFor(f,it),broken:number(s.damage[id(it)])>=100,
     loadingRayos:snap.loads.get(f+':'+id(it))||0,
     usedSlots:it.type==='ethernet_port'?network.portUsed.get(id(it))||0:snap.used.get(f+':'+id(it))||0,
     portSlots:it.type==='ethernet_port'?Math.max(1,number(it.portSlots,it.utilitySkin==='toma_rj45_doble'?2:1)):undefined,
@@ -1037,7 +1044,7 @@
   syncATS();
   return Object.freeze({state:s,exteriorGrid,phone:state.phone,graphs,powerGraphs,powerRoute,zoneFor,requiresPower,point,itemAt,defaultsFor,sourceFor,wiringSourceFor,wiredRoute,scopeFor,
    panelStatus,atsStatus,activateATSManual,tankStatus,generatorStatus,setGeneratorEnabled,repairDamage,generatorCircuitPowered,statusFor,electrical,waterStatus,drainStatus,wifiAt,wifiSampler,connectWifi,internetFor,landlineFor,mobileFor,
-   chargePhone,takePhone,useWaterFixture,setUsage,dial,tick,setService,feetPerCell,waterNetwork});
+   chargePhone,takePhone,useWaterFixture,setUsage,dial,tick,setService,feetPerCell,waterNetwork,hotWater,hotWaterStatus});
  }
  return Object.freeze({INFRA,defaultsFor,wallGraph,ensureState,createRuntime,requiresPower:needsElectricity,LIMITS,rangeFor});
 });

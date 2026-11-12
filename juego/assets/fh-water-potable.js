@@ -15,6 +15,8 @@
   'plato_ducha','cabina_ducha','regadera_pared'
  ]);
  const SOURCE_TYPES=new Set(['water_main','water_cistern','water_tinaco']);
+ const BOILERS=new Set(['calentador_domestico_vertical','calentador_domestico_horizontal',
+  'caldera_residencial_mediana','caldera_industrial_grande']);
  const WALLS=new Set(['wall','red_wall','property_wall','window']);
  const clamp=(n,lo,hi)=>Math.max(lo,Math.min(hi,n));
  const num=(n,f=0)=>Number.isFinite(Number(n))?Number(n):f;
@@ -28,7 +30,7 @@
   (FIXTURES.has(it.modelId)||it.service?.requiresWater===true);
  const isTank=it=>it?.type==='water_cistern'||it?.type==='water_tinaco';
  const tankKey=(floor,it)=>String(floor.id)+':'+String(it.id);
- const leadFt=it=>isTank(it)?Math.max(0,num(it.pipeLeadFt,10)):
+ const leadFt=it=>isTank(it)||BOILERS.has(it?.modelId)?Math.max(0,num(it.pipeLeadFt,10)):
   it?.type==='water_main'?Math.max(0,num(it.pipeLeadFt,3.25)):Math.max(0,num(it?.pipeLeadFt,3.25));
  function collinear(a,b,c,d){
   const vx=b.x-a.x,vy=b.y-a.y,wx=d.x-c.x,wy=d.y-c.y;
@@ -61,6 +63,7 @@
     const node=add(f,it,'source');sources.push(node);
     if(isTank(it))tanks.push(node);
    }else if(it.type==='water_outlet')ports.push(add(f,it,'port'));
+   else if(it.service?.waterHeating===true&&BOILERS.has(it.modelId))add(f,it,'boiler');
   }
   const joins=[];
   const order=floors.map((floor,f)=>({f,z:num(floor.elevationFt,f*12)})).sort((a,b)=>a.z-b.z||a.f-b.f);
@@ -196,14 +199,11 @@
     tankState[key].liters=clamp(num(tankState[key].liters)+flow*gameMinutes,0,capacity);
    }
   }
-  function diagnostics(){
-   const routes=[];
-   for(const port of ports){
-    const options=choices(port),best=options[0];
-    routes.push({floor:port.f,itemId:port.it.id,connected:!!best,
-     supplied:!!options.find(x=>available(x.node)),sourceId:best?.node.it.id||'',
-     feet:best?.route.feet??null,sections:best?.route.sections||[]});
-   }
+  function routeBetween(fa,ia,fb,ib){
+   if(!ia||!ib||!compatible(ia,ib))return null;
+   return shortest(itemNodes.get(fa+':'+String(ia.id)),itemNodes.get(fb+':'+String(ib.id)));
+  }
+  function measureInstalledFeet(routes){
    // Unión de intervalos colineales; varias tomas no duplican el mismo tramo.
    const spans=new Map(),vertical=new Set();
    for(const r of routes)for(const section of r.sections){
@@ -229,12 +229,24 @@
     if(start!==null)coldFeet+=(end-start)*ft;
    }
    for(const key of vertical){const parts=key.split(':');coldFeet+=num(parts[4]);}
-   return {routes,coldFeet:Math.round(coldFeet*100)/100,tanks:tanks.map(n=>{
+   return Math.round(coldFeet*100)/100;
+  }
+  function diagnostics(){
+   const routes=[];
+   for(const port of ports){
+    const options=choices(port),best=options[0];
+    routes.push({floor:port.f,itemId:port.it.id,connected:!!best,
+     supplied:!!options.find(x=>available(x.node)),sourceId:best?.node.it.id||'',
+     feet:best?.route.feet??null,sections:best?.route.sections||[]});
+   }
+   const coldFeet=measureInstalledFeet(routes);
+   return {routes,coldFeet,tanks:tanks.map(n=>{
     const entry=tankState[tankKey(floors[n.f],n.it)];
     return {floor:n.f,itemId:n.it.id,liters:entry.liters,capacityLiters:num(n.it.capacityLiters,n.it.type==='water_cistern'?2500:1100)};
    })};
   }
-  return Object.freeze({enabled:true,isFixture,status,consume,tick,diagnostics,tankState});
+  return Object.freeze({enabled:true,isFixture,status,consume,tick,diagnostics,tankState,
+   routeBetween,measureInstalledFeet,portsFor:(f,it)=>portsFor(f,it).map(p=>({f:p.f,it:p.it}))});
  }
  return Object.freeze({FIXTURES,isFixture,isTank,createRuntime});
 });
