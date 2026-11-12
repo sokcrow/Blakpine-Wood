@@ -5,6 +5,8 @@ on:
     paths:
       - 'index.html'
       - 'juego/assets/fh-hud-*'
+      - 'juego/assets/fh-nameplate-hud.*'
+      - 'juego/assets/fh-mood-fear-ui.*'
       - 'juego/assets/fh-game-ui*'
       - 'juego/assets/fh-location-hud.*'
       - 'juego/assets/fh-mobile-camera.*'
@@ -33,4 +35,4 @@ jobs:
       - name: Comprobar marco y ubicación
         run: |
           node juego/assets/fh-player-menu.js
-          node --test juego/assets/fh-player-menu.test.js juego/assets/fh-hud-frame.test.js juego/assets/fh-game-ui.test.js juego/assets/fh-location-hud.test.js juego/assets/fh-status-hud.test.js juego/assets/fh-mobile-camera.test.js
+          node --test juego/assets/fh-player-menu.test.js juego/assets/fh-hud-frame.test.js juego/assets/fh-game-ui.test.js juego/assets/fh-location-hud.test.js juego/assets/fh-status-hud.test.js juego/assets/fh-mobile-camera.test.js juego/assets/fh-nameplate-hud.test.js juego/assets/fh-mood-fear-ui.test.js

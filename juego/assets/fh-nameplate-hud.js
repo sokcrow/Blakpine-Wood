@@ -33,7 +33,7 @@
   return {current, maximum:max, percent:current / max * 100};
  }
  function moodIcon(mood) {
-  return Object.hasOwn(MOOD_ICONS, mood) ? MOOD_ICONS[mood] : '◇';
+  return Object.hasOwn(MOOD_ICONS, mood) ? MOOD_ICONS[mood] : '';
  }
  function svgNode(doc, tag, attrs, text) {
   const el = doc.createElementNS(NS,tag);
@@ -133,8 +133,7 @@
   poly(doc,svg,{points:'0,56 44,57 48,519 0,526',fill:'#181719'});
   const moodImage=svgNode(doc,'image',{x:93,y:139,width:258,height:258,preserveAspectRatio:'xMidYMid meet'});
   moodImage.setAttribute('style','image-rendering:pixelated');
-  const moodMark=svgNode(doc,'text',{x:226,y:270,'text-anchor':'middle',fill:'#fff0a0','font-size':160},'◇');
-  svg.append(moodImage,moodMark);
+  svg.append(moodImage);
   poly(doc,svg,{points:'375,60 1438,67 1477,447 375,519',fill:'#0a0c0e',stroke:'#f5f6f4','stroke-width':14});
   poly(doc,svg,{points:'394,79 1423,87 1457,428 395,499',fill:'#122d34',stroke:'#c2c9c7','stroke-width':6});
   const panel=svgNode(doc,'g',{'clip-path':'url(#fh-np-panel-clip)'});
@@ -146,7 +145,7 @@
   svg.append(panel);
   const name=svgNode(doc,'text',{x:914,y:225,'text-anchor':'middle',class:'fh-np-name',textLength:462,lengthAdjust:'spacingAndGlyphs'},'');
   svg.append(name);host.append(svg);doc.body.append(host);
-  ui={host,name,moodImage,moodMark};activeId=null;frameId=null;
+  ui={host,name,moodImage};activeId=null;frameId=null;
   return true;
  }
  function hide() {
@@ -155,8 +154,8 @@
   if(ui?.host)ui.host.hidden=true;
   return false;
  }
- // Esta placa solo aparece cuando el jugador selecciona un personaje visible.
- function update(character = root.FHCharacterRuntime?.character ?? null, position = null) {
+ // La placa sigue la cabeza tanto al seleccionar como durante un cambio de recursos.
+ function update(character = root.FHCharacterRuntime?.character ?? null, position = null, previousResources = null) {
   if(!mount())return false;
   const pg=reading(character?.resources,'pg');
   if(!character || !pg || !position ||
@@ -172,20 +171,24 @@
   }
   const mood=character.mental?.mood;
   const art=root.FH_MOOD_FEAR_IMAGES?.[mood]||'';
-  ui.moodImage.hidden=!art;ui.moodMark.hidden=Boolean(art);
+  ui.moodImage.hidden=!art;
   if(art && ui.moodImage.getAttribute('href')!==art)ui.moodImage.setAttribute('href',art);
-  if(!art)ui.moodMark.textContent=moodIcon(mood);
   const translated=root.FH_MOOD_FEAR_TEXT?.[MOOD_TEXT_KEYS[mood]];
   const moodLabel=typeof translated==='string'?translated:(Object.hasOwn(MOOD_ICONS,mood)?mood:'sin datos');
   const info={pg,sp:reading(character.resources,'sp'),pe:reading(character.resources,'pe')};
-  for(const key of RESOURCE_KEYS)setBar(key,info[key],changed);
+  for(const key of RESOURCE_KEYS){
+   // Al aparecer por un cambio, animar desde el valor previo aunque estuviera oculta.
+   const before=changed&&previousResources?reading(previousResources,key):null;
+   if(before)setBar(key,before,true);
+   setBar(key,info[key],changed&&!before);
+  }
   ui.host.setAttribute('aria-label',`Personaje ${name}. Humor: ${moodLabel}. `+
    RESOURCE_KEYS.map(key=>`${LABELS[key]}: ${info[key]?info[key].current+' de '+info[key].maximum:'sin datos'}`).join('. '));
   ui.host.hidden=false;
-  const half=(ui.host.offsetWidth||336)/2;
+  const half=(ui.host.offsetWidth||235.2)/2;
   const vw=root.innerWidth||1280;
   const x=Math.max(half+8,Math.min(vw-half-8,position.x));
-  const h=ui.host.offsetHeight||124;
+  const h=ui.host.offsetHeight||86.8;
   ui.host.style.left=x+'px';
   ui.host.style.top=Math.max(h+8,position.y-17)+'px';
   return true;

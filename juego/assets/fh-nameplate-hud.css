@@ -5,7 +5,7 @@
  top:0;
  left:0;
  transform:translate(-50%,-100%);
- width:min(336px,calc(100vw - 16px));
+ width:min(235.2px,calc(100vw - 16px));
  max-width:calc(100vw - 16px);
  box-sizing:border-box;
  pointer-events:none;
@@ -24,8 +24,8 @@
 }
 #fhNameplateHUD image[hidden],#fhNameplateHUD text[hidden] {display:none}
 @media (max-width:900px) and (orientation:landscape) and (max-height:450px) {
- #fhNameplateHUD.fh-np {width:min(252px,calc(100vw - 16px))}
+ #fhNameplateHUD.fh-np {width:min(176.4px,calc(100vw - 16px))}
 }
 @media (max-width:450px) and (orientation:portrait) {
- #fhNameplateHUD.fh-np {width:min(272px,calc(100vw - 16px))}
+ #fhNameplateHUD.fh-np {width:min(190.4px,calc(100vw - 16px))}
 }

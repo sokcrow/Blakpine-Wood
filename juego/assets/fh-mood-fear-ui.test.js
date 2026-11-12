@@ -60,7 +60,7 @@ test('un solo Nameplate al seleccionar: el UI viejo no dibuja panel',()=>{
  const html=read('../../index.html'),ui=read('fh-mood-fear-ui.js'),css=read('fh-mood-fear.css');
  assert.doesNotMatch(html,/FHStatusHUD\?\.update|fh-status-hud\.js|fh-status-hud\.css/);
  assert.match(html,/\['script','fh-nameplate-hud\.js'\]/);
- assert.match(ui,/root\.FHNameplateHUD\?\.update\?\.\(character,position\)/);
+ assert.match(ui,/root\.FHNameplateHUD\?\.update\?\.\(character,position,before\)/);
  assert.match(ui,/root\.FHNameplateHUD\?\.hide\?\.\(\)/);
  assert.doesNotMatch(ui,/fh-character-floating|body\.append\(panel\)/);
  assert.doesNotMatch(css,/\.fh-character-floating/);
@@ -112,7 +112,7 @@ test('el HUD integrado conserva nombre y recursos sin etiquetas',()=>{
  const ui=read('fh-mood-fear-ui.js'),np=read('fh-nameplate-hud.js');
  assert.match(ui,/root\.FHNameplateHUD\?\.update/);
  assert.match(np,/const RESOURCE_KEYS = Object\.freeze\(\['pg', 'sp', 'pe'\]\)/);
- assert.match(np,/const name = typeof character\.name/);
+ assert.match(np,/const name\s*=\s*typeof character\.name/);
  assert.match(np,/fh-np-health-fill/);
  assert.doesNotMatch(np,/fh-character-stat|fh-status-count/);
 });
@@ -133,4 +133,53 @@ test('seis estados de miedo con color, utilizando FHLiveText',()=>{
  assert.match(ui,/root\.FHLiveText\.soundAt\(/);
  for(const key of ['relajado','calmado','nervioso','atemorizado','sin_esperanza','abrumado'])
   assert.ok(css.includes('fh-fear-comic--'+key),'Falta '+key);
+});
+
+test('PG, PS y PE activan placa temporal prioritaria y siguen la cabeza proyectada',()=>{
+ const old=globalThis.FHNameplateHUD,oldNow=Date.now;
+ let current=1000,hidden=0;
+ const renders=[];
+ try{
+  Date.now=()=>current;
+  globalThis.FHNameplateHUD={
+   update:(character,position,before)=>{
+    renders.push({id:character.id,x:position.x,y:position.y,before});
+    return true;
+   },
+   hide:()=>{hidden++;},
+   mount:()=>true
+  };
+  UI.select(null);UI.render(null,null);
+  const character={id:'actor-hud',resources:{pg:100,pgMax:100,sp:20,spMax:20,pe:8,peMax:10}};
+  assert.equal(UI.render(character,{x:100,y:200}),false,'la lectura inicial no activa HUD');
+  character.resources.pg=70;
+  assert.equal(UI.render(character,{x:102,y:199}),true,'PG perdido');
+  assert.equal(renders.at(-1).before.pg,100,'la primera alerta anima desde PG anterior');
+  current=1300;
+  assert.equal(UI.render(character,{x:135,y:180}),true,'la placa sigue la cabeza en movimiento');
+  assert.equal(renders.at(-1).x,135);
+  assert.equal(renders.at(-1).y,180);
+  character.resources.pg=80;
+  assert.equal(UI.render(character,{x:136,y:180}),true,'Heal de PG');
+  current=1500;character.resources.sp=15;
+  assert.equal(UI.render(character,{x:140,y:170}),true,'PS perdido');
+  current=1600;character.resources.pe=9;
+  assert.equal(UI.render(character,{x:143,y:165}),true,'PE recuperada');
+  current=4399;
+  assert.equal(UI.render(character,{x:150,y:150}),true,'permanece visible antes de 2.8 s');
+  current=4400;
+  assert.equal(UI.render(character,{x:155,y:145}),false,'expira después del último cambio');
+  character.id='otro-actor';character.resources.pg=1;
+  assert.equal(UI.render(character,{x:155,y:145}),false,'cambiar personaje no crea daño ficticio');
+  UI.select('otro-actor');
+  assert.equal(UI.render(character,{x:190,y:130}),true,'la selección manual permanece activa');
+  current=8000;
+  assert.equal(UI.render(character,{x:195,y:128}),true,'la selección no caduca');
+  assert.equal(renders.at(-1).x,195);
+  assert.ok(hidden>0);
+ }finally{
+  Date.now=oldNow;UI.select(null);UI.render(null,null);
+  if(old===undefined)delete globalThis.FHNameplateHUD;
+  else globalThis.FHNameplateHUD=old;
+ }
 });
