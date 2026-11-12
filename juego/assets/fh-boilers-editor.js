@@ -150,7 +150,8 @@
     requiresWater:checkbox.checked,requiresPower:checkbox.checked,
     onDemand:true,watts,rayos:Number(it.service?.rayos)||Math.ceil(watts/200)};
    if(checkbox.checked){it.boilerVisualOnly=false;it.networkId||='main';
-    it.hotNetworkId||='main';it.pipeLeadFt??=10;}
+    it.hotNetworkId||='main';it.pipeLeadFt??=10;
+    project.plumbing={...project.plumbing,enabled:true};}
    record();render();openInspector();
   };
   activate.append(checkbox,document.createTextNode(' '+(T.enable||'Activar agua caliente')));
