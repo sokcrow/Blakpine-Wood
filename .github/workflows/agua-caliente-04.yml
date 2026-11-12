@@ -38,3 +38,6 @@ jobs:
       - run: node --test tests/fh-services-core.test.js
       - run: node --check juego/assets/fh-water-hot.js
       - run: node --check juego/assets/fh-boilers-editor.js
+      - run: node --check juego/assets/fh-water-editor.js
+      - run: node --check juego/assets/fh-water-visuals.js
+      - run: node --check juego/assets/fh-water-storage-catalog.js
