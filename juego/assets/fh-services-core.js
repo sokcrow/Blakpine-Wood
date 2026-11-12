@@ -721,7 +721,7 @@
    return {connected:!!parent,powered,via:parent?.id||'',breakerId:supply?.panel.id||'',generated:!!supply?.feed,feet:supply?.feet??null};
   }
   function waterStatus(f,it){
-   if(waterNetwork?.enabled&&(requiresWater(it)||['water_outlet','water_cistern','water_tinaco'].includes(it?.type)))return waterNetwork.status(f,it);
+   if(waterNetwork?.enabled&&(requiresWater(it)||['water_main','water_outlet','water_cistern','water_tinaco'].includes(it?.type)))return waterNetwork.status(f,it);
    if(!requiresWater(it)&&it.type!=='water_outlet')return {connected:true,water:true,legacy:true};
    if(s.contracts.water!=='active')return {connected:false,water:false};
    const mains=values(f,'water_main').filter(x=>active(x));
