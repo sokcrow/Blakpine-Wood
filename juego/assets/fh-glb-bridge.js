@@ -137,6 +137,7 @@
     if (global.FHWaterStorageCatalog?.byId(modelId)) return;
     // Evitar borrar el fallback de equipos del pack cuyo GLB aún no está publicado.
     if (global.FHBoilersCatalog?.has(modelId) && !global.FHBoilersCatalog.assetsReady) return;
+    root.userData.fhItemId = item.id;
     root.userData.fhModelId = modelId;
     root.userData.fhModelState = 'loading';
     // El modelo procedural no es parte del GLB: se descarta antes de cargar.
