@@ -66,11 +66,13 @@ function fhBarrierAdvance(dt){
  return true;
 }
 `;
-  doc=once(doc,"function toggleDoor(){if(peeking||stairTravel||breakerPanelItem)return;",
-   traversal+"\nfunction toggleDoor(){if(peeking||stairTravel||breakerPanelItem||fhBarrierTravel)return;");
+  // Los adaptadores previos añaden bloqueos de entregas y almacenamiento.
+  doc=once(doc,"function toggleDoor(){",
+   traversal+"\nfunction toggleDoor(){if(fhBarrierTravel)return;");
   doc=once(doc,"if(!d)return nearDisabledElevator()?notice(ELEVATOR_TEXT.disabled):notice('No hay una puerta ni escalera cerca.');",
    "if(!d){if(fhBarrierAttempt())return;return nearDisabledElevator()?notice(ELEVATOR_TEXT.disabled):notice('No hay una puerta ni escalera cerca.');}");
-  doc=once(doc," moveUpdate(dt);"," if(!fhBarrierAdvance(dt))moveUpdate(dt);");
+  // Un bloque conserva el if/else de movimiento instalado por otros adaptadores.
+  doc=once(doc,"moveUpdate(dt);","{if(!fhBarrierAdvance(dt))moveUpdate(dt);}");
   doc=once(doc,"hero.position.set(user.x,visualBase+travelRise,user.z);",
    "hero.position.set(user.x,visualBase+travelRise+fhBarrierLift,user.z);");
   doc=once(doc," if(!interactableItems[currentFloor].length){const s=nearestStairs(),e=nearElevator();",
