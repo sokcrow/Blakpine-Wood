@@ -1,0 +1,35 @@
+name: Drenajes 01 — mapas y aguas residuales
+on:
+  push:
+    paths:
+      - 'index.html'
+      - 'juego/assets/fh-drainage*.js'
+      - 'juego/assets/fh-services-core.js'
+      - 'docs/DRENAJES_01.md'
+      - '.github/workflows/drenajes-01.yml'
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'juego/assets/fh-drainage*.js'
+      - 'juego/assets/fh-services-core.js'
+      - 'docs/DRENAJES_01.md'
+      - '.github/workflows/drenajes-01.yml'
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verificar módulos de drenaje
+        run: |
+          node --check juego/assets/fh-drainage.js
+          node --check juego/assets/fh-drainage-editor.js
+          node --check juego/assets/fh-services-core.js
+      - name: Probar premades, red residual y retrocompatibilidad
+        run: |
+          node --test juego/assets/fh-drainage.test.js juego/assets/fh-drainage-services.test.js
+          node --test tests/fh-services-core.test.js

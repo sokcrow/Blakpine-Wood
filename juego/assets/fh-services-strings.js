@@ -32,6 +32,7 @@
    action:(status)=>status.kind==='emergency'?(status.enabled?'Deshabilitar respaldo automático':'Habilitar respaldo automático'):(status.enabled?'Apagar generador':'Encender generador'),
    status:(status)=> (status.remainingHours<=0?'Reserva agotada':status.running?'En funcionamiento':status.enabled?'En espera':'Apagado')+' · Reserva restante: '+status.remainingHours.toFixed(2)+' h · '+Math.round(status.watts)+' W'
   }),
+  powerStripRemoved:'El multiconector fue retirado. Usa un enchufe doble de pared.',
   tabElectric:'⚡ Electricidad',
   catWater:'◉ Agua y drenaje',catData:'⌁ Internet y telefonía',
   labels:Object.freeze({
@@ -46,8 +47,12 @@
    none:'Sin señal en las casillas visibles.'
   }),
   fields:Object.freeze({
+   outletConnection:'Conexión eléctrica',outletAuto:'Automática · enchufe cercano',
+   outletMissing:'Conexión anterior no disponible',outletAt:(name,x,y)=>name+' · X '+x+' / Y '+y,
+   outletCircuit:'Circuito del enchufe',circuitAuto:'Automático · habitación o tablero cercano',
+   circuitMissing:'Circuito anterior no disponible',
    zoneId:'Circuito eléctrico',slots:'Conexiones disponibles',capacityRayos:'Límite eléctrico (rayos)',
-   radiusFt:'Radio de conexión (pies)',outletId:'ID del enchufe o multiconector',
+   radiusFt:'Radio de conexión (pies)',outletId:'Enchufe doble',
    rangeFt:'Cable disponible (pies)',flowLpm:'Caudal (litros/min)',opened:'Válvula abierta',
    wifiRadiusFt:'Radio Wi-Fi (pies)',wifiPassword:'Contraseña Wi-Fi',
    ethernetLengthFt:'Largo del cable Ethernet (pies)',ethernetLeadFt:'Cable del router a pared (pies)',
@@ -83,4 +88,5 @@
   serviceActive:'Servicio activo',serviceSuspended:'Servicio suspendido'
  });
 })(typeof window!=='undefined'?window:globalThis);
+
 

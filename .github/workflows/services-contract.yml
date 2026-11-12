@@ -7,6 +7,9 @@ on:
       - 'juego/assets/fh-glb-bridge.js'
       - 'juego/assets/fh-glb-bridge.test.js'
       - 'juego/assets/fh-pc-power.test.js'
+      - 'juego/assets/fh-electric-outlets.test.js'
+      - 'juego/assets/fh-electric-catalog.js'
+      - 'juego/assets/fh-electric-editor.js'
       - 'juego/assets/fh-services-engine-hook.js'
       - 'juego/assets/fh-services-strings.js'
       - 'juego/assets/fh-electric-visuals.js'
@@ -23,6 +26,9 @@ on:
       - 'juego/assets/fh-glb-bridge.js'
       - 'juego/assets/fh-glb-bridge.test.js'
       - 'juego/assets/fh-pc-power.test.js'
+      - 'juego/assets/fh-electric-outlets.test.js'
+      - 'juego/assets/fh-electric-catalog.js'
+      - 'juego/assets/fh-electric-editor.js'
       - 'juego/assets/fh-services-engine-hook.js'
       - 'tests/fh-services-core.test.js'
       - '.github/workflows/services-contract.yml'
@@ -39,5 +45,5 @@ jobs:
         with:
           node-version: '22'
       - name: Pruebas de redes y servicios
-        run: node --test tests/fh-services-core.test.js juego/assets/fh-services-engine-hook.test.js juego/assets/fh-service-wallmount.test.js juego/assets/fh-pc-power.test.js juego/assets/fh-glb-bridge.test.js
+        run: node --test tests/fh-services-core.test.js juego/assets/fh-services-engine-hook.test.js juego/assets/fh-service-wallmount.test.js juego/assets/fh-pc-power.test.js juego/assets/fh-glb-bridge.test.js juego/assets/fh-electric-outlets.test.js
 

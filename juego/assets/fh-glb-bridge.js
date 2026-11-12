@@ -161,6 +161,11 @@
       if (root.userData.fhModelId !== modelId) return;
       const apply = target => {
         replaceVisual(target, gltf.scene);
+        // Los GLB del kit de generadores miran hacia la espalda del frente lógico (+Z).
+        // Girar sólo su malla visual: conservar el frente, los anclajes y la rotación del objeto.
+        if (entry.glb.startsWith('generadores/modelos_glb/')) {
+          target.children[0].rotation.y += Math.PI;
+        }
         // Algunos brazos sitúan el tubo lejos del origen del GLB.
         // Centrar la BASE en la casilla sin reducir ni deformar la geometría.
         const poleBase = global.FHExteriorGrid?.POLE_COLLISION?.[modelId];

@@ -1,0 +1,48 @@
+<!doctype html><html lang="es"><meta charset="utf-8"><title>Validación del enchufe doble</title>
+<style>body{margin:0;background:#e8e9e7;color:#172120;font:16px system-ui}header{padding:14px 20px}h1{font-size:20px;margin:0 0 6px}#status{white-space:pre-line;line-height:1.5}button{padding:10px;margin:10px 10px 0 0;font:inherit}canvas{display:block;width:100%}</style>
+<header><h1>Enchufe doble · monitor y computadora</h1><div id="status">Cargando modelos GLB reales…</div><button id="cut">Cortar suministro</button><button id="view">Ver enchufe de cerca</button></header>
+<script src="../../juego/assets/vendor/three.min.js"></script><script src="../../juego/assets/vendor/GLTFLoader.js"></script>
+<script src="../../juego/assets/fh-electric-catalog.js"></script><script src="../../juego/assets/fh-pc-assembly.js"></script><script src="../../juego/assets/fh-surface-placement.js"></script><script src="../../juego/assets/fh-services-core.js"></script><script src="../../juego/assets/fh-electric-visuals.js"></script>
+<script>
+(async()=>{
+ const html=await fetch('../../index.html').then(response=>{if(!response.ok)throw Error('No se pudo leer el motor');return response.text();});
+ const from=html.indexOf('const ForestShared=(()=>{'),to=html.indexOf("\n'use strict';",from);
+ if(from<0||to<0)throw Error('No se encontró el módulo compartido');
+ const ForestShared=new Function(html.slice(from,to)+';return ForestShared;')();
+ const scene=new THREE.Scene();scene.background=new THREE.Color(0xe8e9e7);
+ const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(1);renderer.setSize(innerWidth,560);renderer.outputEncoding=THREE.sRGBEncoding;document.body.appendChild(renderer.domElement);
+ const camera=new THREE.PerspectiveCamera(40,innerWidth/560,.01,100);let close=false;
+ const overview=()=>{camera.position.set(5.3,2.4,4.1);camera.lookAt(3.4,.7,.1);};overview();
+ scene.add(new THREE.HemisphereLight(0xffffff,0x555555,1.5));const light=new THREE.DirectionalLight(0xffffff,1.8);light.position.set(3,5,4);scene.add(light);
+ const floor=new THREE.Mesh(new THREE.PlaneGeometry(15,15),new THREE.MeshStandardMaterial({color:0xc7c4ba}));floor.rotation.x=-Math.PI/2;scene.add(floor);
+ const wall=new THREE.Mesh(new THREE.BoxGeometry(12,3,.13),new THREE.MeshStandardMaterial({color:0xf4f1e5}));wall.position.set(4,1.5,0);scene.add(wall);
+ const desk={id:'desk',type:'table',x:2,y:.5,w:1,h:.6,zoneId:'office',supportSurfaces:[{id:'top',widthFt:5,depthFt:3,heightFt:2.5}]};
+ const outlet={id:'outlet',type:'power_outlet',x:2.65,y:0,rotation:0};
+ const monitor={id:'monitor',type:'misc',modelId:'monitor_crt',x:2,y:.5,support:{parentItemId:'desk',surfaceId:'top',offsetXFt:0,offsetZFt:0}};
+ const cabinet={id:'cabinet',type:'misc',modelId:'gabinete_pc',x:2.5,y:.55};
+ const items=[{id:'wall',type:'wall',a:{x:0,y:0},b:{x:10,y:0}},{id:'panel',type:'breaker_panel',x:0,y:0,powerSource:{kind:'utility'},circuits:[{zoneId:'office',rangeFt:90}]},
+  {id:'room',type:'room',x:0,y:0,w:10,h:10,zoneId:'office'},desk,outlet,monitor,cabinet,
+  {id:'keyboard',type:'misc',modelId:'teclado_pc',x:2,y:.6,support:{parentItemId:'desk'}},
+  {id:'mouse',type:'misc',modelId:'mouse_pc',x:2.2,y:.6,support:{parentItemId:'desk'}}];
+ const DATA={units:{feetPerCell:5},floors:[{id:'f',items,ceilingHeightFt:10}]},state={flags:{}};
+ const service=FHServices.createRuntime(DATA,state),story=new THREE.Group();scene.add(story);
+ const top=new THREE.Mesh(new THREE.BoxGeometry(1.524,.06,.914),new THREE.MeshStandardMaterial({color:0x856344}));top.position.set(3.048,.762,.762);story.add(top);
+ for(const x of [2.4,3.7])for(const z of [.4,1.1]){const leg=new THREE.Mesh(new THREE.BoxGeometry(.06,.75,.06),new THREE.MeshStandardMaterial({color:0x675344}));leg.position.set(x,.375,z);story.add(leg);}
+ const native=new THREE.Group();const old=new THREE.Mesh(new THREE.BoxGeometry(.2,.2,.1),new THREE.MeshBasicMaterial({color:0xb000ff}));native.add(old);story.add(native);
+ const rendered=new Map([[outlet.id,[{root:native}]]]);
+ const entries=FHElectricVisuals.install({THREE,DATA,CELL:1.524,stories:[story],renderedByItem:[rendered],ForestShared,applyFOW(){}});
+ const loader=new THREE.GLTFLoader();let loaded=0,error='';
+ function refresh(){
+  const powered=item=>service.statusFor(0,item).power.powered?'con energía':'sin energía';
+  document.getElementById('status').textContent='Enchufe GLB: '+(entries[0].root.userData.fhModelState||'cargando')+' · Modelos de PC: '+loaded+'/2'+
+   '\nMonitor: '+powered(monitor)+' · Gabinete: '+powered(cabinet)+' · Estación: '+powered(desk)+
+   '\nTomas utilizadas: '+service.statusFor(0,outlet).usedSlots+'/2'+(error?'\nERROR: '+error:'');
+ }
+ for(const item of [monitor,cabinet])loader.load('../../forest-horror/biblioteca/modelos_glb/'+item.modelId+'.glb',gltf=>{
+  const pose=FHSurfacePlacement.worldPose(items,item,5);gltf.scene.position.set(pose.x*1.524,pose.heightFt*.3048,pose.y*1.524);story.add(gltf.scene);loaded++;refresh();
+ },undefined,e=>{error=String(e);refresh();});
+ document.getElementById('cut').onclick=()=>{state.flags.power_global=state.flags.power_global===false;document.getElementById('cut').textContent=state.flags.power_global?'Cortar suministro':'Restablecer suministro';refresh();};
+ document.getElementById('view').onclick=()=>{close=!close;if(close){camera.position.set(4.3,.7,1.1);camera.lookAt(outlet.x*1.524,.457,.077);}else overview();};
+ renderer.setAnimationLoop(()=>{refresh();renderer.render(scene,camera);});
+})().catch(error=>document.getElementById('status').textContent='ERROR: '+error.stack);
+</script></html>
