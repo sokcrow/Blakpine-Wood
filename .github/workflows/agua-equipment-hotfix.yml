@@ -28,11 +28,15 @@ jobs:
           node-version: '22'
       - name: Integración y carga de los GLB originales
         run: node --test juego/assets/fh-water-equipment.test.js
-      - name: Regresiones de redes
+      - name: Regresiones de redes y motor 3D
         run: |
+          node --test juego/assets/fh-water-storage-catalog.test.js
+          node --test juego/assets/fh-services-engine-hook.test.js
           node --test juego/assets/fh-water-hot.test.js
           node --test juego/assets/fh-water-potable.test.js
           node --test tests/fh-services-core.test.js
+      - name: Puente GLB con catálogo existente
+        run: node juego/assets/fh-glb-bridge.test.js
       - name: Sintaxis y módulos del editor/motor
         run: |
           node --check juego/assets/fh-boilers-editor.js
