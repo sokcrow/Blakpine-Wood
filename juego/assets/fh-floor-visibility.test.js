@@ -54,7 +54,7 @@ test('el editor integra la regla en las fachadas y conserva el FOW original',()=
  assert.match(html,/const upperWindows=inside&&f===currentFloor\+1\?openings\.filter\(it=>it\.type==='window'\):openings;/);
  assert.match(html,/sampleAllowed=p=>floorSightThroughOpening\(f,at,\{x:p.x,z:p.z,y:targetY\},upperWindows\)/);
  // Conserva fachadas, luz natural y el adaptador Mood/Miedo vigente.
- assert.match(html,/addFloorVisibilityToEngine\(addNaturalLightToEngine\(assembled\)\)/);
+ assert.match(html,/addFloorVisibilityToEngine\(addNaturalLightToEngine\(addShadowEncountersToEngine\(assembled\)\)\)/);
  assert.match(html,/addPreviewDiagnostics\(addCourtyardsToEngine\(addMoodFearToEngine\(/);
  assert.match(html,/\.\/juego\/assets\/fh-floor-visibility\.js/);
  assert.match(html,/const inside=outside!==true\|\|underRoof;/);

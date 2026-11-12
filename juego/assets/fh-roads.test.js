@@ -116,7 +116,7 @@ test('formulario rechaza vacíos y valores inválidos sin cambiar configuración
 });
 test('adaptador carga el módulo vial e impide representar señales como muebles',()=>{
  assert.match(editor,/styleCore\+styleRender\+parkingScript\+roadsScript/);assert.match(editor,/window.FHRoads\?\.attachFloor\(THREE,DATA,stories\[f\],f,CELL\)/);
- assert.ok(editor.includes("'wood_floor','parking_decal','opening','spawn'].includes(it.type)&&!it.roadControl"));
+ assert.ok(editor.includes("'wood_floor','parking_decal','drain_access','opening','spawn'].includes(it.type)&&!it.roadControl"));
  assert.match(editor,/FHRoadEditor\?\.inspector\(it,fields\)/);assert.match(editor,/FHRoads\?\.validateProject\(obj\)/);
 });
 test('deshacer y rehacer conservan configuración vial con el historial real del editor',()=>{

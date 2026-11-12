@@ -26,10 +26,11 @@ jobs:
           node-version: '22'
       - name: Verificar módulos de drenaje
         run: |
+          node --check juego/assets/fh-drainage-access.js
           node --check juego/assets/fh-drainage.js
           node --check juego/assets/fh-drainage-editor.js
           node --check juego/assets/fh-services-core.js
       - name: Probar premades, red residual y retrocompatibilidad
         run: |
-          node --test juego/assets/fh-drainage.test.js juego/assets/fh-drainage-services.test.js
+          node --test juego/assets/fh-drainage-access.test.js juego/assets/fh-drainage.test.js juego/assets/fh-drainage-services.test.js
           node --test tests/fh-services-core.test.js
