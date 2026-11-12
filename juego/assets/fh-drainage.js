@@ -267,8 +267,7 @@
   }
   function update(dt,weather){
    const delta=Math.max(0,Math.min(.075,safe(dt)));
-   const rain=weather?.phase==='lluvia'||weather?.type==='llovizna'||
-    weather?.type==='lluvia'||weather?.type==='tormenta'?Math.max(0,Math.min(1,safe(weather?.intensity))):0;
+   const rain=weather?.phase==='lluvia'?Math.max(0,Math.min(1,safe(weather?.intensity))):0;
    updateVisuals(delta,rain,position?.()?.floorIndex);
    cooldown=Math.max(0,cooldown-delta);elapsed+=delta;
    if(!delta||!position)return null;
@@ -321,25 +320,79 @@
    ctx.strokeStyle=it.id===selection?'#ffe6a5':'#9fb8a8';ctx.strokeRect(p.x,p.y,it.w*gx,it.h*gy);ctx.restore();
   }
  }
+ // Visuales animados por piso: un registro por sección y un CanvasTexture
+ // repetible. La geometría sólida pertenece al motor nativo.
+ const visuals=[];
+ function makeWaterTexture(THREE){
+  if(typeof document==='undefined'||!THREE.CanvasTexture)return null;
+  const cv=document.createElement('canvas');cv.width=cv.height=64;
+  const ctx=cv.getContext('2d');if(!ctx)return null;
+  ctx.fillStyle='#245568';ctx.fillRect(0,0,64,64);
+  for(let y=0;y<64;y+=4){
+   const seed=(y*67+17)%64;
+   ctx.fillStyle=y%12===0?'#427b89':'#285f71';
+   ctx.fillRect(0,y,64,2);
+   ctx.fillStyle='#85aeb6';
+   ctx.fillRect(seed,y+1,12,1);
+   ctx.fillStyle='#36798e';
+   ctx.fillRect((seed+21)%64,y+3,20,1);
+  }
+  const tex=new THREE.CanvasTexture(cv);
+  tex.wrapS=tex.wrapT=THREE.RepeatWrapping;
+  tex.magFilter=tex.minFilter=THREE.NearestFilter;
+  tex.repeat.set(3,3);
+  return tex;
+ }
+ function updateVisuals(dt,rain=0,floorIndex){
+  const delta=Math.max(0,Math.min(.075,safe(dt))),r=Math.max(0,Math.min(1,safe(rain)));
+  for(const entry of visuals){
+   if(floorIndex!==undefined&&entry.floorIndex!==floorIndex)continue;
+   const flow=entry.direction;
+   if(entry.texture&&delta){
+    entry.texture.offset.x=(entry.texture.offset.x+flow.x*delta*(.16+.36*r))%1;
+    entry.texture.offset.y=(entry.texture.offset.y-flow.y*delta*(.16+.36*r))%1;
+   }
+   if(entry.flood){entry.flood.visible=r>0;entry.flood.material.opacity=.68+.20*r;}
+   if(entry.ring&&delta)entry.ring.rotation.z+=delta*(.15+.9*r);
+  }
+ }
  function attachFloor(THREE,map,story,index,CELL){
   // El suelo, los muros, las colisiones y el FOW vienen de los componentes
   // nativos expandidos por expandProject(), no de geometría paralela.
   const sections=pieces(map.floors[index]?.items),bridges=(map.floors[index]?.items||[]).filter(isBridge);
   if(!sections.length&&!bridges.length)return;
-  const water=new THREE.MeshBasicMaterial({color:0x245b6b,transparent:true,opacity:.92});
   const hole=new THREE.MeshBasicMaterial({color:0x02070b});
   const metal=new THREE.MeshLambertMaterial({color:0x74847f});
   const box=(mat,x,y,z,w,h,d)=>{const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);mesh.position.set(x,y,z);story.add(mesh);return mesh};
   for(const it of sections){
    const x=it.x*CELL,z=it.y*CELL,s=it.w*CELL;
+   const texture=makeWaterTexture(THREE),water=new THREE.MeshBasicMaterial({
+    color:0xb6e8f5,map:texture||null,transparent:true,opacity:.93
+   });
+   const next=downstream(map,index,it.id),target=next&&(map.floors[next.floorIndex]?.items||[])
+    .find(q=>String(q.id)===String(next.itemId));
+   const middle=center(it),end=target?center(target):null;
+   let direction=end?{x:end.x-middle.x,y:end.y-middle.y}:{x:1,y:0};
+   if(it.drainage.kind==='outfall')direction={x:0,y:1};
+   const mag=Math.hypot(direction.x,direction.y)||1;
+   direction={x:direction.x/mag,y:direction.y/mag};
    for(const r of rects(it))box(water,(r.x+r.w/2)*CELL,.082,(r.y+r.h/2)*CELL,r.w*CELL,.018,r.h*CELL);
+   let flood=null,ring=null;
+   if(SIZES[it.drainage.kind]===4){
+    const floodMaterial=new THREE.MeshBasicMaterial({
+     color:0x8ed3e1,map:texture||null,transparent:true,opacity:.78,depthWrite:false
+    });
+    flood=box(floodMaterial,x+s/2,.105,z+s/2,s,.008,s);
+    flood.visible=false;
+   }
    if(it.drainage.kind==='outfall'){
     const cx=x+s/2,cz=z+s/2;
-    const ring=new THREE.Mesh(new THREE.RingGeometry(3*CELL,7*CELL,40),water);
+    ring=new THREE.Mesh(new THREE.RingGeometry(3*CELL,7*CELL,40),water);
     ring.rotation.x=-Math.PI/2;ring.position.set(cx,.085,cz);story.add(ring);
     const abyss=new THREE.Mesh(new THREE.CircleGeometry(3*CELL,40),hole);
     abyss.rotation.x=-Math.PI/2;abyss.position.set(cx,.095,cz);story.add(abyss);
    }
+   visuals.push({floorIndex:index,itemId:it.id,direction,texture,ring,flood});
   }
   for(const it of bridges){
    const cx=(it.x+it.w/2)*CELL,cz=(it.y+it.h/2)*CELL,w=it.w*CELL,d=it.h*CELL;
