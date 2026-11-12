@@ -112,7 +112,7 @@ test('el HUD integrado conserva nombre y recursos sin etiquetas',()=>{
  const ui=read('fh-mood-fear-ui.js'),np=read('fh-nameplate-hud.js');
  assert.match(ui,/root\.FHNameplateHUD\?\.update/);
  assert.match(np,/const RESOURCE_KEYS = Object\.freeze\(\['pg', 'sp', 'pe'\]\)/);
- assert.match(np,/const name = typeof character\.name/);
+ assert.match(np,/const name\s*=\s*typeof character\.name/);
  assert.match(np,/fh-np-health-fill/);
  assert.doesNotMatch(np,/fh-character-stat|fh-status-count/);
 });
