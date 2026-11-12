@@ -84,7 +84,9 @@ function fhBarrierAdvance(dt){
   const base=new URL('../../',scriptUrl);
   const tags='<script src="'+new URL('juego/assets/fh-barriers.js?v=20261111-metal1',base).href+'"></scr'+'ipt>'+
    '<script src="'+new URL('juego/assets/fh-barriers-strings.js?v=20261111-metal1',base).href+'"></scr'+'ipt>';
-  doc=once(doc,'</head>',tags+'</head>');
+  const headEnd=doc.indexOf('</head>');
+  if(headEnd<0)throw Error('El motor 3D no tiene encabezado');
+  doc=doc.slice(0,headEnd)+tags+doc.slice(headEnd);
   return doc;
  }
  root.FHBarriersEngine=Object.freeze({patch});
