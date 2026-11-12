@@ -90,6 +90,14 @@
    card.setAttribute('aria-pressed',String(activeTool===tank.type));
    const pic=document.createElement('img');pic.alt='';pic.loading='lazy';
    pic.src=new URL(tank.thumbnail,base).href;
+   pic.onerror=()=>{
+    pic.onerror=null;
+    const cistern=tank.type==='water_cistern';
+    const drawing=cistern
+     ?'<rect x="22" y="47" width="116" height="69" rx="9" fill="#506e7d" stroke="#a0bfbe" stroke-width="5"/><rect x="41" y="36" width="75" height="14" fill="#2f4959"/><ellipse cx="79" cy="39" rx="28" ry="6" fill="#89aeb0"/>'
+     :'<rect x="49" y="124" width="11" height="22" fill="#748487"/><rect x="100" y="124" width="11" height="22" fill="#748487"/><path d="M31 66 Q31 36 80 36 Q129 36 129 66 L129 119 Q80 134 31 119 Z" fill="#374957" stroke="#94a7af" stroke-width="5"/><ellipse cx="80" cy="36" rx="49" ry="14" fill="#647e8c"/><ellipse cx="80" cy="26" rx="17" ry="5" fill="#25353f"/>';
+    pic.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160"><rect width="160" height="160" fill="#1b2a2f"/>'+drawing+'</svg>');
+   };
    const title=document.createElement('strong');title.textContent=tank.name;
    const info=document.createElement('small');info.textContent=(T.floor||'Piso')+' · '+tank.widthFt+' × '+tank.depthFt+' × '+tank.heightFt+' pies';
    card.append(pic,title,info);card.onclick=()=>{hide();setCategory('water');chooseTool(tank.type);
