@@ -3,10 +3,10 @@
  */
 (function(root,factory){
  'use strict';
- const api=factory();
+ const api=factory(root);
  if(typeof module==='object'&&module.exports)module.exports=api;
  if(root)root.FHServices=Object.freeze(api);
-})(typeof globalThis!=='undefined'?globalThis:this,function(){
+})(typeof globalThis!=='undefined'?globalThis:this,function(root){
  'use strict';
  const WALLS=new Set(['wall','red_wall','property_wall']);
  // La ventana conserva la instalación; puertas y aberturas cortan ese tramo.
@@ -196,7 +196,32 @@
    project,s,waterNetwork,(f,it)=>electricalStatus(f,it,hotElectricalSnapshot||electrical()).powered)||null;
   const powerGraphs=floors.map(f=>wallGraph(f.items||[],{doorways:true}));
   const elements=floors.map(f=>f.items||[]);
-  const pcStations=new Set(elements.flatMap((items,f)=>options.isPc?items.filter(it=>options.isPc(it,f)).map(id):[]));
+  const assembly=options.pcAssembly||root?.FHPcAssembly;
+  const surfacePlacement=options.surfacePlacement||root?.FHSurfacePlacement;
+  const surfaceProvider=options.surfaceProvider||root?.FHFurnitureRules?.supportSurfacesFor;
+  const pcStations=new Set(),pcDependencies=floors.map(()=>new Map());
+  for(let f=0;f<floors.length;f++)for(const host of elements[f]){
+   if(!(options.isPc?.(host,f)||assembly?.isTerminalCandidate(host,elements[f],feetPerCell)))continue;
+   pcStations.add(id(host));
+   if((host.pcTerminal===true||host.modelId==='escritorio_pc')&&host.pcAssemblyRequired!==true)continue;
+   const parts=assembly?.inspect(host,elements[f],feetPerCell)?.components;
+   // Las PC antiguas integradas conservan una sola conexión. Una PC por piezas
+   // usa las dos clavijas físicas: gabinete y monitor; la mesa no es un aparato.
+   if(!parts||!Object.values(parts).some(Boolean))continue;
+   pcDependencies[f].set(id(host),[parts.cabinet,parts.monitor]);
+   for(const part of [parts.keyboard,parts.mouse])if(part)pcDependencies[f].set(id(part),[parts.cabinet]);
+  }
+  function socketConsumer(f,it){
+   if(['teclado_pc','mouse_pc'].includes(it.modelId))return false;
+   return !pcDependencies[f]?.has(id(it))||['monitor_crt','gabinete_pc'].includes(it.modelId);
+  }
+  function electricalItem(f,it){
+   if(!it.support)return it;
+   const parent=itemAt(f,it.support.parentItemId);
+   const pose=surfacePlacement?.worldPose(elements[f],it,feetPerCell,surfaceProvider);
+   return {...it,x:pose?.x??it.x,y:pose?.y??it.y,
+    zoneId:it.zoneId||parent?.zoneId,roomId:it.roomId||parent?.roomId};
+  }
   const powerRouteCache=floors.map(()=>new Map());
   const cableDistance=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
   const zoneFor=(f,it)=>{
@@ -565,7 +590,7 @@
    if(allocationCache?.signature===signature)return allocationCache;
    const snapshot=electrical(true),loads=new Map();
    for(let f=0;f<floors.length;f++)for(const it of elements[f]){
-    if(!requiresPower(it)||!drawingPower(it)||number(s.damage[id(it)])>=100)continue;
+    if(!requiresPower(it)||!socketConsumer(f,it)||!drawingPower(it)||number(s.damage[id(it)])>=100)continue;
     const source=['light_fixture','elevator'].includes(it.type)||directPower(it)?
      sourcesFor(f,it,'',true)[0]:snapshot.supplies.get(f+':'+id(it));
     if(source?.feed)loads.set(source.feed.key,(loads.get(source.feed.key)||0)+watts(it,true));
@@ -644,6 +669,7 @@
   function requiresWater(it){return it?.service?.requiresWater===true||waterNetwork?.enabled===true&&waterNetwork.isFixture(it);}
   function candidates(f,it,types){
    const electrical=types.includes('power_outlet')||types.includes('power_strip');
+   if(electrical)it=electricalItem(f,it);
    // El alcance eléctrico lo determina el cable del aparato; agua y drenaje
    // conservan el alcance de sus tomas para no alterar sus redes.
    const reachFt=electrical?Math.max(0,number(it.service?.powerCableFt??it.powerCableFt??it.radiusFt,5)):null;
@@ -667,7 +693,7 @@
       if(source.type==='power_strip'&&(!bindings.has(k)||!active(source)))continue;
       if(source.type==='power_outlet'&&!active(source))continue;
       const choices=source.type==='power_outlet'?sourcesFor(f,source,zoneFor(f,source),true):supplyOptions.get(k)||[];
-      const zone=zoneFor(f,it),cableFeet=cableDistance(point(source),point(it))*feetPerCell;
+      const target=electricalItem(f,it),zone=zoneFor(f,target),cableFeet=cableDistance(point(source),point(target))*feetPerCell;
       const eligible=choices.map(supply=>({...supply,feet:supply.feet+cableFeet}))
        .filter(supply=>(!zone||zone===supply.zoneId)&&supply.feet<=supply.rangeFt+1e-7&&
         (!supply.feed?.target.roomId||roomIdFor(f,it)===String(supply.feed.target.roomId)))
@@ -683,7 +709,7 @@
      return null;
     };
     for(const strip of strips.slice().sort((a,b)=>id(a).localeCompare(id(b))))claim(strip,['power_outlet']);
-    for(const it of (elements[f]||[]).filter(x=>requiresPower(x)&&
+    for(const it of (elements[f]||[]).filter(x=>requiresPower(x)&&socketConsumer(f,x)&&
      !['power_strip','light_fixture','elevator'].includes(x.type)&&!directPower(x))
      .sort((a,b)=>id(a).localeCompare(id(b))))
      claim(it,['power_strip','power_outlet']);
@@ -718,6 +744,15 @@
    return {bindings,used,loads,supplies};
   }
   function electricalStatus(f,it,snapshot){
+   const dependencies=pcDependencies[f]?.get(id(it));
+   if(!dependencies)return directElectricalStatus(f,it,snapshot);
+   const parts=dependencies.map(part=>part&&directElectricalStatus(f,part,snapshot));
+   const connected=parts.every(p=>p?.connected===true);
+   const powered=connected&&active(it)&&number(s.damage[id(it)])<100&&parts.every(p=>p?.powered===true);
+   return {connected,powered,via:parts[0]?.via||'',breakerId:parts[0]?.breakerId||'',
+    generated:parts.some(p=>p?.generated),feet:connected?Math.max(...parts.map(p=>p.feet||0)):null};
+  }
+  function directElectricalStatus(f,it,snapshot){
    const key=f+':'+id(it);
    if(directPower(it)){
     const wired=wiringSourceFor(f,it),source=active(it)&&number(s.damage[id(it)])<100?
@@ -975,8 +1010,8 @@
       }
       continue;
      }
-     if(requiresPower(it)&&drawingPower(it)){
-      const power=electricalStatus(f,it,snap);
+     if(requiresPower(it)&&socketConsumer(f,it)&&drawingPower(it)){
+      const power=directElectricalStatus(f,it,snap);
       if(power.powered)usedWatts+=watts(it,power.generated);
      }
      if(requiresWater(it)&&active(it)&&s.usage[id(it)]===true&&waterStatus(f,it).water){
@@ -1065,3 +1100,4 @@
  }
  return Object.freeze({INFRA,defaultsFor,wallGraph,ensureState,createRuntime,requiresPower:needsElectricity,LIMITS,rangeFor});
 });
+
