@@ -4947,7 +4947,7 @@ function floorSightThroughOpening(f,at,target,openings){
    "  (f,x,y)=>fhGroundExposure?.(f,x*CELL,y*CELL)===true)||[];"
   ].join('\n');
   const tick='window.FHDrainageRuntime?.update(dt,fhWeatherEnabled?fhWeather?.view():null);';
-  const tickAfter=tick+"window.FHDrainageAccess?.updateVisuals(dt,fhWeatherEnabled?fhWeather?.view():null,DATA,(f,x,y)=>fhGroundExposure?.(f,x*CELL,y*CELL)===true);";
+  const tickAfter=tick+"window.FHDrainageAccess?.updateVisuals(dt,fhWeatherEnabled?fhWeather?.view():null,DATA,(f,x,y)=>fhGroundExposure?.(f,x*CELL,y*CELL)===true,GameState.clock?.minutes);";
   for(const [before,after] of [[open,use],[target,targetAfter],[sight,sightAfter],[vision,visionAfter],[tick,tickAfter]]){
    const count=doc.split(before).length-1;
    if(count!==1)throw Error('Hook Drenajes 05 incompatible ('+count+'): '+before.slice(0,70));
