@@ -10,6 +10,7 @@ on:
       - 'forest-horror/biblioteca/agua/calderas/**'
       - 'forest-horror/biblioteca/agua/almacenamiento/**'
       - 'tests/agua-glb-browser.*'
+      - 'juego/assets/fh-services-engine-hook.test.js'
       - '.github/workflows/agua-glb-3d-browser.yml'
   pull_request:
     paths:
@@ -19,6 +20,7 @@ on:
       - 'forest-horror/biblioteca/agua/calderas/**'
       - 'forest-horror/biblioteca/agua/almacenamiento/**'
       - 'tests/agua-glb-browser.*'
+      - 'juego/assets/fh-services-engine-hook.test.js'
       - '.github/workflows/agua-glb-3d-browser.yml'
 permissions:
   contents: read
@@ -35,6 +37,8 @@ jobs:
         run: |
           npm install --no-save --no-package-lock --ignore-scripts playwright@1.56.1
           npx playwright install --with-deps chromium
+      - name: Verificar inyección del cargador en el iframe 3D del mapa
+        run: node --test juego/assets/fh-services-engine-hook.test.js
       - name: Cargar 10 GLB reales mediante GLTFLoader y renderizar Three.js
         run: node tests/agua-glb-browser.cjs
       - name: Captura WebGL si existe
