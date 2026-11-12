@@ -3621,7 +3621,7 @@ function prepareGLBEngineDoc(source){
     ["for(const it of items)if(!['red_wall','wall','half_wall','fence','window','door','peephole_door','room','hall','outside','building','pavement','parking','grass','dirt','opening','spawn'].includes(it.type))",
      "for(const it of items)if(!['red_wall','wall','property_wall','half_wall','fence','window','door','peephole_door','room','hall','outside','building','pavement','parking','grass','dirt','asphalt','alley','sidewalk','concrete','gravel','cobblestone','tile_floor','carpet','wood_floor','parking_decal','opening','spawn'].includes(it.type)&&!it.roadControl)"],
     ["DATA.floors.forEach((_,i)=>buildFloor(i));",
-      "window.FHDrainage?.expandProject(DATA);\\nDATA.floors.forEach((_,i)=>buildFloor(i));"],
+      "window.FHDrainage?.expandProject(DATA);\nDATA.floors.forEach((_,i)=>buildFloor(i));"],
     [" // Anillo discreto alrededor del objetivo activo",
      " window.FHParking?.attachFloor(THREE,DATA,stories[f],f,CELL);\n window.FHRoads?.attachFloor(THREE,DATA,stories[f],f,CELL);\n window.FHDrainage?.attachFloor(THREE,DATA,stories[f],f,CELL);\n // Anillo discreto alrededor del objetivo activo"]
    ];
