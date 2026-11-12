@@ -109,7 +109,7 @@ test('lluvia al aire libre se limita a posiciones exteriores',()=>{
  }finally{global.document=old}
 });
 
-test('la lluvia y la niebla exteriores se ven desde una ventana, sin invadir interiores',()=>{
+test('la precipitación exterior se ve desde una ventana, sin sprites de niebla obsoletos',()=>{
  const {THREE,document,scene}=mockThree();
  const old=global.document;global.document=document;
  try{
@@ -119,11 +119,11 @@ test('la lluvia y la niebla exteriores se ven desde una ventana, sin invadir int
    isOutside:(x)=>x>7.5});
   const group=scene.children.find(g=>g instanceof THREE.Group);
   r.update(.016,state());
-  const rain=group.children[0],snow=group.children[1],mist=group.children[2];
+  const rain=group.children[0],snow=group.children[1];
   assert.equal(rain.visible,true,'llueve afuera aunque el actor esté adentro');
   assert.equal(scene.fog,null,'niebla global no empaña la habitación');
-  assert.equal(mist.visible,true,'se ve neblina exterior desde adentro');
-  for(const item of [rain,mist]){
+  assert.equal(group.children.length,2,'los puntos blancos de neblina están retirados');
+  for(const item of [rain]){
    const width=item===rain?6:3;
    const amount=item.geometry.range.count/(item===rain?2:1);
    const positions=item.geometry.attributes.position.array;
@@ -210,7 +210,7 @@ test('sin posiciones exteriores, la vista interior no muestra lluvia ni neblina'
   const group=scene.children.find(g=>g instanceof THREE.Group);
   assert.equal(group.children[0].visible,false);
   assert.equal(group.children[1].visible,false);
-  assert.equal(group.children[2].visible,false);
+  assert.equal(group.children.length,2,'no se crean sprites circulares de niebla');
   assert.equal(scene.fog,null);
   r.dispose();
  }finally{global.document=old}
@@ -221,5 +221,5 @@ test('la configuración de lluvia exterior no depende de que el personaje esté 
  assert.doesNotMatch(src,/rain\.visible=actorOutside/);
  assert.doesNotMatch(src,/snow\.visible=actorOutside/);
  assert.match(src,/if\(!outdoor\.outside\(x\+p\.x,z\+p\.z\)\)continue/);
- assert.match(src,/mist\.visible=fogLevel>0&&mistVisible>0/);
+ assert.doesNotMatch(src,/createMistTexture|mistSites|mistGeometry|mistVisible/);
 });
