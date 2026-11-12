@@ -4,6 +4,11 @@ on:
     paths:
       - "juego/assets/fh-water-hot.js"
       - "juego/assets/fh-water-hot.test.js"
+      - "juego/assets/fh-water-storage-catalog.test.js"
+      - "juego/assets/fh-water-editor.js"
+      - "juego/assets/fh-water-visuals.js"
+      - "juego/assets/fh-water-storage-catalog.js"
+      - "index.html"
       - "juego/assets/fh-water-potable.js"
       - "juego/assets/fh-services-core.js"
       - ".github/workflows/agua-caliente-04.yml"
@@ -11,6 +16,11 @@ on:
     paths:
       - "juego/assets/fh-water-hot.js"
       - "juego/assets/fh-water-hot.test.js"
+      - "juego/assets/fh-water-storage-catalog.test.js"
+      - "juego/assets/fh-water-editor.js"
+      - "juego/assets/fh-water-visuals.js"
+      - "juego/assets/fh-water-storage-catalog.js"
+      - "index.html"
       - "juego/assets/fh-water-potable.js"
       - "juego/assets/fh-services-core.js"
       - ".github/workflows/agua-caliente-04.yml"
@@ -23,6 +33,7 @@ jobs:
         with:
           node-version: "22"
       - run: node --test juego/assets/fh-water-hot.test.js
+      - run: node --test juego/assets/fh-water-storage-catalog.test.js
       - run: node --test juego/assets/fh-water-potable.test.js
       - run: node --test tests/fh-services-core.test.js
       - run: node --check juego/assets/fh-water-hot.js
