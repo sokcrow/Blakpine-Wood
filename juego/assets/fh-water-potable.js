@@ -20,9 +20,9 @@
  const num=(n,f=0)=>Number.isFinite(Number(n))?Number(n):f;
  const pos=x=>({x:num(x?.x),y:num(x?.y)});
  const distance=(a,b)=>Math.hypot(num(a.x)-num(b.x),num(a.y)-num(b.y));
- const name=it=>String(it?.networkId||'principal');
+ const name=it=>String(it?.networkId||'');
  const owner=it=>String(it?.buildingId||it?.propertyId||'');
- const compatible=(a,b)=>(name(a)===name(b)||name(a)==='*'||name(b)==='*')&&
+ const compatible=(a,b)=>(name(a)===name(b)||!name(a)||!name(b)||name(a)==='*'||name(b)==='*')&&
   (!owner(a)||!owner(b)||owner(a)===owner(b));
  const isFixture=it=>!!it&&it.service?.requiresWater!==false&&
   (FIXTURES.has(it.modelId)||it.service?.requiresWater===true);
