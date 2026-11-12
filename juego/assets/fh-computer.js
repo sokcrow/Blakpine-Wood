@@ -33,7 +33,7 @@
   const ids=Array.isArray(item?.pcConnections?.cameras)?item.pcConnections.cameras.filter(v=>typeof v==='string'):[];
   const cameras=(Array.isArray(options.cameras)?options.cameras:[])
    .filter(cam=>ids.includes(cam.id))
-   .map(cam=>({id:safeText(cam.id),place:safeText(cam.place||cam.label||cam.id),online:cam.online!==false}));
+   .map(cam=>({id:safeText(cam.id),place:safeText(cam.place||cam.label||cam.id),online:cam.online!==false,mode:['manual','automatic','fixed'].includes(cam.mode)?cam.mode:'fixed',angleDeg:Number.isFinite(Number(cam.angleDeg))?Number(cam.angleDeg):0}));
   const mails=Array.isArray(state.computer?.mails)?state.computer.mails:null;
   return {
    ...hardware,
@@ -130,7 +130,18 @@
    if(!frame||event.source!==frame.contentWindow)return;
    if(event.origin&&event.origin!==new URL(frame.src).origin)return;
    const data=event.data;
-   if(data?.type!=='FOREST_TERMINAL_EVENT'||data.name!=='control')return;
+   if(data?.type!=='FOREST_TERMINAL_EVENT'||!opened||!active)return;
+   if(data.name==='camara-giro'){
+    const detail=data.detail||{};
+    if(detail.stationId!==active.stationId||powerStore.read(activeKey).mode!=='on')return;
+    const camera=active.cameras.find(v=>v.id===detail.id&&v.mode==='manual'&&v.online);
+    if(!camera||!Number.isFinite(Number(detail.angleDeg)))return;
+    const angle=Math.max(-45,Math.min(45,Number(detail.angleDeg)));
+    options.onCameraControl?.(camera.id,angle,active);
+    camera.angleDeg=angle;
+    return;
+   }
+   if(data.name!=='control')return;
    action(data.detail?.action,data.detail?.stationId);
   }
   function ensureFrame(){
