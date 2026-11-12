@@ -1,6 +1,7 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
+const vm=require('node:vm');
 const path=require('node:path');
 const D=require('./fh-drainage.js');
 const units={columns:120,rows:120,feetPerCell:5};
@@ -78,4 +79,36 @@ test('validación opcional no cambia mapas v1 antiguos',()=>{
 test('editor y motor enlazados desde index.html y contrato v1',()=>{
  const html=fs.readFileSync(path.join(__dirname,'../../index.html'),'utf8');
  for(const marker of ['fh-drainage.js','fh-drainage-editor.js','FHDrainage?.draw2D','FHDrainage?.attachFloor','FHDrainage?.validateProject','FHDrainageEditor?.place'])assert.ok(html.includes(marker),marker);
+});
+
+
+test('seleccionar drenajes desde Agua: tramo y puente se detectan en su superficie',()=>{
+ const html=fs.readFileSync(path.join(__dirname,'../../index.html'),'utf8');
+ const layer=html.match(/function layerForItem\(it\)\{[^\n]+/);
+ const hit=html.match(/function hitTest\(s\)\{[^\n]+/);
+ assert.ok(layer&&hit,'El editor conserva los métodos de capa y selección');
+ const section=D.makeSection('straight',{x:5,y:5},units,'segmento');
+ const bridge=D.makeBridge({x:5,y:5},units,'puente');
+ const items=[section,bridge];
+ const context={
+  window:{FHDrainage:D,FHRoads:null,FHExteriorGrid:null},
+  LIGHTING_TYPES:new Set(['light_fixture']),
+  SEGMENT_TYPES:new Set(['wall','door']),
+  AREA_TYPES:new Set(['hall','concrete']),
+  activeLayer:'furniture',activeCategory:'water',
+  view:{scale:1},toWorld:p=>p,toGrid:p=>p,toPixel:p=>p,
+  gridX:()=>1,gridY:()=>1,current:()=>({items})
+ };
+ vm.createContext(context);
+ vm.runInContext(layer[0]+'\n'+hit[0],context);
+ assert.equal(context.layerForItem(section),'furniture','El tramo pertenece a la capa de Agua');
+ assert.equal(context.layerForItem(bridge),'furniture','El puente pertenece a la capa de Agua');
+ assert.equal(context.layerForItem({type:'hall'}),'architecture','Los pasillos normales conservan su capa');
+ assert.equal(context.layerForItem({type:'concrete'}),'architecture','Las áreas normales conservan su capa');
+ assert.equal(context.layerForItem({type:'water_outlet'}),'furniture');
+ assert.equal(context.hitTest({x:8,y:8})?.id,'segmento','Selecciona el tramo');
+ assert.equal(context.hitTest({x:5,y:5})?.id,'puente','El puente superpuesto se puede seleccionar');
+ context.activeLayer='architecture';
+ assert.equal(context.hitTest({x:5,y:5}),undefined,'No roba selección desde Arquitectura');
+ assert.ok(html.includes('!window.FHDrainage?.isSection(it)&&!window.FHDrainage?.isBridge(it)'), 'No se repintan como áreas genéricas');
 });
