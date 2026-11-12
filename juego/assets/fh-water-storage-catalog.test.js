@@ -77,6 +77,7 @@ test('selector de calderas no secuestra las dos herramientas de almacenamiento',
 });
 test('GLB de Agua 03 se gestionan por el cargador hidráulico, no de muebles',()=>{
  assert.match(visuals,/FHWaterStorageCatalog/);
+ assert.match(visuals,/fh-water-storage-catalog\\.js/,'catálogo disponible en documento 3D');
  assert.match(visuals,/cisterna_principal/);
  assert.match(visuals,/tinaco_elevado/);
  assert.match(bridge,/FHWaterStorageCatalog\?\.byId\(modelId\)/);
