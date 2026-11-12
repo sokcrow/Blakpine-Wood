@@ -154,7 +154,7 @@ test('fotograma ensamblado: movimiento, cámara y render deben terminar antes de
    elevatorArrivalEvents:[],elevatorFlicker:0,lighting:{state:{charge:100,enabled:false},tick:noop,flicker:()=>false},
    lastBatteryNotice:false,visibilityDirty:false,flashlightSpot:{position:new THREE.Vector3(),target:{position:new THREE.Vector3()}},
    occupiedShaft:()=>null,floorElev:[0],currentFloor:0,user:{x:4,z:4,face:1},flashDir:{x:0,z:-1},
-   updateRoomLighting:noop,$:()=>({hidden:true}),fhSurvival:null,fhWeather:null,fhWeatherRenderer:null,fhGroundFog:null,fhWeatherAudio:null,fhNatural:null,
+   updateRoomLighting:noop,fhHorrorLightsFail:()=>false,$:()=>({hidden:true}),fhSurvival:null,fhWeather:null,fhWeatherRenderer:null,fhGroundFog:null,fhWeatherAudio:null,fhNatural:null,
    fhDecorationTick:noop,fhDeliveryUiActive:false,moveUpdate:()=>step('movement'),fhDeliveryNpcTick:noop,
    playerPose:{state:{phase:'standing'},update:()=>null},playerPoseItem:null,GameState:{hidden:false},GameEvents:{},
    cameraUpdate:()=>step('camera'),updateCabinIsolation:noop,updateAdjacentVisibility:noop,updateCameraCutaway:noop,
