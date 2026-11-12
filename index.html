@@ -4238,7 +4238,7 @@ window.FHDeliveryRuntime=window.FHDelivery?.createRuntime({
  },
  knock:(door)=>window.FHLiveText?.knockAt({x:door.cx,z:door.cz,y:floorElev[door.f]+1.35,floor:door.f,range:11})??false,
  floorItems:f=>DATA.floors[f]?.items||[],currentFloor:()=>currentFloor,
- clockMinutesPerSecond:1,deliveryLeadMinutes:60,knockDelayMs:1400,
+ clockMinutesPerSecond:0,deliveryLeadMinutes:60,knockDelayMs:1400,
  baseUrl:new URL('./juego/assets/fh-delivery.js',document.baseURI).href,
  freeze:on=>{fhDeliveryUiActive=!!on;user.vx=user.vz=0;clearStick();},
  findDoor:fhDeliveryDoor,doorById:fhDeliveryDoorById,
@@ -4799,6 +4799,30 @@ function floorSightThroughOpening(f,at,target,openings){
   return doc;
  }
 
+ function addShadowEncountersToEngine(doc){
+  const insert="\nlet fhHorrorFlickerUntil=0;\nfunction fhHorrorLightsFail(now=performance.now()){\n return now<fhHorrorFlickerUntil&&Math.floor(now/155)%4<2;\n}\nconst fhHorror=window.FHShadowAI?.createRuntime({\n state:GameState.horror||(GameState.horror={}),\n config:DATA.horror||{},\n spawn:(kind,f,x,z,id)=>window.FHShadowActors?.spawn(kind,f,x,z,{id}),\n move:(id,f,x,z)=>window.FHShadowActors?.move(id,f,x,z),\n despawn:id=>window.FHShadowActors?.despawn(id),\n canWalk:(f,x,z)=>fhNpcCanWalk(f,x,z,false),\n route:(start,end)=>{\n  const len=Math.hypot(end.x-start.x,end.z-start.z),samples=Math.max(1,Math.ceil(len/.2));\n  let clear=start.floor===end.floor;\n  for(let i=1;clear&&i<=samples;i++){\n   const t=i/samples;\n   if(!fhNpcCanWalk(start.floor,start.x+(end.x-start.x)*t,start.z+(end.z-start.z)*t,false))clear=false;\n  }\n  if(clear)return [start,end];\n  return window.FHNPCGOAP?.route(start,end,{\n   canWalk:(f,x,z)=>fhNpcCanWalk(f,x,z,false),\n   step:Math.max(.5,CELL/2),maxVisited:1800\n  });\n },\n onEvent:(type,payload)=>{\n  if(type==='presence'){\n   GameEvents.emit('horror:stimulus',{type:'creature',sourceId:payload.id});\n   notice(window.FH_SHADOW_TEXT?.nearby||'',2500);\n  }else if(type==='flicker'){\n   fhHorrorFlickerUntil=Math.max(fhHorrorFlickerUntil,performance.now()+payload.duration*1000);\n   visibilityDirty=true;\n  }else if(type==='attack'){\n   if(window.FHSurvivalRuntime?.damagePG(payload.damage)){\n    GameEvents.emit('combat:damage',{sourceId:payload.id,kind:payload.kind,damage:payload.damage});\n    notice(window.FH_SHADOW_TEXT?.attacked?.(payload.kind,payload.damage)||'',2700);\n    saveProgress();\n   }\n  }\n }\n});\nwindow.FHShadowRuntime=fhHorror;\nwindow.addEventListener('beforeunload',()=>fhHorror?.dispose());\n";
+  const patches=[
+   ['const tex={},loader=new THREE.TextureLoader();',insert+'\nconst tex={},loader=new THREE.TextureLoader();'],
+   ['fhDeliveryNpcTick(dt);','fhDeliveryNpcTick(dt);fhHorror?.tick(window.FHWeatherCore?.absoluteMinute(GameState.clock)??GameState.clock?.minutes,dt,{floor:currentFloor,x:user.x,z:user.z,sleeping:window.FHSleep?.status()?.stage===\'asleep\',inactive:!GameState.character||GameState.character.life===\'dead\'||!!window.FHSurvivalRuntime?.state?.critical});'],
+   ['if(!roomLightsDirty&&now-lastRoomLighting<300)return;','if(!roomLightsDirty&&now-lastRoomLighting<(now<fhHorrorFlickerUntil?70:300))return;'],
+   ['ambient.intensity=.37;','ambient.intensity=fhHorrorLightsFail(now)?.075:.37;'],
+   ['const lit=lighting.fixtureLit(entry.floor,entry.room,entry.lamp);','const lit=lighting.fixtureLit(entry.floor,entry.room,entry.lamp)&&!fhHorrorLightsFail();'],
+   ['light.intensity=entry?1.58:0;','light.intensity=entry?(fhHorrorLightsFail()?0.05:1.58):0;'],
+   ['const flicker=lighting.flicker(now);','const flicker=lighting.flicker(now)||fhHorrorLightsFail(now);'],
+   ['lighting.range(currentFloor,room,!lighting.flicker(performance.now()))','lighting.range(currentFloor,room,!lighting.flicker(performance.now())&&!fhHorrorLightsFail())'],
+   ['params.sources=window.FHLights.sourcesNear(roomLampEntries,lighting,currentFloor,at.x,at.z,LOOK_RADIUS,10);','params.sources=fhHorrorLightsFail()?[]:window.FHLights.sourcesNear(roomLampEntries,lighting,currentFloor,at.x,at.z,LOOK_RADIUS,10);'],
+   ['params.sources=lighting.sourcesNear(roomLampEntries,currentFloor,at.x,at.z,LOOK_RADIUS,7.2,4);','params.sources=fhHorrorLightsFail()?[]:lighting.sourcesNear(roomLampEntries,currentFloor,at.x,at.z,LOOK_RADIUS,7.2,4);']
+  ];
+  for(const [before,after] of patches){
+   const count=doc.split(before).length-1,expected=1;
+   if(count!==expected)throw Error('Hook Sombras incompatible ('+count+'/'+expected+'): '+before.slice(0,85));
+   doc=doc.split(before).join(after);
+  }
+  const tags=['fh-shadow-ai-strings.js','fh-shadow-ai.js'].map(file=>
+   '<script src="'+new URL('./juego/assets/'+file+'?v=20261112-shadow-1',document.baseURI).href+'"></'+'script>').join('');
+  return doc.replace('</head>',tags+'</head>');
+ }
+
  const assembled=(window.FHContextEngine?.patch||((doc)=>doc))(addActorPresentationToEngine(addLiveTextToEngine(addDeliveryToEngine(addParkingToEngine(addStylesToEngine(addLightToEngine(source.replace('const MAX_INVENTORY_SLOTS=8;','const MAX_INVENTORY_SLOTS=10;'))))).replace(furnitureVisibilityHook,furnitureRenderHook).replace(cameraBefore,cameraLightAfter).replace(cameraStartBefore,cameraStartAfter).replace(sleepCameraBefore,sleepCameraAfter).replace(loopBefore,loopAfter)
   .replace(maskBefore,maskAfter).replace(wakeHUDBefore,wakeHUDAfter).replace(locationHudHook,locationHudAfter)
   .split(wakeBefore).join(wakeAfter)
@@ -4875,7 +4899,7 @@ function floorSightThroughOpening(f,at,target,openings){
    '<script '+(file.includes('diagnostics')?'data-fh-runtime ':'')+'src="'+new URL('./juego/assets/'+file+'?v=20261109-diag2',document.baseURI).href+'"></'+'script>').join('');
   return doc.replace('<head>','<head>'+tags);
  }
- return addPreviewReturnToSpawnpoint(addPreviewDiagnostics(addCourtyardsToEngine(addMoodFearToEngine(addFloorVisibilityToEngine(addNaturalLightToEngine(assembled))))));
+ return addPreviewReturnToSpawnpoint(addPreviewDiagnostics(addCourtyardsToEngine(addMoodFearToEngine(addFloorVisibilityToEngine(addNaturalLightToEngine(addShadowEncountersToEngine(assembled)))))));
 }
 let fhCharacterLaunchPending=false;
 async function start3DPreview(){
