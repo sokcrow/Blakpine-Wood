@@ -226,13 +226,13 @@ test('drawSight acepta cámara observadora con la misma oclusión y luz sin toca
  }};
  const maker=new Function('eyeLocation','performance','visibilityDirty','visibilityLast',
   'currentFloor','peeking','yaw','sightCanvas','q','sightTexture',
-  'lighting','roomAt','sightWalls','doorList','elevatorStops','sightParameters',
+  'lighting','roomAt','roomLampEntries','sightWalls','doorList','elevatorStops','sightParameters',
   'ForestShared','STEPS','dirs','LOOK_RADIUS','MAX_X','MAX_Z',
   'updateSegmentSight','updateFurnitureSight','updateElevatorSight','updateDoorSight','updateLampSight',
   sight+'\nreturn drawSight;');
  const unused=()=>{throw Error('La vista remota no debe editar la visibilidad del jugador');};
  const f=maker(()=>({x:99,z:99}),{now:()=>10},false,{f:0},0,false,0,
-  {width:4,height:4},ctx,{needsUpdate:false},lighting,()=> 'CAMERA_ROOM',
+  {width:4,height:4},ctx,{needsUpdate:false},lighting,()=> 'CAMERA_ROOM',[],
   [[],[wall]],[[],[{transparent:false,passable:false,block:door}]],[],
   unused,ForestShared,4,[{x:1,z:0},{x:0,z:1},{x:-1,z:0},{x:0,z:-1}],10.4,100,100,
   unused,unused,unused,unused,unused);
