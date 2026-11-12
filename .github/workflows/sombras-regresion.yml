@@ -1,0 +1,38 @@
+name: Sombras — IA y drenaje sobrenatural
+
+on:
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'juego/assets/fh-shadow-ai.js'
+      - 'juego/assets/fh-shadow-ai-strings.js'
+      - 'juego/assets/fh-shadow-ai.test.js'
+      - 'tests/shadow-clock.test.cjs'
+      - '.github/workflows/sombras-regresion.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'index.html'
+      - 'juego/assets/fh-shadow-ai.js'
+      - 'juego/assets/fh-shadow-ai-strings.js'
+      - 'juego/assets/fh-shadow-ai.test.js'
+      - 'tests/shadow-clock.test.cjs'
+      - '.github/workflows/sombras-regresion.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  sombras:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Sintaxis de Sombras
+        run: |
+          node --check juego/assets/fh-shadow-ai.js
+          node --check juego/assets/fh-shadow-ai-strings.js
+      - name: IA, colisiones, reloj y pesadillas
+        run: node --test juego/assets/fh-shadow-ai.test.js tests/shadow-clock.test.cjs
