@@ -3281,7 +3281,7 @@ const playCanvas=document.querySelector('#playCanvas');
 const playCtx=playCanvas.getContext('2d',{alpha:false});
 const PLAY_SOLID_SEGMENTS=new Set(['red_wall','wall','property_wall','half_wall','fence','window']);
 const PLAY_DOORS=new Set(['door','peephole_door']);
-const PLAY_SOLID_OBJECTS=new Set(['generator','generator_tank','bed','sofa','tv','dining','table','chair','kitchen','bath','toilet','car','misc']);
+const PLAY_SOLID_OBJECTS=new Set(['generator','generator_tank','water_boiler','water_boiler_aux','bed','sofa','tv','dining','table','chair','kitchen','bath','toilet','car','misc']);
 let playLiftCollision=[];
 const PLAY_FLOORS={outside:'#53614b',building:'#626b79',pavement:'#8a8790',parking:'#48535e',grass:'#427d48',dirt:'#8a6245',hall:'#6d7285',room:'#b2a08b'};
 const playFloor=()=>project.floors[playState.floorIndex];
