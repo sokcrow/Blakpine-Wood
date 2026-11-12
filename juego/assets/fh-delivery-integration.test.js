@@ -57,7 +57,8 @@ test('Los pedidos esperan su ETA antes de llamar a la puerta',()=>{
  assert.match(delivery,/order\.status='scheduled'/);
  assert.match(delivery,/function nextDueOrder\(/);
  assert.match(delivery,/deliveryAtMinutes/);
- assert.match(index,/clockMinutesPerSecond:1,deliveryLeadMinutes:60/);
+ // El reloj unificado controla el avance; entregas no incrementa minutos por separado.
+ assert.match(index,/clockMinutesPerSecond:0,deliveryLeadMinutes:60/);
  assert.match(index,/FHDeliveryRuntime\?\.update\(dt\)/);
  assert.match(terminal,/LLEGA /);
  assert.match(terminal,/setGameClock\(value\)/);
