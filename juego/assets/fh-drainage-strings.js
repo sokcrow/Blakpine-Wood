@@ -14,6 +14,7 @@
  directions:{n:'Norte',e:'Este',s:'Sur',w:'Oeste'},
  nativeInfo:(count,ports)=>'Arquitectura nativa: '+count+' muros físicos · Salidas: '+ports+'.',
  audit:'Revisar red de drenajes',settings:'Drenaje',place:'Pieza colocada',
+ vortexMove:'El remolino te arrastró a otro drenaje.',
  blocked:'No tienes permiso para construir aquí.',drag:'Coloca la pieza con un toque, sin arrastrar.',
  overlap:'Ya existe un premade de drenaje en esa superficie.',
  rotate:'Girar 90°',flow:'Corriente hacia',auto:'Automática (hacia desagüe accesible)',
