@@ -15,5 +15,6 @@
  tankCapacity:'Capacidad (litros)',tankInitial:'Contenido inicial (litros)',
  tankFill:'Llenado (litros/min)',tankRange:'Longitud máxima de distribución (pies)',
  tankStatus:(liters,capacity)=>'Depósito de agua potable: '+liters.toFixed(1)+' / '+capacity.toFixed(1)+' litros.',
+ fixtureConnected:'Conexión potable disponible',fixtureUnconnected:'Sin conexión potable',
  pick:'Ver modelos de Agua'
 });})(typeof window!=='undefined'?window:globalThis);
