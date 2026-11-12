@@ -112,3 +112,96 @@ test('seleccionar drenajes desde Agua: tramo y puente se detectan en su superfic
  assert.equal(context.hitTest({x:5,y:5}),null,'No roba selección desde Arquitectura');
  assert.ok(html.includes('!window.FHDrainage?.isSection(it)&&!window.FHDrainage?.isBridge(it)'), 'No se repintan como áreas genéricas');
 });
+
+test('premades nativos: todos los tamaños y puertos de 10×10 y 4×4',()=>{
+ const profiles=[
+  ['straight',10,2],['elbow',10,2],['tee',10,3],['cross',10,4],['dead_end',10,1],
+  ['small',4,2],['small_elbow',4,2],['small_tee',4,3],
+  ['small_cross',4,4],['small_dead_end',4,1],['outfall',20,4]
+ ];
+ for(let i=0;i<profiles.length;i++){
+  const [kind,size,portCount]=profiles[i],item=section(kind,i*0,0,'test'+i);
+  assert.deepEqual([item.w,item.h],[size,size],kind);
+  assert.equal(D.ports(item).length,portCount,kind);
+  assert.equal(D.nativeComponents(item).filter(c=>c.type==='wall').length,4-portCount,kind);
+  assert.equal(D.nativeComponents(item).filter(c=>c.type==='opening').length,portCount,kind);
+  assert.equal(D.nativeComponents(item).filter(c=>c.type==='room').length,1,kind);
+  assert.equal(D.validate(item,units),true,kind);
+  for(const r of D.rects(item)){
+   assert.ok(r.x>=item.x&&r.y>=item.y&&r.x+r.w<=item.x+size&&r.y+r.h<=item.y+size,kind);
+  }
+ }
+});
+test('codos de 90 grados, T y cruces pequeños rotan canales sin inventar conexiones',()=>{
+ for(const kind of ['elbow','small_elbow']){
+  const elbow=section(kind,20,20,kind),before=D.ports(elbow);
+  assert.deepEqual(before,['n','e']);
+  elbow.rotation=90;
+  assert.deepEqual(D.ports(elbow),['e','s']);
+  assert.equal(D.rects(elbow).length,2);
+ }
+ for(const kind of ['dead_end','small_dead_end']){
+  const end=section(kind,50,50,kind);
+  assert.deepEqual(D.ports(end),['e']);
+  assert.equal(D.nativeComponents(end).filter(c=>c.type==='wall').length,3);
+  end.rotation=180;
+  assert.deepEqual(D.ports(end),['w']);
+ }
+ const a=section('small_elbow',30,30,'a');
+ const b=section('small',34,30,'b');
+ assert.equal(D.touches(a,b),true);
+ b.rotation=90;
+ assert.equal(D.touches(a,b),false);
+});
+test('las habitaciones, aberturas y paredes pasan al motor nativo y no se guardan en el mapa',()=>{
+ const a=section('straight',10,10,'pasillo'),b=section('small_dead_end',20,13,'fin');
+ const project=map([[a,b,{id:'mueble',type:'chair',x:18,y:18}],[]]);
+ const original=JSON.parse(JSON.stringify(project));
+ const expanded=D.expandProject(JSON.parse(JSON.stringify(project)));
+ assert.equal(expanded.floors[0].items.filter(it=>it.drainageGenerated).length,10);
+ const generated=expanded.floors[0].items.filter(it=>it.drainageGenerated);
+ assert.equal(generated.filter(it=>it.type==='room').length,2);
+ assert.equal(generated.filter(it=>it.type==='wall').length,5);
+ assert.equal(generated.filter(it=>it.type==='opening').length,3);
+ for(const it of generated)assert.ok(it.drainageOwnerId,'Se conserva el identificador del premade');
+ assert.equal(expanded.floors[1].items.length,0,'No se copian paredes a otros pisos');
+ D.expandProject(expanded);
+ assert.equal(expanded.floors[0].items.filter(it=>it.drainageGenerated).length,10,'Expansión idempotente');
+ assert.equal(JSON.stringify(project),JSON.stringify(original),'El proyecto guardado no muta si se expande una copia');
+ assert.equal(original.floors[0].items.filter(it=>it.drainageGenerated).length,0);
+});
+test('el motor 3D expande geometría antes de buildFloor y conserva los materiales de agua',()=>{
+ const html=fs.readFileSync(path.join(__dirname,'../../index.html'),'utf8');
+ const editor=fs.readFileSync(path.join(__dirname,'fh-drainage-editor.js'),'utf8');
+ for(const tool of ['drain_elbow','drain_dead_end','drain_small_elbow','drain_small_tee','drain_small_cross','drain_small_dead_end']){
+  assert.ok(html.includes("'"+tool+"'"),'Herramienta visible: '+tool);
+  assert.ok(editor.includes(tool),'Herramienta implementada: '+tool);
+ }
+ assert.match(html,/window\.FHDrainage\?\.expandProject\(DATA\);\\nDATA\.floors\.forEach\(\(_,i\)=>buildFloor\(i\)\);/);
+ const core=fs.readFileSync(path.join(__dirname,'fh-drainage.js'),'utf8');
+ const geometry=core.slice(core.indexOf(' function attachFloor('),core.indexOf(' return Object.freeze(',core.indexOf(' function attachFloor(')));
+ assert.doesNotMatch(geometry,/wallModel\(|const wall=new THREE\.MeshLambertMaterial/,'Los muros no se duplican como mallas propias');
+ assert.match(core,/push\('opening',Math\.max\(last,lo\),hi,k\+\+\)/);
+});
+
+test('un 4×4 conectado a un 10×10 abre solo la puerta real y cierra los huecos laterales',()=>{
+ const main=section('straight',0,0,'mayor'),small=section('small_tee',10,4,'menor');
+ assert.equal(D.touches(main,small),true,'El ancho de canal secundario es una casilla');
+ const parts=D.nativeComponents(main,[small]);
+ const edge=parts.filter(p=>p.id.startsWith('fh_drain_mayor_e_'));
+ assert.deepEqual(edge.filter(p=>p.type==='opening').map(p=>[p.a.y,p.b.y]),[[4,8]]);
+ assert.deepEqual(edge.filter(p=>p.type==='wall').map(p=>[p.a.y,p.b.y]),[[0,4],[8,10]]);
+ const expanded=D.expandProject(map([[main,small]]));
+ const walls=expanded.floors[0].items.filter(p=>p.drainageOwnerId==='mayor'&&p.type==='wall');
+ assert.equal(walls.length,4,'La unión menor no deja agujeros laterales transitables');
+ assert.equal(D.topology(map([[main,small]])).warnings.some(x=>x.code==='isolated'),false);
+});
+
+test('cada variante secundaria usa el estado de lluvia del perfil de 4×4',()=>{
+ for(const kind of ['small','small_elbow','small_tee','small_cross','small_dead_end']){
+  const it=section(kind,0,0,kind);
+  assert.equal(D.weatherState(it,0).waterWidth,1,kind);
+  assert.equal(D.weatherState(it,.58).waterWidth,4,kind);
+  assert.equal(D.weatherState(it,.58).walkingFactor,.5,kind);
+ }
+});

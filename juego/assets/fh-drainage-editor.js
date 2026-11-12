@@ -3,7 +3,11 @@
  'use strict';
  let env;
  const R=()=>root.FHDrainage,T=()=>root.FH_DRAIN_TEXT;
- const KINDS={drain_straight:'straight',drain_tee:'tee',drain_cross:'cross',drain_small:'small',drain_outfall:'outfall'};
+ const KINDS={
+  drain_straight:'straight',drain_elbow:'elbow',drain_tee:'tee',drain_cross:'cross',drain_dead_end:'dead_end',
+  drain_small:'small',drain_small_elbow:'small_elbow',drain_small_tee:'small_tee',
+  drain_small_cross:'small_cross',drain_small_dead_end:'small_dead_end',drain_outfall:'outfall'
+ };
  const tools=[...Object.keys(KINDS),'drain_bridge'];
  const createEl=(tag,text)=>{const el=document.createElement(tag);if(text!==undefined)el.textContent=text;return el;};
  function editAllowed(item){
@@ -19,6 +23,7 @@
   try{
    const section=KINDS[tool],item=section?R().makeSection(section,at,env.project().units,env.newId()):
     R().makeBridge(at,env.project().units,env.newId());
+   if(section)item.label=T().labels?.[section]||item.label;
    if(!editAllowed(item)){env.toast(T().blocked);return true;}
    if(section&&env.current().items.some(x=>R().isSection(x)&&
     x.x<item.x+item.w&&x.x+x.w>item.x&&x.y<item.y+item.h&&x.y+x.h>item.y)){
@@ -75,6 +80,9 @@
   const rotateButton=createEl('button',T().rotate);rotateButton.type='button';
   rotateButton.onclick=()=>rotate(item);fields.append(rotateButton);
   if(R().isSection(item)){
+   const ports=R().ports(item).map(side=>T().directions[side]).join(', ');
+   const native=R().nativeComponents(item,env.current().items.filter(peer=>peer!==item&&R().isSection(peer)&&R().touches(item,peer)));
+   fields.append(createEl('p',T().nativeInfo(native.filter(x=>x.type==='wall').length,ports)));
    const graph=R().topology(env.project()),node=graph.nodes.find(n=>n.item===item);
    const neighbors=(graph.links.get(node?.id)||[]).map(id=>graph.nodes.find(n=>n.id===id)).filter(Boolean);
    const field=createEl('label',T().flow);
