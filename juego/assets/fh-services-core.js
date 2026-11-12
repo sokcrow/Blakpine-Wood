@@ -192,6 +192,13 @@
    project,s,waterNetwork,(f,it)=>electricalStatus(f,it,hotElectricalSnapshot||electrical()).powered)||null;
   const powerGraphs=floors.map(f=>wallGraph(f.items||[],{doorways:true}));
   const elements=floors.map(f=>f.items||[]);
+  // Agua residual: con alcantarillado explorable las tomas descargan en
+  // el drenaje más cercano. La red potable continúa independiente.
+  // Los mapas anteriores sin premades preservan su comportamiento original.
+  const sewerCore=options.drainageCore||(typeof globalThis!=='undefined'?globalThis.FHDrainage:null);
+  const hasSewer=!!sewerCore&&elements.some(items=>items.some(it=>sewerCore.isSection(it)));
+  const sewerTargets=hasSewer?elements.map((items,f)=>new Map(items.filter(it=>it.type==='drain_outlet')
+   .map(it=>[String(it.id),sewerCore.nearest(project,f,it)]))):null;
   const assembly=options.pcAssembly||root?.FHPcAssembly;
   const surfacePlacement=options.surfacePlacement||root?.FHSurfacePlacement;
   const surfaceProvider=options.surfaceProvider||root?.FHFurnitureRules?.supportSurfacesFor;
@@ -792,6 +799,12 @@
   function drainStatus(f,it){
    if(!it||it.service?.drains===false)return {connected:false,draining:false};
    if(it.type==='drain_outlet'){
+    if(sewerTargets){
+     const target=sewerTargets[f]?.get(String(it.id));
+     const connected=!!target&&active(it)&&number(s.damage[id(it)])<100;
+     return {connected,draining:connected,mode:'alcantarillado',via:target?.itemId||null,
+      floorIndex:target?.floorIndex??null};
+    }
     if(it.drainMode==='automatic'&&active(it)&&number(s.damage[id(it)])<100)
      return {connected:true,draining:true,mode:'exterior'};
     const connected=values(f,'drain_main').some(main=>active(main)&&
