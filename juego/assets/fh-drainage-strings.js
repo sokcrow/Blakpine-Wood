@@ -6,6 +6,7 @@
  small_tee:'Unión T secundaria 4×4',small_cross:'Cruce secundario 4×4',
  small_dead_end:'Inicio / callejón sin salida 4×4',
  outfall:'Desagüe principal 20×20',bridge:'Puente de reja',
+ streetAccess:'Respiradero de calle',buildingAccess:'Acceso desde edificio',
  labels:{straight:'Pasillo drenaje 10×10',elbow:'Codo 10×10',tee:'Unión T 10×10',
   cross:'Cruce 10×10',dead_end:'Inicio / final 10×10',
   small:'Recta secundaria 4×4',small_elbow:'Codo secundario 4×4',
@@ -15,6 +16,14 @@
  nativeInfo:(count,ports)=>'Arquitectura nativa: '+count+' muros físicos · Salidas: '+ports+'.',
  audit:'Revisar red de drenajes',settings:'Drenaje',place:'Pieza colocada',
  vortexMove:'El remolino te arrastró a otro drenaje.',
+ accessPlaced:'Acceso conectado al drenaje del nivel inferior.',
+ accessDescription:{street:'Respiradero de calle: comunica la planta baja con el drenaje inferior.',building:'Acceso desde edificio: requiere una puerta o un hueco cercano.',sewer:'Salida del drenaje: permite volver al nivel superior.'},
+ accessLinked:(floor,x,y)=>'Conectado con '+floor+' · casilla '+x+', '+y+'.',
+ accessInvalid:'Acceso sin destino válido. Revisa la pareja de entradas.',
+ accessDeleteHint:'Al borrar este acceso también se elimina su pareja del otro piso.',
+ accessNoPath:'No hay un camino transitable junto a la salida.',
+ accessReady:'Acceso usado.',
+ accessBlocked:'El acceso ya no conecta con un drenaje válido.',
  blocked:'No tienes permiso para construir aquí.',drag:'Coloca la pieza con un toque, sin arrastrar.',
  overlap:'Ya existe un premade de drenaje en esa superficie.',
  rotate:'Girar 90°',flow:'Corriente hacia',auto:'Automática (hacia desagüe accesible)',
@@ -36,6 +45,8 @@
   drain_small_dead_end:'Inicio o final 4×4: una sola salida.',
   drain_outfall:'Desagüe 20×20: laterales transitables, remolino y agujero en el centro.',
   drain_bridge:'Coloca un puente de reja sobre el agua donde lo necesites.',
+  drain_street_access:'En planta baja, toca una casilla encima de la banqueta seca de un drenaje del sótano contiguo. Crea entrada y salida enlazadas.',
+  drain_building_access:'Coloca un hueco o una puerta en el edificio antes de conectar el acceso al sótano contiguo.',
   drain_audit:'Muestra las conexiones válidas, piezas aisladas y destinos incorrectos.'
  }
 });})(typeof window!=='undefined'?window:globalThis);
