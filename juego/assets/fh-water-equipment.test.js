@@ -61,6 +61,55 @@ test('caldera obtiene electricidad de breaker por paredes sin enchufe',()=>{
  assert.equal(status.via,'breaker');
  assert.ok(status.feet>0);
 });
+test('caldera en habitación con zona main provisional usa breaker alcanzable',()=>{
+ const x=scene();
+ x.project.floors[0].items.push({id:'room1',type:'room',roomId:'room1',zoneId:'main',x:2,y:0,w:6,h:4});
+ x.boiler.roomId='room1';
+ const r=runtime(x);
+ const power=r.statusFor(0,x.boiler).power;
+ assert.equal(power.connected,true);
+ assert.equal(power.powered,true);
+ assert.equal(power.breakerId,'breaker');
+});
+test('la asignación explícita de caldera a otra zona no se ignora',()=>{
+ const x=scene();
+ x.project.floors[0].items.push({id:'room1',type:'room',roomId:'room1',zoneId:'main',x:2,y:0,w:6,h:4});
+ x.boiler.roomId='room1';
+ x.boiler.zoneId='otra';
+ const power=runtime(x).statusFor(0,x.boiler).power;
+ assert.equal(power.connected,false);
+ assert.equal(power.powered,false);
+});
+test('una zona de habitación explícita sigue limitando el breaker de caldera',()=>{
+ const x=scene();
+ x.project.floors[0].items.push({id:'room1',type:'room',roomId:'room1',zoneId:'otra',x:2,y:0,w:6,h:4});
+ x.boiler.roomId='room1';
+ const power=runtime(x).statusFor(0,x.boiler).power;
+ assert.equal(power.connected,false);
+ assert.equal(power.powered,false);
+});
+test('un circuito main real se respeta aun cuando exista otro breaker elegible',()=>{
+ const x=scene();
+ x.project.floors[0].items.push({id:'room1',type:'room',roomId:'room1',zoneId:'main',x:2,y:0,w:6,h:4});
+ x.boiler.roomId='room1';
+ x.panel.circuits.push({zoneId:'main',rangeFt:160});
+ const power=runtime(x,{'power_zone:main':false}).statusFor(0,x.boiler).power;
+ assert.equal(power.connected,true);
+ assert.equal(power.powered,false);
+});
+test('colisiones 2D admiten ambos tipos técnicos sin bloquear equipos de pared',()=>{
+ const source=fs.readFileSync(path.join(repo,'index.html'),'utf8');
+ const allowlist=source.match(/const PLAY_SOLID_OBJECTS=new Set\((\[[^\n]*\])\);/);
+ assert.ok(allowlist,'la lista de tipos sólidos debe existir');
+ const types=(allowlist[1].match(/'[^']+'/g)||[]).map(type=>type.slice(1,-1));
+ assert.ok(types.includes('water_boiler'));
+ assert.ok(types.includes('water_boiler_aux'));
+ assert.match(source,/objects:items\.filter\(it=>PLAY_SOLID_OBJECTS\.has\(it\.type\)&&it\.blocksMovement!==false\)/);
+ const examples=[{type:'water_boiler',blocksMovement:true},{type:'water_boiler_aux',blocksMovement:true},
+  {type:'water_boiler_aux',blocksMovement:false},{type:'misc'}];
+ assert.deepEqual(examples.filter(it=>types.includes(it.type)&&it.blocksMovement!==false),
+  [examples[0],examples[1],examples[3]]);
+});
 test('una caldera sin circuito no se energiza aunque esté colocada',()=>{
  const x=scene({noPanel:true});const r=runtime(x);
  assert.equal(r.statusFor(0,x.boiler).power.powered,false);
