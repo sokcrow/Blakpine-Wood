@@ -63,7 +63,9 @@
   if(!loaded.has(meta.id)){
    const req=loader(THREE).then(l=>new Promise((resolve,reject)=>{
     if(!base)return reject(Error('No hay ruta del kit'));
-    l.load(new URL(meta.glb,base).href,result=>{
+    const modelURL=new URL(meta.glb,base);
+    if(meta.assetVersion)modelURL.searchParams.set('v',meta.assetVersion);
+    l.load(modelURL.href,result=>{
      const scene=result.scene;
      scene.traverse(node=>{
       if(!node.isMesh)return;
@@ -139,7 +141,7 @@
   doc=once(doc,'function useFurniture(item,selectedSeat=null){',
    'function useFurniture(item,selectedSeat=null){\n if(window.FHElectricVisuals?.onUse(item,currentFloor,window.FHServicesRuntime,notice,user.x/CELL,user.z/CELL))return;');
   const rootUrl=new URL('./juego/assets/',global.document?.baseURI||'https://localhost/');
-  const scripts=['fh-electric-catalog.js?v=20261112-double-outlet-only-1','fh-electric-strings.js','fh-electric-meter-hud.js','fh-electric-visuals.js?v=20261112-outlet-auto-1'].map(p=>
+  const scripts=['fh-electric-catalog.js?v=20261112-duplex-uv-1','fh-electric-strings.js','fh-electric-meter-hud.js','fh-electric-visuals.js?v=20261112-outlet-auto-1'].map(p=>
    '<script src="'+new URL(p,rootUrl).href+'"></scr'+'ipt>').join('');
   const where=doc.indexOf('</head>');if(where<0)throw Error('Electricidad 01: falta la cabecera del motor');
   return doc.slice(0,where)+scripts+doc.slice(where);

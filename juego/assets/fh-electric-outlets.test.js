@@ -85,6 +85,7 @@ test('seleccionar el enchufe en el editor coloca un power_outlet con metadata GL
  vm.runInNewContext(source('fh-electric-editor.js'),ctx);
  window.FHElectricEditor.open();
  const choice=nodes.find(n=>n.tag==='button'&&n.children.some(child=>child.textContent==='Tomacorriente doble · 120 V'));
+ assert.equal(new URL(choice.children.find(child=>child.tag==='img').src).searchParams.get('v'),'20261112-duplex-uv-1','renueva también la miniatura corregida');
  assert.ok(choice);choice.onclick();assert.equal(ctx.activeTool,'power_outlet');
  const item=ctx.createObject(ctx.activeTool,{x:2,y:.1});
  assert.equal(item.type,'power_outlet');assert.equal(item.utilitySkin,'enchufe_doble');assert.equal(item.wallId,'wall');
@@ -135,6 +136,27 @@ function visualEnvironment({fail=false}={}){
  return {THREE,window,api:window.FHElectricVisuals,requests,warnings};
 }
 const settle=()=>new Promise(resolve=>setImmediate(resolve));
+test('el enchufe doble dibuja una toma en cada receptáculo y no repite contactos en la placa',()=>{
+ const bytes=fs.readFileSync(path.join(ROOT,'forest-horror/biblioteca/electricidad/modelos_glb/enchufe_doble.glb'));
+ const jsonLength=bytes.readUInt32LE(12),doc=JSON.parse(bytes.subarray(20,20+jsonLength).toString());
+ const bin=bytes.subarray(20+jsonLength+8),primitive=doc.meshes[0].primitives[0];
+ const positions=doc.accessors[primitive.attributes.POSITION],uv=doc.accessors[primitive.attributes.TEXCOORD_0];
+ const posStart=doc.bufferViews[positions.bufferView].byteOffset+(positions.byteOffset||0);
+ const uvStart=doc.bufferViews[uv.bufferView].byteOffset+(uv.byteOffset||0);
+ const frontZ=positions.max[2],faces=[];
+ for(let start=0;start<positions.count;start+=4){
+  if(!Array.from({length:4},(_,i)=>bin.readFloatLE(posStart+(start+i)*12+8)).every(z=>Math.abs(z-frontZ)<1e-6))continue;
+  faces.push(Array.from({length:4},(_,i)=>({u:bin.readFloatLE(uvStart+(start+i)*8),v:bin.readFloatLE(uvStart+(start+i)*8+4)})));
+ }
+ assert.equal(faces.length,2,'dos receptáculos geométricos');
+ for(const face of faces){
+  const minV=Math.min(...face.map(p=>p.v)),maxV=Math.max(...face.map(p=>p.v));
+  assert.ok(minV<40/512&&maxV>50/512,'incluye la toma superior del atlas');
+  assert.ok(maxV<68/512,'excluye la segunda toma del atlas');
+ }
+ const plateUV=Array.from({length:4},(_,i)=>[bin.readFloatLE(uvStart+(24+i)*8),bin.readFloatLE(uvStart+(24+i)*8+4)]);
+ assert.ok(plateUV.every(uv=>uv[0]===plateUV[0][0]&&uv[1]===plateUV[0][1]),'la placa de fondo usa un texel liso, sin más contactos');
+});
 test('los ocho GLB eléctricos reales se analizan y sustituyen el provisional sobre la pared',async()=>{
  const {THREE,window,api,requests,warnings}=visualEnvironment();
  const wall={id:'wall',type:'wall',a:{x:0,y:0},b:{x:30,y:0}};
@@ -160,6 +182,8 @@ test('los ocho GLB eléctricos reales se analizan y sustituyen el provisional so
  assert.ok(Math.abs(outlet.root.position.y-.4572)<1e-6);
  assert.ok(outlet.root.position.z>0);assert.ok(masks>=8);
  assert.ok(requests.every(url=>url.startsWith('https://example.test/forest-horror/biblioteca/electricidad/modelos_glb/')));
+ const outletURL=new URL(requests.find(url=>url.includes('enchufe_doble.glb')));
+ assert.equal(outletURL.searchParams.get('v'),'20261112-duplex-uv-1','renueva el GLB anterior en caché');
 });
 test('si falla el GLB del enchufe conserva el provisional morado y su identificación eléctrica',async()=>{
  const {THREE,api}=visualEnvironment({fail:true}),fx=fixture(),sys=fx.create();
