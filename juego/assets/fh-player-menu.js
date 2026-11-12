@@ -606,8 +606,15 @@
     if(global.parent!==global)global.parent.postMessage({type:'FOREST_PLAYER_MENU_READY'},'*');
     return true;
   }
+  function openSection(section){
+    if(!sections.some(entry=>entry[0]===section))return false;
+    if(!open)openMenu();
+    if(!open)return false; // Un diálogo de mayor prioridad bloquea el menú.
+    renderDetail(section);
+    return true;
+  }
   const api=Object.freeze({
-    isOpen:()=>open,close:closeMenu,
+    isOpen:()=>open,close:closeMenu,openSection,
     configure(options={}){onOpen=typeof options.onOpen==='function'?options.onOpen:null;},
     init
   });
