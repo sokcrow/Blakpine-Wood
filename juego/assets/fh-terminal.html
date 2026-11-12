@@ -101,7 +101,10 @@ button:focus:not(:focus-visible){outline:none}button:focus-visible,[tabindex]:fo
 .cam-choice.selected{background:#a6bfd1;box-shadow:inset 5px 0 #446a90}
 .cam-choice small{display:block;color:#4e6967;font-size:10px;margin-top:4px;font-weight:normal}
 .cam-view{padding:12px;display:flex;flex-direction:column;align-items:stretch;gap:10px}
-#camCanvas{background:#182e39;image-rendering:pixelated;width:100%;aspect-ratio:320/184;max-height:310px;object-fit:contain;border:7px solid #304757;box-shadow:inset 0 0 0 4px #779da1}
+#camCanvas{background:#182e39;image-rendering:auto;width:100%;aspect-ratio:40/23;max-height:440px;object-fit:contain;border:4px solid #304757;box-shadow:inset 0 0 0 2px #779da1}
+.cam-quality{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:11px;color:#395d66;font-weight:bold}
+.cam-quality select{max-width:70%;padding:6px 8px;background:#e6e6da;color:#254957;border:2px solid #779da1;font:inherit}
+.cam-stream{font-size:10px;color:#476c67;font-weight:bold}
 .cam-caption{font-size:11px;display:flex;justify-content:space-between;gap:10px;color:#55716e;font-weight:bold}
 .files-layout{display:grid;grid-template-columns:minmax(145px,37%) minmax(180px,1fr);height:100%;min-height:240px}
 .files-list{background:#d8d1c4;border-right:3px solid #9e9985;overflow:auto}
@@ -387,7 +390,8 @@ const DATA = {
   {t:'20:12',type:'ACCESO',txt:'Se cerró la entrada de carga.\nSin credencial registrada.'}
  ]
 };
-const state={power:false,boot:false,waking:false,mode:'off',bootStarted:0,bootReady:0,bootDuration:0,lastBootDraw:0,zoom:false,windows:[],front:null,topZ:5,mail:0,floor:0,room:'VESTÍBULO',camera:0,log:0};
+const CCTV_VIDEO=Object.freeze({hd:{width:960,height:552},normal:{width:640,height:368}});
+const state={power:false,boot:false,waking:false,mode:'off',bootStarted:0,bootReady:0,bootDuration:0,lastBootDraw:0,zoom:false,windows:[],front:null,topZ:5,mail:0,floor:0,room:'VESTÍBULO',camera:0,cameraQuality:'hd',log:0};
 const reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const winEls=new Map();
 let toastTimer=null,renderer=null,scene=null,camera3d=null,monitorGroup=null,screenPlane=null,powerKnob=null,raycaster=null,ndc=null,texture=null,modelEnabled=false,camFrameLast=0,cameraFrameReceived=false;
@@ -637,13 +641,27 @@ function renderCams(body){
  });
  const current=DATA.cameras[state.camera];
  const canvas=node('canvas','');
- canvas.id='camCanvas';canvas.width=320;canvas.height=184;
+ canvas.id='camCanvas';canvas.width=CCTV_VIDEO[state.cameraQuality].width;canvas.height=CCTV_VIDEO[state.cameraQuality].height;
  canvas.setAttribute('aria-label','Transmisión real de cámara de seguridad');
  view.append(canvas);
  const cap=node('div','cam-caption');
  const kind=current.mode==='manual'?T.manual:current.mode==='automatic'?T.automatic:T.fixed;
  cap.append(node('span','',current.place||current.id),node('span','',kind||'CCTV'));
  view.append(cap);
+ const stream=node('div','cam-stream',current.online?'ESPERANDO VÍDEO EN DIRECTO':'SIN SEÑAL');
+ stream.id='camStreamStatus';view.append(stream);
+ const quality=node('label','cam-quality');
+ quality.append(node('span','','CALIDAD DE VÍDEO'));
+ const qualitySelect=node('select','');
+ qualitySelect.setAttribute('aria-label','Calidad de vídeo CCTV');
+ for(const [mode,name] of [['hd','ALTA · 960×552'],['normal','NORMAL · 640×368']]){
+  const option=node('option','',name);option.value=mode;qualitySelect.append(option);
+ }
+ qualitySelect.value=state.cameraQuality;qualitySelect.onchange=()=>{
+  state.cameraQuality=qualitySelect.value==='normal'?'normal':'hd';
+  cameraFrameReceived=false;renderWindow('cams');
+ };
+ quality.append(qualitySelect);view.append(quality);
  if(current.online&&current.mode==='manual'){
   const box=node('div','cam-control'),title=node('label','');
   const name=node('span','',T.manualControl||'Giro horizontal');
@@ -819,7 +837,8 @@ function drawCamera(t){
  ctx.fillStyle='#0b1820';ctx.fillRect(0,0,cnv.width,cnv.height);
  ctx.fillStyle=cam?.online?'#a9c5c4':'#da8d8d';
  ctx.font='bold 15px monospace';ctx.textAlign='center';
- ctx.fillText(cam?.online?(window.FH_CCTV_TEXT?.waiting||'ESPERANDO TRANSMISIÓN'):(window.FH_CCTV_TEXT?.noSignal||'SIN SEÑAL'),160,91);
+ ctx.font='bold '+Math.max(15,Math.round(cnv.width/32))+'px monospace';
+ ctx.fillText(cam?.online?(window.FH_CCTV_TEXT?.waiting||'ESPERANDO TRANSMISIÓN'):(window.FH_CCTV_TEXT?.noSignal||'SIN SEÑAL'),cnv.width/2,cnv.height/2);
  ctx.textAlign='start';
 }
 function paintText(text,x,y,color='#e3e6c8',size=12){pctx.fillStyle=color;pctx.font='bold '+size+'px monospace';pctx.textBaseline='top';pctx.fillText(String(text),x,y)}
@@ -886,15 +905,20 @@ window.ForestTerminal3D={
  setFloors(floors){if(!Array.isArray(floors)||!floors.length)return;DATA.floors=floors.map(f=>({name:String(f.name??'PLANTA'),rooms:(f.rooms??[]).map(r=>Array.isArray(r)?String(r[0]):String(r)),locked:Array.isArray(f.locked)?f.locked.map(String):[],player:f.player??null}));state.floor=0;state.room=DATA.floors[0].rooms[0]||'';renderWindow('map');previewPaint()},
  setCameras(cams){if(!Array.isArray(cams))return;DATA.cameras=cams.map((c,i)=>({id:String(c.id??i),place:String(c.place??''),online:!!c.online,mode:['manual','automatic','fixed'].includes(c.mode)?c.mode:'fixed',angleDeg:Number(c.angleDeg)||0}));state.camera=0;cameraFrameReceived=false;renderWindow('cams');previewPaint()},
  receiveCameraPixels(frame){
-  if(!state.power||state.boot||!frame||frame.width!==320||frame.height!==184)return;
+  const format=CCTV_VIDEO[state.cameraQuality];
+  if(!state.power||state.boot||!frame||frame.width!==format.width||frame.height!==format.height)return;
   const cam=DATA.cameras[state.camera],canvas=$('camCanvas');
   // El motor y la terminal viven en iframes distintos: instanceof no atraviesa realms.
   const raw=frame.pixels;
-  if(!cam?.online||cam.id!==frame.id||!canvas||!ArrayBuffer.isView(raw)||raw.BYTES_PER_ELEMENT!==1||raw.length!==320*184*4)return;
+  if(!cam?.online||cam.id!==frame.id||!canvas||canvas.width!==format.width||
+    canvas.height!==format.height||!ArrayBuffer.isView(raw)||raw.BYTES_PER_ELEMENT!==1||
+    raw.length!==format.width*format.height*4)return;
   // ImageData exige un Uint8ClampedArray creado dentro del iframe receptor.
   const pixels=new Uint8ClampedArray(raw);
-  canvas.getContext('2d').putImageData(new ImageData(pixels,320,184),0,0);
+  canvas.getContext('2d').putImageData(new ImageData(pixels,format.width,format.height),0,0);
   cameraFrameReceived=true;
+  const status=$('camStreamStatus');
+  if(status)status.textContent='● EN DIRECTO · '+format.width+'×'+format.height;
   if(Number.isFinite(frame.angleDeg))cam.angleDeg=frame.angleDeg;
  },
  setLogs(logs){if(!Array.isArray(logs))return;DATA.logs=logs.map(l=>({t:String(l.t??''),type:String(l.type??''),txt:Array.isArray(l.txt)?l.txt.join('\n'):String(l.txt??'')}));state.log=0;renderWindow('files');previewPaint()},
@@ -904,7 +928,7 @@ window.ForestTerminal3D={
  setHamazonCart(items){DATA.hamazonCart=Array.isArray(items)?items.map(v=>({...v})):[];renderWindow('hamazon')},
  setHamazonClock(minutes){if(!Number.isFinite(minutes))return;DATA.hamazonCurrentMinutes=minutes;updateHamazonCountdowns()},
  setGameClock(value){syncGameClock(value)},
- getState(){return{power:state.power,mode:state.mode,zoom:state.zoom,windows:[...state.windows],front:state.front,floor:state.floor,room:state.room,camera:state.camera,gameClock:DATA.gameClock,stationId:sessionStationId,userId:sessionUserId,apps:[...sessionApps]}}
+ getState(){return{power:state.power,mode:state.mode,zoom:state.zoom,windows:[...state.windows],front:state.front,floor:state.floor,room:state.room,camera:state.camera,cameraQuality:state.cameraQuality,gameClock:DATA.gameClock,stationId:sessionStationId,userId:sessionUserId,apps:[...sessionApps]}}
 };
 // Three.js r128 es la única dependencia: sin red se presenta el monitor CSS interactivo.
 function loadThree(){if(window.THREE){initThree();return}const script=document.createElement('script');script.src='https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';script.onload=initThree;script.onerror=()=>{$('fallback').style.display='flex'};document.head.appendChild(script)}
