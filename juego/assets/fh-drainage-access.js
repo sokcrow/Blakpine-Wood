@@ -26,14 +26,14 @@
    const t=len?Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy)/len)):0;
    return Math.hypot(p.x-a.x-t*dx,p.y-a.y-t*dy)<=2.2;
   })());
- function safeLanding(map,f,at){
+ function safeLanding(map,f,at,allowed){
   const p={x:Math.floor(at.x)+.5,y:Math.floor(at.y)+.5};
   const section=(map?.floors?.[f]?.items||[]).find(it=>drain()?.isSection(it)&&inside(it,p));
   if(!section)return null;
   const all=[];
   for(let y=Math.ceil(section.y);y<section.y+section.h;y++)for(let x=Math.ceil(section.x);x<section.x+section.w;x++){
    const point={x:x+.5,y:y+.5};
-   if(drain().waterAt(map,f,point,0))continue;
+   if(drain().waterAt(map,f,point,0)||allowed&&!allowed(point))continue;
    all.push(point);
   }
   all.sort((a,b)=>distance(a,p)-distance(b,p)||a.y-b.y||a.x-b.x);
@@ -46,11 +46,10 @@
    throw Error('Primero crea un nivel inferior contiguo con drenajes.');
   if(kind==='street'&&fromIndex!==mainIndex(map))throw Error('El respiradero de calle se coloca en planta baja.');
   if(!at||!finite(at.x)||!finite(at.y))throw Error('Posición del acceso inválida.');
-  const landing=safeLanding(map,fromIndex-1,at);
-  if(!landing)throw Error('Coloca el acceso encima de un tramo de drenaje del piso inferior.');
+  const landing=safeLanding(map,fromIndex-1,at,kind==='building'?p=>doorNear(upper,p):null);
+  if(!landing)throw Error(kind==='building'?'Para acceder desde un edificio coloca una puerta o hueco junto al acceso.':
+   'Coloca el acceso encima de un tramo de drenaje del piso inferior.');
   const p=landing.point;
-  if(kind==='building'&&!doorNear(upper,p))
-   throw Error('Para acceder desde un edificio coloca una puerta o hueco junto al acceso.');
   if(kind==='street'&&(upper.items||[]).some(it=>it.type==='room'&&inside(it,p)))
    throw Error('El respiradero de calle no puede situarse dentro de una habitación.');
   const occupied=(f)=>(map.floors[f]?.items||[]).some(it=>isAccess(it)&&distance(it,p)<.75);
