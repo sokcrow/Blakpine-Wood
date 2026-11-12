@@ -4439,6 +4439,7 @@ function fhRefreshActorVisibility(){
   const scripts=[
    '<script src="'+new URL('./juego/assets/fh-weather-core.js?v=20261108-clima1',document.baseURI).href+'"></'+'script>',
    '<script src="'+new URL('./juego/assets/fh-weather-renderer.js?v=20261111-roof-outside1',document.baseURI).href+'"></'+'script>',
+    '<script src="'+new URL('./juego/assets/fh-ground-fog.js?v=20261111-ground-fog1',document.baseURI).href+'"></'+'script>',
    '<script src="'+new URL('./juego/assets/fh-weather-audio.js?v=20261109-ambient1',document.baseURI).href+'"></'+'script>'
   ].join('');
   return doc.replace('</head>',scripts+'</head>');
@@ -4453,10 +4454,12 @@ function fhRefreshActorVisibility(){
    "const fhWeather=window.FHWeatherCore?.createRuntime({gameState:GameState,config:DATA.weather||{}});",
    "window.FHWeatherRuntime=fhWeatherEnabled?fhWeather:null;",
    "const fhWeatherExposure=fhWeatherEnabled&&fhWeather?window.FHWeatherRenderer?.createExteriorExposure({floors:DATA.floors,units:DATA.units,cell:CELL,slabs:SLABS,roofPlans:FH_ROOF_PLANS,natural:window.FHNaturalLight}):null;",
+    "const fhGroundExposure=fhWeatherExposure||window.FHWeatherRenderer?.createExteriorExposure({floors:DATA.floors,units:DATA.units,cell:CELL,slabs:SLABS,roofPlans:FH_ROOF_PLANS,natural:window.FHNaturalLight});",
    "const fhWeatherRenderer=fhWeatherEnabled&&fhWeather?window.FHWeatherRenderer?.createRuntime({THREE,scene,columns:GRID_X,rows:GRID_Z,cell:CELL,actor:()=>({x:user.x,z:user.z}),floorY:()=>floorElev[currentFloor],floorIndex:()=>currentFloor,isOutside:(x,z)=>fhWeatherExposure?.(currentFloor,x,z)===true}):null;",
-   "const fhWeatherAudio=fhWeatherEnabled&&fhWeather?window.FHWeatherAudio?.createRuntime({outside:()=>fhWeatherExposure?.(currentFloor,user.x,user.z)===true}):null;",
+   "const fhGroundFog=window.FHGroundFog?.createRuntime({THREE,scene,camera:cam,columns:GRID_X,rows:GRID_Z,cell:CELL,actor:()=>({x:user.x,z:user.z}),floorY:()=>floorElev[currentFloor],floorIndex:()=>currentFloor,isOutside:(x,z)=>fhGroundExposure?.(currentFloor,x,z)===true,sightTexture:()=>sightUniform?.value||null,visionDistance:()=>LOOK_RADIUS});",
+    "const fhWeatherAudio=fhWeatherEnabled&&fhWeather?window.FHWeatherAudio?.createRuntime({outside:()=>fhWeatherExposure?.(currentFloor,user.x,user.z)===true}):null;",
    "window.FHWeatherAudioRuntime=fhWeatherAudio;",
-   "window.addEventListener('beforeunload',()=>{fhWeatherRenderer?.dispose();fhWeatherAudio?.dispose();});",
+   "window.addEventListener('beforeunload',()=>{fhWeatherRenderer?.dispose();fhGroundFog?.dispose();fhWeatherAudio?.dispose();});",
    "const fhNatural=window.FHNaturalLight?.createRuntime({DATA,CELL,",
    " clock:()=>GameState.clock?.minutes,floor:()=>currentFloor,",
    " doorOpen:(f,id,it)=>doorList[f]?.find(d=>d.id===id)?.open??it?.open,",
@@ -4465,7 +4468,7 @@ function fhRefreshActorVisibility(){
    "installVisibility();window.FHAssets?.setSightMaskInstaller(installVisibility);"
   ].join('\n');
   const tickBefore='window.FHDeliveryRuntime?.update(dt);window.FHPhoneRuntime?.update(dt);';
-  const tickAfter='window.FHDeliveryRuntime?.update(dt);window.FHPhoneRuntime?.update(dt);window.FHUnifiedSleep?.before(GameState);if(fhWeather?.update(dt))visibilityDirty=true;window.FHUnifiedSleep?.after(GameState);fhWeatherRenderer?.update(dt,fhWeather?.view());fhWeatherAudio?.update(dt,fhWeather?.view());if(fhNatural?.update())visibilityDirty=true;';
+  const tickAfter='window.FHDeliveryRuntime?.update(dt);window.FHPhoneRuntime?.update(dt);window.FHUnifiedSleep?.before(GameState);if(fhWeather?.update(dt))visibilityDirty=true;window.FHUnifiedSleep?.after(GameState);fhWeatherRenderer?.update(dt,fhWeather?.view());fhGroundFog?.update(dt,fhWeatherEnabled?fhWeather?.view():null);fhWeatherAudio?.update(dt,fhWeather?.view());if(fhNatural?.update())visibilityDirty=true;';
   const pointBefore='if(dist<=radius&&ForestShared.pointInSight(x,z,at,opaque,radius))return true;';
   const pointAfter=pointBefore+'\n const fhNaturalRange=fhNatural?.visionRadius(LOOK_RADIUS)??LOOK_RADIUS;\n if(fhNatural?.illuminates(x,z)&&dist<=fhNaturalRange+.075&&ForestShared.pointInSight(x,z,at,opaque,fhNaturalRange))return true;';
   const rangeBefore='const range=params.sources?.length?LOOK_RADIUS:Math.max(params.dim||2.4384,params.beam);';
