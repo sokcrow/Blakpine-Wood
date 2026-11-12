@@ -153,6 +153,7 @@
    const items=DATA.floors[f].items||[];
    for(const it of items){
     const meta=choose(it);if(!meta)continue;
+    for(const entry of renderedByItem[f]?.get?.(it.id)||[])root.FHAssets?.markPlaceholder(entry.root||entry,applyFOW);
     const pose=mountPose(it,meta,items,CELL,ForestShared);if(!pose)continue;
     const originals=(renderedByItem[f]?.get?.(it.id)||[]).map(o=>o.root||o).filter(Boolean);
     const root3D=new THREE.Group();root3D.name='FH_AGUA_'+it.id;root3D.userData.fhServiceItem=it.id;
@@ -160,14 +161,17 @@
     result.push({it,meta,pose,root:root3D});
     load(meta,THREE).then(scene=>{
      if(!root3D.parent)return;
-     const instance=scene.clone(true);if(typeof applyFOW==='function')applyFOW(instance);
+     const instance=scene.clone(true);
+     if(meta.glbAvailable===false&&root.FHAssets?.markPlaceholder)root.FHAssets.markPlaceholder(instance,applyFOW);
+     else if(typeof applyFOW==='function')applyFOW(instance);
      root3D.add(instance);root3D.userData.fhModelState=meta.glbAvailable===false?'fallback':'ready';
      for(const old of originals)if(old.parent&&old!==root3D)old.parent.remove(old);
      renderedByItem[f]?.set?.(it.id,[{root:root3D}]);
     }).catch(error=>{
      const backup=storageFallback(THREE,meta);
      if(backup&&root3D.parent){
-      if(typeof applyFOW==='function')applyFOW(backup);
+      if(root.FHAssets?.markPlaceholder)root.FHAssets.markPlaceholder(backup,applyFOW);
+      else if(typeof applyFOW==='function')applyFOW(backup);
       root3D.add(backup);root3D.userData.fhModelState='fallback';
       for(const old of originals)if(old.parent&&old!==root3D)old.parent.remove(old);
       renderedByItem[f]?.set?.(it.id,[{root:root3D}]);
@@ -236,9 +240,10 @@
    '\n  if(window.FHWaterVisuals?.choose(it)?.mount==="wall"&&!window.FHWaterVisuals.frontAllowed(it,user.x/CELL,user.z/CELL)){notice(window.FH_WATER_TEXT?.wrongSide||"Usa el dispositivo desde su frente.");return true;}'+
    '\n  if(window.FHWaterVisuals?.onUse(it,f,service,notice,user.x/CELL,user.z/CELL))return true;');
   const rootURL=new URL('./juego/assets/',root.document?.baseURI||'https://localhost/');
-  const tags=['fh-water-catalog.js','fh-water-storage-catalog.js','fh-water-strings.js','fh-water-visuals.js'].map(f=>'<script src="'+new URL(f,rootURL).href+'"></scr'+'ipt>').join('');
+  const tags=['fh-water-catalog.js','fh-water-storage-catalog.js','fh-water-strings.js','fh-water-visuals.js?v=20261112-purple-pc-power-1'].map(f=>'<script src="'+new URL(f,rootURL).href+'"></scr'+'ipt>').join('');
   const head=doc.indexOf('</head>');if(head<0)throw Error('Agua 01: no se encontró la cabecera del motor');
   return doc.slice(0,head)+tags+doc.slice(head);
  }
  return {DEFAULT,byId,choose,normal,frontAllowed,wallMount,floorPlacement,mountPose,onUse,install,patchEngineDoc,load};
 });
+

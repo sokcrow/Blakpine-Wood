@@ -108,6 +108,19 @@
     return { entry: item, gltf: await models.get(modelId) };
   }
 
+  // Material nuevo: no mutar materiales compartidos con otros objetos o GLB.
+  function markPlaceholder(root, applyMask = sightMaskInstaller) {
+    if (!root || !global.THREE?.MeshBasicMaterial) return;
+    root.traverse(node => {
+      if (!node.isMesh) return;
+      const plain = material => new global.THREE.MeshBasicMaterial({
+        color: 0xb000ff, side: material?.side ?? global.THREE.FrontSide
+      });
+      node.material = Array.isArray(node.material) ? node.material.map(plain) : plain(node.material);
+    });
+    if (typeof applyMask === 'function') applyMask(root);
+  }
+
   function replaceVisual(root, scene) {
     // El GLB se muestra únicamente con el shader de visibilidad del motor.
     if (!sightMaskInstaller) throw new Error('La máscara FOW aún no está lista');
@@ -137,10 +150,12 @@
     if (global.FHWaterStorageCatalog?.byId(modelId)) return;
     // Evitar borrar el fallback de equipos del pack cuyo GLB aún no está publicado.
     if (global.FHBoilersCatalog?.has(modelId) && !global.FHBoilersCatalog.assetsReady) return;
+    root.userData.fhItemId = item.id;
     root.userData.fhModelId = modelId;
     root.userData.fhModelState = 'loading';
-    // El modelo procedural no es parte del GLB: se descarta antes de cargar.
-    while (root.children.length) root.remove(root.children[0]);
+    // Conservar geometría e interacción hasta que el GLB esté listo.
+    markPlaceholder(root);
+    for (const duplicate of mirrors.get(root) || []) markPlaceholder(duplicate);
     load(modelId).then(async ({ gltf, entry }) => {
       await sightReady();
       if (root.userData.fhModelId !== modelId) return;
@@ -169,5 +184,6 @@
     });
   }
 
-  global.FHAssets = Object.freeze({ catalog, load, attach, mirror, setSightMaskInstaller });
+  global.FHAssets = Object.freeze({ catalog, load, attach, mirror, setSightMaskInstaller, markPlaceholder });
 })(window);
+

@@ -12,7 +12,7 @@
   const hot='<script src="'+base+'fh-water-hot.js?v=20261112-hot-04"></'+'script>';
   const boilerCatalog='<script src="'+base+'fh-boilers-catalog.js?v=20261112-boilers-04"></'+'script>';
   const boilerStrings='<script src="'+base+'fh-boilers-strings.js?v=20261112-boilers-04"></'+'script>';
-  const core='<script src="'+base+'fh-services-core.js?v=20261111-wall-wiring-overlay-1"></'+'script>';
+  const core='<script src="'+base+'fh-services-core.js?v=20261112-purple-pc-power-1"></'+'script>';
   const exteriorCore='<script src="'+base+'fh-exterior-grid.js?v=20261111-pole-collision-1"></'+'script>';
    const exteriorVisual='<script src="'+base+'fh-exterior-visuals.js?v=20261111-exterior-03"></'+'script>';
    const strings='<script src="'+base+'fh-services-strings.js?v=20261111-elevator-power-1"></'+'script>';
@@ -226,4 +226,5 @@
  }
  root.FHServicesEngine=Object.freeze({patch});
 })(typeof window!=='undefined'?window:globalThis);
+
 
