@@ -32,13 +32,14 @@
  function rotate(item){
   if(!R().isSection(item)&&!R().isBridge(item))return false;
   if(!editAllowed(item)){env.toast(T().blocked);return true;}
+  const previous={x:item.x,y:item.y,w:item.w,h:item.h,rotation:item.rotation};
   if(R().isSection(item))item.rotation=(item.rotation+90)%360;
   else {
    const cx=item.x+item.w/2,cy=item.y+item.h/2;
    [item.w,item.h]=[item.h,item.w];item.x=cx-item.w/2;item.y=cy-item.h/2;
    if(!editAllowed(item)){[item.w,item.h]=[item.h,item.w];item.x=cx-item.w/2;item.y=cy-item.h/2;env.toast(T().blocked);return true;}
   }
-  try{R().validate(item,env.project().units);}catch(error){env.toast(error.message);return true;}
+  try{R().validate(item,env.project().units);}catch(error){Object.assign(item,previous);env.toast(error.message);return true;}
   env.record();env.render();env.inspect();return true;
  }
  function report(){
