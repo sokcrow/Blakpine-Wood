@@ -80,6 +80,7 @@ test('GLB de Agua 03 se gestionan por el cargador hidráulico, no de muebles',()
  assert.match(visuals,/fh-water-storage-catalog\.js/,'catálogo disponible en documento 3D');
  assert.match(visuals,/cisterna_principal/);
  assert.match(visuals,/tinaco_elevado/);
+ assert.match(visuals,/storageFallback\(THREE,meta\)/,'fallback visible si faltan GLB');
  assert.match(bridge,/FHWaterStorageCatalog\?\.byId\(modelId\)/);
 });
 test('las reservas siguen entrando en el cálculo de agua potable',()=>{
