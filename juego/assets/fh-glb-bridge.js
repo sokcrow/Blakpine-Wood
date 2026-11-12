@@ -133,6 +133,8 @@
       ? item.modelId
       : global.FHFurnitureRules?.defaultFor(item.type);
     if (!modelId) return; // No se inventa un asset para props sin modelo asignado.
+    // Evitar borrar el fallback de equipos del pack cuyo GLB aún no está publicado.
+    if (global.FHBoilersCatalog?.has(modelId) && !global.FHBoilersCatalog.assetsReady) return;
     root.userData.fhModelId = modelId;
     root.userData.fhModelState = 'loading';
     // El modelo procedural no es parte del GLB: se descarta antes de cargar.
