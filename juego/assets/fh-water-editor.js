@@ -7,6 +7,9 @@
  const models=window.FHWaterCatalog?.models||[];
  const T=window.FH_WATER_TEXT||{};if(models.length!==8)return;
  const byId=id=>models.find(m=>m.id===id)||null;
+ const tanks=[{id:'cisterna_sin_modelo',type:'water_cistern',name:'Cisterna · reserva potable',capacityLiters:2500,widthFt:6,depthFt:5,heightFt:5},
+  {id:'tinaco_sin_modelo',type:'water_tinaco',name:'Tinaco · reserva potable',capacityLiters:1100,widthFt:4,depthFt:4,heightFt:5}];
+ let selectedTank=null;
  const base=new URL('./forest-horror/biblioteca/agua/',document.baseURI);
  const active={};let opener=null;
  const css=document.createElement('style');css.textContent=`
@@ -28,7 +31,11 @@
  const title=document.createElement('h2');title.textContent=T.title||'Agua y drenaje';
  const close=document.createElement('button');close.type='button';close.textContent=T.close||'Cerrar';header.append(title,close);
  const list=document.createElement('div');list.className='choices';const note=document.createElement('p');note.textContent=T.note||'';
- pane.append(header,list,note);modal.append(pane);document.body.append(modal);
+ const potableToggle=document.createElement('button');potableToggle.type='button';
+ potableToggle.style.cssText='margin:4px 0;text-align:left';
+ const refreshPotable=()=>{potableToggle.textContent=(project.plumbing?.enabled?'☑ ':'☐ ')+(T.networkToggle||'Red potable automática por paredes y pisos');};
+ potableToggle.onclick=()=>{project.plumbing={...project.plumbing,enabled:!project.plumbing?.enabled};record();render();refreshPotable();};
+ pane.append(header,potableToggle,list,note);modal.append(pane);document.body.append(modal);
  function hide(){modal.hidden=true;opener?.focus?.();}close.onclick=hide;
  modal.addEventListener('click',e=>{if(e.target===modal)hide();});
  modal.addEventListener('keydown',e=>{if(e.key==='Escape'){e.stopPropagation();hide();}});
@@ -68,17 +75,26 @@
   return true;
  }
  function chooseModel(m){
-  active[m.type]=m;hide();setCategory('water');chooseTool(m.type);
+  selectedTank=null;active[m.type]=m;hide();setCategory('water');chooseTool(m.type);
   toast((T.selected||'Seleccionado: ')+m.name);
  }
  function show(){
-  opener=document.activeElement;modal.hidden=false;list.replaceChildren();
+  opener=document.activeElement;modal.hidden=false;list.replaceChildren();refreshPotable();
   for(const m of models){
    const card=document.createElement('button');card.type='button';card.setAttribute('aria-pressed',String(active[m.type]?.id===m.id));
    const pic=document.createElement('img');pic.alt='';pic.loading='lazy';pic.src=new URL(m.thumbnail,base).href;
    const title=document.createElement('strong');title.textContent=m.name;
    const where=document.createElement('small');where.textContent=m.mount==='floor'?(T.floor||'Piso'):(T.wall||'Pared');
    card.append(pic,title,where);card.onclick=()=>chooseModel(m);list.append(card);
+  }
+  for(const tank of tanks){
+   const card=document.createElement('button');card.type='button';
+   card.setAttribute('aria-pressed',String(selectedTank?.id===tank.id));
+   const title=document.createElement('strong');title.textContent=tank.name;
+   const info=document.createElement('small');info.textContent=(T.modelPending||'Modelo 3D pendiente')+' · '+tank.capacityLiters+' L';
+   card.append(title,info);card.onclick=()=>{selectedTank=tank;hide();setCategory('water');chooseTool('misc');
+    project.plumbing={...project.plumbing,enabled:true};record();render();toast((T.selected||'Seleccionado: ')+tank.name);};
+   list.append(card);
   }
   list.querySelector('button')?.focus();
  }
@@ -94,6 +110,17 @@
  setCategory=function(category){previousCategory(category);launcher();};
  const previousCreate=createObject;
  createObject=function(type,p){
+  if(type==='misc'&&activeCategory==='water'&&selectedTank){
+   const tank=selectedTank,item=previousCreate('misc',p);if(!item)return null;
+   item.type=tank.type;delete item.modelId;delete item.utilitySkin;
+   Object.assign(item,window.FHServices?.defaultsFor(tank.type)||{});
+   const cell=Math.max(.1,Number(project.units?.feetPerCell)||5);
+   item.w=tank.widthFt/cell;item.h=tank.depthFt/cell;item.heightFt=tank.heightFt;
+   item.label=tank.name;item.blocksMovement=true;
+   item.interact={id:'utility_'+item.id,verb:'use',label:'Inspeccionar '+tank.name,effects:[]};
+   project.plumbing={...project.plumbing,enabled:true};
+   return item;
+  }
   const meta=active[type];
   if(meta?.mount==='wall'&&!structuralMount(p)){
    toast(T.wallRequired||'Se necesita una pared estructural.');return null;
@@ -121,8 +148,33 @@
  openInspector=function(){
   previousInspector();const it=current().items.find(x=>x.id===selection);if(!it)return;
   const currentMeta=window.FHWaterVisuals?.choose(it);
-  if(!currentMeta)return;
+  if(!currentMeta&&!tanks.some(t=>t.type===it.type))return;
   const fields=document.querySelector('#fields');if(!fields)return;
+  if(tanks.some(t=>t.type===it.type)){
+   for(const [key,label,initial] of [['capacityLiters',T.tankCapacity||'Capacidad (litros)',it.capacityLiters||0],
+    ['initialLiters',T.tankInitial||'Contenido inicial (litros)',it.initialLiters||0],
+    ['fillLpm',T.tankFill||'Llenado (litros/min)',it.fillLpm||0],
+    ['rangeFt',T.tankRange||'Longitud máxima de distribución (pies)',it.rangeFt||240]]){
+    const field=document.createElement('label');field.textContent=label;const input=document.createElement('input');
+    input.type='number';input.min='0';input.step='any';input.value=String(initial);
+    input.onchange=()=>{if(window.FHStyleEditor&&!window.FHStyleEditor.canEditItem(it)){openInspector();return;}
+     setItemField(it.id,key,Math.max(0,Number(input.value)||0));};
+    field.append(input);fields.append(field);
+   }
+  }
+  const network=document.createElement('label');network.textContent=T.networkId||'Red hidráulica (ID)';
+  const netInput=document.createElement('input');netInput.value=it.networkId||'main';
+  netInput.onchange=()=>setItemField(it.id,'networkId',netInput.value.trim()||'main');
+  network.append(netInput);fields.append(network);
+  const mode=document.createElement('label');mode.textContent=T.visibility||'Visualización de tuberías';
+  const selectMode=document.createElement('select');
+  for(const [value,label] of [['concealed',T.concealed||'Empotradas'],['visible',T.visible||'Visibles']]){
+   const option=document.createElement('option');option.value=value;option.textContent=label;selectMode.append(option);
+  }
+  selectMode.value=it.pipeVisibility==='visible'?'visible':'concealed';
+  selectMode.onchange=()=>setItemField(it.id,'pipeVisibility',selectMode.value);
+  mode.append(selectMode);fields.append(mode);
+  if(!currentMeta)return;
   const label=document.createElement('label');label.textContent=T.choose||'Modelo de agua';label.style.gridColumn='1/-1';
   const select=document.createElement('select');select.style.width='100%';
   for(const m of models.filter(m=>m.type===it.type)){
