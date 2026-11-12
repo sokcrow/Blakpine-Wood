@@ -125,10 +125,12 @@
      if(!actor.target||actor.floor!==actor.target.floor||distance(actor,actor.target)<meters(2)){
       target=options.nextRoom?.(actor.floor,actor,player)||wanderTarget(actor,player,24);
      }
+    }else if(dist<=meters(cfg.touchFt)){
+     actor.routeNodes=[];target={floor:actor.floor,x:actor.x,z:actor.z};
     }else target={floor:player.floor,x:player.x,z:player.z};
    }else{
     if(actor.mode==='approach'&&dist<=meters(cfg.touchFt)){
-     actor.mode='stare';actor.nearSince=minute;actor.target=null;
+     actor.mode='stare';actor.nearSince=minute;actor.target=null;actor.routeNodes=[];
     }
     if(actor.mode==='stare'&&actor.nearSince!==null&&minute-actor.nearSince>=cfg.interestMin){
      actor.mode='roam';actor.nearSince=null;actor.target=null;
@@ -163,7 +165,7 @@
     }
     const d=distance(actor,node);
     if(d<.08){actor.routeNodes.shift();continue;}
-    const step=Math.min(d,remaining);
+    const step=Math.min(d,remaining,.025);
     const x=actor.x+(node.x-actor.x)/d*step,z=actor.z+(node.z-actor.z)/d*step;
     const free=walkable(actor.floor,x,z);
     if(!free){
@@ -181,7 +183,7 @@
   }
   function contactClear(actor,player){
    if(actor.floor!==player.floor||distance(actor,player)>meters(cfg.touchFt))return false;
-   const d=distance(actor,player),steps=Math.max(1,Math.ceil(d/.1));
+   const d=distance(actor,player),steps=Math.max(1,Math.ceil(d/.025));
    for(let i=1;i<=steps;i++){
     const t=i/steps;
     if(!walkable(actor.floor,actor.x+(player.x-actor.x)*t,actor.z+(player.z-actor.z)*t))return false;
