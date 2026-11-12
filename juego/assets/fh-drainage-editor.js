@@ -2,13 +2,14 @@
 (function(root){
  'use strict';
  let env;
- const R=()=>root.FHDrainage,T=()=>root.FH_DRAIN_TEXT;
+ const R=()=>root.FHDrainage,A=()=>root.FHDrainageAccess,T=()=>root.FH_DRAIN_TEXT;
  const KINDS={
   drain_straight:'straight',drain_elbow:'elbow',drain_tee:'tee',drain_cross:'cross',drain_dead_end:'dead_end',
   drain_small:'small',drain_small_elbow:'small_elbow',drain_small_tee:'small_tee',
   drain_small_cross:'small_cross',drain_small_dead_end:'small_dead_end',drain_outfall:'outfall'
  };
- const tools=[...Object.keys(KINDS),'drain_bridge'];
+ const ACCESS={drain_street_access:'street',drain_building_access:'building'};
+ const tools=[...Object.keys(KINDS),'drain_bridge',...Object.keys(ACCESS)];
  const createEl=(tag,text)=>{const el=document.createElement(tag);if(text!==undefined)el.textContent=text;return el;};
  function editAllowed(item){
   const style=root.FHStyleEditor;
@@ -21,6 +22,13 @@
   if(!tools.includes(tool))return false;
   if(drag){env.toast(T().drag);return true;}
   try{
+   if(ACCESS[tool]){
+    const pair=A().makePair(env.project(),env.floorIndex(),at,ACCESS[tool],env.newId);
+    if(!editAllowed(pair.source)||!editAllowed(pair.destination)){env.toast(T().blocked);return true;}
+    env.project().floors[pair.destinationIndex].items.push(pair.destination);
+    env.current().items.push(pair.source);
+    env.record();env.render();env.toast(T().accessPlaced);return true;
+   }
    const section=KINDS[tool],item=section?R().makeSection(section,at,env.project().units,env.newId()):
     R().makeBridge(at,env.project().units,env.newId());
    if(section)item.label=T().labels?.[section]||item.label;
@@ -33,6 +41,11 @@
    env.record();env.render();env.toast(T().place);
   }catch(error){env.toast(error.message);}
   return true;
+ }
+ function beforeRemove(item){
+  if(!A()?.isAccess(item))return;
+  const link=A().resolve(env.project(),env.floorIndex(),item);
+  if(link)env.project().floors[link.floorIndex].items=env.project().floors[link.floorIndex].items.filter(it=>it.id!==link.item.id);
  }
  function rotate(item){
   if(!R().isSection(item)&&!R().isBridge(item))return false;
@@ -74,6 +87,13 @@
   env.modal(panel.innerHTML,()=>document.getElementById('fhDrainClose')?.addEventListener('click',env.closeModal));
  }
  function inspector(item,fields){
+  if(A()?.isAccess(item)){
+   const link=A().resolve(env.project(),env.floorIndex(),item);
+   fields.append(createEl('p',T().accessDescription[item.drainageAccess.kind]));
+   fields.append(createEl('p',link?T().accessLinked(env.project().floors[link.floorIndex].name,link.x,link.y):T().accessInvalid));
+   fields.append(createEl('p',T().accessDeleteHint));
+   return true;
+  }
   if(!R().isSection(item)&&!R().isBridge(item))return false;
   const p=createEl('p',item.label+' · '+item.w+'×'+item.h+' tiles');
   p.className='tip';p.style.gridColumn='1/-1';fields.append(p);
@@ -107,6 +127,6 @@
   install(args){env=args;},
   isTool:t=>tools.includes(t),place,
   choose(t){if(t!=='drain_audit')return false;report();return true;},
-  inspector,rotate,report
+  inspector,rotate,report,beforeRemove
  });
 })(typeof globalThis!=='undefined'?globalThis:this);
