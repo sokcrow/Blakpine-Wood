@@ -275,7 +275,7 @@
    const hole=whirlpoolAt(project,f,point);
    if(hole&&!cooldown){
     const exit=randomExit(project,f,hole.id);
-    if(exit&&teleport?.(exit)!==false){cooldown=4;return {type:'whirlpool',exit};}
+    if(exit&&typeof teleport==='function'&&teleport(exit)===true){cooldown=4;return {type:'whirlpool',exit};}
    }
    const contact=waterAt(project,f,point,rain);
    if(!contact||typeof move!=='function')return null;
