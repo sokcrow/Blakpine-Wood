@@ -7,8 +7,8 @@
  const models=window.FHWaterCatalog?.models||[];
  const T=window.FH_WATER_TEXT||{};if(models.length!==8)return;
  const byId=id=>models.find(m=>m.id===id)||null;
- const tanks=[{id:'cisterna_sin_modelo',type:'water_cistern',name:'Cisterna · reserva potable',capacityLiters:2500,widthFt:6,depthFt:5,heightFt:5},
-  {id:'tinaco_sin_modelo',type:'water_tinaco',name:'Tinaco · reserva potable',capacityLiters:1100,widthFt:4,depthFt:4,heightFt:5}];
+ const tanks=[{id:'cisterna_sin_modelo',type:'water_cistern',name:T.tankCistern||'Cisterna · reserva potable',capacityLiters:2500,widthFt:6,depthFt:5,heightFt:5},
+  {id:'tinaco_sin_modelo',type:'water_tinaco',name:T.tankTinaco||'Tinaco · reserva potable',capacityLiters:1100,widthFt:4,depthFt:4,heightFt:5}];
  let selectedTank=null;
  const base=new URL('./forest-horror/biblioteca/agua/',document.baseURI);
  const active={};let opener=null;
@@ -148,8 +148,17 @@
  openInspector=function(){
   previousInspector();const it=current().items.find(x=>x.id===selection);if(!it)return;
   const currentMeta=window.FHWaterVisuals?.choose(it);
-  if(!currentMeta&&!tanks.some(t=>t.type===it.type))return;
+  const fixture=window.FHWaterPotable?.isFixture(it)===true;
+  if(!currentMeta&&!tanks.some(t=>t.type===it.type)&&!fixture)return;
   const fields=document.querySelector('#fields');if(!fields)return;
+  if(fixture){
+   const fi=project.floors.indexOf(current());
+   const state=utilityVisual().runtime?.waterStatus(fi,it);
+   const report=document.createElement('div');report.style.gridColumn='1/-1';
+   report.textContent=state?.water?(T.fixtureConnected||'Conexión potable disponible'):(T.fixtureUnconnected||'Sin conexión potable');
+   fields.append(report);
+   return;
+  }
   if(tanks.some(t=>t.type===it.type)){
    for(const [key,label,initial] of [['capacityLiters',T.tankCapacity||'Capacidad (litros)',it.capacityLiters||0],
     ['initialLiters',T.tankInitial||'Contenido inicial (litros)',it.initialLiters||0],
