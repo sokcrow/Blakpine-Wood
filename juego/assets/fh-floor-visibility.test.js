@@ -3,7 +3,7 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
-const {facadeCandidate}=require('./fh-floor-visibility.js');
+const {facadeCandidate,undergroundMask}=require('./fh-floor-visibility.js');
 
 test('desde F1 interior no se renderiza F2 sin ventana exterior aunque entre en cámara',()=>{
  assert.equal(facadeCandidate(0,1,true,true),false);
@@ -73,6 +73,19 @@ test('los dos hooks siguen presentes una sola vez en el motor embebido',()=>{
  const original=Buffer.from(parts.join(''),'base64').toString('utf8');
  assert.equal(original.split(' if(!inCameraVolume(bounds))return false;').length-1,1);
  assert.equal(original.split('const inside=!peeking&&outside!==true;').length-1,1);
+});
+
+test('desde B1 nunca se renderiza PB ni pisos superiores, incluso con cámara y ventanas',()=>{
+ assert.equal(undergroundMask(0,1),true);
+ assert.equal(undergroundMask(1,1),false);
+ assert.equal(facadeCandidate(0,1,false,true,true,1),false,'Exterior B1 no revela PB');
+ assert.equal(facadeCandidate(0,1,true,true,true,1),false,'Una ventana B1 no revela PB');
+ assert.equal(facadeCandidate(0,2,false,true,true,1),false,'B1 no revela P1');
+ assert.equal(facadeCandidate(1,2,false,true,true,1),true,'PB conserva sus fachadas superiores');
+ const html=fs.readFileSync(path.resolve(__dirname,'../../index.html'),'utf8');
+ assert.match(html,/undergroundMask\(currentFloor,mainFloorIndex\)/);
+ assert.match(html,/for\(const g of exteriorLayers\)g.visible=false;/);
+ assert.match(html,/for\(const g of lowerGroundLayers\)g.visible=false;/);
 });
 
 test('los sótanos no se habilitan como fachadas exteriores desde PB ni desde pisos altos',()=>{
