@@ -35,9 +35,10 @@
    tex.generateMipmaps=false;
   }
   const trail=new Float32Array(size*size);
+  const initialSight=typeof sightTexture==='function'?sightTexture():sightTexture;
   const uniforms={
    uTime:{value:0},uOutside:{value:exteriorMap},uTrail:{value:trailMap},
-   uSight:{value:sightTexture},uHasSight:{value:sightTexture?1:0},
+   uSight:{value:initialSight},uHasSight:{value:initialSight?1:0},
    uDensity:{value:cfg.density},uActor:{value:new THREE.Vector2()},
    uRadius:{value:Math.min(14,Math.max(6,Math.min(maxX,maxZ)))}
   };
@@ -148,6 +149,8 @@
    accumulator+=seconds;clock+=seconds;
    mesh.position.y=finite(floorY?.(),0)+.07;
    uniforms.uActor.value.set(x,z);uniforms.uTime.value=clock;
+   const sight=typeof sightTexture==='function'?sightTexture():sightTexture;
+   uniforms.uSight.value=sight;uniforms.uHasSight.value=sight?1:0;
    const climate=clamp(Math.floor(finite(weather?.fog,0)),0,3);
    const far=Math.max(10,finite(camera?.far,Math.hypot(maxX,maxZ)));
    if(farUsed!==far||climateUsed!==climate){
