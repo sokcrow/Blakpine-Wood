@@ -1,0 +1,75 @@
+{
+  "schema": "forest-horror-props-catalog-v1",
+  "version": 1,
+  "pack": "Agua 03 — Tinaco y Cisterna",
+  "independentOf": [
+    "Agua 01",
+    "Agua 02 — Calderas"
+  ],
+  "units": {
+    "length": "ft",
+    "metersPerFoot": 0.3048,
+    "feetPerCell": 5
+  },
+  "renderTarget": "Three.js r128",
+  "style": "low-poly / pixel art",
+  "visualOnly": true,
+  "models": [
+    {
+      "id": "tinaco_elevado",
+      "name": "Tinaco elevado",
+      "category": "Almacenamiento de agua",
+      "placement": "floor",
+      "widthFt": 4.0,
+      "heightFt": 6.0,
+      "depthFt": 4.0,
+      "widthTiles": 0.8,
+      "depthTiles": 0.8,
+      "blocksMovement": true,
+      "front": "+Z",
+      "origin": "centro de la huella, Y=0",
+      "waterRole": "elevated_reservoir",
+      "functional": false,
+      "pack": "agua_03_almacenamiento",
+      "description": "Depósito vertical con soporte para azotea; reserva para futura distribución por gravedad.",
+      "tags": [
+        "agua",
+        "tinaco",
+        "azotea",
+        "gravedad",
+        "edificio"
+      ],
+      "glb": "modelos_glb/tinaco_elevado.glb",
+      "thumbnail": "miniaturas/tinaco_elevado.png",
+      "triangles": 604
+    },
+    {
+      "id": "cisterna_principal",
+      "name": "Cisterna principal",
+      "category": "Almacenamiento de agua",
+      "placement": "floor",
+      "widthFt": 8.0,
+      "heightFt": 4.5,
+      "depthFt": 5.0,
+      "widthTiles": 1.6,
+      "depthTiles": 1.0,
+      "blocksMovement": true,
+      "front": "+Z",
+      "origin": "centro de la huella, Y=0",
+      "waterRole": "main_reservoir",
+      "functional": false,
+      "pack": "agua_03_almacenamiento",
+      "description": "Depósito rectangular de reserva potable para sótanos, plantas técnicas y exteriores.",
+      "tags": [
+        "agua",
+        "cisterna",
+        "reserva",
+        "sotano",
+        "edificio"
+      ],
+      "glb": "modelos_glb/cisterna_principal.glb",
+      "thumbnail": "miniaturas/cisterna_principal.png",
+      "triangles": 440
+    }
+  ]
+}
