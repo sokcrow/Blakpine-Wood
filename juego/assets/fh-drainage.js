@@ -74,7 +74,7 @@
  // Una única descripción de canales sirve para el suelo, el agua y la colisión del jugador.
  function channelRects(it){
   const out=rects(it);
-  if(it.drainage.kind!=='outfall')return out;
+  if(it.drainage.kind!=='outfall')return out.reduce((all,r)=>all.concat(carve([r],all)),[]);
   const c=center(it);
   for(let y=it.y+3;y<it.y+17;y++){
    let start=null;
@@ -84,7 +84,7 @@
     if(!wet&&start!==null){out.push({x:start,y,w:x-start,h:1});start=null;}
    }
   }
-  return out;
+  return out.reduce((all,r)=>all.concat(carve([r],all)),[]);
  }
  function subtractRect(base,cut){
   const x=Math.max(base.x,cut.x),y=Math.max(base.y,cut.y);
@@ -456,16 +456,16 @@
    const cx=(r.x+r.w/2)*CELL,cz=(r.y+r.h/2)*CELL,w=r.w*CELL,h=r.h*CELL;
    const geometry=new THREE.PlaneGeometry(w,h,Math.max(1,Math.ceil(r.w/2)),Math.max(1,Math.ceil(r.h/2)));
    const positions=geometry.attributes.position,flows=[];
+   const next=downstream(map,index,projected.id);
+   const target=next&&(map.floors[next.floorIndex]?.items||[]).find(q=>String(q.id)===String(next.itemId));
    for(let j=0;j<positions.count;j++){
     const p={x:cx/CELL+positions.getX(j)/CELL,y:cz/CELL-positions.getY(j)/CELL};
-    const next=downstream(map,index,projected.id);
-    const target=next&&(map.floors[next.floorIndex]?.items||[]).find(q=>String(q.id)===String(next.itemId));
     const d=projected.drainage.kind==='outfall'?{x:0,y:0}:flowDirection(projected,p,target);
     flows.push(d.x,d.y);
    }
    geometry.setAttribute('aFlow',new THREE.Float32BufferAttribute(flows,2));
    const surface=new THREE.Mesh(geometry,water);surface.rotation.x=-Math.PI/2;
-   surface.position.set(cx,(flood?.025:WATER_LEVEL)*CELL,cz);story.add(surface);
+   surface.position.set(cx,(flood ? .025 : WATER_LEVEL)*CELL,cz);story.add(surface);
    return surface;
   }
   for(const it of sections){
