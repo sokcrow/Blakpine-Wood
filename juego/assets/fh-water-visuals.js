@@ -19,8 +19,12 @@
   ...(root.FHWaterStorageCatalog?.models||[]),...(root.FHBoilersCatalog?.models||[])];
  const byId=id=>catalog().find(m=>m.id===id)||null;
  const choose=it=>{
+  // Los mapas antiguos pueden guardar utilitySkin de "mueble libre".
+  // Un modelId de caldera auténtica siempre tiene prioridad sobre ese skin.
+  const boiler=root.FHBoilersCatalog?.byId(it?.modelId);
+  if(boiler&&(it?.type==='misc'||it?.type===boiler.type))return boiler;
   const selected=byId(it?.utilitySkin||it?.modelId);
-  if(selected&&(selected.type===it.type||it.type==='misc'&&root.FHBoilersCatalog?.has(selected.id)))return selected;
+  if(selected&&selected.type===it?.type)return selected;
   return byId(DEFAULT[it?.type])||null;
  };
  const normal=rotation=>{const rad=(Number(rotation)||0)*Math.PI/180;return {x:-Math.sin(rad),y:Math.cos(rad)};};
