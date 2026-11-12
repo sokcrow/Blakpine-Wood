@@ -218,7 +218,7 @@ test('el hook valida anclas y preserva el comportamiento original del motor',()=
  assert.throws(()=>api.patchEngineDoc('incompatible'),/Motor 3D no compatible/);
 });
 test('editor carga el adaptador, permite escoger marco y conserva fallback 3D',()=>{
- assert.match(index,/fh-architecture-skins\.js\?v=20261106-window-tiles/);
+ assert.match(index,/fh-architecture-skins\.js\?v=20261112-purple-pc-power-1/);
  assert.match(index,/windowPieces=it\.type==='window'/);
  assert.match(index,/FHArchitectureSkins\?\.splitWindow\(it,numId\)/);
  assert.match(index,/architectureSkin/);
@@ -321,3 +321,4 @@ test('editor: selección de lectores solo junto a la puerta electrónica',()=>{
  assert.match(editor,/if\(!isElectronic\(model\.id\)\)\{delete it\.accessDevice/);
  assert.doesNotMatch(editor,/setCategory\('furniture'\)/);
 });
+

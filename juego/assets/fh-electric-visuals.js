@@ -109,6 +109,7 @@
    const floor=DATA.floors[f],items=floor.items||[];
    for(const it of items){
     const meta=choose(it);if(!meta)continue;
+    for(const entry of renderedByItem[f]?.get?.(it.id)||[])global.FHAssets?.markPlaceholder(entry.root||entry,applyFOW);
     const pose=mountPose(it,meta,items,CELL,ForestShared,floor.ceilingHeightFt);if(!pose){console.warn('[Electricidad 01] Sin pared estructural para',meta.id,it.id);continue;}
     const existing=renderedByItem[f]?.get?.(it.id)||[];
     const old=existing.map(p=>p.root||p).filter(Boolean);
@@ -145,10 +146,11 @@
   doc=once(doc,'function useFurniture(item,selectedSeat=null){',
    'function useFurniture(item,selectedSeat=null){\n if(window.FHElectricVisuals?.onUse(item,currentFloor,window.FHServicesRuntime,notice,user.x/CELL,user.z/CELL))return;');
   const rootUrl=new URL('./juego/assets/',global.document?.baseURI||'https://localhost/');
-  const scripts=['fh-electric-catalog.js','fh-electric-strings.js','fh-electric-meter-hud.js','fh-electric-visuals.js?v=20261109-wall-mount-1'].map(p=>
+  const scripts=['fh-electric-catalog.js','fh-electric-strings.js','fh-electric-meter-hud.js','fh-electric-visuals.js?v=20261112-purple-pc-power-1'].map(p=>
    '<script src="'+new URL(p,rootUrl).href+'"></scr'+'ipt>').join('');
   const where=doc.indexOf('</head>');if(where<0)throw Error('Electricidad 01: falta la cabecera del motor');
   return doc.slice(0,where)+scripts+doc.slice(where);
  }
  return {DEFAULT,byId,choose,normal,frontAllowed,mountPose,onUse,install,patchEngineDoc,load};
 });
+

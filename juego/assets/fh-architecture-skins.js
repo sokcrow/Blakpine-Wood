@@ -125,7 +125,7 @@ function mountAccessDevice(fixed,it,THREE,sightMask,d){
   // Reserva geométrica pequeña sólo cuando el GLB está realmente indisponible.
   for(const sign of sides){
    const marker=new THREE.Mesh(new THREE.BoxGeometry(.13,.24,.045),
-    new THREE.MeshBasicMaterial({color:0x617c76}));
+    new THREE.MeshBasicMaterial({color:0xb000ff}));
    marker.position.set(.045,1.24,sign*.105);
    applyFOW(marker,sightMask);
    if(fixed.parent&&!d?.readerDestroyed){fixed.add(marker);if(d)(d.accessVisuals||(d.accessVisuals=[])).push(marker);}
@@ -137,6 +137,8 @@ function decorateDoor(d,it,THREE,sightMask){
  const double=d.family==='double',count=double?2:1;
  if(!Array.isArray(d.animated)||d.animated.length!==count||!d.frame?.parent||!d.hinge?.parent)return;
  const parts=d.animated;
+ for(const part of parts)global.FHAssets?.markPlaceholder(part.group,sightMask);
+ if(!double)global.FHAssets?.markPlaceholder(d.frame,sightMask);
  load(model).then(scene=>{
   if(!d.hinge?.parent||!d.frame?.parent||parts.some(p=>!p.group?.parent))return;
   const leaves=parts.map(()=>cloneNode(scene,'HOJA_PIVOTE'));
@@ -182,6 +184,7 @@ function decorateWindow(args){
  // El antepecho y el dintel originales mantienen su colisión y visibilidad.
  const originalPaneAndSideFrames=built.slice(2);
  if(originalPaneAndSideFrames.length!==3)return;
+ for(const visual of originalPaneAndSideFrames)global.FHAssets?.markPlaceholder(visual,sightMask);
  const plan=windowTilePlan(it),count=plan?.count||1;
  // Los mapas antiguos pueden contener un solo segmento de varios tiles.
  // Se colocan N instancias individuales, espaciadas un tile, sin escalar el GLB.
@@ -231,3 +234,4 @@ function patchEngineDoc(doc){
 }
 global.FHArchitectureSkins=Object.freeze({chooseDoor,chooseWindow,splitWindow,accessDeviceId,decorateDoor,decorateWindow,patchEngineDoc,load});
 })(window);
+
