@@ -4689,7 +4689,10 @@ function floorSightThroughOpening(f,at,target,openings){
   .replace(maskBefore,maskAfter).replace(wakeHUDBefore,wakeHUDAfter).replace(locationHudHook,locationHudAfter)
   .split(wakeBefore).join(wakeAfter)
   .replace(chairSelection," const poseReachable=(item,anchor)=>canWalk(user.x,user.z)&&safePoseRoute(item,{x:user.x,z:user.z},anchor);\n const stockSeat=selectSeatInteractable(visible,user,yaw,CELL,poseReachable);\n const glbChair=window.FHFurnitureRules?.findReachableChair(visible,user,yaw,CELL,poseReachable,ForestShared);\n const sitting=glbChair&&(!stockSeat||glbChair.score<stockSeat.score)?glbChair:stockSeat;")
-  .replace(fowStart,'const fhSightMaskedMaterials=new WeakSet();function installVisibility(root=scene){root.traverse(mesh=>{')
+  .replace(fowStart+'if(!mesh.isMesh||mesh===hero||mesh===shadow)return;',
+   'function installVisibility(root=scene){const fhSightMaskedMaterials=installVisibility.maskedMaterials||(installVisibility.maskedMaterials=new WeakSet());root.traverse(mesh=>{if(!mesh.isMesh||mesh.userData.fhPlayerVisual===true)return;')
+  .replace('hero.renderOrder=0;scene.add(hero);','hero.userData.fhPlayerVisual=true;hero.renderOrder=0;scene.add(hero);')
+  .replace('shadow.rotation.x=-Math.PI/2;scene.add(shadow);','shadow.userData.fhPlayerVisual=true;shadow.rotation.x=-Math.PI/2;scene.add(shadow);')
   .replace(fowMaterials,'if(!m||fhSightMaskedMaterials.has(m)||m.userData?.fhWholeDoor)continue;fhSightMaskedMaterials.add(m);const previous=m.onBeforeCompile;')
   .replace(fowReady,'installVisibility();window.FHAssets?.setSightMaskInstaller(installVisibility);\nconst tex={}')
   .replace(heroScaleBefore,heroScaleUnified)

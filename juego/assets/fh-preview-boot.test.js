@@ -226,6 +226,36 @@ test('arranque ejecutado: Sombras espera a HERO_H, hero y shadow inicializados',
  env.runtime.window.FHShadowActors.dispose();
 });
 
+test('cableado exterior instala FOW antes de crear hero y shadow',()=>{
+ const {context,window,motor}=integrationEnvironment();
+ const html=window.FHServicesEngine.patch(context.prepareGLBEngineDoc(motor));
+ const from=html.indexOf('function installVisibility(root=scene)');
+ const actors=html.indexOf('const heroMaterial=',from);
+ const to=html.indexOf('const tex={},loader=new THREE.TextureLoader();',actors);
+ assert.ok(from>0&&actors>from&&to>actors);
+ assert.ok(html.indexOf('const fhExteriorVisuals=')<from,'El cableado se construye antes del personaje');
+ const THREE=require('./vendor/three.min.js'),scene=new THREE.Scene(),stories=[new THREE.Group()];
+ scene.add(stories[0]);
+ const env=vm.createContext({THREE,scene,stories,MAX_X:24,MAX_Z:24,sightUniform:{value:null},
+  window:{addEventListener(){}},URL,DATA:{},CELL:1.524,floorElev:[0],
+  exterior:require('./fh-exterior-visuals.js'),service:{exteriorGrid:{nodes:[],panelLinks:()=>[],links:()=>[{
+   from:{f:0,id:'a',it:{x:0,y:0,modelId:'caja_distribucion_exterior'}},
+   to:{f:0,id:'b',it:{x:2,y:0,modelId:'caja_distribucion_exterior'}}
+  }]}}});
+ const early='exterior.install({THREE,DATA,CELL,stories,service,applyFOW:installVisibility});\n';
+ // Execute in the same lexical scope as the later const declarations: this
+ // reproduces the temporal dead zone, unlike supplying hero:null in a fixture.
+ assert.doesNotThrow(()=>vm.runInContext(early+html.slice(from,actors)+html.slice(actors,to),env));
+ const wire=stories[0].children.find(node=>node.userData.fhExteriorWire);
+ assert.ok(wire,'Cable real construido durante el arranque');
+ const shader={uniforms:{},vertexShader:'#include <common>\n#include <begin_vertex>',
+  fragmentShader:'#include <common>\n#include <dithering_fragment>'};
+ wire.material.onBeforeCompile(shader);
+ assert.ok(shader.uniforms.uSight,'El cable conserva la máscara de visibilidad');
+ assert.equal(vm.runInContext('installVisibility.maskedMaterials.has(hero.material)',env),false);
+ assert.equal(vm.runInContext('installVisibility.maskedMaterials.has(shadow.material)',env),false);
+});
+
 test('ventana pendiente al arrancar instala FOW sin leer hero antes de inicializar',async()=>{
  const env=actorStartup(),{runtime,THREE,stories}=env;
  const warnings=[],mask=()=>vm.runInContext('installVisibility',runtime);
@@ -317,7 +347,7 @@ test('si el panel de diagnóstico falla al montarse, el motor sigue construyénd
 
 test('el shader del motor conserva negro opaco y profundidad en el suelo sin luz',()=>{
  const {context,motor}=integrationEnvironment(),html=context.prepareGLBEngineDoc(motor);
- const from=html.indexOf('const fhSightMaskedMaterials=new WeakSet();'),to=html.indexOf('const heroMaterial=',from);
+ const from=html.indexOf('function installVisibility(root=scene)'),to=html.indexOf('const heroMaterial=',from);
  assert.ok(from>0&&to>from,'instalador real de FOW localizado');
  const THREE=require('./vendor/three.min.js'),scene=new THREE.Scene();
  const floor=new THREE.Mesh(new THREE.PlaneGeometry(6,6),new THREE.MeshLambertMaterial({color:0xffffff}));
