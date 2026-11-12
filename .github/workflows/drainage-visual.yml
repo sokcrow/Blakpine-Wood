@@ -29,6 +29,13 @@ jobs:
             --screenshot=artifacts/drenaje-render-3d.png \
             "http://127.0.0.1:8765/tests/fixtures/drainage-solid-visual.html"
           test -s artifacts/drenaje-render-3d.png
+          "$CHROME" --headless=new --no-sandbox --disable-dev-shm-usage \
+            --enable-webgl --enable-unsafe-swiftshader \
+            --use-gl=angle --use-angle=swiftshader \
+            --window-size=1280,800 --virtual-time-budget=7000 \
+            --screenshot=artifacts/drenaje-fondo-visible.png \
+            "http://127.0.0.1:8765/tests/fixtures/drainage-solid-visual.html?water=off"
+          test -s artifacts/drenaje-fondo-visible.png
       - name: Comprobar escena ejecutada (no solo HTML)
         run: |
           set -eu
