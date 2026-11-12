@@ -19,6 +19,7 @@ function scene(kind='el_alto',config={},overrides={}){
   canPhase:overrides.canPhase,
   insideAt:overrides.insideAt,
   nextRoom:overrides.nextRoom,
+  canReachSleeping:overrides.canReachSleeping,
   route:overrides.route||((a,b)=>[a,b]),
   chooseAttack:overrides.chooseAttack,
   onEvent:(type,payload)=>events.push({type,payload})
@@ -179,4 +180,44 @@ test('una escalera inexistente no autoriza teletransporte entre pisos',()=>{
  });
  runtime.tick(2,.1,{...PLAYER,floor:1});
  assert.equal(runtime.read().active[0].floor,0);
+});
+
+test('Caminar con fotogramas pequeños sigue contando como movimiento a 240 FPS',()=>{
+ const {runtime,events}=scene('la_nina');
+ for(let frame=1;frame<=4;frame++){
+  runtime.tick(1+frame/240,1/240,{...PLAYER,x:PLAYER.x+frame*.004});
+ }
+ assert.equal(sent(events,'attack').length,1,
+  'un desplazamiento acumulado mayor de 0.015 m tiene que habilitar el ataque');
+});
+
+test('Microdesplazamientos no activan ataque si el jugador se queda inmóvil',()=>{
+ const {runtime,events}=scene('el_alto');
+ runtime.tick(2,.004,{...PLAYER,x:PLAYER.x+.004});
+ runtime.tick(3,.004,{...PLAYER,x:PLAYER.x+.004});
+ runtime.tick(4,.004,{...PLAYER,x:PLAYER.x+.004});
+ assert.equal(sent(events,'attack').length,0);
+});
+
+test('Dormir en una cama permite pesadilla con verificación específica, sin drenaje',()=>{
+ const {runtime,events}=scene('la_nina',{},{
+  canWalk:(_f,x)=>x>20.2,
+  canReachSleeping:()=>true
+ });
+ runtime.tick(2,0,{...PLAYER,sleeping:true});
+ assert.equal(sent(events,'nightmare').length,1);
+ assert.equal(sent(events,'attack').length,0);
+});
+
+test('Una puerta cerrada impide la pesadilla aunque el jugador duerma en cama',()=>{
+ let doorOpen=false;
+ const {runtime,events}=scene('la_nina',{},{
+  canWalk:(_f,x)=>x>20.2,
+  canReachSleeping:()=>doorOpen
+ });
+ runtime.tick(2,0,{...PLAYER,sleeping:true});
+ assert.equal(sent(events,'nightmare').length,0);
+ doorOpen=true;
+ runtime.tick(3,0,{...PLAYER,sleeping:true});
+ assert.equal(sent(events,'nightmare').length,1);
 });
