@@ -25,13 +25,16 @@ test('La placa aprobada conserva colores, bordes y animaciones independientes',(
  assert.match(js,/function advance\(bar,time\)/);
  assert.match(js,/a\.kind==='damage'/);
  assert.match(js,/function setBar\(key,info,instant\)/);
- assert.match(css,/width:min\(336px,calc\(100vw - 16px\)\)/);
+ assert.match(css,/width:min\(235\.2px,calc\(100vw - 16px\)\)/);
+ assert.match(css,/width:min\(176\.4px,calc\(100vw - 16px\)\)/);
+ assert.match(css,/width:min\(190\.4px,calc\(100vw - 16px\)\)/);
+ assert.doesNotMatch(js,/moodMark|['"]◇['"]/,'sin rombo superpuesto al Mood');
  assert.match(css,/body\.fh-sleeping #fhNameplateHUD/);
  assert.doesNotMatch(js,/localStorage|GameState\s*=/);
 });
 test('No monta automáticamente ni muestra una placa sin personaje seleccionado',()=>{
  const js=read('fh-nameplate-hud.js');
- assert.match(js,/function update\(character = root\.FHCharacterRuntime\?\.character \?\? null, position = null\)/);
+ assert.match(js,/function update\(character = root\.FHCharacterRuntime\?\.character \?\? null, position = null, previousResources = null\)/);
  assert.match(js,/if\(!character \|\| !pg \|\| !position/);
  assert.doesNotMatch(js,/if\s*\(root\.document\)\s*start\(/);
  assert.match(js,/function hide\(\)/);
@@ -117,6 +120,13 @@ test('PNG de Mood, valores, daño blanco, Heal verde y cambio de personaje',()=>
   assert.equal(HUD.hide(),false);
   assert.equal(host.hidden,true);
   assert.equal(pending.size,0);
+  const before={...char.resources};
+  tick=2000;
+  char.resources.pg=1;
+  assert.equal(HUD.update(char,{x:461,y:290},before),true);
+  assert.notEqual(find(svg,'data-part','pg-damage').getAttribute('points'),'',
+   'el rastro de daño aparece al abrirse automáticamente desde una barra oculta');
+  HUD.hide();
  }finally{
   HUD.hide();body.children.forEach(el=>el.isConnected=false);
   for(const [key,value] of Object.entries(saved)){

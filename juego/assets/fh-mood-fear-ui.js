@@ -1,4 +1,4 @@
-/* HUD flotante por selección y aviso de miedo tipo cómic. No modifica la lógica del motor. */
+/* HUD flotante por selección o cambio de recursos; aviso de miedo en la escena. */
 (function(root,factory){
  'use strict';
  const api=factory(root);
@@ -7,7 +7,31 @@
 })(typeof window!=='undefined'?window:globalThis,function(root){
  'use strict';
  const words=()=>root.FH_MOOD_FEAR_TEXT||{keys:{},reasons:{}};
- let selectedId=null;
+ const RESOURCE_KEYS=Object.freeze(['pg','sp','pe']);
+ const AUTO_DURATION_MS=2800;
+ let selectedId=null,observedId=null,observedResources=null,autoVisibleUntil=0;
+ // Los cambios reales activan la placa: no la primera lectura ni la carga de otro actor.
+ function watchResources(character){
+  const id=character?.id==null?null:String(character.id);
+  if(id===null||!character?.resources){
+   observedId=null;observedResources=null;autoVisibleUntil=0;return null;
+  }
+  const next={};
+  for(const key of RESOURCE_KEYS){
+   const value=character.resources[key],maximum=character.resources[key+'Max'];
+   next[key]=Number.isFinite(value)&&Number.isFinite(maximum)&&maximum>0
+    ?Math.max(0,Math.min(value,maximum)):null;
+   next[key+'Max']=maximum;
+  }
+  let before=null;
+  if(observedId===id&&observedResources){
+   const changed=RESOURCE_KEYS.some(key=>next[key]!==null&&observedResources[key]!==null&&
+    next[key]!==observedResources[key]);
+   if(changed){before=observedResources;autoVisibleUntil=Date.now()+AUTO_DURATION_MS;}
+  }else autoVisibleUntil=0;
+  observedId=id;observedResources=next;
+  return before;
+ }
  let clickTarget=null,clickHandler=null,currentLocator=null,dismissHandlersBound=false;
  function setup(){return Boolean(root.FHNameplateHUD?.mount?.());}
  function hide(){root.FHNameplateHUD?.hide?.();}
@@ -63,9 +87,13 @@
   }
  }
  function render(character,position){
+  const before=watchResources(character);
   const id=character?.id!=null?String(character.id):'';
-  if(!character||!position||!id||selectedId!==id){hide();return false;}
-  return root.FHNameplateHUD?.update?.(character,position)??false;
+  // Daño, PS perdida y recuperación prevalecen aun sin selección manual.
+  if(!character||!position||!id||(selectedId!==id&&Date.now()>=autoVisibleUntil)){
+   hide();return false;
+  }
+  return root.FHNameplateHUD?.update?.(character,position,before)??false;
  }
  function fearChange(payload,position){
   if(!payload||!position||!root.FHLiveText?.soundAt)return false;
