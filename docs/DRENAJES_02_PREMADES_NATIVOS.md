@@ -20,7 +20,7 @@ Todos permiten rotación en intervalos de 90°. Cada perfil define puertos hidr�
 ### Reutilización del motor
 
 - El mapa guarda **una única pieza** con `type:'hall'` y metadatos opcionales `drainage:{version:1,kind,flowTo}`.
-- `FHDrainage.nativeComponents(piece)` genera un elemento `room` y cuatro segmentos `wall` o `opening`, según los puertos. No inventa otro detector de colisiones ni una segunda simulación de paredes.
+- `FHDrainage.nativeComponents(piece)` genera un elemento `room` y segmentos `wall` / `opening` según los puertos. En uniones 10×10 con 4×4, el muro grande se divide alrededor del hueco de cuatro casillas, sin dejar los laterales abiertos. No inventa otro detector de colisiones ni una segunda simulación de paredes.
 - `FHDrainage.expandProject(DATA)` transforma **solamente la copia del mapa cargada en el motor**, justo antes del `buildFloor()` original. Los muros resultantes pasan por `wallModel()`, `blockers[f]` y `sightWalls[f]` del motor, para usar las mismas colisiones y visibilidad que las paredes normales.
 - Los elementos generados llevan `drainageGenerated:true` y `drainageOwnerId`. La expansión es idempotente para que no duplique muros.
 - `attachFloor()` solo añade la superficie visual del agua y las rejas. **Ya no dibuja muros alternativos**. La agua es visual por ahora; no declarar que tiene física.
@@ -33,6 +33,6 @@ Todos permiten rotación en intervalos de 90°. Cada perfil define puertos hidr�
 
 ### Validación y límites
 
-Las pruebas comprueban perfiles, rotación, conteo de paredes y aberturas, continuidad hidráulica, expansión idempotente, conservación del JSON y la ruta de integración al motor.
+Las pruebas comprueban perfiles, rotación, paredes y aberturas, conexiones hidráulicas descentradas de 10×10 a 4×4, geometría de portales, expansión idempotente, conservación del JSON y la ruta de integración al motor.
 
 **Pendientes para otras fases:** comprobar manualmente el renderizado en navegador y el acceso desde sótanos y edificios; resolver continuidad de losas y niveles; animación y acumulación de agua con lluvia, corrientes, estado de natación, penalización MOV y remolino funcional. Esos puntos requieren integración específica con el motor existente y no se declaran entregados aquí.
