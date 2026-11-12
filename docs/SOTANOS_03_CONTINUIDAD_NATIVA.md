@@ -17,7 +17,7 @@ El editor y el motor calculaban `basementSlabs` exclusivamente a partir de los m
 - Sótano sin perímetro: se usa la huella de la planta principal.
 - Sótano con perímetro rojo propio: conserva su huella y paredes específicas.
 - Mapa sin sótanos: sin cambios.
-- Edificio sin huella válida: no se inventa estructura subterránea.
+- Edificio sin huella válida y no vacía (por ejemplo, un muro rojo suelto): no se inventa estructura subterránea.
 - Contrato JSON: `forest-horror-map-v1` y campos opcionales existentes.
 
 ## Pruebas y pendientes
