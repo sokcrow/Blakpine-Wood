@@ -109,6 +109,6 @@ test('seleccionar drenajes desde Agua: tramo y puente se detectan en su superfic
  assert.equal(context.hitTest({x:8,y:8})?.id,'segmento','Selecciona el tramo');
  assert.equal(context.hitTest({x:5,y:5})?.id,'puente','El puente superpuesto se puede seleccionar');
  context.activeLayer='architecture';
- assert.equal(context.hitTest({x:5,y:5}),undefined,'No roba selección desde Arquitectura');
+ assert.equal(context.hitTest({x:5,y:5}),null,'No roba selección desde Arquitectura');
  assert.ok(html.includes('!window.FHDrainage?.isSection(it)&&!window.FHDrainage?.isBridge(it)'), 'No se repintan como áreas genéricas');
 });
