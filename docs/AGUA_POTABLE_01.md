@@ -31,6 +31,7 @@ Los muebles personalizados pueden usar `service.requiresWater=true`; ese campo s
 Decoración como espejo, toallero y botiquín no requiere agua.
 
 ## Activación y editor
+- En el menú **Agua**, elegir directamente **Cisterna potable** o **Tinaco elevado**, igual que otras herramientas de colocación. También están en **Modelos de agua** como entradas visuales.
 - En **Agua y drenaje → Modelos de agua**, habilitar **Red potable automática por paredes y pisos**.
 - Crear `water_main`, `water_outlet`, cisterna y/o tinaco. Asignar `networkId` consistente (por ejemplo `main`).
 - Configurar la capacidad, litros iniciales, llenado y longitud máxima de distribución de cada depósito.
@@ -38,7 +39,7 @@ Decoración como espejo, toallero y botiquín no requiere agua.
 - En el editor, la capa de agua permite consultar los recorridos y detectar tomas sin abastecimiento.
 - `FHServicesRuntime.waterNetwork.diagnostics()` devuelve rutas, longitud fría en pies y reservas.
 
-**Importante:** el archivo nuevo que contendría los GLB de cisterna y tinaco no apareció entre los adjuntos accesibles de esta conversación. La selección y configuración de los dos depósitos funciona con **geometría provisional**, sin inventar GLB definitivos.
+**Agua 03:** se verificó el ZIP original `Forest_Horror_Agua_03_Tinaco_y_Cisterna.zip` y su catálogo. La cisterna usa **8 × 5 × 4.5 pies** y el tinaco **4 × 4 × 6 pies**. El editor guarda los tipos nativos y sus identificadores reales de modelo (`cisterna_principal`, `tinaco_elevado`), sin reutilizar `misc`. La integración binaria de los GLB y miniaturas **todavía está pendiente de publicación en el repositorio**; mientras tanto el menú usa una miniatura de respaldo. No afirmar que la visualización GLB original funciona hasta subir y verificar esos assets.
 
 ## Formato de mapa y persistencia
 
