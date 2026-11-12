@@ -351,7 +351,7 @@ test('render 3D real: fondo sólido del canal y reja abierta con altura de apoyo
   'Los pies descansan sobre el fondo sólido, no sobre el shader de agua');
  assert.equal(D.supportAt(project,0,{x:8,y:1}),0,'La banqueta es el nivel 0');
  const html=fs.readFileSync(path.join(__dirname,'../../index.html'),'utf8');
- assert.match(html,/!window\\.FHDrainage\\?\\.isBridge\\(it\\)/,
+ assert.ok(html.includes('!window.FHDrainage?.isBridge(it)'),
   'El motor no puede pintar una losa opaca debajo de una reja real');
  const scene={children:[],add(mesh){this.children.push(mesh);}};
  class Material{constructor(opts){Object.assign(this,opts);}}
