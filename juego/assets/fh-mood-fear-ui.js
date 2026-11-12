@@ -9,6 +9,7 @@
  const words=()=>root.FH_MOOD_FEAR_TEXT||{keys:{},reasons:{}};
  const RESOURCE_KEYS=Object.freeze(['pg','sp','pe']);
  const AUTO_DURATION_MS=2800;
+ const FEET_HIT_RADIUS_PX=18;
  let selectedId=null,observedId=null,observedResources=null,autoVisibleUntil=0;
  // Los cambios reales activan la placa: no la primera lectura ni la carga de otro actor.
  function watchResources(character){
@@ -32,7 +33,7 @@
   observedId=id;observedResources=next;
   return before;
  }
- let clickTarget=null,clickHandler=null,currentLocator=null;
+ let currentLocator=null;
  function setup(){return Boolean(root.FHNameplateHUD?.mount?.());}
  function hide(){root.FHNameplateHUD?.hide?.();}
  function select(id){
@@ -48,24 +49,14 @@
   const box=renderer.domElement.getBoundingClientRect();
   return {x:box.left+(v.x+1)*box.width/2,y:box.top+(1-v.y)*box.height/2};
  }
- function distanceToActor(px,py,at){
-  const x=Number.isFinite(at?.bodyX)?at.bodyX:at.x;
-  const y=Number.isFinite(at?.bodyY)?at.bodyY:at.y+48;
-  const dx=x-at.x,dy=y-at.y;
-  const ratio=dx*dx+dy*dy;
-  const t=ratio>0?Math.max(0,Math.min(1,((px-at.x)*dx+(py-at.y)*dy)/ratio)):0;
-  return Math.hypot(px-at.x-t*dx,py-at.y-t*dy);
- }
-
- // Únicamente el cuerpo proyectado permite abrir o cerrar el HUD.
+ // Sólo una pequeña zona alrededor de los pies proyectados reconoce al jugador.
+ // El motor decide cuándo llamar a tap(): exclusivamente tras el hold de Safe Lock.
  function targetAt(event){
   if(event?.button!==undefined&&event.button!==0)return null;
   if(!Number.isFinite(event?.clientX)||!Number.isFinite(event?.clientY))return null;
   const at=currentLocator?.();
-  if(!at||at.id==null)return null;
-  const height=Math.abs((Number.isFinite(at.bodyY)?at.bodyY:at.y+48)-at.y);
-  const radius=Math.min(36,Math.max(18,height*.27));
-  return distanceToActor(event.clientX,event.clientY,at)<=radius?at:null;
+  if(!at||at.id==null||!Number.isFinite(at.bodyX)||!Number.isFinite(at.bodyY))return null;
+  return Math.hypot(event.clientX-at.bodyX,event.clientY-at.bodyY)<=FEET_HIT_RADIUS_PX?at:null;
  }
  function tap(event){
   const actor=targetAt(event);
@@ -79,17 +70,8 @@
  }
  function bind(canvas,locator){
   if(!canvas||typeof locator!=='function')return;
+  // No registrar clicks: la selección la controla el hold del motor.
   currentLocator=locator;
-  if(clickTarget===canvas)return;
-  if(clickTarget&&clickHandler)clickTarget.removeEventListener('click',clickHandler,true);
-  clickTarget=canvas;
-  // Fallback de click sin Pointer Events; Safe Lock consume clicks sintéticos de puntero.
-  clickHandler=event=>{
-   if(!tap(event))return;
-   event.preventDefault?.();
-   event.stopImmediatePropagation?.();
-  };
-  canvas.addEventListener('click',clickHandler,true);
  }
  function render(character,position){
   const before=watchResources(character);

@@ -52,29 +52,17 @@ const fhContextCanvas=$('view');
 function fhPlayerHold(event){
  const actor=window.FHMoodFearUI?.targetAt?.(event);
  if(!actor||!GameState.character?.id||String(GameState.character.id)!==String(actor.id))return false;
- const text=window.FH_INTERACTION_STRINGS||{},radial=window.FHInteractionRadial;
- radial?.open({
-  key:'player:'+actor.id,
-  title:GameState.character.name||text.player||'Personaje',
-  x:actor.x,y:actor.y,
-  actions:[{id:'inventory',label:text.playerInventory||'Inventario',run:()=>{
-   radial?.close?.();
-   window.FHPlayerMenu?.openSection?.('inventory');
-  }}]
- },'hold');
- return true;
+ // Sólo una pulsación sostenida sobre los pies alterna la placa del personaje.
+ return window.FHMoodFearUI?.tap?.(event)===true;
 }
 window.FHSafeLock?.bind(fhContextCanvas,{
- onTap:event=>{
-  if(window.FHMoodFearUI?.tap?.(event))return;
-  fhRequestContext('tap','canvas',event);
- },
+ onTap:event=>fhRequestContext('tap','canvas',event),
  onHold:event=>{
   if(fhPlayerHold(event))return;
   fhRequestContext('hold','canvas',event);
  },
  onCancel:()=>window.FHInteractionRadial?.hide()
-},{suppressClick:true});
+},{threshold:400,suppressClick:true});
 window.FHSafeLock?.bind($('use'),{
  onTap:event=>fhRequestContext('tap','button',event),
  onHold:event=>fhRequestContext('hold','button',event)
@@ -117,8 +105,6 @@ function fhContextRefresh(){
   ||$('fhDeliveryDialog')?.classList.contains('open')){
   fhContextGesture=null;radial.syncContext(null);radial.hide();return;
  }
- // El menú del propio jugador no depende del objetivo ambiental más cercano.
- if(radial.visible&&radial.target==='player:'+String(GameState.character?.id))return;
  let key='',title='',point={x:innerWidth*.5,y:innerHeight*.53},actions=[];
  let fhTapRoots=[];
  if(fhDecorMode){
