@@ -9,8 +9,8 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
  'use strict';
  const CATALOG=Object.freeze({
-  el_alto:Object.freeze({name:'El Alto',folder:'el_alto',pg:15,relativeScale:1.5}),
-  la_nina:Object.freeze({name:'La Niña',folder:'la_nina',pg:5,relativeScale:0.7})
+  el_alto:Object.freeze({name:'El Alto',category:'Sombras',folder:'el_alto',pg:15,relativeScale:1.5}),
+  la_nina:Object.freeze({name:'La Niña',category:'Sombras',folder:'la_nina',pg:5,relativeScale:0.7})
  });
  function createManager({THREE,stories,floorElev,baseUrl,playerHeight,registerVisibility,unregisterVisibility,invalidate}={}){
   if(!THREE||!Array.isArray(stories)||typeof THREE.Sprite!=='function'||
@@ -95,7 +95,7 @@
   }
   function get(id){
    const actor=actors.get(String(id));
-   return actor?Object.freeze({id:actor.key,type:actor.kind,floor:actor.floor,x:actor.sprite.position.x,z:actor.sprite.position.z}):null;
+   return actor?Object.freeze({id:actor.key,type:actor.kind,category:CATALOG[actor.kind].category,floor:actor.floor,x:actor.sprite.position.x,z:actor.sprite.position.z}):null;
   }
   return Object.freeze({spawn,move,despawn,clear,dispose,get,spriteUrl,get size(){return actors.size}});
  }
