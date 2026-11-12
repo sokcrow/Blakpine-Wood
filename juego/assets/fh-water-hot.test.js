@@ -119,7 +119,7 @@ test('agua caliente ya producida sigue caliente un rato sin luz',()=>{
  hot.tick(30);assert.equal(hot.status(1,sink).hotWater,true);
  power=false;hot.tick(1);
  assert.equal(hot.status(1,sink).hotWater,true);
- hot.tick(60);hot.tick(60);hot.tick(60);hot.tick(60);hot.tick(60);
+ for(let i=0;i<9;i++)hot.tick(60);
  assert.equal(hot.status(1,sink).hotWater,false);
 });
 test('estado de caldera persiste y no se reinicia al crear otro runtime',()=>{
