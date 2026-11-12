@@ -44,6 +44,8 @@ function scene({fail=false}={}){
 const flush=()=>new Promise(resolve=>setImmediate(resolve));
 
 test('los recursos corresponden a los PNG originales sin inventar otras poses',()=>{
+ assert.equal(shadow.CATALOG.el_alto.category,'Sombras');
+ assert.equal(shadow.CATALOG.la_nina.category,'Sombras');
  assert.equal(shadow.CATALOG.el_alto.pg,15);
  assert.equal(shadow.CATALOG.el_alto.relativeScale,1.5);
  assert.equal(shadow.CATALOG.la_nina.pg,5);
@@ -68,6 +70,7 @@ test('crea sprites 2.5D y conserva el registro compartido de visibilidad',async(
  assert.equal(sprite.scale.y,1.68*1.5);
  assert.equal(sprite.scale.x,1.68*1.5*.5);
  assert.equal(events.registered.length,1);
+ assert.equal(manager.get(id).category,'Sombras');
  assert.equal(manager.size,1);
  assert.equal(events.loads.length,1);
 });
