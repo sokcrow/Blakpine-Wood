@@ -46,8 +46,12 @@
    none:'Sin señal en las casillas visibles.'
   }),
   fields:Object.freeze({
+   outletConnection:'Conexión eléctrica',outletAuto:'Automática · enchufe cercano',
+   outletMissing:'Conexión anterior no disponible',outletAt:(name,x,y)=>name+' · X '+x+' / Y '+y,
+   outletCircuit:'Circuito del enchufe',circuitAuto:'Automático · habitación o tablero cercano',
+   circuitMissing:'Circuito anterior no disponible',
    zoneId:'Circuito eléctrico',slots:'Conexiones disponibles',capacityRayos:'Límite eléctrico (rayos)',
-   radiusFt:'Radio de conexión (pies)',outletId:'ID del enchufe o multiconector',
+   radiusFt:'Radio de conexión (pies)',outletId:'Enchufe o multiconector',
    rangeFt:'Cable disponible (pies)',flowLpm:'Caudal (litros/min)',opened:'Válvula abierta',
    wifiRadiusFt:'Radio Wi-Fi (pies)',wifiPassword:'Contraseña Wi-Fi',
    ethernetLengthFt:'Largo del cable Ethernet (pies)',ethernetLeadFt:'Cable del router a pared (pies)',
@@ -83,4 +87,5 @@
   serviceActive:'Servicio activo',serviceSuspended:'Servicio suspendido'
  });
 })(typeof window!=='undefined'?window:globalThis);
+
 

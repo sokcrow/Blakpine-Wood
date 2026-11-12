@@ -182,6 +182,7 @@
   return s;
  }
  function createRuntime(project,state={},options={}){
+  (options.electricCatalog||root?.FHElectricCatalog)?.upgradeMap?.(project);
   const s=ensureState(state),floors=Array.isArray(project?.floors)?project.floors:[];
    const exteriorGrid=(typeof globalThis!=='undefined'?globalThis.FHExteriorGrid:null)?.createRuntime(project,state)||null;
   const feetPerCell=Math.max(.1,number(project?.units?.feetPerCell,5));
@@ -233,6 +234,10 @@
    // Older elevator inspectors used "main" as a placeholder, not a real assignment.
    // A declared main circuit is still respected; otherwise inherit the room's circuit.
    if(it.type==='elevator'&&(!zone||zone==='main'&&!(powerScopes[f]||[]).some(c=>c.zoneId==='main')))return String(room?.zoneId||'');
+   if((it.type==='power_outlet'||it.type==='power_strip'||requiresPower(it))&&(!zone||zone==='main'&&!(powerScopes[f]||[]).some(c=>c.zoneId==='main'))){
+    const inherited=String(room?.zoneId||'');
+    return inherited==='main'&&!(powerScopes[f]||[]).some(c=>c.zoneId==='main')?'':inherited;
+   }
    return String(zone||room?.zoneId||'');
   };
   function powerRoute(f,panel,target){
@@ -548,10 +553,10 @@
   // Una sola consulta geométrica sostiene tanto el dibujo como la energía real.
   function cableCandidates(f,it,zone=''){
    zone=zone||zoneFor(f,it);
-   if(!zone)return [];
+   if(!zone&&it.type!=='power_outlet')return [];
    const cables=[];
    for(const c of powerScopes[f]||[]){
-    if(c.zoneId!==zone)continue;
+    if(zone&&c.zoneId!==zone)continue;
     const path=powerRoute(f,c.panel,it),verticalFt=c.verticalFt||0;
     if(!path||path.feet+verticalFt>c.rangeFt+1e-7)continue;
     cables.push({c,feet:path.feet+verticalFt,route:{...path,verticalFt,feet:path.feet+verticalFt,

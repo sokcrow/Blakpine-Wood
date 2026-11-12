@@ -211,12 +211,12 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
 <script src="./juego/assets/fh-access-config.js?v=20261107-map-v1"></script>
 <script src="./juego/assets/fh-weather-strings.js?v=20261108-clima1"></script>
 <script src="./juego/assets/fh-weather-editor.js?v=20261108-clima1"></script>
-<script src="./juego/assets/fh-services-strings.js?v=20261111-elevator-power-1"></script>
+<script src="./juego/assets/fh-services-strings.js?v=20261112-outlet-auto-1"></script>
 <script src="./juego/assets/fh-exterior-grid.js?v=20261111-pole-collision-1"></script>
 <script src="./juego/assets/fh-exterior-strings.js?v=20261111-exterior-03-fix1"></script>
 <script src="./juego/assets/fh-water-potable.js?v=20261112-potable-01"></script>
 <script src="./juego/assets/fh-water-hot.js?v=20261112-hot-04"></script>
-<script src="./juego/assets/fh-services-core.js?v=20261112-purple-pc-power-1"></script>
+<script src="./juego/assets/fh-services-core.js?v=20261112-outlet-auto-1"></script>
 <script src="./juego/assets/fh-floor-levels.js?v=20261109-basements1"></script>
 <script src="./juego/assets/fh-wifi-editor-overlay.js?v=20261109-wifi-editor-1"></script>
 <script src="./juego/assets/fh-light-strings.js?v=20261109-zones-3"></script>
@@ -2149,7 +2149,7 @@ function createObject(type,p){
    it.x=mount.point.x;it.y=mount.point.y;it.wallId=mount.wallId;it.rotation=mount.rotation;
    it.roomId=mount.room?.roomId||mount.room?.id||it.roomId;
   }
-  if(type==='power_outlet')it.zoneId=selectedCircuit()||'main';
+  if(type==='power_outlet')it.zoneId=room?.zoneId||selectedCircuit()||'';
   if(type==='router'||type==='phone_charger')it.service={requiresPower:true};
   if(type==='router'){
    it.roomId=room?.roomId||room?.id||'';
@@ -2993,7 +2993,21 @@ function attachServiceInspector(it,fields){
  const sec=document.createElement('section');
  sec.style.cssText='grid-column:1/-1;border-top:1px solid var(--line);padding-top:8px;display:grid;grid-template-columns:repeat(auto-fit,minmax(138px,1fr));gap:7px';
  const title=document.createElement('strong');title.textContent='Servicios y conexiones';title.style.gridColumn='1/-1';sec.append(title);
+ const outletField=()=>{
+  const options=[['',T.outletAuto]];
+  const outlets=current().items.filter(source=>source.id!==it.id&&['power_outlet','power_strip'].includes(source.type));
+  for(const source of outlets)options.push([source.id,T.outletAt(source.label||window.FH_SERVICES_TEXT.labels[source.type],source.x,source.y)]);
+  if(it.outletId&&!outlets.some(source=>source.id===it.outletId))options.push([it.outletId,T.outletMissing]);
+  return makeField(T.outletConnection,'outletId',it.outletId||'','select',options);
+ };
  for(const name of names[it.type]||[]){
+  if(name==='outletId'){sec.append(outletField());continue;}
+  if(name==='zoneId'&&it.type==='power_outlet'){
+   const circuits=availableCircuits(),options=[['',T.circuitAuto],...circuits.map(c=>[c.zoneId,c.name+' · '+c.panelLabel])];
+   const automatic=!it.zoneId||it.zoneId==='main'&&!circuits.some(c=>c.zoneId==='main');
+   if(!automatic&&!circuits.some(c=>c.zoneId===it.zoneId))options.push([it.zoneId,T.circuitMissing]);
+   sec.append(makeField(T.outletCircuit,'zoneId',automatic?'':it.zoneId,'select',options));continue;
+  }
   if(name==='breakerType'){sec.append(makeField(T[name]||name,name,it.breakerType||'medium','select',[['small','Pequeño'],['medium','Mediano'],['large','Grande']]));const note=document.createElement('small');note.textContent=window.FH_LIGHT_TEXT.breakerRange(it.breakerType||'medium',window.FHServices.LIMITS[it.breakerType||'medium']?.rangeFt||180);sec.append(note);continue;}
   if(name==='propertyId'){
    sec.append(makeField(T[name]||name,name,it.propertyId||'','select',
@@ -3018,7 +3032,7 @@ function attachServiceInspector(it,fields){
    sec.append(makeField('Consumo solamente durante uso','service.onDemand',it.service?.onDemand===true,'checkbox'));
    sec.append(makeField(T.internetMode||'Tipo de internet','service.internetMode',it.service?.internetMode||'none','select',[['none','Ninguno'],['ethernet','Ethernet'],['wifi','Wi-Fi']]));
    sec.append(makeField(T.routerId||'ID del router','routerId',it.routerId||''));
-   sec.append(makeField(T.outletId||'ID del enchufe','outletId',it.outletId||''));
+   sec.append(outletField());
   }
   if(it.service?.requiresWater===true){
    sec.append(makeField(T.waterFlow||'Consumo (L/min)','service.flowLpm',it.service?.flowLpm??6,'number'));
@@ -3173,7 +3187,7 @@ function exportPNG(){const area=window.FHMapGrid.bounds(project.units);if(area.w
 function importProject(obj){
  window.FHStructureHealth?.validateMap(obj);
  window.FHAccessConfig?.validateMap(obj);
- window.FHRoads?.validateProject(obj);window.FHDrainage?.validateProject(obj);window.FHStyleProperty?.validateMap(obj);window.FHParking?.validateProject(obj);const next=ForestShared.loadProject(obj);
+ window.FHRoads?.validateProject(obj);window.FHDrainage?.validateProject(obj);window.FHStyleProperty?.validateMap(obj);window.FHParking?.validateProject(obj);const next=ForestShared.loadProject(obj);window.FHElectricCatalog?.upgradeMap(next);
  for(let i=0;i<next.floors.length;i++){
   next.floors[i].items=next.floors[i].items.filter(it=>!it.inheritedCourtyard);
   if(!next.floors[i].reference)next.floors[i].reference=clone(floorDefault(next.floors[i].id,next.floors[i].name,next.floors[i].elevationFt,i).reference);
@@ -3216,7 +3230,7 @@ window.FHRoadEditor?.install({project:()=>project,current,modal,closeModal,toast
  window.FHDrainageEditor?.install({project:()=>project,current,floorIndex:()=>floorIndex,modal,closeModal,toast,record,newId:numId,render,inspect:openInspector});
 
  const raw=readStorage(key());let error=null;
- if(raw){try{const draft=JSON.parse(raw);window.FHStructureHealth?.validateMap(draft);window.FHAccessConfig?.validateMap(draft);project=ForestShared.loadProject(draft);status('✓ Borrador restaurado')}catch(err){error=err;project=newProject();status('⚠ Borrador incompatible; mapa nuevo')}}
+ if(raw){try{const draft=JSON.parse(raw);window.FHStructureHealth?.validateMap(draft);window.FHAccessConfig?.validateMap(draft);project=ForestShared.loadProject(draft);window.FHElectricCatalog?.upgradeMap(project);status('✓ Borrador restaurado')}catch(err){error=err;project=newProject();status('⚠ Borrador incompatible; mapa nuevo')}}
  else status('Nuevo borrador');
  ensureGridConfig(!!raw);rememberFloorRefs();window.FHStyleEditor?.install({project:()=>project,current,record,modal,closeModal,toast});window.FHParkingEditor?.install({project:()=>project,current,record,modal,closeModal,toast,newId:numId,canEditAt:item=>{const p=window.FHStyleEditor;if(!p?.hasActor())return true;const a=Number(item.rotation||0)*Math.PI/180,points=[[0,0],[-.5,-.5],[.5,-.5],[-.5,.5],[.5,.5]];return points.every(([u,v])=>p.canEditAt({x:item.x+Math.cos(a)*item.w*u-Math.sin(a)*item.h*v,y:item.y+Math.sin(a)*item.w*u+Math.cos(a)*item.h*v}));},canEditItem:item=>window.FHStyleEditor?.canEditItem(item)!==false});window.FHWeatherEditor?.install({project:()=>project,record,modal,closeModal,toast});wire();refreshFloorTabs();setCategory('structure');loadedImgs=project.floors.map(()=>null);
  project.floors.forEach((_,i)=>setupImage(i));
@@ -4736,7 +4750,7 @@ function floorSightThroughOpening(f,at,target,openings){
   .replace('const GameState=createGameState(restored||DATA.initialGameState);',
     'const GameState=createGameState(restored||DATA.initialGameState);\nconst fhIncomingCharacter=DATA.__runtimeCharacter;\nif(fhIncomingCharacter?.id&&fhIncomingCharacter.life===\'alive\'){GameState.characterId=fhIncomingCharacter.id;GameState.character=structuredClone(fhIncomingCharacter);GameState.stats={...(GameState.stats||{}),...fhIncomingCharacter.scores};}')
   .replace('ForestShared.loadProject(DATA);',
-    'window.FHFurnitureRules?.upgradeMap(DATA,ForestShared);\nForestShared.loadProject(DATA);')
+    'window.FHElectricCatalog?.upgradeMap(DATA);\nwindow.FHFurnitureRules?.upgradeMap(DATA,ForestShared);\nForestShared.loadProject(DATA);')
   .replace(surfacePositionBefore,surfacePositionAfter)
   .replace(surfaceRotationBefore,surfaceRotationAfter)
   .replace(attachBefore,' window.FHAssets?.attach(g,a);\n'+attachBefore)
@@ -5040,11 +5054,11 @@ init();
 <script src="./juego/assets/fh-structure-engine-hook.js?v=20261108-architecture-load"></script>
 <script src="./juego/assets/fh-comic-action-engine-hook.js?v=20261107-comic-actions-1"></script>
 <script src="./juego/assets/fh-context-engine-hook.js?v=20261111-roof-outside1"></script>
-<script src="./juego/assets/fh-services-engine-hook.js?v=20261112-purple-pc-power-1"></script>
-<script src="./juego/assets/fh-electric-catalog.js?v=20261109-servicios-24"></script>
+<script src="./juego/assets/fh-services-engine-hook.js?v=20261112-outlet-auto-1"></script>
+<script src="./juego/assets/fh-electric-catalog.js?v=20261112-outlet-auto-1"></script>
 <script src="./juego/assets/fh-electric-strings.js?v=20261109-servicios-24"></script>
-<script src="./juego/assets/fh-electric-visuals.js?v=20261112-purple-pc-power-1"></script>
-<script src="./juego/assets/fh-electric-editor.js?v=20261109-servicios-24"></script>
+<script src="./juego/assets/fh-electric-visuals.js?v=20261112-outlet-auto-1"></script>
+<script src="./juego/assets/fh-electric-editor.js?v=20261112-outlet-auto-1"></script>
 <script src="./juego/assets/fh-water-catalog.js?v=20261109-servicios-24"></script>
 <script src="./juego/assets/fh-water-storage-catalog.js?v=20261112-agua03-menu1"></script>
 <script src="./juego/assets/fh-water-strings.js?v=20261109-servicios-24"></script>
