@@ -57,7 +57,7 @@ test('niebla distante tapa el límite y no invade el interior',()=>{
   assert.equal(s.scene.fog.near,30);
   assert.equal(s.runtime.mesh.visible,true);
   assert.equal(s.runtime.hazeLayers.length,3,'tres velos exteriores sin sprites');
-  assert.ok(s.runtime.hazeLayers.every(layer=>layer.visible));
+  assert.ok(s.runtime.hazeLayers.every(layer=>!layer.visible),'fuera se usa la niebla de distancia sin capas extra');
   assert.ok(s.runtime.mesh.material.fragmentShader.includes('uOutside'));
   assert.ok(s.runtime.mesh.material.vertexShader.includes('p.z+=.19*heightNoise'));
   s.vars.x=2;s.runtime.update(.12);
