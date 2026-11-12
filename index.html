@@ -4914,7 +4914,7 @@ function floorSightThroughOpening(f,at,target,openings){
    ["function surfaceRectsMinusVoids(f,x,y,w,h){let rects=[{x,y,w,h}];for(const cut of [...(stairVoids[f]||[]),...(courtyardVoids[f]||[])]){const next=[];for(const r of rects)next.push(...rectSubtract(r,cut));rects=next;}return rects;}",
     "function surfaceRectsMinusVoids(f,x,y,w,h){let rects=[{x,y,w,h}];for(const cut of [...(stairVoids[f]||[]),...(courtyardVoids[f]||[])]){const next=[];for(const r of rects)next.push(...rectSubtract(r,cut));rects=next;}return window.FHDrainage?.cutFloorRects(DATA,f,rects,true)||rects;}"],
    ["let groundLayer=0;for(const it of items){if(!it.inheritedCourtyard&&areaMaterials[it.type]){",
-    "let groundLayer=0;for(const it of items){if(!it.inheritedCourtyard&&areaMaterials[it.type]&&!window.FHDrainage?.isSection(it)){"],
+    "let groundLayer=0;for(const it of items){if(!it.inheritedCourtyard&&areaMaterials[it.type]&&!window.FHDrainage?.isSection(it)&&!window.FHDrainage?.isBridge(it)){"],
    [" const target=new THREE.Vector3(user.x,y+.88,user.z);",
     " const fhDrainDrop=shaft?0:(window.FHDrainage?.depthAt(DATA,currentFloor,{x:user.x/CELL,y:user.z/CELL},performance.now()*.001)||0)*CELL;\n const target=new THREE.Vector3(user.x,y+fhDrainDrop+.88,user.z);"],
    [" const desired=new THREE.Vector3(user.x+behind.x*fhCameraDistance,y+.88+fhCameraDistance*Math.tan(Math.PI/6),user.z+behind.z*fhCameraDistance);",
