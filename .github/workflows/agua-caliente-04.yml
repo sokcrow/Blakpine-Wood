@@ -1,0 +1,29 @@
+name: Agua caliente 04
+on:
+  push:
+    paths:
+      - "juego/assets/fh-water-hot.js"
+      - "juego/assets/fh-water-hot.test.js"
+      - "juego/assets/fh-water-potable.js"
+      - "juego/assets/fh-services-core.js"
+      - ".github/workflows/agua-caliente-04.yml"
+  pull_request:
+    paths:
+      - "juego/assets/fh-water-hot.js"
+      - "juego/assets/fh-water-hot.test.js"
+      - "juego/assets/fh-water-potable.js"
+      - "juego/assets/fh-services-core.js"
+      - ".github/workflows/agua-caliente-04.yml"
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: node --test juego/assets/fh-water-hot.test.js
+      - run: node --test juego/assets/fh-water-potable.test.js
+      - run: node --test tests/fh-services-core.test.js
+      - run: node --check juego/assets/fh-water-hot.js
+      - run: node --check juego/assets/fh-boilers-editor.js
