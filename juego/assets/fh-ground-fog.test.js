@@ -19,10 +19,11 @@ function mock(){
  }
  class Texture{constructor(canvas){this.image=canvas;this.needsUpdate=false}dispose(){}}
  class ThreeFog{constructor(color,near,far){this.color=color;this.near=near;this.far=far}}
- const scene={fog:null,children:[],add(item){this.children.push(item)},
+ class Color{constructor(hex){this.hex=hex}}
+ const scene={fog:null,background:new Color(0x000000),children:[],add(item){this.children.push(item)},
   remove(item){this.children=this.children.filter(x=>x!==item)}};
  return {THREE:{CanvasTexture:Texture,LinearFilter:1,Vector2:Vec2,PlaneGeometry:Geometry,
-  ShaderMaterial:Material,Mesh,Fog:ThreeFog,DoubleSide:2},
+  ShaderMaterial:Material,Mesh,Fog:ThreeFog,Color,DoubleSide:2},
   document:{createElement:()=>new Canvas()},scene};
 }
 function setup(options={}){
@@ -51,20 +52,22 @@ test('parámetros aprobados: 3 pies, 4 segundos, 65 %',()=>{
 test('niebla distante tapa el límite y no invade el interior',()=>{
  const s=setup();
  try{
-  s.runtime.update(.12);
+  s.runtime.update(.12,{fog:2});
   assert.ok(s.scene.fog);
-  assert.equal(s.scene.fog.far,44);
-  assert.equal(s.scene.fog.near,30);
+  assert.equal(s.scene.fog.far,47);
+  assert.equal(s.scene.fog.near,33);
   assert.equal(s.runtime.mesh.visible,true);
   assert.equal(s.runtime.hazeLayers.length,3,'tres velos exteriores sin sprites');
   assert.ok(s.runtime.hazeLayers.every(layer=>!layer.visible),'fuera se usa la niebla de distancia sin capas extra');
   assert.ok(s.runtime.mesh.material.fragmentShader.includes('uOutside'));
   assert.ok(s.runtime.mesh.material.vertexShader.includes('p.z+=.19*heightNoise'));
-  s.vars.x=2;s.runtime.update(.12);
+  assert.equal(s.scene.background.hex,0xffffff);
+  s.vars.x=2;s.runtime.update(.12,{fog:2});
   assert.equal(s.scene.fog,null,'interior sin niebla global');
   assert.ok(s.runtime.hazeLayers.every(layer=>layer.visible),'se ve la niebla exterior desde el interior');
-  s.vars.floor=1;s.runtime.update(.12);
+  s.vars.floor=1;s.runtime.update(.12,{fog:2});
   assert.equal(s.runtime.mesh.visible,false,'planta interior no muestra niebla de suelo');
+  assert.equal(s.scene.background.hex,0x000000,'sin exposición exterior conserva el negro');
   assert.ok(s.runtime.hazeLayers.every(layer=>!layer.visible),'sin celdas exteriores no hay velos');
   assert.equal(s.runtime.mesh.position.y,3.07);
  }finally{s.restore()}
@@ -72,7 +75,7 @@ test('niebla distante tapa el límite y no invade el interior',()=>{
 test('la ventana deja ver niebla situada fuera, sin cubrir la habitación',()=>{
  const s=setup();
  try{
-  s.vars.x=2;s.runtime.update(.12);
+  s.vars.x=2;s.runtime.update(.12,{fog:2});
   assert.equal(s.scene.fog,null);
   const layer=s.runtime.hazeLayers[0],material=layer.material;
   assert.ok(layer.visible);
@@ -85,35 +88,36 @@ test('la ventana deja ver niebla situada fuera, sin cubrir la habitación',()=>{
   assert.equal(pixel(2,6),0,'habitación sin velo');
   assert.equal(pixel(8,6),255,'zona exterior sí tiene velo');
   assert.deepEqual(s.runtime.hazeLayers.map(l=>l.position.y),[.55,1.35,2.25]);
+  const prev=material.uniforms.uStrength.value;
   s.runtime.update(.12,{fog:3});
-  assert.ok(material.uniforms.uStrength.value>.15,'clima más denso');
+  assert.ok(material.uniforms.uStrength.value>prev,'clima más denso');
  }finally{s.restore()}
 });
 test('la niebla distante termina antes del límite de visión del jugador',()=>{
  const s=setup({visionDistance:()=>20});
  try{
-  s.runtime.update(.12);
-  assert.equal(s.scene.fog.near,12);
-  assert.equal(s.scene.fog.far,17.6);
+  s.runtime.update(.12,{fog:2});
+  assert.ok(Math.abs(s.scene.fog.near-13.2)<1e-8);
+  assert.ok(Math.abs(s.scene.fog.far-18.8)<1e-8);
   assert.ok(s.runtime.mesh.material.fragmentShader.includes('uClearRadius'),'radio exacto de 3 pies en GPU');
  }finally{s.restore()}
 });
 test('la dispersión del jugador persiste y se recupera en cuatro segundos',()=>{
  const s=setup();
  try{
-  s.runtime.update(.12);
+  s.runtime.update(.12,{fog:2});
   assert.ok(maximumTrail(s.runtime)>0,'el jugador despeja alrededor de sus pies');
   s.vars.x=2;
-  for(let i=0;i<41;i++)s.runtime.update(.1);
+  for(let i=0;i<41;i++)s.runtime.update(.1,{fog:2});
   assert.equal(maximumTrail(s.runtime),0,'la estela debe cerrarse');
  }finally{s.restore()}
 });
 test('la máscara exterior y la estela se reinician entre plantas',()=>{
  const s=setup();
  try{
-  s.runtime.update(.12);
+  s.runtime.update(.12,{fog:2});
   assert.ok(maximumTrail(s.runtime)>0);
-  s.vars.floor=1;s.runtime.update(.12);
+  s.vars.floor=1;s.runtime.update(.12,{fog:2});
   assert.equal(maximumTrail(s.runtime),0);
   const mask=s.runtime.mesh.material.uniforms.uOutside.value.image.last;
   assert.ok(mask.every((value,i)=>i%4===3?value===255:value===0));
@@ -123,12 +127,66 @@ test('el shader lee máscara de visibilidad cuando está disponible',()=>{
  let current=null;
  const s=setup({sightTexture:()=>current});
  try{
-  s.runtime.update(.12);
+  s.runtime.update(.12,{fog:2});
   assert.equal(s.runtime.mesh.material.uniforms.uHasSight.value,0);
-  current={id:'fow'};s.runtime.update(.12);
+  current={id:'fow'};s.runtime.update(.12,{fog:2});
   assert.equal(s.runtime.mesh.material.uniforms.uHasSight.value,1);
   assert.equal(s.runtime.mesh.material.uniforms.uSight.value,current);
   assert.equal(s.runtime.hazeLayers[0].material.uniforms.uSight.value,current);
+ }finally{s.restore()}
+});
+test('la niebla no aparece con clima desactivado, despejado o tormenta sin fog',()=>{
+ const s=setup();
+ try{
+  const original=s.scene.background;
+  for(const weather of [null,{fog:0},{fog:0,type:'tormenta'}]){
+   s.runtime.update(.12,weather);
+   assert.equal(s.scene.fog,null);
+   assert.equal(s.scene.background,original);
+   assert.equal(s.runtime.mesh.visible,false);
+   assert.ok(s.runtime.hazeLayers.every(layer=>!layer.visible));
+   assert.equal(s.runtime.mesh.material.uniforms.uDensity.value,0);
+   assert.equal(s.runtime.hazeLayers[0].material.uniforms.uStrength.value,0);
+   assert.equal(maximumTrail(s.runtime),0);
+  }
+  s.vars.x=2;s.runtime.update(.12,{fog:0});
+  assert.equal(s.scene.background,original,'interior también mantiene su fondo habitual');
+ }finally{s.restore()}
+});
+test('densidad 1 a 3 aumenta suavemente; incluso la intensa no es una pared',()=>{
+ const s=setup();
+ try{
+  const values=[],nears=[],fars=[];
+  for(const level of [1,2,3]){
+   s.runtime.update(.12,{fog:level});
+   values.push(s.runtime.mesh.material.uniforms.uDensity.value);
+   nears.push(s.scene.fog.near);fars.push(s.scene.fog.far);
+  }
+  assert.ok(values[0]>0&&values[0]<values[1]&&values[1]<values[2]);
+  assert.ok(nears[0]>nears[1]&&nears[1]>nears[2]);
+  assert.ok(fars[0]>fars[1]&&fars[1]>fars[2]);
+  assert.ok(fars[2]>40,'el fondo no se recorta a pocos metros');
+ }finally{s.restore()}
+});
+test('inicio y fin del evento restauran el fondo y limpian las huellas',()=>{
+ const s=setup();
+ try{
+  const original=s.scene.background;
+  s.runtime.update(.12,{fog:0});
+  assert.equal(s.scene.background,original);
+  s.runtime.update(.12,{fog:2});
+  assert.equal(s.scene.background.hex,0xffffff);
+  assert.ok(maximumTrail(s.runtime)>0);
+  s.runtime.update(.12,{fog:0});
+  assert.equal(s.scene.background,original);
+  assert.equal(s.scene.fog,null);
+  assert.equal(s.runtime.mesh.visible,false);
+  assert.equal(maximumTrail(s.runtime),0);
+  s.runtime.update(.01,{fog:1});
+  assert.equal(maximumTrail(s.runtime),0,'no se reutilizan huellas de otro evento');
+  assert.ok(s.runtime.mesh.visible);
+  s.runtime.dispose();
+  assert.equal(s.scene.background,original,'dispose restaura el fondo');
  }finally{s.restore()}
 });
 test('arranque del motor carga niebla sin requerir clima habilitado',()=>{

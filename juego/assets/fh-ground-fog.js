@@ -85,7 +85,7 @@
     ' alpha*=sight;',
     ' alpha*=1.0-smoothstep(uRadius*.75,uRadius,distance(vWorld,uActor));',
     ' if(alpha<.012)discard;',
-    ' gl_FragColor=vec4(vec3(.65,.70,.72),alpha);',
+    ' gl_FragColor=vec4(vec3(.88,.91,.93),alpha);',
     '}'
    ].join('\n')
   });
@@ -131,7 +131,7 @@
     ' float alpha=uStrength*(.32+.68*fade)*sight*ripple;',
     ' alpha*=1.0-max(texture2D(uTrail,vUv).r,clear);',
     ' if(alpha<.012)discard;',
-    ' gl_FragColor=vec4(vec3(.65,.70,.72),alpha);',
+    ' gl_FragColor=vec4(vec3(.88,.91,.93),alpha);',
     '}'
    ].join('\n')
   });
@@ -146,8 +146,13 @@
    scene.add(layer);
    return layer;
   });
-  const previousFog=scene.fog;
-  const distanceFog=new THREE.Fog(0x69777d,1,2);
+  const previousFog=scene.fog,previousBackground=scene.background;
+  // El fondo claro se usa sólo con niebla meteorológica real.
+  const fogBackground=new THREE.Color(0xffffff);
+  const distanceFog=new THREE.Fog(0xffffff,1,2);
+  const fogNear=[0,.73,.66,.58],fogFar=[0,.98,.94,.89];
+  const groundDensity=[0,.42,.58,.72],hazeDensity=[0,.16,.22,.28];
+  let hasExterior=false,wasFoggy=false;
   let activeFloor=NaN,accumulator=0,clock=0,lastX=NaN,lastZ=NaN,farUsed=NaN,climateUsed=-1;
   function upload(s,source){
    const data=s.image.data;
@@ -167,7 +172,8 @@
    }
    upload(exposure,mask);exteriorMap.needsUpdate=true;
    trail.fill(0);upload(footprints,trail);trailMap.needsUpdate=true;
-   accumulator=0;lastX=lastZ=NaN;mesh.visible=open>0;
+   hasExterior=open>0;
+   accumulator=0;lastX=lastZ=NaN;mesh.visible=false;
    for(const layer of hazeLayers)layer.visible=false;
   }
   function stamp(x,z){
@@ -200,29 +206,37 @@
    if(f!==activeFloor){activeFloor=f;loadFloor();}
    const position=actor?.()||{x:0,z:0},x=finite(position.x,0),z=finite(position.z,0);
    const outside=isOutside?.(x,z)===true;
-   // Al aire libre scene.fog ya dibuja la distancia: evitar sobrecoste y doble niebla.
-   for(const layer of hazeLayers)layer.visible=mesh.visible&&!outside;
+   const climate=clamp(Math.floor(finite(weather?.fog,0)),0,3);
+   const foggy=climate>0&&hasExterior;
+   // El exterior no activa niebla por sí mismo: depende del clima.
+   mesh.visible=foggy;
+   for(const layer of hazeLayers)layer.visible=foggy&&!outside;
+   scene.background=foggy?fogBackground:previousBackground;
+   if(foggy!==wasFoggy){
+    trail.fill(0);upload(footprints,trail);trailMap.needsUpdate=true;
+    accumulator=0;lastX=lastZ=NaN;wasFoggy=foggy;
+   }
    const seconds=clamp(finite(dt,0),0,.25);
-   accumulator+=seconds;clock+=seconds;
+   accumulator=foggy?accumulator+seconds:0;clock+=seconds;
    const baseY=finite(floorY?.(),0);
    mesh.position.y=baseY+.07;
    for(let i=0;i<hazeLayers.length;i++)hazeLayers[i].position.y=baseY+hazeHeights[i];
    uniforms.uActor.value.set(x,z);uniforms.uTime.value=clock;
    const sight=typeof sightTexture==='function'?sightTexture():sightTexture;
    uniforms.uSight.value=sight;uniforms.uHasSight.value=sight?1:0;
-   const climate=clamp(Math.floor(finite(weather?.fog,0)),0,3);
-   hazeUniforms.uStrength.value=.15+climate*.025;
+   uniforms.uDensity.value=cfg.density*groundDensity[climate];
+   hazeUniforms.uStrength.value=hazeDensity[climate];
    const cameraFar=finite(camera?.far,Math.hypot(maxX,maxZ));
    const requested=typeof visionDistance==='function'?visionDistance():visionDistance;
    const limit=Number.isFinite(requested)&&requested>0?Math.min(cameraFar,requested):cameraFar;
    const far=Math.max(10,limit);
    if(farUsed!==far||climateUsed!==climate){
     farUsed=far;climateUsed=climate;
-    distanceFog.near=far*(.60-climate*.065);
-    distanceFog.far=far*(.88-climate*.075);
+    distanceFog.near=far*fogNear[climate];
+    distanceFog.far=far*fogFar[climate];
    }
-   scene.fog=outside?distanceFog:previousFog;
-   if(accumulator>=.1){
+   scene.fog=foggy&&outside?distanceFog:previousFog;
+   if(foggy&&accumulator>=.1){
     updateTrail(accumulator,x,z,outside);accumulator=0;
    }
   }
@@ -230,6 +244,7 @@
    scene.remove(mesh);
    for(const layer of hazeLayers)scene.remove(layer);
    if(scene.fog===distanceFog)scene.fog=previousFog;
+   if(scene.background===fogBackground)scene.background=previousBackground;
    geometry.dispose();material.dispose();hazeMaterial.dispose();
    exteriorMap.dispose();trailMap.dispose();
   }
