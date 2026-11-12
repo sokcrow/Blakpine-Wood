@@ -8,6 +8,7 @@
  };
  function patch(doc){
   const base=new URL('./juego/assets/',root.document.baseURI).href;
+  const potable='<script src="'+base+'fh-water-potable.js?v=20261112-potable-01"></'+'script>';
   const core='<script src="'+base+'fh-services-core.js?v=20261111-wall-wiring-overlay-1"></'+'script>';
   const exteriorCore='<script src="'+base+'fh-exterior-grid.js?v=20261111-pole-collision-1"></'+'script>';
    const exteriorVisual='<script src="'+base+'fh-exterior-visuals.js?v=20261111-exterior-03"></'+'script>';
@@ -21,7 +22,7 @@
   const miniStrings='<script src="'+base+'fh-repair-minigames-strings.js?v=20261111-repair-1"></'+'script>';
   const miniCss='<link rel="stylesheet" href="'+base+'fh-repair-minigames.css?v=20261111-repair-1">';
   const miniHud='<script src="'+base+'fh-repair-minigames.js?v=20261111-repair-1"></'+'script>';
-  doc=doc.slice(0,outerHead)+exteriorCore+exteriorVisual+core+strings+miniCore+miniStrings+miniCss+miniHud+doc.slice(outerHead);
+  doc=doc.slice(0,outerHead)+exteriorCore+exteriorVisual+potable+core+strings+miniCore+miniStrings+miniCss+miniHud+doc.slice(outerHead);
 
   const pc='window.FHComputerRuntime=window.FHComputer?.createRuntime({';
   const pcOptions=[
