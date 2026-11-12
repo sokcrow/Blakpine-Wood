@@ -267,7 +267,7 @@ test('renderizador Three: animación UV, reja y lámina inundada visibles solo b
 });
 test('integración motor: la corriente usa walk nativo y el cambio de piso conserva juego',()=>{
  const html=fs.readFileSync(path.join(__dirname,'../../index.html'),'utf8');
- for(const code of ['FHDrainage?.createRuntime','FHDrainage?.walkFactor','fhDrainageRuntime?.update','walk(dx*CELL,dy*CELL,true)',
+ for(const code of ['FHDrainage?.createRuntime','FHDrainage?.walkFactor','window.FHDrainageRuntime?.update','walk(dx*CELL,dy*CELL,true)',
    'changeFloor(exit.floorIndex)','makeSpawnSafe();','FH_DRAIN_TEXT?.vortexMove']){
   assert.ok(html.includes(code),'Falta adaptador de gameplay: '+code);
  }
