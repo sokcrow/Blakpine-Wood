@@ -140,9 +140,10 @@ test('fachada superior: puerta simple muestra hoja y marco GLB auténticos',asyn
   const clone=source.clone(true);clone.userData.fhOcclusionRoot=true;facade.add(clone);return {source,clone,f:floor,item};
  });
  const initial=proxies.map(p=>p.clone);let calls=0;
- api.decorateDoor(door,item,THREE,()=>{},()=>{
+ api.bindDoorFacade(door,()=>{
   calls++;assert.equal(api.syncExteriorDoorFacade({floor,item,door,proxies}),2);
  });
+ api.decorateDoor(door,item,THREE,()=>{});
  await new Promise(setImmediate);
  assert.equal(door.skinId,'puerta_madera');assert.equal(calls,1);
  assert.equal(proxies[0].clone,initial[0]);assert.equal(proxies[1].clone,initial[1]);
@@ -337,7 +338,8 @@ test('el hook valida anclas y preserva el comportamiento original del motor',()=
   'function doorTarget(d){return 1.20;}\n'+
   'function doorModel(f,it){applyDoorPose(d);doorList[f].push(d);return d;}</scr'+'ipt></body></html>';
  const result=api.patchEngineDoc(fixture);
- assert.match(result,/FHArchitectureSkins\?\.decorateDoor\(d,it,THREE,installVisibility,\(\)=>window\.FHArchitectureSkins\?\.syncExteriorDoorFacade/);
+ assert.match(result,/FHArchitectureSkins\?\.bindDoorFacade\(d,\(\)=>window\.FHArchitectureSkins\?\.syncExteriorDoorFacade/);
+ assert.match(result,/FHArchitectureSkins\?\.decorateDoor\(d,it,THREE,installVisibility\);return d;/);
  assert.match(result,/FHArchitectureSkins\?\.decorateWindow/);
  assert.match(result,/onReady:models=>window\.FHArchitectureSkins\?\.syncExteriorWindowFacade/);
  assert.match(result,/function doorTarget\(d\)\{return 1.20;\}/);
@@ -366,7 +368,9 @@ test('regresión: el motor REAL contiene varias etiquetas de cierre de head y ac
  const realHtml=Buffer.from(globals.window.__FOREST_EMBEDDED_ENGINE__,'base64').toString('utf8');
  assert.ok((realHtml.match(/<\/head>/g)||[]).length>1,'el caso original tiene cierres repetidos en strings');
  const patched=api.patchEngineDoc(realHtml);
- assert.ok(patched.includes('FHArchitectureSkins?.decorateDoor(d,it,THREE,installVisibility,()=>window.FHArchitectureSkins?.syncExteriorDoorFacade'));
+ assert.ok(patched.includes('FHArchitectureSkins?.bindDoorFacade(d,()=>window.FHArchitectureSkins?.syncExteriorDoorFacade'));
+ assert.ok(patched.includes('FHArchitectureSkins?.decorateDoor(d,it,THREE,installVisibility);return d;'));
+ // El hook de PG depende de este contrato; no alterar la invocación de decorateDoor.
  assert.ok(patched.includes('FHArchitectureSkins?.decorateWindow({it,THREE,container:stories[f]'));
  assert.ok(patched.includes("d.family==='double'&&i===1?-d.angle:d.angle"));
  const injected='<script src="https://example.test/juego/assets/fh-architecture-skins.js"></script>';
