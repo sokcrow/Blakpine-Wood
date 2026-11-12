@@ -11,6 +11,11 @@ const libraryBase=new URL('../../forest-horror/biblioteca/arquitectura/',scriptU
 const safeModel=/^(puerta_madera|puerta_metal|puerta_mirilla|puerta_cristal_simple|puerta_cristal_antipanico|puerta_cristal_tintada|puerta_electronica_opaca|puerta_electronica_reja|teclado_pin|lector_tarjeta|ventana_clasica|ventana_dividida)$/;
 const electronicDoors=new Set(['puerta_electronica_opaca','puerta_electronica_reja']);
 const loaded=new Map();
+// Evitar alterar la firma del hook de PG estructurales: asociar por referencia.
+const doorFacadeCallbacks=new WeakMap();
+function bindDoorFacade(door,refresh){
+ if(door&&typeof door==='object'&&typeof refresh==='function')doorFacadeCallbacks.set(door,refresh);
+}
 let loaderPromise=null;
 
 function chooseDoor(d,it){
@@ -135,6 +140,7 @@ function mountAccessDevice(fixed,it,THREE,sightMask,d,onVisualChange){
 }
 function decorateDoor(d,it,THREE,sightMask,onVisualChange){
  const model=chooseDoor(d,it);if(!model)return;
+ const notifyFacade=()=>{onVisualChange?.();doorFacadeCallbacks.get(d)?.();};
  const double=d.family==='double',count=double?2:1;
  if(!Array.isArray(d.animated)||d.animated.length!==count||!d.frame?.parent||!d.hinge?.parent)return;
  const parts=d.animated;
@@ -171,13 +177,13 @@ function decorateDoor(d,it,THREE,sightMask,onVisualChange){
   const originalFrame=double?[]:d.frame.children.slice();
   parts.forEach((part,i)=>part.group.add(leaves[i]));
   for(const fixed of frames)d.frame.add(fixed);
-  if(!double&&electronicDoors.has(model)&&frames[0])mountAccessDevice(frames[0],it,THREE,sightMask,d,onVisualChange);
+  if(!double&&electronicDoors.has(model)&&frames[0])mountAccessDevice(frames[0],it,THREE,sightMask,d,notifyFacade);
   for(const original of originalLeaves)for(const visual of original)hideLegacyVisual(visual);
   // Con una 'T' o pared divisoria se dibujan dos puertas independientes:
   // cada puerta simple conserva su marco completo.
   for(const visual of originalFrame)hideLegacyVisual(visual);
   d.skinId=model;
-  onVisualChange?.(); // También renovar las fachadas cuando termina el GLB.
+  notifyFacade(); // También renovar las fachadas cuando termina el GLB.
  }).catch(error=>reportFailure(model,error));
 }
 function decorateWindow(args){
@@ -262,7 +268,7 @@ function one(source,anchor,replacement){
 function patchEngineDoc(doc){
  if(typeof doc!=='string')throw new TypeError('Se requiere documento HTML del motor 3D');
  let out=one(doc,'applyDoorPose(d);doorList[f].push(d);return d;',
-  'applyDoorPose(d);doorList[f].push(d);window.FHArchitectureSkins?.decorateDoor(d,it,THREE,installVisibility,()=>window.FHArchitectureSkins?.syncExteriorDoorFacade({floor:f,item:it,door:d,proxies:exteriorProxies}));return d;');
+  'applyDoorPose(d);doorList[f].push(d);window.FHArchitectureSkins?.bindDoorFacade(d,()=>window.FHArchitectureSkins?.syncExteriorDoorFacade({floor:f,item:it,door:d,proxies:exteriorProxies}));window.FHArchitectureSkins?.decorateDoor(d,it,THREE,installVisibility);return d;');
  // Dos bisagras espejadas: la segunda gira en sentido contrario para abrir al mismo lado del muro.
  out=one(out,'else for(const part of d.animated)part.group.rotation.y=part.base+d.angle;',
   "else for(let i=0;i<d.animated.length;i++){const part=d.animated[i];part.group.rotation.y=part.base+(d.family==='double'&&i===1?-d.angle:d.angle);}");
@@ -281,6 +287,6 @@ function patchEngineDoc(doc){
  // el primer cierre HTML real, sin exigir exclusividad global del texto.
  return out.slice(0,headEnd)+script+out.slice(headEnd);
 }
-global.FHArchitectureSkins=Object.freeze({chooseDoor,chooseWindow,splitWindow,accessDeviceId,decorateDoor,decorateWindow,patchEngineDoc,load,syncExteriorWindowFacade,syncExteriorDoorFacade});
+global.FHArchitectureSkins=Object.freeze({chooseDoor,chooseWindow,splitWindow,accessDeviceId,decorateDoor,decorateWindow,patchEngineDoc,load,syncExteriorWindowFacade,syncExteriorDoorFacade,bindDoorFacade});
 })(window);
 
