@@ -4805,15 +4805,16 @@ function floorSightThroughOpening(f,at,target,openings){
    ['const tex={},loader=new THREE.TextureLoader();',insert+'\nconst tex={},loader=new THREE.TextureLoader();'],
    ['fhDeliveryNpcTick(dt);','fhDeliveryNpcTick(dt);fhHorror?.tick(window.FHWeatherCore?.absoluteMinute(GameState.clock)??GameState.clock?.minutes,dt,{floor:currentFloor,x:user.x,z:user.z,sleeping:window.FHSleep?.status()?.stage===\'asleep\',inactive:!GameState.character||GameState.character.life===\'dead\'||!!window.FHSurvivalRuntime?.state?.critical});'],
    ['if(!roomLightsDirty&&now-lastRoomLighting<300)return;','if(!roomLightsDirty&&now-lastRoomLighting<(now<fhHorrorFlickerUntil?70:300))return;'],
-   ['ambient.intensity=powered?.37:.075;','ambient.intensity=powered?(fhHorrorLightsFail(now)?.075:.37):.075;'],
+   ['ambient.intensity=.37;','ambient.intensity=fhHorrorLightsFail(now)?.075:.37;'],
    ['const lit=lighting.fixtureLit(entry.floor,entry.room,entry.lamp);','const lit=lighting.fixtureLit(entry.floor,entry.room,entry.lamp)&&!fhHorrorLightsFail();'],
    ['light.intensity=entry?1.58:0;','light.intensity=entry?(fhHorrorLightsFail()?0.05:1.58):0;'],
    ['const flicker=lighting.flicker(now);','const flicker=lighting.flicker(now)||fhHorrorLightsFail(now);'],
    ['lighting.range(currentFloor,room,!lighting.flicker(performance.now()))','lighting.range(currentFloor,room,!lighting.flicker(performance.now())&&!fhHorrorLightsFail())'],
+   ['params.sources=window.FHLights.sourcesNear(roomLampEntries,lighting,currentFloor,at.x,at.z,LOOK_RADIUS,10);','params.sources=fhHorrorLightsFail()?[]:window.FHLights.sourcesNear(roomLampEntries,lighting,currentFloor,at.x,at.z,LOOK_RADIUS,10);'],
    ['params.sources=lighting.sourcesNear(roomLampEntries,currentFloor,at.x,at.z,LOOK_RADIUS,7.2,4);','params.sources=fhHorrorLightsFail()?[]:lighting.sourcesNear(roomLampEntries,currentFloor,at.x,at.z,LOOK_RADIUS,7.2,4);']
   ];
   for(const [before,after] of patches){
-   const count=doc.split(before).length-1,expected=before.startsWith('params.sources=')?2:1;
+   const count=doc.split(before).length-1,expected=1;
    if(count!==expected)throw Error('Hook Sombras incompatible ('+count+'/'+expected+'): '+before.slice(0,85));
    doc=doc.split(before).join(after);
   }
@@ -5142,10 +5143,10 @@ init();
 <script src="./juego/assets/fh-structure-engine-hook.js?v=20261108-architecture-load"></script>
 <script src="./juego/assets/fh-comic-action-engine-hook.js?v=20261107-comic-actions-1"></script>
 <script src="./juego/assets/fh-context-engine-hook.js?v=20261112-hud-foot-hold-1"></script>
-<script src="./juego/assets/fh-services-engine-hook.js?v=20261112-double-outlet-only-1"></script>
+<script src="./juego/assets/fh-services-engine-hook.js?v=20261112-double-outlet-only-1&fix=20261112-no-overlay-1"></script>
 <script src="./juego/assets/fh-electric-catalog.js?v=20261112-duplex-uv-1"></script>
 <script src="./juego/assets/fh-electric-strings.js?v=20261109-servicios-24"></script>
-<script src="./juego/assets/fh-electric-visuals.js?v=20261112-duplex-uv-1"></script>
+<script src="./juego/assets/fh-electric-visuals.js?v=20261112-no-overlay-1"></script>
 <script src="./juego/assets/fh-electric-editor.js?v=20261112-duplex-uv-1"></script>
 <script src="./juego/assets/fh-water-catalog.js?v=20261109-servicios-24"></script>
 <script src="./juego/assets/fh-water-storage-catalog.js?v=20261112-agua03-menu1"></script>

@@ -132,19 +132,21 @@ test('apagón sobrenatural anula linterna y fuentes de la máscara de visión',(
   'const tex={},loader=new THREE.TextureLoader();',
   'fhDeliveryNpcTick(dt);',
   'if(!roomLightsDirty&&now-lastRoomLighting<300)return;',
-  'ambient.intensity=powered?.37:.075;',
+  'ambient.intensity=.37;',
   'const lit=lighting.fixtureLit(entry.floor,entry.room,entry.lamp);',
   'light.intensity=entry?1.58:0;',
   'const flicker=lighting.flicker(now);',
   'lighting.range(currentFloor,room,!lighting.flicker(performance.now()))',
-  'params.sources=lighting.sourcesNear(roomLampEntries,currentFloor,at.x,at.z,LOOK_RADIUS,7.2,4);',
+  'params.sources=window.FHLights.sourcesNear(roomLampEntries,lighting,currentFloor,at.x,at.z,LOOK_RADIUS,10);',
   'params.sources=lighting.sourcesNear(roomLampEntries,currentFloor,at.x,at.z,LOOK_RADIUS,7.2,4);'
  ];
  const result=patch('<head></head><script>function verify(){'+originals.join('\n')+'}</script>');
  assert.ok(result.includes('lighting.range(currentFloor,room,!lighting.flicker(performance.now())&&!fhHorrorLightsFail())'));
- const masked='params.sources=fhHorrorLightsFail()?[]:lighting.sourcesNear';
+ const masked='params.sources=fhHorrorLightsFail()?[]:';
  assert.equal(result.split(masked).length-1,2);
+ assert.ok(result.includes('ambient.intensity=fhHorrorLightsFail(now)?.075:.37;'));
  assert.equal(result.split('params.sources=lighting.sourcesNear').length-1,0);
+ assert.equal(result.split('params.sources=window.FHLights.sourcesNear').length-1,0);
  const src=result.match(/<script>([\s\S]*?)<\/script>/)[1];
  assert.doesNotThrow(()=>new Function(src));
 });

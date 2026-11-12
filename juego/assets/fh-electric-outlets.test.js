@@ -185,13 +185,48 @@ test('los ocho GLB eléctricos reales se analizan y sustituyen el provisional so
  const outletURL=new URL(requests.find(url=>url.includes('enchufe_doble.glb')));
  assert.equal(outletURL.searchParams.get('v'),'20261112-duplex-uv-1','renueva el GLB anterior en caché');
 });
+test('el GLB del enchufe elimina el mueble libre superpuesto aunque el registro solo conserve el provisional',async()=>{
+ const {THREE,api}=visualEnvironment(),fx=fixture(),sys=fx.create();
+ const story=new THREE.Group(),rendered=new Map();
+ const free=new THREE.Mesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshStandardMaterial());
+ free.userData.fhItemId=fx.outlet.id;
+ const service=new THREE.Mesh(new THREE.BoxGeometry(.2,.2,.2),new THREE.MeshStandardMaterial());
+ service.userData.fhServiceItem=fx.outlet.id;
+ const neighbor=new THREE.Mesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshStandardMaterial());
+ neighbor.userData.fhItemId='vecino';
+ story.add(free,service,neighbor);
+ // La infraestructura registraba sólo su último placeholder: el mueble quedó sin registrar.
+ rendered.set(fx.outlet.id,[{root:service}]);
+ const [entry]=api.install({THREE,DATA:{floors:[{items:[fx.wall,fx.outlet]}]},CELL:1.524,stories:[story],renderedByItem:[rendered],
+  ForestShared:shared(),applyFOW(){}});
+ for(let i=0;i<20&&entry.root.userData.fhModelState!=='ready';i++)await settle();
+ assert.equal(entry.meta.id,'enchufe_doble');
+ assert.equal(entry.root.userData.fhModelState,'ready');
+ assert.equal(free.parent,null,'retira la representación anterior de mueble libre');
+ assert.equal(service.parent,null,'retira el provisional de servicios');
+ assert.equal(neighbor.parent,story,'no elimina otros muebles');
+ assert.equal(story.children.length,2,'solo GLB y mueble vecino');
+ assert.equal(rendered.get(fx.outlet.id)[0].root,entry.root);
+ assert.equal(sys.statusFor(0,fx.outlet).slotCapacity,2);
+ assert.equal(sys.statusFor(0,fx.pc).power.powered,true);
+});
+test('el adaptador de servicios reutiliza la malla existente del enchufe en vez de colocar otra encima',()=>{
+ const code=source('fh-services-engine-hook.js');
+ const section=code.slice(code.indexOf("'const fhServicesVisuals=[];'"),code.indexOf("'function fhServicesSyncVisuals(){'"));
+ assert.ok(section.includes('if(it.type==="power_outlet")'));
+ assert.ok(section.indexOf('const existing=renderedByItem[f]?.get?.(it.id)')>=0);
+ assert.ok(section.indexOf('const existing=renderedByItem[f]?.get?.(it.id)')<section.indexOf('const mat=new THREE.MeshStandardMaterial'));
+});
 test('si falla el GLB del enchufe conserva el provisional morado y su identificación eléctrica',async()=>{
  const {THREE,api}=visualEnvironment({fail:true}),fx=fixture(),sys=fx.create();
  const story=new THREE.Group(),old=new THREE.Mesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshStandardMaterial({map:new THREE.Texture()}));
- story.add(old);const rendered=new Map([[fx.outlet.id,[{root:old}]]]);
- const entries=api.install({THREE,DATA:fx.project,CELL:1.524,stories:[story],renderedByItem:[rendered],ForestShared:shared(),applyFOW(){}});
+ const free=new THREE.Mesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshStandardMaterial());
+ free.userData.fhItemId=fx.outlet.id;
+ story.add(free,old);const rendered=new Map([[fx.outlet.id,[{root:old}]]]);
+ const entries=api.install({THREE,DATA:{floors:[{items:[fx.wall,fx.outlet]}]},CELL:1.524,stories:[story],renderedByItem:[rendered],ForestShared:shared(),applyFOW(){}});
  await settle();
  assert.equal(entries[0].root.userData.fhModelState,'error');assert.equal(old.parent,story);
+ assert.equal(free.parent,story,'si el GLB falla, no retirar el mueble previo');
  assert.equal(old.material.color.getHex(),0xb000ff);assert.equal(old.material.map,null);
  assert.equal(fx.outlet.type,'power_outlet');assert.equal(sys.statusFor(0,fx.pc).power.powered,true);
 });

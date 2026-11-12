@@ -104,10 +104,16 @@
    const floor=DATA.floors[f],items=floor.items||[];
    for(const it of items){
     const meta=choose(it);if(!meta)continue;
-    for(const entry of renderedByItem[f]?.get?.(it.id)||[])global.FHAssets?.markPlaceholder(entry.root||entry,applyFOW);
-    const pose=mountPose(it,meta,items,CELL,ForestShared,floor.ceilingHeightFt);if(!pose){console.warn('[Electricidad 01] Sin pared estructural para',meta.id,it.id);continue;}
     const existing=renderedByItem[f]?.get?.(it.id)||[];
-    const old=existing.map(p=>p.root||p).filter(Boolean);
+    // El puente de servicios puede haber sustituido el registro de una malla anterior.
+    // Retirar únicamente las representaciones de este mismo objeto, no muebles vecinos.
+    const previous=new Set(existing.map(p=>p.root||p).filter(Boolean));
+    for(const node of stories[f]?.children||[]){
+     if(node?.userData?.fhItemId===it.id||node?.userData?.fhServiceItem===it.id)previous.add(node);
+    }
+    const old=[...previous];
+    for(const node of old)global.FHAssets?.markPlaceholder(node,applyFOW);
+    const pose=mountPose(it,meta,items,CELL,ForestShared,floor.ceilingHeightFt);if(!pose){console.warn('[Electricidad 01] Sin pared estructural para',meta.id,it.id);continue;}
     const root=new THREE.Group();root.name='FH_ELECTRIC_'+it.id;root.userData.fhServiceItem=it.id;
     root.position.set(pose.x,pose.y,pose.z);root.rotation.y=pose.rotation;
     stories[f]?.add(root);
@@ -116,7 +122,12 @@
      if(!root.parent)return;
      const instance=scene.clone(true);if(typeof applyFOW==='function')applyFOW(instance);
      root.add(instance);root.userData.fhModelState='ready';
-     for(const node of old)if(node.parent&&node!==root)node.parent.remove(node);
+     // Una malla de muebles puede llegar después de iniciar la carga asíncrona.
+     const outdated=new Set(old);
+     for(const node of stories[f]?.children||[]){
+      if(node!==root&&(node?.userData?.fhItemId===it.id||node?.userData?.fhServiceItem===it.id))outdated.add(node);
+     }
+     for(const node of outdated)if(node.parent&&node!==root)node.parent.remove(node);
      renderedByItem[f]?.set?.(it.id,[{root}]);
     }).catch(error=>{
      root.userData.fhModelState='error';
@@ -141,7 +152,7 @@
   doc=once(doc,'function useFurniture(item,selectedSeat=null){',
    'function useFurniture(item,selectedSeat=null){\n if(window.FHElectricVisuals?.onUse(item,currentFloor,window.FHServicesRuntime,notice,user.x/CELL,user.z/CELL))return;');
   const rootUrl=new URL('./juego/assets/',global.document?.baseURI||'https://localhost/');
-  const scripts=['fh-electric-catalog.js?v=20261112-duplex-uv-1','fh-electric-strings.js','fh-electric-meter-hud.js','fh-electric-visuals.js?v=20261112-outlet-auto-1'].map(p=>
+  const scripts=['fh-electric-catalog.js?v=20261112-duplex-uv-1','fh-electric-strings.js','fh-electric-meter-hud.js','fh-electric-visuals.js?v=20261112-no-overlay-1'].map(p=>
    '<script src="'+new URL(p,rootUrl).href+'"></scr'+'ipt>').join('');
   const where=doc.indexOf('</head>');if(where<0)throw Error('Electricidad 01: falta la cabecera del motor');
   return doc.slice(0,where)+scripts+doc.slice(where);
