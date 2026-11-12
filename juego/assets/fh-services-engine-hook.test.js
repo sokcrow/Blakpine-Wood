@@ -150,3 +150,24 @@ test('editor: selección de habitación, prioridad y circuito completo se export
  const whole=group.children[1];whole.children[0].children[0].checked=true;whole.children[0].children[0].onchange();
  assert.equal(item.targets.length,1);assert.equal(item.targets[0].roomId,undefined,'circuito completo reemplaza sus habitaciones');
 });
+
+test('el motor 3D compone el puente de Agua y monta los GLB en la escena del mapa',()=>{
+ const win={document:{baseURI:'https://example.org/blakpine/index.html',
+  currentScript:{src:'https://example.org/blakpine/juego/assets/fh-water-visuals.js'}}};
+ const context={window:win,URL};
+ vm.runInNewContext(fs.readFileSync(path.join(__dirname,'fh-water-visuals.js'),'utf8'),context);
+ vm.runInNewContext(hookSource,context);
+ const engine=win.FHServicesEngine.patch(exampleEngine());
+ const url='https://example.org/blakpine/juego/assets/';
+ assert.match(engine,/const fhWaterVisuals=window\.FHWaterVisuals\?\.install\(/,
+  'El motor debe montar los GLB, no solo cargar el catálogo');
+ for(const asset of ['fh-boilers-catalog.js','fh-water-storage-catalog.js','fh-water-visuals.js']){
+  assert.ok(engine.includes(url+asset),asset+' se carga en la cabecera del iframe');
+ }
+ const hook=engine.indexOf('const fhWaterVisuals=window.FHWaterVisuals?.install(');
+ const update=engine.indexOf('function fhServicesSyncVisuals(){');
+ assert.ok(hook>=0&&hook<update,'el montaje debe ejecutarse antes del ciclo del motor');
+ const scripts=[...engine.matchAll(/<script(?:\\s[^>]*)?>([\\s\\S]*?)<\\/script>/g)];
+ assert.ok(scripts.length>0);
+ for(const script of scripts)assert.doesNotThrow(()=>new vm.Script(script[1]));
+});
