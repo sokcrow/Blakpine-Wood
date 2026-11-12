@@ -2162,7 +2162,7 @@ function normalizeCells(cells){const seen=new Set(),out=[];for(const cell of cel
 function createAreaFromCells(type,cells,label=''){cells=normalizeCells(cells);let xs=cells.map(c=>c.x),ys=cells.map(c=>c.y),minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);return {id:numId(),type,x:minX,y:minY,w:maxX-minX+1,h:maxY-minY+1,cells,label:label||SHORT[type],apartmentId:'',blocksViewOutside:type==='room',roomId:sanitizeId(label||SHORT[type])}}
 function areaHasPoint(it,p){if(it.spans?.length)return it.spans.some(v=>p.x>=v.x&&p.x<=v.x+v.w&&p.y>=v.y&&p.y<=v.y+v.h);if(it.cells?.length){const cx=Math.floor(p.x),cy=Math.floor(p.y);return it.cells.some(c=>c.x===cx&&c.y===cy)}return p.x>=it.x&&p.x<=it.x+it.w&&p.y>=it.y&&p.y<=it.y+it.h}
 function areaCenter(it){if(it.cells?.length){let sx=0,sy=0;for(const c of it.cells){sx+=c.x+.5;sy+=c.y+.5}return {x:sx/it.cells.length,y:sy/it.cells.length}}return {x:it.x+it.w/2,y:it.y+it.h/2}}
-function buildWallBarrierSets(){const vertical=new Set(),horizontal=new Set();for(const it of current().items){if(!['wall','red_wall','property_wall','half_wall','fence'].includes(it.type))continue;const x1=it.a.x,y1=it.a.y,x2=it.b.x,y2=it.b.y;if(Math.abs(y1-y2)<=.06){const y=Math.round((y1+y2)/2),lo=Math.min(x1,x2),hi=Math.max(x1,x2);for(let x=Math.floor(lo+1e-6);x<=Math.ceil(hi-1e-6)-1;x++)horizontal.add(`${x},${y}`)}else if(Math.abs(x1-x2)<=.06){const x=Math.round((x1+x2)/2),lo=Math.min(y1,y2),hi=Math.max(y1,y2);for(let y=Math.floor(lo+1e-6);y<=Math.ceil(hi-1e-6)-1;y++)vertical.add(`${x},${y}`)}}return {vertical,horizontal}}
+function buildWallBarrierSets(){const vertical=new Set(),horizontal=new Set();for(const it of current().items){if(!['wall','red_wall','property_wall','half_wall','fence'].includes(it.type)||(it.type==='fence'&&it.barrierKind))continue;const x1=it.a.x,y1=it.a.y,x2=it.b.x,y2=it.b.y;if(Math.abs(y1-y2)<=.06){const y=Math.round((y1+y2)/2),lo=Math.min(x1,x2),hi=Math.max(x1,x2);for(let x=Math.floor(lo+1e-6);x<=Math.ceil(hi-1e-6)-1;x++)horizontal.add(`${x},${y}`)}else if(Math.abs(x1-x2)<=.06){const x=Math.round((x1+x2)/2),lo=Math.min(y1,y2),hi=Math.max(y1,y2);for(let y=Math.floor(lo+1e-6);y<=Math.ceil(hi-1e-6)-1;y++)vertical.add(`${x},${y}`)}}return {vertical,horizontal}}
 function detectClosedCellsAt(pos){const cols=project.units.columns,rows=project.units.rows,sx=Math.floor(pos.x),sy=Math.floor(pos.y);if(sx<0||sy<0||sx>=cols||sy>=rows)return null;const {vertical,horizontal}=buildWallBarrierSets();const q=[[sx,sy]],seen=new Set([`${sx},${sy}`]),cells=[];let leaks=false;while(q.length){const [x,y]=q.shift();cells.push({x,y});const step=(nx,ny,blocked)=>{if(blocked)return;if(nx<0||ny<0||nx>=cols||ny>=rows){leaks=true;return}const k=`${nx},${ny}`;if(!seen.has(k)){seen.add(k);q.push([nx,ny])}};step(x+1,y,vertical.has(`${x+1},${y}`));step(x-1,y,vertical.has(`${x},${y}`));step(x,y+1,horizontal.has(`${x},${y+1}`));step(x,y-1,horizontal.has(`${x},${y}`))}if(leaks||!cells.length)return null;return normalizeCells(cells)}
 function promptCreateAutoRoom(pos){const cells=detectClosedCellsAt(pos);if(!cells){toast('No se detectó un contorno cerrado aquí');return}const existing=current().items.find(it=>AREA_TYPES.has(it.type)&&areaHasPoint(it,pos));if(existing){selection=existing.id;openInspector();render();toast('Esta zona ya tiene un área');return}const suggested=`Habitación ${current().items.filter(it=>it.type==='room').length+1}`;modal(`<h2>Nueva habitación</h2><p>Se detectó un espacio cerrado de <b>${cells.length}</b> casillas. Puedes nombrarlo y usarlo después para colocar muebles o rellenarlo proceduralmente.</p><div class="line"><label>Nombre<input id="roomNameInput" type="text" value="${suggested}"></label><label>ID habitación<input id="roomIdInput" type="text" value="${sanitizeId(suggested)}"></label></div><label>ID apartamento (opcional)<input id="aptRoomInput" type="text" placeholder="apt_2b"></label><div class="tip">Si cambias el nombre, el ID puede actualizarse solo. Luego puedes editarlo manualmente desde propiedades.</div><div class="actions"><button class="primary" id="saveRoomAuto">Crear habitación</button><button id="cancelRoomAuto">Cancelar</button></div>`,()=>{const nameEl=$('#roomNameInput'),idEl=$('#roomIdInput');nameEl.oninput=()=>{if(!idEl.dataset.manual)idEl.value=sanitizeId(nameEl.value)};idEl.oninput=()=>idEl.dataset.manual='1';$('#cancelRoomAuto').onclick=closeModal;$('#saveRoomAuto').onclick=()=>{const label=nameEl.value.trim()||suggested;const area=createAreaFromCells('room',cells,label);area.roomId=idEl.value.trim()||sanitizeId(label);area.apartmentId=$('#aptRoomInput').value.trim();closeModal();addItem(area);selection=area.id;openInspector();toast(`Habitación creada: ${label}`)}})}
 
@@ -2279,7 +2279,7 @@ function normalizeArchitecture(index){const f=project.floors[index],portals=f.it
  }
  walls=repainted;
  // Fuse collinear or overlapping wall-like segments of the same type, not windows or doors.
- function together(a,b){if(a.type!==b.type||JSON.stringify(a.finish||null)!==JSON.stringify(b.finish||null))return null;if((a.finish||b.finish)&&((a.b.x-a.a.x)*(b.b.x-b.a.x)+(a.b.y-a.a.y)*(b.b.y-b.a.y))<=0)return null;let va=vec(a.a,a.b),vb=vec(b.a,b),la=Math.hypot(va.x,va.y),lb=Math.hypot(vb.x,vb.y);if(la<.05||lb<.05)return null;
+ function together(a,b){if(a.type!==b.type||JSON.stringify(a.finish||null)!==JSON.stringify(b.finish||null)||(a.type==='fence'&&(a.barrierKind!==b.barrierKind||a.heightFt!==b.heightFt)))return null;if((a.finish||b.finish)&&((a.b.x-a.a.x)*(b.b.x-b.a.x)+(a.b.y-a.a.y)*(b.b.y-b.a.y))<=0)return null;let va=vec(a.a,a.b),vb=vec(b.a,b),la=Math.hypot(va.x,va.y),lb=Math.hypot(vb.x,vb.y);if(la<.05||lb<.05)return null;
   let cross=Math.abs(va.x*vb.y-va.y*vb.x)/(la*lb);if(cross>.008)return null;
   let d1=Math.abs((b.a.x-a.a.x)*va.y-(b.a.y-a.a.y)*va.x)/la,d2=Math.abs((b.b.x-a.a.x)*va.y-(b.b.y-a.a.y)*va.x)/la;
   if(d1>.075||d2>.075)return null;
@@ -2343,7 +2343,7 @@ function rasterBoundary(segments,micro,cols,rows){
  function set(map,key,item){if(!map.has(key))map.set(key,item)}
  // Wall first, then door or window overrides the part it replaces.
  // An opening deliberately removes the barrier.
- for(const kind of ['wall','red_wall','property_wall','half_wall','fence','door','peephole_door','window','opening'])for(const it of segments){if(it.type!==kind)continue;
+ for(const kind of ['wall','red_wall','property_wall','half_wall','fence','door','peephole_door','window','opening'])for(const it of segments){if(it.type!==kind||(kind==='fence'&&it.barrierKind))continue;
   const a=it.a,b=it.b;if(!a||!b)continue;
   const dx=b.x-a.x,dy=b.y-a.y,role=kind;
   if(Math.abs(dy)<=.025&&Math.abs(dx)>.03){const y=Math.round(a.y*micro),lo=Math.max(0,Math.round(Math.min(a.x,b.x)*micro)),hi=Math.min(W,Math.round(Math.max(a.x,b.x)*micro));if(y<0||y>T)continue;for(let x=lo;x<hi;x++){const k=`${x},${y}`;if(kind==='opening')H.delete(k);else H.set(k,{type:role,id:it.id})}}
@@ -4814,6 +4814,13 @@ async function start3DPreview(){
     preview3DDiagnostics?.record({kind:'resource',stage:'adapter',message:structureError.message,stack:structureError.stack});
     preview3DArchitectureError=window.FH_STRUCTURE_TEXT.integrationFailure;
    }
+   // El 3D debe compartir colisión, losas y visibilidad con el motor existente.
+   try{architectureDoc=window.FHBarriersEngine.patch(architectureDoc);}
+   catch(barrierError){
+    console.error('[Blakpine barreras] Falló la integración 3D:',barrierError);
+    preview3DDiagnostics?.record({kind:'resource',stage:'adapter',message:barrierError.message,stack:barrierError.stack});
+    toast('Las barandillas y mallas no pudieron cargarse en 3D.');
+   }
    play3DFrame.srcdoc=architectureDoc;
   }catch(architectureError){
    console.error('[Forest Arquitectura] Falló la integración visual:',architectureError);
@@ -5019,6 +5026,10 @@ init();
 <script src="./juego/assets/fh-generators-editor.js?v=20261111-elevator-power-1"></script>
 <script src="./juego/assets/fh-exterior-editor.js?v=20261111-pole-collision-1"></script>
 <script src="./juego/assets/fh-roof-editor.js?v=20261110-roof3"></script>
+<script src="./juego/assets/fh-barriers-strings.js?v=20261111-metal1"></script>
+<script src="./juego/assets/fh-barriers.js?v=20261111-metal1"></script>
+<script src="./juego/assets/fh-barriers-engine-hook.js?v=20261111-metal1"></script>
+<script src="./juego/assets/fh-barriers-editor.js?v=20261111-metal1"></script>
 </body>
 </html>
 
