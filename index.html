@@ -4669,6 +4669,13 @@ function floorSightThroughOpening(f,at,target,openings){
    '   openings,CELL,base,floorElev[currentFloor+1],roof?.spans||[]);'
   ].join('\n');
   const replacements=[
+   ["function updateAdjacentVisibility(now=performance.now(),force=false){",
+    "function updateAdjacentVisibility(now=performance.now(),force=false){\n"+
+    " if(window.FHFloorVisibility?.undergroundMask(currentFloor,mainFloorIndex)){\n"+
+    "  for(const g of exteriorLayers)g.visible=false;\n"+
+    "  for(const g of lowerGroundLayers)g.visible=false;\n"+
+    "  return;\n"+
+    " }"],
    [" if(!inCameraVolume(bounds))return false;",
     " const upperWindows=inside&&f===currentFloor+1?openings.filter(it=>it.type==='window'):openings;\n if(!window.FHFloorVisibility.facadeCandidate(currentFloor,f,inside,inCameraVolume(bounds),upperWindows.length>0,mainFloorIndex))return false;"],
    ['if(Number.isFinite(roofElevation)&&dy>0){','if(Number.isFinite(roofElevation)&&Math.abs(dy)>1e-8){'],
@@ -4905,7 +4912,7 @@ function floorSightThroughOpening(f,at,target,openings){
  function addDrainGeometryToEngine(doc){
   const patches=[
    ["function surfaceRectsMinusVoids(f,x,y,w,h){let rects=[{x,y,w,h}];for(const cut of [...(stairVoids[f]||[]),...(courtyardVoids[f]||[])]){const next=[];for(const r of rects)next.push(...rectSubtract(r,cut));rects=next;}return rects;}",
-    "function surfaceRectsMinusVoids(f,x,y,w,h){let rects=[{x,y,w,h}];for(const cut of [...(stairVoids[f]||[]),...(courtyardVoids[f]||[])]){const next=[];for(const r of rects)next.push(...rectSubtract(r,cut));rects=next;}return window.FHDrainage?.cutFloorRects(DATA,f,rects)||rects;}"],
+    "function surfaceRectsMinusVoids(f,x,y,w,h){let rects=[{x,y,w,h}];for(const cut of [...(stairVoids[f]||[]),...(courtyardVoids[f]||[])]){const next=[];for(const r of rects)next.push(...rectSubtract(r,cut));rects=next;}return window.FHDrainage?.cutFloorRects(DATA,f,rects,true)||rects;}"],
    ["let groundLayer=0;for(const it of items){if(!it.inheritedCourtyard&&areaMaterials[it.type]){",
     "let groundLayer=0;for(const it of items){if(!it.inheritedCourtyard&&areaMaterials[it.type]&&!window.FHDrainage?.isSection(it)){"],
    [" const target=new THREE.Vector3(user.x,y+.88,user.z);",
