@@ -117,6 +117,8 @@ function fhContextRefresh(){
   ||$('fhDeliveryDialog')?.classList.contains('open')){
   fhContextGesture=null;radial.syncContext(null);radial.hide();return;
  }
+ // El menú del propio jugador no depende del objetivo ambiental más cercano.
+ if(radial.visible&&radial.target==='player:'+String(GameState.character?.id))return;
  let key='',title='',point={x:innerWidth*.5,y:innerHeight*.53},actions=[];
  let fhTapRoots=[];
  if(fhDecorMode){
