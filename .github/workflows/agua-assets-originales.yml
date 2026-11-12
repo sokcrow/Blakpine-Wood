@@ -1,0 +1,36 @@
+name: Agua — publicar GLB originales
+on:
+  push:
+    branches:
+      - fix/agua-modelos-glb-circuitos-y-tuberias
+    paths:
+      - 'tools/agua_originales/**'
+      - '.github/workflows/agua-assets-originales.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  publicar-assets:
+    if: github.ref == 'refs/heads/fix/agua-modelos-glb-circuitos-y-tuberias'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          ref: ${{ github.ref_name }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Dependencias del generador original dentro de GitHub Actions
+        run: python -m pip install --disable-pip-version-check numpy==2.3.5 trimesh==4.11.1 Pillow==12.3.0
+      - name: Generar y verificar los 10 GLB y 10 miniaturas originales
+        run: python tools/agua_originales/reconstruir.py
+      - name: Publicar los binarios generados directamente en esta rama
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add forest-horror/biblioteca/agua/calderas forest-horror/biblioteca/agua/almacenamiento
+          if ! git diff --cached --quiet; then
+            git commit -m "assets(agua): incorporar 10 GLB originales y sus miniaturas"
+            git push origin "HEAD:${{ github.ref_name }}"
+          fi
