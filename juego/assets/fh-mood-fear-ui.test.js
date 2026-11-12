@@ -26,7 +26,7 @@ test('el miedo usa la capa de ZZZ sin enseñar pérdida ni porcentaje de PS',()=
   else globalThis.FHLiveText=oldLive;
  }
 });
-test('tocar al personaje abre; tocarlo de nuevo o el suelo cierra',()=>{
+test('solo tocar al personaje alterna el HUD; el suelo no lo cierra',()=>{
  let click;
  const canvas={
   addEventListener:(kind,fn)=>{if(kind==='click')click=fn;},
@@ -38,20 +38,22 @@ test('tocar al personaje abre; tocarlo de nuevo o el suelo cierra',()=>{
  click(evt(100,95));assert.equal(UI.selected(),'personaje-a');
  click(evt(100,95));assert.equal(UI.selected(),null);
  click(evt(100,95));assert.equal(UI.selected(),'personaje-a');
- click(evt(250,200));assert.equal(UI.selected(),null);
+ click(evt(250,200));assert.equal(UI.selected(),'personaje-a');
+ UI.select(null);
 });
-test('Escape también cierra, sin agregar botones innecesarios',()=>{
+test('Escape y un puntero fuera del personaje no descartan la selección',()=>{
  const old=globalThis.addEventListener,handlers={};
  try{
   globalThis.addEventListener=(kind,fn)=>{handlers[kind]=fn};
   UI.bind({addEventListener(){},removeEventListener(){}},()=>null);
   UI.select('a');
-  handlers.keydown({key:'Escape'});
-  assert.equal(UI.selected(),null);
+  handlers.keydown?.({key:'Escape'});
+  assert.equal(UI.selected(),'a');
   const code=read('fh-mood-fear-ui.js');
   assert.doesNotMatch(code,/fh-character-close|closeButton/);
-  assert.match(code,/root\.document\?\.addEventListener\?\.\('pointerdown'/);
+  assert.doesNotMatch(code,/root\.document\?\.addEventListener\?\.\('pointerdown'/);
  }finally{
+  UI.select(null);
   if(old===undefined)delete globalThis.addEventListener;
   else globalThis.addEventListener=old;
  }
@@ -179,6 +181,44 @@ test('PG, PS y PE activan placa temporal prioritaria y siguen la cabeza proyecta
   assert.ok(hidden>0);
  }finally{
   Date.now=oldNow;UI.select(null);UI.render(null,null);
+  if(old===undefined)delete globalThis.FHNameplateHUD;
+  else globalThis.FHNameplateHUD=old;
+ }
+});
+
+test('tap proyectado solo consume la unidad y respeta la selección al tocar fuera',()=>{
+ const canvas={addEventListener(){},removeEventListener(){}};
+ UI.select(null);
+ UI.bind(canvas,()=>({id:'actor',x:100,y:40,bodyX:100,bodyY:125}));
+ assert.equal(UI.tap({button:0,clientX:250,clientY:230}),false);
+ assert.equal(UI.selected(),null);
+ assert.equal(UI.targetAt({button:0,clientX:100,clientY:90}).id,'actor');
+ assert.equal(UI.tap({button:0,clientX:100,clientY:90}),true);
+ assert.equal(UI.selected(),'actor');
+ assert.equal(UI.tap({button:0,clientX:250,clientY:230}),false);
+ assert.equal(UI.selected(),'actor');
+ assert.equal(UI.tap({button:0,clientX:100,clientY:90}),true);
+ assert.equal(UI.selected(),null);
+ assert.equal(UI.targetAt({button:2,clientX:100,clientY:90}),null);
+});
+test('cerrar manualmente una alerta no la reabre hasta otro cambio real',()=>{
+ const old=globalThis.FHNameplateHUD,originalNow=Date.now,canvas={addEventListener(){},removeEventListener(){}};
+ try{
+  let time=1000;
+  Date.now=()=>time;
+  globalThis.FHNameplateHUD={update:()=>true,hide:()=>{},mount:()=>true};
+  UI.select(null);UI.render(null,null);
+  const character={id:'actor-alert',resources:{pg:20,pgMax:30,sp:10,spMax:10,pe:4,peMax:4}};
+  UI.bind(canvas,()=>({id:character.id,x:100,y:40,bodyX:100,bodyY:125}));
+  assert.equal(UI.render(character,{x:100,y:40}),false);
+  character.resources.pg=18;
+  assert.equal(UI.render(character,{x:100,y:40}),true);
+  assert.equal(UI.tap({button:0,clientX:100,clientY:90}),true);
+  assert.equal(UI.render(character,{x:100,y:40}),false);
+  time+=50;character.resources.pg=19;
+  assert.equal(UI.render(character,{x:100,y:40}),true);
+ }finally{
+  Date.now=originalNow;UI.select(null);UI.render(null,null);
   if(old===undefined)delete globalThis.FHNameplateHUD;
   else globalThis.FHNameplateHUD=old;
  }

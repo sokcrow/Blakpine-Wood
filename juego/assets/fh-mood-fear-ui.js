@@ -32,7 +32,7 @@
   observedId=id;observedResources=next;
   return before;
  }
- let clickTarget=null,clickHandler=null,currentLocator=null,dismissHandlersBound=false;
+ let clickTarget=null,clickHandler=null,currentLocator=null;
  function setup(){return Boolean(root.FHNameplateHUD?.mount?.());}
  function hide(){root.FHNameplateHUD?.hide?.();}
  function select(id){
@@ -56,35 +56,40 @@
   const t=ratio>0?Math.max(0,Math.min(1,((px-at.x)*dx+(py-at.y)*dy)/ratio)):0;
   return Math.hypot(px-at.x-t*dx,py-at.y-t*dy);
  }
+
+ // Únicamente el cuerpo proyectado permite abrir o cerrar el HUD.
+ function targetAt(event){
+  if(event?.button!==undefined&&event.button!==0)return null;
+  if(!Number.isFinite(event?.clientX)||!Number.isFinite(event?.clientY))return null;
+  const at=currentLocator?.();
+  if(!at||at.id==null)return null;
+  const height=Math.abs((Number.isFinite(at.bodyY)?at.bodyY:at.y+48)-at.y);
+  const radius=Math.min(36,Math.max(18,height*.27));
+  return distanceToActor(event.clientX,event.clientY,at)<=radius?at:null;
+ }
+ function tap(event){
+  const actor=targetAt(event);
+  if(!actor)return false;
+  const id=String(actor.id);
+  if(selectedId===id||(selectedId===null&&observedId===id&&Date.now()<autoVisibleUntil)){
+   // Cerrar una alerta no la reabre hasta el próximo cambio de recurso.
+   autoVisibleUntil=0;select(null);
+  }else select(id);
+  return true;
+ }
  function bind(canvas,locator){
   if(!canvas||typeof locator!=='function')return;
   currentLocator=locator;
   if(clickTarget===canvas)return;
   if(clickTarget&&clickHandler)clickTarget.removeEventListener('click',clickHandler,true);
   clickTarget=canvas;
+  // Fallback de click sin Pointer Events; Safe Lock consume clicks sintéticos de puntero.
   clickHandler=event=>{
-   if(event.button!==0)return;
-   const at=currentLocator?.();
-   if(!at){select(null);return;}
-   const height=Math.abs((Number.isFinite(at.bodyY)?at.bodyY:at.y+48)-at.y);
-   const radius=Math.min(36,Math.max(18,height*.27));
-   if(distanceToActor(event.clientX,event.clientY,at)<=radius){
-    select(selectedId===String(at.id)?null:at.id);
-    event.preventDefault();
-    event.stopImmediatePropagation();
-   }else select(null);
+   if(!tap(event))return;
+   event.preventDefault?.();
+   event.stopImmediatePropagation?.();
   };
   canvas.addEventListener('click',clickHandler,true);
-  if(!dismissHandlersBound&&typeof root.addEventListener==='function'){
-   dismissHandlersBound=true;
-   root.addEventListener('keydown',event=>{if(event.key==='Escape'&&selectedId!==null)select(null);});
-   root.document?.addEventListener?.('pointerdown',event=>{
-    if(selectedId===null)return;
-    if(event.target===clickTarget||clickTarget?.contains?.(event.target)||
-       root.document?.getElementById?.('fhNameplateHUD')?.contains?.(event.target))return;
-    select(null);
-   },true);
-  }
  }
  function render(character,position){
   const before=watchResources(character);
@@ -108,5 +113,5 @@
    level:1,self:true
   });
  }
- return Object.freeze({setup,select,selected,render,bind,project,fearChange,hide});
+ return Object.freeze({setup,select,selected,render,bind,targetAt,tap,project,fearChange,hide});
 });
