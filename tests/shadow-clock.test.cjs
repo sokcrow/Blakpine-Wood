@@ -13,10 +13,14 @@ const Delivery=global.window.FHDelivery;
 
 function setup(config={},overrides={}){
  const events=[],sprites=new Map();
- const runtime=Shadow.createRuntime({
-  config:{firstMin:1,firstMax:1,intervalMin:1,intervalMax:1,
-   durationMin:90,durationMax:90,...config},
-  state:overrides.state||{},random:overrides.random||(()=>0.5),
+ const selected=overrides.state?.seq===1?'la_nina':'el_alto';
+ const inactive=selected==='la_nina'?'el_alto':'la_nina';
+ const exclude=config.maxActors===2?{}:{[inactive]:{lastSpawnNight:0}};
+ const state={nightSpawns:{firstNight:0,byKind:exclude},...(overrides.state||{})};
+ const realRuntime=Shadow.createRuntime({
+  config:{baseChancePercent:100,dailyIncreasePercent:0,spawnDelayMin:1,spawnDelayMax:1,maxActors:1,
+   ...config},
+  state,random:overrides.random||(()=>0.5),
   insideAt:overrides.insideAt,canPhase:overrides.canPhase,chooseAttack:overrides.chooseAttack,
   spawn:(kind,f,x,z,id)=>{sprites.set(id,{kind,f,x,z});return id;},
   move:(id,f,x,z)=>{if(!sprites.has(id))return false;sprites.set(id,{...sprites.get(id),f,x,z});return true;},
@@ -25,12 +29,13 @@ function setup(config={},overrides={}){
   route:overrides.route||((a,b)=>[a,b]),
   onEvent:(type,payload)=>events.push({type,payload})
  });
+ const runtime={...realRuntime,tick:(minute,dt,player)=>realRuntime.tick(1320+minute,dt,player)};
  return {runtime,events,sprites};
 }
 const player={floor:0,x:20,z:20};
 
-test('El Alto y La Niña aparecen de forma automática, alternados',()=>{
- const {runtime,sprites}=setup();
+test('El Alto y La Niña tienen tiradas independientes y pueden coexistir',()=>{
+ const {runtime,sprites}=setup({maxActors:2});
  runtime.tick(0,0,player);
  assert.equal(runtime.read().active.length,0);
  runtime.tick(1,0,player);
@@ -142,7 +147,7 @@ test('apagón sobrenatural anula linterna y fuentes de la máscara de visión',(
   'params.sources=window.FHLights.sourcesNear(roomLampEntries,lighting,currentFloor,at.x,at.z,LOOK_RADIUS,10);',
   'params.sources=lighting.sourcesNear(roomLampEntries,currentFloor,at.x,at.z,LOOK_RADIUS,7.2,4);'
  ];
- const result=patch('<head></head><script>function verify(){'+originals.join('\n')+'}</script>');
+ const result=patch('<head></head><script>function verify(){const GameState=createGameState(restored||DATA.initialGameState);'+originals.join('\n')+'}</script>');
  assert.ok(result.includes('lighting.range(currentFloor,room,!lighting.flicker(performance.now())&&!fhHorrorLightsFail())'));
  const masked='params.sources=fhHorrorLightsFail()?[]:';
  assert.equal(result.split(masked).length-1,2);
