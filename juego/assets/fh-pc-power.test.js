@@ -45,6 +45,20 @@ test('el tercer aparato sigue sin caber en las dos tomas reales',()=>{
  assert.equal(sys.statusFor(0,fx.desk).power.powered,true);
  assert.equal(sys.statusFor(0,fx.items.at(-1)).power.powered,false);
 });
+test('monitor, gabinete y estación leen el enchufe doble después de retirar un multiconector antiguo',()=>{
+ const vm=require('node:vm'),fs=require('node:fs'),path=require('node:path'),window={};
+ vm.runInNewContext(fs.readFileSync(path.join(__dirname,'fh-electric-catalog.js'),'utf8'),{window});
+ const fx=fixture(),strip={id:'old-strip',type:'power_strip',x:2,y:.1,outletId:fx.plug.id};
+ fx.items.push(strip);for(const part of Object.values(fx.parts))part.outletId=strip.id;
+ const sys=FH.createRuntime(fx.project,fx.state,{pcAssembly:assembly,surfacePlacement,electricCatalog:window.FHElectricCatalog});
+ for(const item of [fx.parts.monitor,fx.parts.cabinet,fx.desk]){
+  const status=sys.statusFor(0,item).power;assert.equal(status.powered,true);assert.equal(status.via,fx.plug.id);
+ }
+ assert.equal(sys.statusFor(0,fx.plug).usedSlots,2);
+ assert.ok(!fx.project.floors[0].items.some(item=>item.type==='power_strip'));
+ fx.state.flags.power_global=false;
+ for(const item of [fx.parts.monitor,fx.parts.cabinet,fx.desk])assert.equal(sys.statusFor(0,item).power.powered,false);
+});
 test('un generador reserva la potencia de las piezas sin volver a contar la mesa ni los periféricos',()=>{
  const fx=fixture();
  fx.panel.powerSource={kind:'generator',floorId:'f',itemId:'generator'};

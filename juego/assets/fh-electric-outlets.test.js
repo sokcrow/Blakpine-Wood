@@ -57,13 +57,22 @@ test('la selección explícita no salta a otro circuito; no crea energía sin ta
  fx.outlet.zoneId='';fx.project.floors[0].items=fx.project.floors[0].items.filter(it=>it!==fx.panel);
  sys=fx.create();assert.equal(sys.statusFor(0,fx.outlet).power.powered,false);
 });
-test('un multiconector también se enchufa automáticamente y alimenta sus aparatos sin IDs',()=>{
- const fx=fixture({roomZone:'main'}),strip={id:'strip',type:'power_strip',x:2,y:.2};
- fx.project.floors[0].items.push(strip);const sys=fx.create();
- assert.equal(sys.statusFor(0,strip).power.powered,true);
- assert.equal(sys.statusFor(0,fx.pc).power.via,strip.id);
- assert.equal(sys.statusFor(0,fx.outlet).usedSlots,1);
- assert.equal(sys.statusFor(0,strip).usedSlots,1);
+test('retira multiconectores antiguos y recupera la conexión directa del aparato',()=>{
+ for(const explicitParent of [false,true]){
+  const fx=fixture(),strip={id:'strip',type:'power_strip',x:2,y:.2,...(explicitParent?{outletId:fx.outlet.id}:{})};
+  fx.pc.outletId=strip.id;fx.project.floors[0].items.push(strip);
+  const sys=fx.create();
+  assert.ok(!fx.project.floors[0].items.some(item=>item.type==='power_strip'));
+  assert.equal(fx.pc.outletId,explicitParent?fx.outlet.id:undefined);
+  assert.equal(sys.statusFor(0,fx.pc).power.via,fx.outlet.id);
+  assert.equal(sys.statusFor(0,fx.outlet).usedSlots,1);
+  assert.equal(catalog().upgradeMap(fx.project),0,'migración idempotente');
+ }
+});
+test('el multiconector ya no se ofrece en las herramientas ni en el selector de enchufes',()=>{
+ const tools=editor.match(/^\s*lighting:\[.*$/m)?.[0];assert.ok(tools);
+ assert.doesNotMatch(tools,/power_strip|Multiconector/);
+ assert.match(editor,/source\.id!==it\.id&&source\.type==='power_outlet'/);
 });
 test('seleccionar el enchufe en el editor coloca un power_outlet con metadata GLB',()=>{
  const cat=catalog(),fx=fixture(),nodes=[];
