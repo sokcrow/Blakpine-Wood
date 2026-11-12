@@ -24,7 +24,7 @@
   const boiler=root.FHBoilersCatalog?.byId(it?.modelId);
   if(boiler&&(it?.type==='misc'||it?.type===boiler.type))return boiler;
   const selected=byId(it?.utilitySkin||it?.modelId);
-  if(selected&&selected.type===it?.type)return selected;
+  if(selected&&(selected.type===it?.type||it?.type==='misc'&&root.FHBoilersCatalog?.has(selected.id)))return selected;
   return byId(DEFAULT[it?.type])||null;
  };
  const normal=rotation=>{const rad=(Number(rotation)||0)*Math.PI/180;return {x:-Math.sin(rad),y:Math.cos(rad)};};
