@@ -77,7 +77,7 @@
     side==='w'?Math.abs(b.x+b.w-a.x)<eps:
     side==='s'?Math.abs(a.y+a.h-b.y)<eps:Math.abs(b.y+b.h-a.y)<eps;
    if(!adjacent)continue;
-   const widthA=a.drainage.kind==='small'?1:4,widthB=b.drainage.kind==='small'?1:4;
+   const widthA=SIZES[a.drainage.kind]===4?1:4,widthB=SIZES[b.drainage.kind]===4?1:4;
    const middleA=(side==='e'||side==='w')?a.y+a.h/2:a.x+a.w/2;
    const middleB=(side==='e'||side==='w')?b.y+b.h/2:b.x+b.w/2;
    const shared=Math.max(0,Math.min(middleA+widthA/2,middleB+widthB/2)-
