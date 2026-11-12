@@ -15,6 +15,46 @@
   const headStart=source.indexOf('<head>'),headEnd=source.indexOf('</head>',headStart);
   if(headStart<0||headEnd<0)throw Error('Hook CCTV incompatible: falta head del motor');
   let doc=source.slice(0,headEnd)+'<script src="'+jsUrl+'"></script>'+source.slice(headEnd);
+  // drawSight es la fuente única de visibilidad. Permitir un observador CCTV
+  // con su propia textura sin modificar el FOW ni los registros del jugador.
+  const sightHead='function drawSight(){const at=eyeLocation();const ts=performance.now();';
+  const sightStart=doc.indexOf(sightHead);
+  const sightEnd=doc.indexOf('\nfunction installVisibility(){',sightStart);
+  if(sightStart<0||sightEnd<sightStart)throw Error('Hook CCTV incompatible: drawSight del motor');
+  let sight=doc.slice(sightStart,sightEnd);
+  function sightOnce(needle,replacement){
+   const count=sight.split(needle).length-1;
+   if(count!==1)throw Error('Hook CCTV incompatible: visión ('+count+'): '+needle.slice(0,70));
+   sight=sight.replace(needle,replacement);
+  }
+  sightOnce(sightHead,[
+   'function drawSight(observer=null){const at=observer?.at||eyeLocation();const ts=performance.now();',
+   ' const sightFloor=observer?.floor??currentFloor,sightYaw=observer?.yaw??yaw;',
+   ' const visionCanvas=observer?.canvas||sightCanvas,visionCtx=observer?.ctx||q;',
+   ' const visionTexture=observer?.texture||sightTexture;'
+  ].join('\n'));
+  const playerCache='if(!visibilityDirty&&';
+  if(sight.split(playerCache).length!==3)throw Error('Hook CCTV incompatible: caché de visibilidad');
+  sight=sight.split(playerCache).join('if(!observer&&!visibilityDirty&&');
+  sightOnce(' visibilityDirty=false;lastSightTime=ts;visibilityLast={...at,f:currentFloor,peek:peeking,yaw};',
+   ' if(!observer){visibilityDirty=false;lastSightTime=ts;visibilityLast={...at,f:currentFloor,peek:peeking,yaw};}');
+  sightOnce(' const params=sightParameters();',
+   ' const params=observer?lighting.range(sightFloor,roomAt(sightFloor,at.x,at.z),false):sightParameters();');
+  sightOnce('const opaque=sightWalls[currentFloor].slice();for(const d of doorList[currentFloor])if(!d.transparent&&!d.passable&&(!peeking||d!==peekDoor))opaque.push(d.block);',
+   'const opaque=sightWalls[sightFloor].slice();for(const d of doorList[sightFloor])if(!d.transparent&&!d.passable&&(observer||!peeking||d!==peekDoor))opaque.push(d.block);');
+  sightOnce('elevatorStops.filter(stop=>stop.f===currentFloor)',
+   'elevatorStops.filter(stop=>stop.f===sightFloor)');
+  sightOnce('const nx=x=>x/MAX_X*sightCanvas.width,nz=z=>z/MAX_Z*sightCanvas.height;',
+   'const nx=x=>x/MAX_X*visionCanvas.width,nz=z=>z/MAX_Z*visionCanvas.height;');
+  if(sight.split('currentFloor,at.x,at.z').length!==2)throw Error('Hook CCTV incompatible: fuentes de luz');
+  sight=sight.replace('currentFloor,at.x,at.z','sightFloor,at.x,at.z');
+  sight=sight.split('q.').join('visionCtx.');
+  sight=sight.split('sightCanvas.').join('visionCanvas.');
+  sightOnce('const beamDir={x:-Math.sin(yaw),z:-Math.cos(yaw)};',
+   'const beamDir={x:-Math.sin(sightYaw),z:-Math.cos(sightYaw)};');
+  sightOnce('sightTexture.needsUpdate=true;',
+   'visionTexture.needsUpdate=true;\n if(observer)return;');
+  doc=doc.slice(0,sightStart)+sight+doc.slice(sightEnd);
   const computers='window.FHComputerRuntime=window.FHComputer?.createRuntime({';
   const runtime=String.raw`
 const fhCCTV=window.FHCCTV.createRuntime(DATA.floors);
@@ -23,8 +63,20 @@ const fhCCTVFormats=Object.freeze({
  normal:{width:640,height:368,intervalMs:84}
 });
 let fhCCTVTarget=null,fhCCTVView=null,fhCCTVRead=null,fhCCTVFrameStamp=-1,fhCCTVFormat=null;
-const fhCCTVWhite=new THREE.DataTexture(new Uint8Array([255,255,255,255]),1,1,THREE.RGBAFormat);
-fhCCTVWhite.needsUpdate=true;
+// Mismo algoritmo drawSight del jugador, pero textura y canvas independientes.
+const fhCCTVSightCanvas=document.createElement('canvas');
+fhCCTVSightCanvas.width=sightCanvas.width;fhCCTVSightCanvas.height=sightCanvas.height;
+const fhCCTVSightCtx=fhCCTVSightCanvas.getContext('2d',{alpha:false});
+const fhCCTVSightTexture=new THREE.CanvasTexture(fhCCTVSightCanvas);
+fhCCTVSightTexture.minFilter=sightTexture.minFilter;
+fhCCTVSightTexture.magFilter=sightTexture.magFilter;
+fhCCTVSightTexture.generateMipmaps=false;
+function fhCCTVMaskVisible(x,z){
+ if(!Number.isFinite(x)||!Number.isFinite(z)||x<0||z<0||x>=MAX_X||z>=MAX_Z)return false;
+ const px=Math.floor(x/MAX_X*fhCCTVSightCanvas.width);
+ const py=Math.floor(z/MAX_Z*fhCCTVSightCanvas.height);
+ return fhCCTVSightCtx.getImageData(px,py,1,1).data[0]>=128;
+}
 let fhCCTVModels=[],fhCCTVLastScan=-2000;
 function fhCCTVVisuals(now){
  // Reindexar al cargar modelos GLB asíncronos; actualizar giros aun sin terminal abierta.
@@ -83,14 +135,30 @@ function fhCCTVFrame(now){
  const oldActors=[];
  if(typeof fhSightActors!=='undefined')for(const [actor,floorSource] of fhSightActors){
   const f=typeof floorSource==='function'?floorSource():floorSource;
-  if(f===cameraPose.floor){oldActors.push([actor,actor.visible]);actor.visible=true;}
+  oldActors.push([actor,actor.visible,f]);
  }
  try{
-  // La cámara ve el mundo real, sin la máscara FOW ni los recortes de muros del jugador.
-  sightUniform.value=fhCCTVWhite;
+  // drawSight genera la visibilidad desde el lente, no desde el jugador.
+  // El shader del mundo sigue usando la misma máscara de oscuridad y oclusión.
+  drawSight({
+   floor:cameraPose.floor,at:{x:cameraPose.x,z:cameraPose.z},
+   yaw:cameraPose.bearing,canvas:fhCCTVSightCanvas,
+   ctx:fhCCTVSightCtx,texture:fhCCTVSightTexture
+  });
+  sightUniform.value=fhCCTVSightTexture;
   stories.forEach((story,i)=>story.visible=i===cameraPose.floor);
   for(const [root] of oldCutaways)root.visible=true;
-  if(cameraPose.floor!==currentFloor){hero.visible=false;shadow.visible=false;flashlightSpot.intensity=0;}
+  for(const [actor,,floor] of oldActors){
+   const position=actor.getWorldPosition?actor.getWorldPosition(new THREE.Vector3()):actor.position;
+   actor.visible=floor===cameraPose.floor&&!!position&&fhCCTVMaskVisible(position.x,position.z);
+  }
+  if(cameraPose.floor!==currentFloor){hero.visible=false;shadow.visible=false;}
+  else{
+   hero.visible=oldHero&&fhCCTVMaskVisible(hero.position.x,hero.position.z);
+   shadow.visible=oldShadow&&fhCCTVMaskVisible(shadow.position.x,shadow.position.z);
+  }
+  // Las linternas personales nunca iluminan remotamente una cámara.
+  flashlightSpot.intensity=0;
 
   // Las luces de Three.js normalmente siguen al jugador. Reubicarlas solo durante
   // esta captura en la planta/estancia observada, y restaurarlas antes del frame siguiente.
@@ -149,7 +217,7 @@ function fhCCTVFrame(now){
   const cameraList=/cameras:\(\)=>DATA\.floors\.flatMap\(f=>\(f\.items\|\|\[\]\)\.filter\(it=>it\.modelId==='camara_seguridad'\|\|it\.type==='camera'\)\s*\.map\(it=>\(\{id:it\.id,place:it\.label\|\|it\.id,online:it\.cameraOnline!==false\}\)\)\),/g;
   const matches=[...doc.matchAll(cameraList)];
   if(matches.length!==1)throw Error('Conexiones CCTV incompatibles ('+matches.length+')');
-  doc=doc.replace(cameraList,'cameras:()=>fhCCTV.list(performance.now()),\n onCameraControl:(id,angle)=>fhCCTV.setManualAngle(id,angle),');
+  doc=doc.replace(cameraList,'cameras:()=>fhCCTV.list(performance.now()),\n onCameraControl:(id,angle)=>fhCCTV.setManualAngle(id,angle,performance.now()),');
   // El diagnósticador de 3D sustituye el cierre del frame antes de ejecutar este hook.
   // Admitir tanto su cierre instrumentado como el del motor sin instrumentar.
   const frameAnchors=[
