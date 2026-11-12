@@ -56,13 +56,37 @@ test('niebla distante tapa el límite y no invade el interior',()=>{
   assert.equal(s.scene.fog.far,44);
   assert.equal(s.scene.fog.near,30);
   assert.equal(s.runtime.mesh.visible,true);
+  assert.equal(s.runtime.hazeLayers.length,3,'tres velos exteriores sin sprites');
+  assert.ok(s.runtime.hazeLayers.every(layer=>layer.visible));
   assert.ok(s.runtime.mesh.material.fragmentShader.includes('uOutside'));
   assert.ok(s.runtime.mesh.material.vertexShader.includes('p.z+=.19*heightNoise'));
   s.vars.x=2;s.runtime.update(.12);
   assert.equal(s.scene.fog,null,'interior sin niebla global');
+  assert.ok(s.runtime.hazeLayers.every(layer=>layer.visible),'se ve la niebla exterior desde el interior');
   s.vars.floor=1;s.runtime.update(.12);
   assert.equal(s.runtime.mesh.visible,false,'planta interior no muestra niebla de suelo');
+  assert.ok(s.runtime.hazeLayers.every(layer=>!layer.visible),'sin celdas exteriores no hay velos');
   assert.equal(s.runtime.mesh.position.y,3.07);
+ }finally{s.restore()}
+});
+test('la ventana deja ver niebla situada fuera, sin cubrir la habitación',()=>{
+ const s=setup();
+ try{
+  s.vars.x=2;s.runtime.update(.12);
+  assert.equal(s.scene.fog,null);
+  const layer=s.runtime.hazeLayers[0],material=layer.material;
+  assert.ok(layer.visible);
+  assert.equal(material.depthTest,true,'paredes y techo pueden ocluir la neblina');
+  assert.equal(material.depthWrite,false);
+  assert.match(material.fragmentShader,/texture2D\(uOutside,vUv\)\.r<\.5\)discard/);
+  assert.match(material.fragmentShader,/uHasSight/);
+  const image=material.uniforms.uOutside.value.image.last,size=s.runtime.settings.maskSize;
+  const pixel=(x,z)=>image[4*(Math.floor(z/12*size)*size+Math.floor(x/12*size))];
+  assert.equal(pixel(2,6),0,'habitación sin velo');
+  assert.equal(pixel(8,6),255,'zona exterior sí tiene velo');
+  assert.deepEqual(s.runtime.hazeLayers.map(l=>l.position.y),[.55,1.35,2.25]);
+  s.runtime.update(.12,{fog:3});
+  assert.ok(material.uniforms.uStrength.value>.15,'clima más denso');
  }finally{s.restore()}
 });
 test('la niebla distante termina antes del límite de visión del jugador',()=>{
@@ -104,6 +128,7 @@ test('el shader lee máscara de visibilidad cuando está disponible',()=>{
   current={id:'fow'};s.runtime.update(.12);
   assert.equal(s.runtime.mesh.material.uniforms.uHasSight.value,1);
   assert.equal(s.runtime.mesh.material.uniforms.uSight.value,current);
+  assert.equal(s.runtime.hazeLayers[0].material.uniforms.uSight.value,current);
  }finally{s.restore()}
 });
 test('arranque del motor carga niebla sin requerir clima habilitado',()=>{
