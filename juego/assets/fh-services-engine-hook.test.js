@@ -167,7 +167,7 @@ test('el motor 3D compone el puente de Agua y monta los GLB en la escena del map
  const hook=engine.indexOf('const fhWaterVisuals=window.FHWaterVisuals?.install(');
  const update=engine.indexOf('function fhServicesSyncVisuals(){');
  assert.ok(hook>=0&&hook<update,'el montaje debe ejecutarse antes del ciclo del motor');
- const scripts=[...engine.matchAll(/<script(?:\\s[^>]*)?>([\\s\\S]*?)<\\/script>/g)];
+ const scripts=engine.split('<script>').slice(1).map(part=>part.split('</script>')[0]);
  assert.ok(scripts.length>0);
  for(const script of scripts)assert.doesNotThrow(()=>new vm.Script(script[1]));
 });
