@@ -126,7 +126,8 @@ test('integración utiliza iris único y texto cómic con su propio fade',()=>{
  assert.match(css,/#fhContextRadial/);
  assert.match(live,/fh-sound fh-sleep-comic/);
  assert.match(live,/@keyframes fh-sleep-breath/);
- assert.match(live,/sleep\?2600:580/);
+  // Sueño 2600 ms, miedo 2100 ms y efecto cómic normal 580 ms.
+  assert.match(live,/sleep\?2600:fear\?2100:580/);
 });
 
 test('inconsciencia reutiliza iris pero no respira Zzz ni permite despertar manual',()=>{
