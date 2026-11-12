@@ -107,7 +107,7 @@ test('enlace manual selecciona el poste solicitado y nunca conecta por decoraciÃ
  assert.equal(grid.energized(grid.nodes[2]),true);
 });
 test('una desconexiÃ³n manual apaga una rama, sin reconectar a escondidas',()=>{
- const a=tx(),b=obj('p1','poste_luz_concreto',10,{exteriorLinkMode:'off'}),
+ const a=tx(),b=obj('p1','poste_luz_concreto',10,0,{exteriorLinkMode:'off'}),
   c=lamp('farola',20);
  c.exteriorLinkMode='manual';c.exteriorParentId='p1';
  const grid=fixture([a,b,c]);
