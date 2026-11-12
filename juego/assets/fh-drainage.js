@@ -139,7 +139,7 @@
  }
  function weatherState(it,rain=0){
   const intensity=Math.max(0,Math.min(1,safe(rain)));
-  const small=it?.drainage?.kind==='small';
+  const small=!!it?.drainage&&SIZES[it.drainage.kind]===4;
   return {flooded:small&&intensity>0,waterWidth:small?(intensity>0?4:1):4,
    currentFactor:1+intensity,walkingFactor:small&&intensity>0?.5:1};
  }
