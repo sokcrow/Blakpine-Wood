@@ -167,7 +167,7 @@ test('las habitaciones, aberturas y paredes pasan al motor nativo y no se guarda
  assert.equal(expanded.floors[1].items.length,0,'No se copian paredes a otros pisos');
  D.expandProject(expanded);
  assert.equal(expanded.floors[0].items.filter(it=>it.drainageGenerated).length,10,'Expansión idempotente');
- assert.deepEqual(project,original,'El proyecto guardado no muta si se expande una copia');
+ assert.equal(JSON.stringify(project),JSON.stringify(original),'El proyecto guardado no muta si se expande una copia');
  assert.equal(original.floors[0].items.filter(it=>it.drainageGenerated).length,0);
 });
 test('el motor 3D expande geometría antes de buildFloor y conserva los materiales de agua',()=>{
