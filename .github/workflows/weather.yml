@@ -5,6 +5,7 @@ on:
     paths:
       - 'index.html'
       - 'juego/assets/fh-weather-*'
+      - 'juego/assets/fh-ground-fog*'
       - 'juego/assets/fh-natural-light*'
       - 'juego/assets/fh-phone*'
       - '.github/workflows/weather.yml'
@@ -26,4 +27,4 @@ jobs:
         with:
           node-version: '22'
       - name: Clima, iluminación y arranque del 3D
-        run: node --test juego/assets/fh-weather-core.test.js juego/assets/fh-weather-audio.test.js juego/assets/fh-weather-renderer.test.js juego/assets/fh-natural-light.test.js juego/assets/fh-preview-boot.test.js juego/assets/fh-phone.test.js
+        run: node --test juego/assets/fh-weather-core.test.js juego/assets/fh-weather-audio.test.js juego/assets/fh-weather-renderer.test.js juego/assets/fh-ground-fog.test.js juego/assets/fh-natural-light.test.js juego/assets/fh-preview-boot.test.js juego/assets/fh-phone.test.js
