@@ -23,7 +23,7 @@
   return {canvas,ctx,image:ctx.createImageData(size,size)};
  }
  function createRuntime({THREE,scene,camera,columns=16,rows=22,cell=1.524,
-  actor,floorY,floorIndex,isOutside,sightTexture=null,config={}}={}){
+  actor,floorY,floorIndex,isOutside,sightTexture=null,visionDistance=null,config={}}={}){
   if(!THREE||!scene)return null;
   const cfg=settings(config),size=cfg.maskSize;
   const maxX=Math.max(.1,columns*cell),maxZ=Math.max(.1,rows*cell);
@@ -40,6 +40,7 @@
    uTime:{value:0},uOutside:{value:exteriorMap},uTrail:{value:trailMap},
    uSight:{value:initialSight},uHasSight:{value:initialSight?1:0},
    uDensity:{value:cfg.density},uActor:{value:new THREE.Vector2()},
+   uClearRadius:{value:cfg.radius},
    uRadius:{value:Math.min(14,Math.max(6,Math.min(maxX,maxZ)))}
   };
   const noise=[
@@ -69,6 +70,7 @@
     'uniform sampler2D uOutside; uniform sampler2D uTrail;',
     'uniform sampler2D uSight; uniform float uHasSight;',
     'uniform float uDensity; uniform float uTime; uniform float uRadius;',
+    'uniform float uClearRadius;',
     'uniform vec2 uActor;',noise,
     'void main(){',
     ' if(texture2D(uOutside,vUv).r<.5)discard;',
@@ -78,7 +80,8 @@
     ' vec2 wind=vec2(uTime*.025,-uTime*.014);',
     ' float n=.68*noise(vUv*18.0+wind)+.32*noise(vUv*39.0-wind*.6);',
     ' float alpha=uDensity*smoothstep(.24,.78,n);',
-    ' alpha*=1.0-texture2D(uTrail,vUv).r;',
+    ' float nearClear=1.0-smoothstep(uClearRadius*.7,uClearRadius,distance(vWorld,uActor));',
+    ' alpha*=1.0-max(texture2D(uTrail,vUv).r,nearClear);',
     ' alpha*=sight;',
     ' alpha*=1.0-smoothstep(uRadius*.75,uRadius,distance(vWorld,uActor));',
     ' if(alpha<.012)discard;',
@@ -152,7 +155,10 @@
    const sight=typeof sightTexture==='function'?sightTexture():sightTexture;
    uniforms.uSight.value=sight;uniforms.uHasSight.value=sight?1:0;
    const climate=clamp(Math.floor(finite(weather?.fog,0)),0,3);
-   const far=Math.max(10,finite(camera?.far,Math.hypot(maxX,maxZ)));
+   const cameraFar=finite(camera?.far,Math.hypot(maxX,maxZ));
+   const requested=typeof visionDistance==='function'?visionDistance():visionDistance;
+   const limit=Number.isFinite(requested)&&requested>0?Math.min(cameraFar,requested):cameraFar;
+   const far=Math.max(10,limit);
    if(farUsed!==far||climateUsed!==climate){
     farUsed=far;climateUsed=climate;
     distanceFog.near=far*(.60-climate*.065);
