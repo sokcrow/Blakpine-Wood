@@ -21,7 +21,7 @@
  const num=(x,def=0)=>Number.isFinite(Number(x))?Number(x):def;
  const clamp=(x,min,max)=>Math.max(min,Math.min(max,x));
  const isBoiler=it=>!!PRESETS[it?.modelId]&&it?.service?.waterHeating===true;
- const wantsHot=it=>!!it&&it.service?.hotWaterEnabled!==false&&
+ const wantsHot=it=>!!it&&it.hotWaterEnabled!==false&&it.service?.hotWaterEnabled!==false&&
   !NO_HOT.has(it.modelId)&&(
    it.type==='water_outlet'&&(it.hotWaterEnabled===true||it.utilitySkin==='toma_agua_doble')||
    HOUSING.has(it.modelId)||
