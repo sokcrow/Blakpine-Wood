@@ -160,7 +160,7 @@
     return {connected:true,water:num(tank?.liters)>0,liters:num(tank?.liters)};
    }
    for(const port of portsFor(f,it)){
-    const paths=choices(port),ready=paths.find(x=>available(x.node));
+    const paths=choices(port).filter(x=>compatible(x.node.it,it)),ready=paths.find(x=>available(x.node));
     if(ready)return {connected:true,water:true,via:port.it.id,sourceId:ready.node.it.id,
      sourceType:ready.node.it.type,feet:ready.route.feet};
     if(paths.length)return {connected:true,water:false,via:port.it.id,reason:'sourceUnavailable'};
@@ -169,9 +169,9 @@
   }
   function consume(f,it,liters,strict=false){
    const amount=Math.max(0,num(liters));
-   const port=portsFor(f,it).find(p=>choices(p).some(x=>available(x.node)));
+   const port=portsFor(f,it).find(p=>choices(p).some(x=>compatible(x.node.it,it)&&available(x.node)));
    if(!port)return 0;
-   const selected=choices(port).find(x=>available(x.node));
+   const selected=choices(port).find(x=>compatible(x.node.it,it)&&available(x.node));
    if(!selected)return 0;
    if(!isTank(selected.node.it))return amount;
    const key=tankKey(floors[selected.node.f],selected.node.it);
