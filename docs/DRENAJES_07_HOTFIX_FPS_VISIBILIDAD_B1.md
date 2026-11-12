@@ -23,3 +23,28 @@ En B1 y demás plantas bajo PB no se muestran proxies de fachada, remates o terr
 
 ## Compatibilidad y límites
 Se conserva `forest-horror-map-v1`, sin cambiar JSON, navegación, colisiones, agua potable, física de corrientes ni motor Base64. La reducción de mallas, trabajo de fragmentos y llamadas por fotograma se comprueba con tests de contrato. **La recuperación de FPS en un móvil real y la prueba visual del B1 necesitan medición manual**; la CI no mide fotogramas.
+
+## Hotfix de geometría y apoyo (reportado tras probar el drenaje en 3D)
+
+La versión anterior dibujaba **solo un agua flotante** y la reja se construía como una caja con rayas; tampoco había una altura de apoyo asociada a esos objetos. Esto no era una implementación funcional de piso/puente.
+
+- `channelSolid()` genera un `BufferGeometry` volumétrico por premade: fondo de espesor real a `CHANNEL_BOTTOM=-0.42` tiles, con caras verticales hasta el nivel de la banqueta. Los bordes que conectan con otro canal no llevan tabique duplicado.
+- `bridgeSolid()` crea una malla 3D abierta de largueros y barras de acero. No hay caja opaca debajo. Se elimina también el suelo `concrete` que el motor generaba automáticamente por interpretar la reja como un área genérica.
+- `supportAt()` integra la posición del jugador con la altura de la geometría. La reja soporta los pies a `BRIDGE_TOP=+0.025` tiles, el fondo del canal a `-0.42`, y la banqueta a `0`. `depthAt()` reutiliza esta función para el ancla del personaje y la cámara.
+- Las colisiones horizontales, las puertas y los desplazamientos siguen usando `canWalk()` y `walk()`; no se añade un motor de física separado. El agua a `-0.2` tiles sigue siendo **no sólida**, únicamente visual.
+- La reja ahora es un puente sobre el canal, no una placa que se pueda confundir con el agua.
+
+### Prueba visual 3D reproducible
+
+Abrir `tests/fixtures/drainage-solid-visual.html` desde el sitio estático del repositorio. Usa el **THREE vendorizado** y las funciones reales de `fh-drainage.js`, no una imagen estática. Muestra el canal, su fondo, la reja abierta y un avatar de prueba cuya altura se calcula con `supportAt()`. Permite moverse con WASD/flechas, elegir posiciones y ocultar el agua para inspeccionar el fondo.
+
+### Criterios de aceptación manual
+
+1. Con el agua visible, la reja tiene huecos y barras en 3D, sin placa sólida bajo ellas.
+2. Al situar el avatar sobre la reja, los pies quedan al nivel de las barras sin atravesarlas.
+3. En el canal, el avatar se apoya en el fondo, queda parcialmente sumergido, y al ocultar el agua se distingue el piso y sus paredes.
+4. Los bordes de los canales conectados no presentan paredes que corten la conexión.
+5. En B1 siguen ocultas las fachadas del nivel superior.
+6. Medir FPS sobre móvil real en mapa con varios tramos; la CI no sustituye esta medición.
+
+**Nota:** La prueba visual es un escenario del módulo real con iluminación auxiliar, no una captura de la partida completa. La aceptación visual de gameplay aún requiere revisión en el motor integrado.
