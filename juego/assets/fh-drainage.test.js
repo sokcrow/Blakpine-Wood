@@ -209,7 +209,9 @@ test('cada variante secundaria usa el estado de lluvia del perfil de 4×4',()=>{
 test('corriente real: caminar en agua principal, inundación secundaria y puentes seguros',()=>{
  const main=section('straight',0,0,'main'),small=section('small_tee',20,20,'small'),
   bridge=D.makeBridge({x:22,y:22},units,'bridge');
- const p=map([[main,small,bridge]]);
+ const connected=section('small_dead_end',10,3,'dest',180);
+ main.drainage.flowTo='dest';
+ const p=map([[main,small,bridge,connected]]);
  assert.equal(D.waterAt(p,0,{x:5,y:1},1),null,'Las banquetas 10x10 no se inundan');
  assert.equal(D.walkFactor(p,0,{x:5,y:5},1),1,'El agua principal no penaliza MOV universal');
  assert.equal(D.waterAt(p,0,{x:21,y:21},0),null,'4x4 seco conserva una canaleta');
@@ -235,35 +237,97 @@ test('simulación: la corriente delega movimiento al motor y el remolino respeta
  assert.doesNotThrow(()=>noExit.update(.05,{phase:'lluvia',intensity:.58}));
 });
 test('precipitación nevada no activa inundación; el bucle usa reloj y clima existentes',()=>{
- const section4=section('small_cross',0,0,'four'),p=map([[section4]]);
+ const section4=section('small_cross',0,0,'four'),dest=section('small_dead_end',4,0,'dest',180);
+ section4.drainage.flowTo='dest';
+ const p=map([[section4,dest]]);
  const position=()=>({floorIndex:0,x:1,y:1}),moves=[];
  const rt=D.createRuntime({project:p,position,move:(x,y)=>moves.push([x,y])});
  assert.equal(rt.update(.05,{phase:'nieve',intensity:1}),null,'No hay corriente si la zona está seca');
  assert.equal(rt.update(.05,{phase:'lluvia',intensity:1})?.type,'current');
  assert.equal(moves.length,1,'La lluvia activa corriente en banqueta inundada');
 });
-test('renderizador Three: animación UV, reja y lámina inundada visibles solo bajo lluvia',()=>{
- const textureList=[],scene={children:[],add(obj){this.children.push(obj);}};
- const doc={createElement:()=>({width:0,height:0,getContext:()=>({fillStyle:'',fillRect(){}})})};
- class Texture{constructor(){this.offset={x:0,y:0};this.repeat={set(){}};textureList.push(this);}}
- class Material{constructor(opts){Object.assign(this,opts);}}
- class Mesh{constructor(geom,material){this.geometry=geom;this.material=material;this.position={set(){}};this.rotation={x:0,y:0,z:0};this.visible=true;}}
- class Geometry{}
- const THREE={CanvasTexture:Texture,MeshBasicMaterial:Material,MeshLambertMaterial:Material,
-  Mesh,BoxGeometry:Geometry,RingGeometry:Geometry,CircleGeometry:Geometry,
-  RepeatWrapping:1,NearestFilter:2};
- const sandbox={document:doc,module:{exports:{}},console};vm.runInNewContext(fs.readFileSync(path.join(__dirname,'fh-drainage.js'),'utf8'),sandbox);
- const Core=sandbox.module.exports;
- const small=Core.makeSection('small',{x:22,y:22},units,'wet'),out=Core.makeSection('outfall',{x:60,y:60},units,'vortex');
- Core.attachFloor(THREE,map([[small,out]]),scene,0,1.524);
- const flood=scene.children.find(x=>x.visible===false&&x.material?.map);
- assert.ok(flood,'4x4 debe tener una capa completa de inundación');
- assert.ok(textureList.length>=2,'Los canales utilizan CanvasTexture dinámica');
+test('shader global: tres máscaras por GPU, desnivel en tiles y lluvia secundaria',()=>{
+ const scene={children:[],add(obj){this.children.push(obj);}};
+ class Material{constructor(opts){Object.assign(this,opts);}dispose(){}}
+ class ShaderMaterial extends Material{}
+ class Geometry{
+  constructor(w=2,h=2){this.attributes={position:{count:4,getX:i=>i%2===0?-w/2:w/2,
+   getY:i=>i<2?-h/2:h/2}};this.attrs={};}
+  setAttribute(name,attribute){this.attrs[name]=attribute;}
+ }
+ class Attribute{constructor(values,components){this.values=values;this.components=components;}}
+ class Mesh{
+  constructor(geometry,material){this.geometry=geometry;this.material=material;
+   this.position={set(x,y,z){this.x=x;this.y=y;this.z=z;}};
+   this.rotation={x:0,y:0,z:0};this.visible=true;}
+ }
+ const THREE={ShaderMaterial,MeshBasicMaterial:Material,MeshLambertMaterial:Material,
+  Mesh,BoxGeometry:Geometry,PlaneGeometry:Geometry,Float32BufferAttribute:Attribute,
+  RingGeometry:Geometry,CircleGeometry:Geometry,DoubleSide:2};
+ const Core=D;
+ const small=section('small',20,20,'wet'),out=section('outfall',40,40,'vortex');
+ const source=map([[small,out], [section('small',10,10,'other')]]);
+ Core.attachFloor(THREE,source,scene,0,1.524);
+ Core.attachFloor(THREE,source,scene,1,1.524);
+ const waterMeshes=scene.children.filter(o=>o.material instanceof ShaderMaterial);
+ assert.ok(waterMeshes.length>=3,'Agua presente en varias plantas');
+ assert.equal(new Set(waterMeshes.map(o=>o.material)).size,1,'Un mismo shader, incluso entre plantas');
+ const shader=waterMeshes[0].material;
+ assert.match(shader.vertexShader,/heightMask=noise/,'Ruido principal regula elevación');
+ assert.match(shader.fragmentShader,/maskA=noise/);
+ assert.match(shader.fragmentShader,/maskB=noise/);
+ assert.equal(shader.uniforms.uWave.value,.032*1.524);
+ assert.ok(waterMeshes.some(m=>m.position.y===Core.WATER_LEVEL*1.524),'Agua a -0.2 tile');
+ const flood=waterMeshes.find(m=>m.visible===false);
+ assert.ok(flood,'La lámina de lluvia existe, sin crear otro shader');
+ const clock=shader.uniforms.uTime.value;
  Core.updateVisuals(.05,1,0);
- assert.equal(flood.visible,true,'La lámina de lluvia aparece en el conducto');
- assert.ok(textureList.some(t=>t.offset.x!==0||t.offset.y!==0),'La textura se desplaza');
- Core.updateVisuals(.05,0,0);
- assert.equal(flood.visible,false,'Se retira la capa al terminar la precipitación');
+ assert.equal(flood.visible,true);
+ assert.ok(shader.uniforms.uTime.value>clock,'Se actualiza un solo reloj');
+ assert.equal(shader.uniforms.uRain.value,1);
+ Core.updateVisuals(.05,0,1);
+ assert.equal(flood.visible,false);
+});
+test('geometría: respeta muros y huecos reales sin duplicar colisiones',()=>{
+ const main=section('straight',20,20,'sewer');
+ const wall={id:'authored',type:'wall',a:{x:20,y:20},b:{x:20,y:30}};
+ const door={id:'door',type:'door',a:{x:30,y:24},b:{x:30,y:26}};
+ const parts=D.nativeComponents(main,[],[wall,door]);
+ assert.equal(parts.filter(p=>p.type==='wall'&&p.a.x===20&&p.b.x===20).length,0,'Respeta muro existente');
+ assert.equal(parts.filter(p=>p.type==='opening'&&p.a.x===30&&p.b.x===30).length,2,'No reconstruye el vano de la puerta');
+ const p=map([[main,wall,door]]);
+ const expanded=D.expandProject(p);
+ assert.equal(expanded.floors[0].items.filter(x=>x.id==='authored').length,1);
+ assert.equal(expanded.floors[0].items.filter(x=>x.id==='door').length,1);
+ assert.equal(expanded.floors[0].items.filter(x=>x.drainageGenerated&&x.type==='wall'&&x.a.x===20&&x.b.x===20).length,0);
+});
+test('geometría: el fondo queda por debajo del agua y solo se recortan canales del piso actual',()=>{
+ const a=section('straight',0,0,'canal'),b=section('straight',0,0,'canal_otra_planta');
+ const p=map([[a],[b]]);
+ const first=D.cutFloorRects(p,0,[{x:0,y:0,w:10,h:10}]);
+ assert.equal(first.reduce((sum,r)=>sum+r.w*r.h,0),60,'Canal central de 4 tiles deja 6 de paso');
+ assert.equal(D.cutFloorRects(p,0,[{x:30,y:30,w:5,h:5}]).length,1);
+ assert.equal(D.cutFloorRects(p,1,[{x:30,y:30,w:5,h:5}]).length,1);
+ assert.equal(D.WATER_LEVEL,-.2);
+ assert.ok(D.CHANNEL_BOTTOM<D.WATER_LEVEL);
+ assert.ok(D.depthAt(p,0,{x:5,y:5},0)<D.WATER_LEVEL,'Flotabilidad baja al personaje al canal');
+ assert.equal(D.depthAt(p,0,{x:5,y:1},0),0,'Pasillo seco conserva altura');
+});
+test('corriente T: sigue primero la rama antes de girar; no empuja tramos aislados',()=>{
+ const tee=section('tee',10,10,'tee'),east=section('small_dead_end',20,13,'east',180);
+ tee.drainage.flowTo='east';
+ const p=map([[tee,east]]);
+ assert.equal(D.currentAt(p,0,{x:15,y:11},0)?.y,1,'La rama superior baja al centro');
+ assert.equal(D.currentAt(p,0,{x:15,y:15},0)?.x,1,'En la unión gira hacia la derecha');
+ const lonely=map([[section('straight',0,0,'alone')]]);
+ assert.equal(D.currentAt(lonely,0,{x:5,y:5},0)?.speed,0,'No inventar salida al desagüe');
+});
+test('integración de desnivel: el motor empaquetado recibe el recorte y altura del jugador',()=>{
+ const html=fs.readFileSync(path.join(__dirname,'../../index.html'),'utf8');
+ for(const marker of ['function addDrainGeometryToEngine(','cutFloorRects(DATA,f,rects)',
+   'fhDrainActorDrop','fhDrainDrop','addDrainGeometryToEngine(addPreviewReturnToSpawnpoint']){
+  assert.ok(html.includes(marker),'Motor sin integración: '+marker);
+ }
 });
 test('integración motor: la corriente usa walk nativo y el cambio de piso conserva juego',()=>{
  const html=fs.readFileSync(path.join(__dirname,'../../index.html'),'utf8');
