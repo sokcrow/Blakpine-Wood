@@ -1,0 +1,53 @@
+name: Drenajes — render WebGL verificable
+on:
+  pull_request:
+    paths:
+      - 'juego/assets/fh-drainage.js'
+      - 'tests/fixtures/drainage-solid-visual.html'
+      - '.github/workflows/drainage-visual.yml'
+permissions:
+  contents: read
+jobs:
+  smoke-webgl:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Iniciar servidor estático del repositorio
+        run: |
+          python3 -m http.server 8765 >/tmp/drainage-http.log 2>&1 &
+          sleep 2
+      - name: Capturar escena 3D real del drenaje
+        run: |
+          set -eu
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          test -n "$CHROME"
+          mkdir -p artifacts
+          "$CHROME" --headless=new --no-sandbox --disable-dev-shm-usage \
+            --enable-webgl --enable-unsafe-swiftshader \
+            --use-gl=angle --use-angle=swiftshader \
+            --window-size=1280,800 --virtual-time-budget=7000 \
+            --screenshot=artifacts/drenaje-render-3d.png \
+            "http://127.0.0.1:8765/tests/fixtures/drainage-solid-visual.html"
+          test -s artifacts/drenaje-render-3d.png
+      - name: Comprobar escena ejecutada (no solo HTML)
+        run: |
+          set -eu
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          "$CHROME" --headless=new --no-sandbox --disable-dev-shm-usage \
+            --enable-webgl --enable-unsafe-swiftshader \
+            --use-gl=angle --use-angle=swiftshader \
+            --window-size=1280,800 --virtual-time-budget=5000 \
+            --dump-dom "http://127.0.0.1:8765/tests/fixtures/drainage-solid-visual.html" \
+            > artifacts/drenaje-dom.html
+          grep -q 'Mallas volumétricas: 2' artifacts/drenaje-dom.html
+          if grep -q 'ERROR:' artifacts/drenaje-dom.html; then
+            echo 'Error de ejecución en la escena 3D'
+            exit 1
+          fi
+      - name: Publicar evidencia de la escena
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: drenajes-3d-render
+          path: artifacts/
+          if-no-files-found: warn
