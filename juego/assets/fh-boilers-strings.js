@@ -7,6 +7,7 @@
   temperature:'Temperatura objetivo (°C)',heatingRate:'Calentamiento (°C/min de juego)',
   fillRate:'Llenado de agua fría (L/min)',range:'Alcance de tuberías calientes (pies)',
   inlet:'Red de entrada fría',outlet:'Red de salida caliente',pipe:'Tubería caliente',
+  pipeFeet:ft=>Number(ft||0).toFixed(1)+' pies de tubería caliente instalada',
   coldOnly:'Solo agua fría',hotEnabled:'Toma doble (fría y caliente)',
   noBoiler:'Sin caldera conectada',notHot:'Caldera sin agua suficientemente caliente',
   noPower:'Caldera sin electricidad',noCold:'Caldera sin entrada de agua fría',
