@@ -162,7 +162,7 @@
     load(meta,THREE).then(scene=>{
      if(!root3D.parent)return;
      const instance=scene.clone(true);
-     if(meta.glbAvailable===false)root.FHAssets?.markPlaceholder(instance,applyFOW);
+     if(meta.glbAvailable===false&&root.FHAssets?.markPlaceholder)root.FHAssets.markPlaceholder(instance,applyFOW);
      else if(typeof applyFOW==='function')applyFOW(instance);
      root3D.add(instance);root3D.userData.fhModelState=meta.glbAvailable===false?'fallback':'ready';
      for(const old of originals)if(old.parent&&old!==root3D)old.parent.remove(old);
@@ -170,7 +170,8 @@
     }).catch(error=>{
      const backup=storageFallback(THREE,meta);
      if(backup&&root3D.parent){
-      root.FHAssets?.markPlaceholder(backup,applyFOW);
+      if(root.FHAssets?.markPlaceholder)root.FHAssets.markPlaceholder(backup,applyFOW);
+      else if(typeof applyFOW==='function')applyFOW(backup);
       root3D.add(backup);root3D.userData.fhModelState='fallback';
       for(const old of originals)if(old.parent&&old!==root3D)old.parent.remove(old);
       renderedByItem[f]?.set?.(it.id,[{root:root3D}]);
