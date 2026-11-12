@@ -25,8 +25,22 @@
   return before!==JSON.stringify(item);
  }
  function upgradeMap(map){
-  let count=0;for(const floor of map?.floors||[])for(const item of floor.items||[])
-   if(normalizeItem(item,map.units?.feetPerCell))count++;
+  let count=0;
+  for(const floor of map?.floors||[]){
+   const strips=new Map((floor.items||[]).filter(item=>item.type==='power_strip').map(item=>[item.id,item]));
+   if(strips.size){
+    floor.items=floor.items.filter(item=>!strips.has(item.id));count+=strips.size;
+    for(const item of floor.items){
+     const removed=strips.get(item.outletId);if(!removed)continue;
+     // Una referencia antigua puede conservar su enchufe de pared real.
+     // Sin un padre válido, volver a la detección automática por alcance.
+     if(floor.items.some(source=>source.type==='power_outlet'&&source.id===removed.outletId))item.outletId=removed.outletId;
+     else delete item.outletId;
+     count++;
+    }
+   }
+   for(const item of floor.items||[])if(normalizeItem(item,map.units?.feetPerCell))count++;
+  }
   return count;
  }
  root.FHElectricCatalog=Object.freeze({...catalog,DEFAULT,byId,modelFor,normalizeItem,upgradeMap});

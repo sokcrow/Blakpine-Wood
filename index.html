@@ -211,7 +211,7 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
 <script src="./juego/assets/fh-access-config.js?v=20261107-map-v1"></script>
 <script src="./juego/assets/fh-weather-strings.js?v=20261108-clima1"></script>
 <script src="./juego/assets/fh-weather-editor.js?v=20261108-clima1"></script>
-<script src="./juego/assets/fh-services-strings.js?v=20261112-outlet-auto-1"></script>
+<script src="./juego/assets/fh-services-strings.js?v=20261112-double-outlet-only-1"></script>
 <script src="./juego/assets/fh-exterior-grid.js?v=20261111-pole-collision-1"></script>
 <script src="./juego/assets/fh-exterior-strings.js?v=20261111-exterior-03-fix1"></script>
 <script src="./juego/assets/fh-water-potable.js?v=20261112-potable-01"></script>
@@ -1657,7 +1657,7 @@ const COLORS={generator:'#bc8b68',generator_ats:'#7f9392',generator_tank:'#b69b6
 const TOOL_GROUPS={
  structure:[['select','Seleccionar','☞'],['pan','Mover mapa','✋'],['wall','Pared','▰'],['red_wall','Pared roja · losa','▰'],['paint_wall','Pintar cara','▨'],['half_wall','Pared media','▱'],['fence','Reja','⛶'],['door','Puerta','🚪'],['elevator','Ascensor ⇅','⇅'],['peephole_door','Con mirilla','◉'],['window','Ventana','▤'],['opening','Hueco libre','⟷'],['erase','Borrar','⌫']],
  furniture:[['select','Seleccionar','☞'],['bed','Cama compacta','🛏'],['sofa','Sofá compacto','▰'],['tv','Tele compacta','▭'],['dining','Comedor','◫'],['table','Mesa','▦'],['chair','Silla','▣'],['kitchen','Cocina','▤'],['bath','Ducha / tina','▥'],['toilet','Baño / WC','◉'],['plant','Planta','♧'],['car','Coche','▰'],['misc','Mueble libre','□'],['battery_pickup','Batería de linterna','▰']],
- lighting:[['select','Seleccionar circuito','☞'],['pan','Mover mapa','✋'],['zone_assign','Conectar zona','◈'],['light_fixture','Foco de techo','✦'],['light_strip','Tubo largo','▰'],['light_panel','Panel de techo','▤'],['light_wall','Aplique de pared','◖'],['light_flood','Reflector de pared','◁'],['light_switch','Interruptor','◉'],['breaker_panel','Breaker','▤'],['generator',window.FH_SERVICES_TEXT.generator.normal,'⚙'],['generator_emergency',window.FH_SERVICES_TEXT.generator.emergency,'⚙'],['power_outlet','Enchufe doble','⚡'],['power_strip','Multiconector','▤'],['phone_charger','Cargador de celular','▣']],
+ lighting:[['select','Seleccionar circuito','☞'],['pan','Mover mapa','✋'],['zone_assign','Conectar zona','◈'],['light_fixture','Foco de techo','✦'],['light_strip','Tubo largo','▰'],['light_panel','Panel de techo','▤'],['light_wall','Aplique de pared','◖'],['light_flood','Reflector de pared','◁'],['light_switch','Interruptor','◉'],['breaker_panel','Breaker','▤'],['generator',window.FH_SERVICES_TEXT.generator.normal,'⚙'],['generator_emergency',window.FH_SERVICES_TEXT.generator.emergency,'⚙'],['power_outlet','Enchufe doble','⚡'],['phone_charger','Cargador de celular','▣']],
   water:[['select','Seleccionar','☞'],['pan','Mover mapa','✋'],['water_main','Entrada de agua','◉'],['water_valve','Válvula','◈'],['water_outlet','Toma de agua','◉'],['water_cistern','Cisterna potable','▰'],['water_tinaco','Tinaco elevado','◉'],['drain_outlet','Drenaje','◌'],['drain_main','Salida de drenaje','◉'],['drain_straight',window.FH_DRAIN_TEXT.straight,'═'],['drain_elbow',window.FH_DRAIN_TEXT.elbow,'┐'],['drain_tee',window.FH_DRAIN_TEXT.tee,'┬'],['drain_cross',window.FH_DRAIN_TEXT.cross,'┼'],['drain_dead_end',window.FH_DRAIN_TEXT.dead_end,'⊣'],['drain_small',window.FH_DRAIN_TEXT.small,'─'],['drain_small_elbow',window.FH_DRAIN_TEXT.small_elbow,'└'],['drain_small_tee',window.FH_DRAIN_TEXT.small_tee,'┬'],['drain_small_cross',window.FH_DRAIN_TEXT.small_cross,'┼'],['drain_small_dead_end',window.FH_DRAIN_TEXT.small_dead_end,'⊣'],['drain_outfall',window.FH_DRAIN_TEXT.outfall,'◎'],['drain_bridge',window.FH_DRAIN_TEXT.bridge,'▦'],['drain_audit',window.FH_DRAIN_TEXT.audit,'✓']],
   network:[['select','Seleccionar','☞'],['pan','Mover mapa','✋'],['router','Router Wi-Fi','⌁'],['ethernet_port','Toma Ethernet','▣'],['landline_phone','Teléfono de pared','☎']],
  areas:[['courtyard',window.FH_COURTYARD_TEXT.tool,'☀'],['room_fill','Revisar recinto','⌂'],['room','Zona manual','▣'],['hall','Pasillo','═'],['outside','Exterior','♧'],['building','Edificio','▥'],['pavement','Banqueta / piso','▦'],['parking','Estacionamiento','▤'],['asphalt','Asfalto','▦'],['alley','Callejón manchado','▦'],['sidewalk','Banqueta','▤'],['concrete','Concreto','▦'],['gravel','Grava','░'],['cobblestone','Adoquín','▣'],['tile_floor','Baldosa','▦'],['carpet','Alfombra','▧'],['wood_floor','Madera','▤'],['grass','Pasto','❋'],['dirt','Tierra','░'],['elevator','Ascensor ⇅','⇅'],['stairs','Escaleras ½ cuadro','≋'],['spawn','Jugador','✦'],['npc_portal','Entrada / salida NPC','⇥'],['select','Seleccionar','☞'],['pan','Mover mapa','✋']],
@@ -2134,6 +2134,7 @@ function getPoint(s){return snap(toGrid(toWorld(s)))}
 function createSegment(type,a,b){if(Math.hypot(b.x-a.x,b.y-a.y)<.08)return null;const h=['wall','red_wall','property_wall'].includes(type)?9:type==='half_wall'?4.5:type==='fence'?4:7;let s={id:numId(),type,a,b,heightFt:h,widthFt:type==='door'||type==='peephole_door'?3:0,open:false,locked:false,peekSide:1,doorRole:'auto',apartmentId:'',label:''};if(type==='peephole_door')s.open=false;return s}
 function createArea(type,a,b){let x=Math.min(a.x,b.x),y=Math.min(a.y,b.y),w=Math.abs(a.x-b.x),h=Math.abs(a.y-b.y);if(w<.15||h<.15)return null;const label=SHORT[type];return {id:numId(),type,x,y,w,h,label,apartmentId:'',blocksViewOutside:type==='room',roomId:type==='room'?sanitizeId(label):''}}
 function createObject(type,p){
+ if(type==='power_strip'){toast(window.FH_SERVICES_TEXT.powerStripRemoved);return null;}
  const emergencyGenerator=type==='generator_emergency';if(emergencyGenerator)type='generator';
  const fixtureKind=window.FHLights?.kindForTool(type);
  if(fixtureKind)type='light_fixture';
@@ -2995,7 +2996,7 @@ function attachServiceInspector(it,fields){
  const title=document.createElement('strong');title.textContent='Servicios y conexiones';title.style.gridColumn='1/-1';sec.append(title);
  const outletField=()=>{
   const options=[['',T.outletAuto]];
-  const outlets=current().items.filter(source=>source.id!==it.id&&['power_outlet','power_strip'].includes(source.type));
+  const outlets=current().items.filter(source=>source.id!==it.id&&source.type==='power_outlet');
   for(const source of outlets)options.push([source.id,T.outletAt(source.label||window.FH_SERVICES_TEXT.labels[source.type],source.x,source.y)]);
   if(it.outletId&&!outlets.some(source=>source.id===it.outletId))options.push([it.outletId,T.outletMissing]);
   return makeField(T.outletConnection,'outletId',it.outletId||'','select',options);
@@ -5056,10 +5057,10 @@ init();
 <script src="./juego/assets/fh-structure-engine-hook.js?v=20261108-architecture-load"></script>
 <script src="./juego/assets/fh-comic-action-engine-hook.js?v=20261107-comic-actions-1"></script>
 <script src="./juego/assets/fh-context-engine-hook.js?v=20261111-roof-outside1"></script>
-<script src="./juego/assets/fh-services-engine-hook.js?v=20261112-outlet-auto-1"></script>
-<script src="./juego/assets/fh-electric-catalog.js?v=20261112-outlet-auto-1"></script>
+<script src="./juego/assets/fh-services-engine-hook.js?v=20261112-double-outlet-only-1"></script>
+<script src="./juego/assets/fh-electric-catalog.js?v=20261112-double-outlet-only-1"></script>
 <script src="./juego/assets/fh-electric-strings.js?v=20261109-servicios-24"></script>
-<script src="./juego/assets/fh-electric-visuals.js?v=20261112-outlet-auto-1"></script>
+<script src="./juego/assets/fh-electric-visuals.js?v=20261112-double-outlet-only-1"></script>
 <script src="./juego/assets/fh-electric-editor.js?v=20261112-outlet-auto-1"></script>
 <script src="./juego/assets/fh-water-catalog.js?v=20261109-servicios-24"></script>
 <script src="./juego/assets/fh-water-storage-catalog.js?v=20261112-agua03-menu1"></script>

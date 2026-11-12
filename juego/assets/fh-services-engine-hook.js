@@ -15,7 +15,7 @@
   const core='<script src="'+base+'fh-services-core.js?v=20261112-outlet-auto-1"></'+'script>';
   const exteriorCore='<script src="'+base+'fh-exterior-grid.js?v=20261111-pole-collision-1"></'+'script>';
    const exteriorVisual='<script src="'+base+'fh-exterior-visuals.js?v=20261111-exterior-03"></'+'script>';
-   const strings='<script src="'+base+'fh-services-strings.js?v=20261112-outlet-auto-1"></'+'script>';
+   const strings='<script src="'+base+'fh-services-strings.js?v=20261112-double-outlet-only-1"></'+'script>';
   // El motor incrusta subdocumentos HTML como cadenas: hay varios </head>.
   // Insertar en el primer cierre (cabecera del documento exterior), como
   // hacen los otros adaptadores, y no exigir una ocurrencia única.
