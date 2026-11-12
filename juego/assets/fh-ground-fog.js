@@ -95,6 +95,57 @@
   mesh.position.set(maxX/2,.07,maxZ/2);
   mesh.visible=false;mesh.renderOrder=1;
   scene.add(mesh);
+  // La niebla de distancia de Three.js afecta toda la escena. Bajo techo se
+  // sustituye por velos situados SOLO sobre las celdas exteriores: se ven
+  // por ventanas o puertas sin cubrir los muebles ni las habitaciones.
+  const hazeUniforms={
+   uOutside:uniforms.uOutside,uTrail:uniforms.uTrail,
+   uSight:uniforms.uSight,uHasSight:uniforms.uHasSight,
+   uActor:uniforms.uActor,uRadius:uniforms.uRadius,
+   uClearRadius:uniforms.uClearRadius,uTime:uniforms.uTime,
+   uStrength:{value:.15}
+  };
+  const hazeMaterial=new THREE.ShaderMaterial({
+   uniforms:hazeUniforms,transparent:true,depthWrite:false,depthTest:true,
+   side:THREE.DoubleSide,
+   vertexShader:[
+    'varying vec2 vUv; varying vec2 vWorld;',
+    'void main(){',
+    ' vUv=uv; vec4 world=modelMatrix*vec4(position,1.0);',
+    ' vWorld=world.xz; gl_Position=projectionMatrix*viewMatrix*world;',
+    '}'
+   ].join('\n'),
+   fragmentShader:[
+    'varying vec2 vUv; varying vec2 vWorld;',
+    'uniform sampler2D uOutside,uTrail,uSight;',
+    'uniform float uHasSight,uRadius,uClearRadius,uStrength,uTime;',
+    'uniform vec2 uActor;',
+    'void main(){',
+    ' if(texture2D(uOutside,vUv).r<.5)discard;',
+    ' float sight=uHasSight>.5?texture2D(uSight,vUv).r:1.0;',
+    ' if(sight<.015)discard;',
+    ' float dist=distance(vWorld,uActor);',
+    ' float fade=smoothstep(1.0,uRadius,dist);',
+    ' float clear=1.0-smoothstep(uClearRadius*.7,uClearRadius,dist);',
+    ' float ripple=.92+.08*sin(vWorld.x*.73+vWorld.y*.49+uTime*.28);',
+    ' float alpha=uStrength*(.32+.68*fade)*sight*ripple;',
+    ' alpha*=1.0-max(texture2D(uTrail,vUv).r,clear);',
+    ' if(alpha<.012)discard;',
+    ' gl_FragColor=vec4(vec3(.65,.70,.72),alpha);',
+    '}'
+   ].join('\n')
+  });
+  // Tres capas planas, compartiendo la misma geometría y máscara GPU.
+  // Evita las partículas circulares antiguas y las múltiples celdas 3D.
+  const hazeHeights=[.55,1.35,2.25];
+  const hazeLayers=hazeHeights.map(height=>{
+   const layer=new THREE.Mesh(geometry,hazeMaterial);
+   layer.rotation.x=-Math.PI/2;
+   layer.position.set(maxX/2,height,maxZ/2);
+   layer.visible=false;layer.renderOrder=2;
+   scene.add(layer);
+   return layer;
+  });
   const previousFog=scene.fog;
   const distanceFog=new THREE.Fog(0x69777d,1,2);
   let activeFloor=NaN,accumulator=0,clock=0,lastX=NaN,lastZ=NaN,farUsed=NaN,climateUsed=-1;
@@ -117,6 +168,7 @@
    upload(exposure,mask);exteriorMap.needsUpdate=true;
    trail.fill(0);upload(footprints,trail);trailMap.needsUpdate=true;
    accumulator=0;lastX=lastZ=NaN;mesh.visible=open>0;
+   for(const layer of hazeLayers)layer.visible=open>0;
   }
   function stamp(x,z){
    const cx=x/maxX*size,cy=z/maxZ*size;
@@ -150,11 +202,14 @@
    const outside=isOutside?.(x,z)===true;
    const seconds=clamp(finite(dt,0),0,.25);
    accumulator+=seconds;clock+=seconds;
-   mesh.position.y=finite(floorY?.(),0)+.07;
+   const baseY=finite(floorY?.(),0);
+   mesh.position.y=baseY+.07;
+   for(let i=0;i<hazeLayers.length;i++)hazeLayers[i].position.y=baseY+hazeHeights[i];
    uniforms.uActor.value.set(x,z);uniforms.uTime.value=clock;
    const sight=typeof sightTexture==='function'?sightTexture():sightTexture;
    uniforms.uSight.value=sight;uniforms.uHasSight.value=sight?1:0;
    const climate=clamp(Math.floor(finite(weather?.fog,0)),0,3);
+   hazeUniforms.uStrength.value=.15+climate*.025;
    const cameraFar=finite(camera?.far,Math.hypot(maxX,maxZ));
    const requested=typeof visionDistance==='function'?visionDistance():visionDistance;
    const limit=Number.isFinite(requested)&&requested>0?Math.min(cameraFar,requested):cameraFar;
@@ -171,11 +226,12 @@
   }
   function dispose(){
    scene.remove(mesh);
+   for(const layer of hazeLayers)scene.remove(layer);
    if(scene.fog===distanceFog)scene.fog=previousFog;
-   geometry.dispose();material.dispose();
+   geometry.dispose();material.dispose();hazeMaterial.dispose();
    exteriorMap.dispose();trailMap.dispose();
   }
-  return {update,dispose,mesh,settings:cfg};
+  return {update,dispose,mesh,hazeLayers,settings:cfg};
  }
  return Object.freeze({DEFAULTS,settings,createRuntime});
 });
