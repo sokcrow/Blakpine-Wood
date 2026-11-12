@@ -80,3 +80,49 @@ test('la red exterior se dibuja en la capa eléctrica sin depender de muebles',(
  h.root.FHExteriorEditor.drawGrid(c,1,item=>({x:item.x,y:item.y}));
  assert.ok(marks.filter(a=>a[0]==='line').length>=2,'enlaces entre postes y breaker visibles');
 });
+
+
+test('inspector permite conectar y desconectar un poste mediante selector eléctrico',()=>{
+ const h=createHarness(),t={id:'t',modelId:'transformador_poste_simple',x:0,y:0},
+  pole={id:'poste',type:'misc',modelId:'poste_luz_concreto',x:5,y:0};
+ h.project.floors[0].items.push(t,pole);
+ h.select(pole.id);h.ctx.openInspector();
+ const label=h.byId.fields.children.find(x=>x.textContent===h.root.FH_EXTERIOR_TEXT.linkParent);
+ assert.ok(label,'selector de alimentación del poste');
+ const input=label.children[0];input.value='off';input.onchange();
+ assert.equal(pole.exteriorLinkMode,'off');
+ assert.equal(Exterior.createRuntime(h.project,{}).links().length,0);
+ input.value='node:t';input.onchange();
+ assert.equal(pole.exteriorLinkMode,'manual');
+ assert.equal(pole.exteriorParentId,'t');
+ const grid=Exterior.createRuntime(h.project,{});
+ assert.equal(grid.energized(grid.nodes[1]),true);
+});
+test('inspector de breaker selecciona nodo de red y muestra demanda',()=>{
+ const h=createHarness(),t={id:'t',modelId:'transformador_poste_simple',x:0,y:0},
+  p={id:'panel',type:'breaker_panel',x:1,y:0,powerSource:{kind:'utility'},capacityWatts:2400};
+ h.project.floors[0].items.push(t,p);
+ h.select(p.id);h.ctx.openInspector();
+ const label=h.byId.fields.children.find(x=>x.textContent===h.root.FH_EXTERIOR_TEXT.breakerSource);
+ assert.ok(label,'fuente específica del breaker');
+ const input=label.children[0];input.value='node:t';input.onchange();
+ assert.equal(p.exteriorConnectionMode,'manual');
+ assert.equal(p.exteriorNodeId,'t');
+ assert.equal(p.exteriorAutoConnect,true);
+ const grid=Exterior.createRuntime(h.project,{});
+ assert.equal(grid.panelConnection(0,p)?.powered,true);
+ assert.ok(h.byId.fields.children.some(x=>x.textContent===h.root.FH_EXTERIOR_TEXT.demandWatts));
+});
+test('cobertura de farola aparece en mapa 2D mientras tiene energía',()=>{
+ const h=createHarness(),tx={id:'t',modelId:'transformador_poste_simple',x:0,y:0},
+  lamp={id:'l',modelId:'poste_luz_con_brazo',x:5,y:0};
+ h.project.floors[0].items.push(tx,lamp);
+ let fills=0;
+ const c={save(){},restore(){},beginPath(){},setLineDash(){},moveTo(){},lineTo(){},stroke(){},
+  arc(){},fill(){fills++;}};
+ h.root.FHExteriorEditor.drawGrid(c,1,item=>({x:item.x,y:item.y}));
+ assert.equal(fills,2,'cobertura brillante y tenue');
+ lamp.exteriorLinkMode='off';
+ h.root.FHExteriorEditor.drawGrid(c,1,item=>({x:item.x,y:item.y}));
+ assert.equal(fills,2,'farola desconectada no ilumina');
+});

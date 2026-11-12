@@ -95,3 +95,75 @@ test('la batería y el combustible no se mezclan al descargar',()=>{
  assert.equal(saved.electricChargeHours,4);
  assert.equal(tank.liters,4);
 });
+
+
+test('enlace manual selecciona el poste solicitado y nunca conecta por decoración',()=>{
+ const a=tx(),b=obj('p1','poste_luz_concreto',8),c=lamp('farola',16);
+ c.exteriorLinkMode='manual';c.exteriorParentId='p1';
+ const grid=fixture([a,b,c]);
+ const link=grid.links().find(l=>l.to.id==='farola');
+ assert.equal(link?.from.id,'p1');
+ assert.equal(link?.manual,true);
+ assert.equal(grid.energized(grid.nodes[2]),true);
+});
+test('una desconexión manual apaga una rama, sin reconectar a escondidas',()=>{
+ const a=tx(),b=obj('p1','poste_luz_concreto',10,0,{exteriorLinkMode:'off'}),
+  c=lamp('farola',20);
+ c.exteriorLinkMode='manual';c.exteriorParentId='p1';
+ const grid=fixture([a,b,c]);
+ assert.equal(grid.links().length,0);
+ assert.equal(grid.energized(grid.nodes[1]),false);
+ assert.equal(grid.energized(grid.nodes[2]),false);
+});
+test('una referencia manual inexistente no inventa un cable ni cambia el JSON',()=>{
+ const l=lamp('lampara',5);l.exteriorLinkMode='manual';l.exteriorParentId='ausente';
+ const before=JSON.stringify(l),grid=fixture([tx(),l]);
+ assert.equal(grid.links().length,0);
+ assert.equal(grid.energized(grid.nodes[1]),false);
+ assert.equal(JSON.stringify(l),before);
+});
+test('capacidad distinta entre transformador sencillo, doble y de superficie',()=>{
+ const ids=['transformador_poste_simple','transformador_poste_doble','transformador_caja_superficie'];
+ const expected=[12000,30000,60000];
+ ids.forEach((id,i)=>{
+  const grid=fixture([obj('t',id,0)]);
+  assert.equal(grid.capacityWatts(grid.nodes[0]),expected[i]);
+ });
+});
+test('un transformador corta el exceso de demanda y no deja pasar más watts',()=>{
+ const first=panel('a',2,{capacityWatts:7500}),second=panel('b',3,{capacityWatts:7500});
+ const grid=fixture([tx(),first,second]);
+ assert.equal(grid.panelConnection(0,first)?.powered,true);
+ assert.equal(grid.panelConnection(0,second)?.powered,false);
+ assert.equal(grid.panelConnection(0,second)?.reason,'capacity');
+ assert.equal(grid.panelConnection(0,second)?.availableWatts,4500);
+});
+test('transformador de mayor capacidad alimenta ambos edificios sin apagón',()=>{
+ const first=panel('a',2,{capacityWatts:7500}),second=panel('b',3,{capacityWatts:7500});
+ const grid=fixture([obj('t','transformador_poste_doble',0),first,second]);
+ assert.equal(grid.panelConnection(0,first)?.powered,true);
+ assert.equal(grid.panelConnection(0,second)?.powered,true);
+ assert.equal(grid.consumers(grid.nodes[0]).breakers.length,2);
+});
+test('breaker con enlace específico se conecta a ese nodo aunque haya otro cercano',()=>{
+ const one=tx('t1',0),two=tx('t2',14);
+ const p=panel('casa',12,{exteriorConnectionMode:'manual',exteriorNodeId:'t1'});
+ const grid=fixture([one,two,p]);
+ assert.equal(grid.panelConnection(0,p)?.nodeId,'t1');
+ p.exteriorConnectionMode='off';
+ const gridOff=fixture([one,two,p]);
+ assert.equal(gridOff.panelConnection(0,p),null);
+});
+test('fallo eléctrico interrumpe farola y alimentación de breaker hasta restablecimiento',()=>{
+ const state={flags:{}},p=panel('casa',7);
+ const project={units:{feetPerCell:5},floors:[{id:'calle',elevationFt:0,
+  items:[tx(),lamp('l',5),p]}]};
+ const grid=api.createRuntime(project,state);
+ assert.equal(grid.energized(grid.nodes[1]),true);
+ assert.equal(grid.panelConnection(0,p)?.powered,true);
+ state.flags.power_global=false;
+ assert.equal(grid.energized(grid.nodes[1]),false);
+ assert.equal(grid.panelConnection(0,p)?.powered,false);
+ state.flags.power_global=true;
+ assert.equal(grid.panelConnection(0,p)?.powered,true);
+});

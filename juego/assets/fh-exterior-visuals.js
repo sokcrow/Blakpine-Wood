@@ -45,7 +45,26 @@
    cable(link.f,tip(link.node),new THREE.Vector3(Number(panel.x)*CELL,Math.max(.45,Number(panel.mountHeightFt)||5.5)*FT,Number(panel.y)*CELL),
     link.node.id+'_breaker_'+String(panel.id));
   }
-  const lightIds=new Set();
+  const lightIds=new Set(),bulbs=new Map(),lastState=new Map();
+  // El pool real de luces 3D ya consulta FHLights.sourcesNear; crear aquí
+  // PointLights por cada poste duplicaría luces y dañaría el rendimiento móvil.
+  // Solo añadimos una bombilla emisiva visible al GLB correspondiente.
+  if(THREE.SphereGeometry&&THREE.MeshBasicMaterial){
+   for(const node of grid.nodes){
+    if(node.role!=='lamp'||!stories[node.f])continue;
+    const geo=new THREE.SphereGeometry(.14,8,6);
+    const mat=new THREE.MeshBasicMaterial({color:0xffdda4,transparent:true,opacity:.92,
+     depthWrite:false});
+    const bulb=new THREE.Mesh(geo,mat);
+    const head=tip(node);
+    bulb.position.set(head.x,head.y,head.z);
+    bulb.name='FH_EXTERIOR_LAMP_'+node.id;
+    bulb.castShadow=false;bulb.receiveShadow=false;
+    bulb.visible=false;
+    if(typeof applyFOW==='function')applyFOW(bulb);
+    stories[node.f].add(bulb);bulbs.set(node,bulb);meshes.push(bulb);
+   }
+  }
   const update=()=>{
    const lights=root.FHLights;
    if(!lights)return;
@@ -53,11 +72,14 @@
     if(node.role!=='lamp')continue;
     const key='fh_exterior_'+node.floorId+'_'+node.id;
     lightIds.add(key);
-    if(!grid.energized(node)){
-     lights.removeDynamicSource(key);continue;
-    }
+    const on=grid.energized(node);
+    if(bulbs.has(node))bulbs.get(node).visible=on;
     const brightFt=Math.max(1,Math.min(120,Number(node.it.exteriorBrightFt)||30));
     const dimFt=Math.max(0,Math.min(120,Number(node.it.exteriorDimFt)||30));
+    const stamp=on?brightFt+':'+dimFt:'off';
+    if(lastState.get(key)===stamp)continue;
+    lastState.set(key,stamp);
+    if(!on){lights.removeDynamicSource(key);continue;}
     lights.setDynamicSource(key,{floor:node.f,x:Number(node.it.x)*CELL,z:Number(node.it.y)*CELL,
      brightRadius:brightFt*FT,dimRadius:(brightFt+dimFt)*FT,radius:brightFt*FT,
      angleDeg:360});
@@ -66,8 +88,9 @@
   const dispose=()=>{
    for(const mesh of meshes){mesh.parent?.remove(mesh);mesh.geometry.dispose();mesh.material.dispose();}
    for(const id of lightIds)root.FHLights?.removeDynamicSource(id);
+   lastState.clear();bulbs.clear();
   };
-  update();return Object.freeze({update,dispose,meshes});
+  update();return Object.freeze({update,dispose,meshes,bulbs});
  }
  return Object.freeze({install});
 });

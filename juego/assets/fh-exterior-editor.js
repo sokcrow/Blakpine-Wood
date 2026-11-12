@@ -85,13 +85,13 @@
   return item;
  };
  function permission(item){return !root.FHStyleEditor||root.FHStyleEditor.canEditItem(item);}
- function addInput(fields,item,key,label,kind='number',fallback=90){
+ function addInput(fields,item,key,label,kind='number',fallback=90,max=1000){
   const holder=document.createElement('label');holder.textContent=label;
   const input=document.createElement('input');input.type=kind;input.value=kind==='checkbox'?'':item[key]??fallback;
   if(kind==='checkbox')input.checked=item[key]===undefined?fallback===true:item[key]===true;
   input.onchange=()=>{
    if(!permission(item)){openInspector();return;}
-   item[key]=kind==='checkbox'?input.checked:Math.max(0,Math.min(1000,Number(input.value)||0));
+   item[key]=kind==='checkbox'?input.checked:Math.max(0,Math.min(max,Number(input.value)||0));
    record();render();openInspector();
   };
   holder.append(input);fields.append(holder);
@@ -102,7 +102,8 @@
   const key=JSON.stringify([project.units?.feetPerCell,(project.floors||[]).map(f=>[f.id,f.elevationFt,
    (f.items||[]).filter(it=>G.isExternal(it)||it.type==='breaker_panel').map(it=>
     [it.id,it.modelId,it.type,it.x,it.y,it.enabled,it.exteriorGridEnabled,it.exteriorCableFt,
-     it.exteriorFeedFt,it.exteriorAutoConnect,it.powerSource])])]);
+     it.exteriorFeedFt,it.exteriorAutoConnect,it.powerSource,it.exteriorCapacityWatts,
+     it.exteriorLinkMode,it.exteriorParentId,it.exteriorConnectionMode,it.exteriorNodeId,it.exteriorDemandWatts])])]);
   if(topologyKey!==key||!topologyCache){topologyKey=key;topologyCache=G.createRuntime(project,{});}
   return topologyCache;
  }
@@ -113,7 +114,25 @@
  function drawGrid(ctx,z,toPixel){
   if(typeof toPixel!=='function')return;
   const grid=topology();const sameFloor=f=>f===floorIndex;
-  ctx.save();ctx.lineWidth=Math.max(.8,1.8/z);
+  ctx.save();
+  // Cobertura prevista, no un estado de partida: la simulación apagará las luces sin corriente.
+  if(typeof ctx.beginPath==='function'&&typeof ctx.fill==='function'){
+   const a=toPixel({x:0,y:0}),b=toPixel({x:1,y:1});
+   const sx=Math.abs(b.x-a.x),sy=Math.abs(b.y-a.y),cell=Math.max(.1,Number(project.units?.feetPerCell)||5);
+   for(const node of grid.nodes){
+    if(node.role!=='lamp'||!sameFloor(node.f)||!grid.energized(node))continue;
+    const p=toPixel(node.it),bright=Math.max(1,Math.min(120,Number(node.it.exteriorBrightFt)||30))/cell;
+    const dim=Math.max(0,Math.min(120,Number(node.it.exteriorDimFt)||30))/cell;
+    for(const [r,alpha] of [[bright+dim,.075],[bright,.16]]){
+     ctx.beginPath();
+     if(typeof ctx.ellipse==='function')ctx.ellipse(p.x,p.y,r*sx,r*sy,0,0,2*Math.PI);
+     else if(typeof ctx.arc==='function')ctx.arc(p.x,p.y,r*sx,0,2*Math.PI);
+     else continue;
+     ctx.fillStyle='#ffd38e';ctx.globalAlpha=alpha;ctx.fill();ctx.globalAlpha=1;
+    }
+   }
+  }
+  ctx.lineWidth=Math.max(.8,1.8/z);
   for(const link of grid.links()){
    if(!sameFloor(link.from.f)||!sameFloor(link.to.f))continue;
    const a=toPixel(link.from.it),b=toPixel(link.to.it);
@@ -128,6 +147,23 @@
   }
   ctx.restore();
  }
+
+ function sourcePicker(fields,item,entries,value,onChange,label){
+  const holder=document.createElement('label');holder.textContent=label;
+  const select=document.createElement('select');
+  for(const [id,title] of entries){
+   const option=document.createElement('option');option.value=id;option.textContent=title;select.append(option);
+  }
+  select.value=value;select.onchange=()=>{
+   if(!permission(item)){openInspector();return;}
+   onChange(select.value);record();render();openInspector();
+  };
+  holder.append(select);fields.append(holder);
+ }
+ function availableNodes(item){
+  return topology().nodes.filter(n=>n.f===floorIndex&&n.it!==item)
+   .map(n=>[n.id,(T.roles[n.role]||T.infrastructure)+' · '+(n.it.label||n.id)]);
+ }
  const beforeInspector=openInspector;
  openInspector=function(){
   beforeInspector();
@@ -140,25 +176,54 @@
    if(!grid.hasTransformers)statusLine(fields,T.noTransformer);
    else if(!connected)statusLine(fields,T.nodeDisconnected);
    else {
-    const serves=link=>{let parent=link.node;while(parent){if(parent===node)return true;parent=parent.parent;}return false;};
-    const panels=grid.panelLinks().filter(link=>link.powered&&serves(link));
-    if(role==='transformer'&&!panels.length)statusLine(fields,T.noBreakers);
-    else statusLine(fields,T.nodeConnected+(role==='transformer'?' · '+panels.length+' '+T.breakersInReach:''));
+    const info=grid.consumers(node);
+    statusLine(fields,T.nodeConnected+' · '+info.posts+' '+T.nodesDownstream+
+      ' · '+info.lamps+' '+T.lampsDownstream+' · '+info.breakers.length+' '+T.breakersInReach);
+    if(role==='transformer'&&!info.breakers.length)statusLine(fields,T.noBreakers);
+   }
+   if(role==='transformer'){
+    addInput(fields,item,'exteriorCapacityWatts',T.capacityWatts, 'number',
+      G.CONFIG[item.modelId]?.capacityWatts||12000,1000000);
+   }else{
+    const entries=[['auto',T.linkAuto],['off',T.linkOff],
+     ...availableNodes(item).map(([id,title])=>['node:'+id,title])];
+    const mode=item.exteriorLinkMode||'auto';
+    const val=mode==='manual'?'node:'+String(item.exteriorParentId||''):mode;
+    sourcePicker(fields,item,entries,val,choice=>{
+     item.exteriorLinkMode=choice.startsWith('node:')?'manual':choice;
+     item.exteriorParentId=choice.startsWith('node:')?choice.slice(5):'';
+    },T.linkParent);
+    if(role==='lamp')statusLine(fields,connected?T.lampOn:T.lampOff);
    }
    addInput(fields,item,'exteriorCableFt',T.cable);
    addInput(fields,item,'exteriorFeedFt',T.feed);
    addInput(fields,item,'exteriorGridEnabled',T.enabled,'checkbox',true);
    if(G.roleFor(item)==='lamp'){
-    addInput(fields,item,'exteriorBrightFt','Radio brillante (pies)','number',30);
-    addInput(fields,item,'exteriorDimFt','Radio tenue adicional (pies)','number',30);
+    addInput(fields,item,'exteriorBrightFt',T.bright,'number',30,120);
+    addInput(fields,item,'exteriorDimFt',T.dim,'number',30,120);
    }
   }
   if(item.type==='breaker_panel'){
    const grid=topology(),link=grid.panelConnection(floorIndex,item);
    const allowed=item.exteriorAutoConnect===true||item.powerSource===undefined||item.powerSource?.kind==='utility';
-   statusLine(fields,!grid.hasTransformers?T.noTransformer:!allowed?T.breakerNotConfigured:!link?T.breakerOutOfRange:link.powered?T.breakerConnected+' '+Math.round(link.feet)+' '+T.feet:T.nodeDisconnected);
+   statusLine(fields,!grid.hasTransformers?T.noTransformer:
+    item.exteriorConnectionMode==='off'?T.linkOff:
+    !allowed?T.breakerNotConfigured:!link?T.breakerOutOfRange:
+    link.reason==='capacity'?T.capacityExceeded+' ('+link.demandWatts+' W / '+link.availableWatts+' W)':
+    link.powered?T.breakerConnected+' '+Math.round(link.feet)+' '+T.feet+
+      ' · '+T.transformerLabel+' '+link.transformerId:T.nodeDisconnected);
+   const selectedMode=item.exteriorConnectionMode||'auto';
+   sourcePicker(fields,item,[['auto',T.linkAuto],['off',T.linkOff],
+    ...availableNodes(item).map(([id,title])=>['node:'+id,title])],
+    selectedMode==='manual'?'node:'+String(item.exteriorNodeId||''):selectedMode,
+    choice=>{
+     item.exteriorConnectionMode=choice.startsWith('node:')?'manual':choice;
+     item.exteriorNodeId=choice.startsWith('node:')?choice.slice(5):'';
+     if(choice!=='off')item.exteriorAutoConnect=true;
+    },T.breakerSource);
    addInput(fields,item,'exteriorAutoConnect',T.auto,'checkbox',false);
    addInput(fields,item,'exteriorFeedFt',T.feed);
+   addInput(fields,item,'exteriorDemandWatts',T.demandWatts,'number',item.capacityWatts??2400,1000000);
   }
   if(item.type==='generator'&&item.generatorKind==='emergency'){
    addInput(fields,item,'electricCapacityHours',T.batteryCapacity,'number',item.autonomyHours??24);

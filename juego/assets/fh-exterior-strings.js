@@ -17,5 +17,13 @@
  batteryCapacity:'Capacidad de la reserva eléctrica (horas)',batteryInitial:'Carga eléctrica inicial (horas)',
  recharge:'Horas de autonomía recargadas por hora de juego',
  batteryNote:'La recarga eléctrica de emergencia es automática al recibir energía del transformador. El combustible nunca se recarga eléctricamente.',
+ linkParent:'Conexión del poste / luminaria',linkAuto:'Automática (poste cercano)',
+ linkOff:'Desconectado (sin energía)',breakerSource:'Fuente exterior para este breaker',
+ capacityWatts:'Capacidad máxima del transformador (W)',demandWatts:'Demanda reservada del edificio (W)',
+ bright:'Radio brillante (pies)',dim:'Radio tenue adicional (pies)',nodesDownstream:'postes conectados',
+ lampsDownstream:'farolas conectadas',lampOn:'Farola con suministro: cobertura luminosa activa.',
+ lampOff:'Farola apagada: conecta un poste energizado o revisa el corte.',
+ capacityExceeded:'Transformador sin capacidad para alimentar este edificio',
+ transformerLabel:'Transformador',
  hint:'La energía requiere transformador, cable dentro de alcance y servicio activo. La luz exterior se apaga durante los cortes.'
 });})(typeof window!=='undefined'?window:globalThis);

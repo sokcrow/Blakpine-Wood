@@ -35,3 +35,32 @@ test('las farolas y cables se sincronizan con los apagones, con limpieza segura'
  result.dispose();assert.equal(lights.size,0);
  delete global.FHExteriorGrid;delete global.FHLights;
 });
+
+
+test('la bombilla del poste ilumina y se apaga con la red sin crear PointLights extra',()=>{
+ const state={flags:{power_global:true},services:{contracts:{electricity:'active'}}};
+ const project={units:{feetPerCell:5},floors:[{id:'f0',elevationFt:0,items:street}]};
+ const grid=gridApi.createRuntime(project,state),sources=new Map(),added=[];
+ const material=()=>({dispose(){}});
+ const THREE_EXT={...THREE,SphereGeometry:class{dispose(){}},MeshBasicMaterial:class{constructor(spec){this.spec=spec;}dispose(){}},
+  Mesh:class{constructor(g,m){this.geometry=g;this.material=m;this.userData={};this.position={set(x,y,z){this.x=x;this.y=y;this.z=z;}}}}};
+ global.FHLights={setDynamicSource:(id,v)=>sources.set(id,v),removeDynamicSource:id=>sources.delete(id)};
+ global.FHExteriorGrid=gridApi;
+ const result=visual.install({THREE:THREE_EXT,DATA:project,CELL:5*.3048,
+  stories:[{add(mesh){mesh.parent={remove(){}};added.push(mesh);}}],service:{exteriorGrid:grid}});
+ assert.ok(result);
+ assert.equal(result.bulbs.size,1);
+ const bulb=[...result.bulbs.values()][0];
+ assert.equal(bulb.visible,true);
+ assert.equal(sources.size,1);
+ assert.ok(sources.values().next().value.brightRadius>0);
+ state.flags.power_global=false;result.update();
+ assert.equal(bulb.visible,false);
+ assert.equal(sources.size,0);
+ state.flags.power_global=true;result.update();
+ assert.equal(bulb.visible,true);
+ assert.equal(sources.size,1);
+ result.dispose();
+ assert.equal(sources.size,0);
+ delete global.FHLights;
+});
