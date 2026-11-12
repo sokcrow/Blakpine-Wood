@@ -181,5 +181,18 @@ test('el motor 3D expande geometría antes de buildFloor y conserva los material
  const core=fs.readFileSync(path.join(__dirname,'fh-drainage.js'),'utf8');
  const geometry=core.slice(core.indexOf(' function attachFloor('),core.indexOf(' return Object.freeze(',core.indexOf(' function attachFloor(')));
  assert.doesNotMatch(geometry,/wallModel\(|const wall=new THREE\.MeshLambertMaterial/,'Los muros no se duplican como mallas propias');
- assert.match(core,/type:open\.has\(side\)\?'opening':'wall'/);
+ assert.match(core,/push\('opening',Math\.max\(last,lo\),hi,k\+\+\)/);
+});
+
+test('un 4×4 conectado a un 10×10 abre solo la puerta real y cierra los huecos laterales',()=>{
+ const main=section('straight',0,0,'mayor'),small=section('small_tee',10,4,'menor');
+ assert.equal(D.touches(main,small),true,'El ancho de canal secundario es una casilla');
+ const parts=D.nativeComponents(main,[small]);
+ const edge=parts.filter(p=>p.id.startsWith('fh_drain_mayor_e_'));
+ assert.deepEqual(edge.filter(p=>p.type==='opening').map(p=>[p.a.y,p.b.y]),[[4,8]]);
+ assert.deepEqual(edge.filter(p=>p.type==='wall').map(p=>[p.a.y,p.b.y]),[[0,4],[8,10]]);
+ const expanded=D.expandProject(map([[main,small]]));
+ const walls=expanded.floors[0].items.filter(p=>p.drainageOwnerId==='mayor'&&p.type==='wall');
+ assert.equal(walls.length,4,'La unión menor no deja agujeros laterales transitables');
+ assert.equal(D.topology(map([[main,small]])).warnings.some(x=>x.code==='isolated'),false);
 });
