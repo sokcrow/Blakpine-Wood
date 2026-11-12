@@ -888,8 +888,12 @@ window.ForestTerminal3D={
  receiveCameraPixels(frame){
   if(!state.power||state.boot||!frame||frame.width!==320||frame.height!==184)return;
   const cam=DATA.cameras[state.camera],canvas=$('camCanvas');
-  if(!cam?.online||cam.id!==frame.id||!canvas||!(frame.pixels instanceof Uint8ClampedArray)||frame.pixels.length!==320*184*4)return;
-  canvas.getContext('2d').putImageData(new ImageData(frame.pixels,320,184),0,0);
+  // El motor y la terminal viven en iframes distintos: instanceof no atraviesa realms.
+  const raw=frame.pixels;
+  if(!cam?.online||cam.id!==frame.id||!canvas||!ArrayBuffer.isView(raw)||raw.BYTES_PER_ELEMENT!==1||raw.length!==320*184*4)return;
+  // ImageData exige un Uint8ClampedArray creado dentro del iframe receptor.
+  const pixels=new Uint8ClampedArray(raw);
+  canvas.getContext('2d').putImageData(new ImageData(pixels,320,184),0,0);
   cameraFrameReceived=true;
   if(Number.isFinite(frame.angleDeg))cam.angleDeg=frame.angleDeg;
  },
