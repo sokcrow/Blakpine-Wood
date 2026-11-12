@@ -76,7 +76,8 @@
   opener=document.activeElement;overlay.hidden=false;choices.replaceChildren();
   for(const m of models){
    const b=document.createElement('button');b.type='button';b.setAttribute('aria-pressed',String(active[m.type]?.id===m.id));
-   const img=document.createElement('img');img.src=new URL(m.thumbnail,base).href;img.alt='';
+   const thumbnailURL=new URL(m.thumbnail,base);if(m.assetVersion)thumbnailURL.searchParams.set('v',m.assetVersion);
+   const img=document.createElement('img');img.src=thumbnailURL.href;img.alt='';
    const title=document.createElement('strong');title.textContent=m.name;
    const where=document.createElement('small');where.textContent=m.mount==='ceiling'?(T.ceiling||'Techo'):(T.wall||'Pared');
    b.append(img,title,where);b.onclick=()=>selectModel(m);choices.append(b);

@@ -72,7 +72,8 @@
         "capacityRayos": 6,
         "radiusFt": 5
       },
-      "blocksMovement": false
+      "blocksMovement": false,
+      "assetVersion": "20261112-duplex-uv-1"
     },
     {
       "id": "interruptor_pared",
