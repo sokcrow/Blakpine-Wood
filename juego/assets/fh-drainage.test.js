@@ -335,7 +335,7 @@ test('corriente T: sigue primero la rama antes de girar; no empuja tramos aislad
 test('integración de desnivel: el motor empaquetado recibe el recorte y altura del jugador',()=>{
  const html=fs.readFileSync(path.join(__dirname,'../../index.html'),'utf8');
  for(const marker of ['function addDrainGeometryToEngine(','cutFloorRects(DATA,f,rects)',
-   'fhDrainActorDrop','fhDrainDrop','addDrainGeometryToEngine(addPreviewReturnToSpawnpoint']){
+   'fhDrainActorDrop','fhDrainDrop','return addDrainGeometryToEngine(doc);']){
   assert.ok(html.includes(marker),'Motor sin integración: '+marker);
  }
 });
