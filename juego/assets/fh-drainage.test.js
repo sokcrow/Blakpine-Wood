@@ -213,7 +213,7 @@ test('corriente real: caminar en agua principal, inundación secundaria y puente
  assert.equal(D.waterAt(p,0,{x:5,y:1},1),null,'Las banquetas 10x10 no se inundan');
  assert.equal(D.walkFactor(p,0,{x:5,y:5},1),1,'El agua principal no penaliza MOV universal');
  assert.equal(D.waterAt(p,0,{x:21,y:21},0),null,'4x4 seco conserva una canaleta');
- assert.equal(D.walkFactor(p,0,{x:21,y:21},.58),.5,'Lluvia inunda 4x4');
+ assert.equal(D.walkFactor(p,0,{x:20.5,y:20.5},.58),.5,'Lluvia inunda 4x4');
  assert.equal(D.walkFactor(p,0,{x:22,y:22},.58),1,'Puente evita ralentización');
  assert.equal(D.currentAt(p,0,{x:22,y:22},.58),null,'No arrastra sobre puente');
  const dry=D.currentAt(p,0,{x:5,y:5},0),wet=D.currentAt(p,0,{x:5,y:5},1);
