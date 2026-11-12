@@ -154,7 +154,7 @@
       if(height<.02)continue;
       const mesh=new THREE.Mesh(new THREE.CylinderGeometry(.023,.023,height,6),mat);
       mesh.name='FH_AGUA_FRIA_MONTANTE';mesh.position.set(section.point.x*CELL,
-       Math.max(0,height/2)+(higher>lower?.5:0)*FT,section.point.y*CELL);
+       height/2+2.5*FT,section.point.y*CELL);
       mesh.userData.fhPipe=true;stories[a].add(mesh);
       if(typeof applyFOW==='function')applyFOW(mesh);
       continue;
