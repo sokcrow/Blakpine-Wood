@@ -75,3 +75,17 @@ test('editor y motor utilizan la misma huella subterránea y paredes nativas',()
  assert.ok(html.includes('DATA.basementSlabs?.[f]?.enabled'),'Losas de sótano generan suelo real');
  assert.ok(html.includes('floor<mainFloorIndex&&DATA.basementSlabs?.[floor]?.enabled'),'Colisiones usan la huella del sótano');
 });
+
+test('sótanos vacíos con huella válida cuentan como piso jugable y reciben posición segura',()=>{
+ const html=fs.readFileSync(path.join(__dirname,'../../index.html'),'utf8');
+ assert.match(html,/const isBuilt=DATA\.floors\.map\(\(f,i\)=>\(i<mainFloorIndex&&DATA\.basementSlabs\?\.\[i\]\?\.enabled&&DATA\.basementSlabs\[i\]\.spans\?\.length>0\)/);
+ assert.match(html,/const slab=f<mainFloorIndex\?DATA\.basementSlabs\?\.\[f\]:SLABS\[f\]/);
+ assert.match(html,/const sp=\(slab\?\.spans\|\|\[\]\)\.reduce\(/);
+ const data=project();data.floors[0].items=[];
+ const slabs=B.resolveSlabs(data,i=>i===2?{enabled:true,spans:[{x:4,y:4,w:16,h:16}]}:{enabled:false,spans:[]});
+ assert.equal(slabs[0].enabled,true);
+ assert.ok(slabs[0].spans.length>0);
+ assert.equal((data.floors[0].items||[]).length,0,'No requiere muebles ni un spawn artificial');
+ const largest=slabs[0].spans.reduce((best,part)=>!best||part.w*part.h>best.w*best.h?part:best,null);
+ assert.deepEqual({x:largest.x+largest.w/2,y:largest.y+largest.h/2},{x:12,y:12});
+});
