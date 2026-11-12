@@ -4912,12 +4912,8 @@ function floorSightThroughOpening(f,at,target,openings){
     " const fhDrainDrop=shaft?0:(window.FHDrainage?.depthAt(DATA,currentFloor,{x:user.x/CELL,y:user.z/CELL},performance.now()*.001)||0)*CELL;\n const target=new THREE.Vector3(user.x,y+fhDrainDrop+.88,user.z);"],
    [" const desired=new THREE.Vector3(user.x+behind.x*fhCameraDistance,y+.88+fhCameraDistance*Math.tan(Math.PI/6),user.z+behind.z*fhCameraDistance);",
     " const desired=new THREE.Vector3(user.x+behind.x*fhCameraDistance,y+fhDrainDrop+.88+fhCameraDistance*Math.tan(Math.PI/6),user.z+behind.z*fhCameraDistance);"],
-   [" hero.position.set(user.x,visualBase+travelRise,user.z);shadow.position.set(user.x,visualBase+travelRise+.05,user.z);",
-    " const fhDrainActorDrop=(stairTravel||occupiedShaft())?0:(window.FHDrainage?.depthAt(DATA,currentFloor,{x:user.x/CELL,y:user.z/CELL},now*.001)||0)*CELL;\n hero.position.set(user.x,visualBase+travelRise+fhDrainActorDrop,user.z);shadow.position.set(user.x,visualBase+travelRise+fhDrainActorDrop+.05,user.z);"],
-   ["hero.position.y=visualBase+travelRise+placement.raise;",
-    "hero.position.y=visualBase+travelRise+fhDrainActorDrop+placement.raise;"],
-   ["hero.position.y=visualBase+travelRise+(mode==='walk'?Math.abs(Math.sin(walkDistance*12))*.018:0);",
-    "hero.position.y=visualBase+travelRise+fhDrainActorDrop+(mode==='walk'?Math.abs(Math.sin(walkDistance*12))*.018:0);"]
+   [" const visualBase=passenger?(elevatorCabMeshes.get(passenger.id)?.position.y??floorElev[currentFloor]):floorElev[currentFloor];",
+    " const fhDrainActorDrop=(stairTravel||passenger)?0:(window.FHDrainage?.depthAt(DATA,currentFloor,{x:user.x/CELL,y:user.z/CELL},now*.001)||0)*CELL;\n const visualBase=(passenger?(elevatorCabMeshes.get(passenger.id)?.position.y??floorElev[currentFloor]):floorElev[currentFloor])+fhDrainActorDrop;"]
   ];
   for(const [before,after] of patches){
    const count=doc.split(before).length-1;
