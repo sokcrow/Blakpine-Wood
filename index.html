@@ -218,6 +218,7 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
 <script src="./juego/assets/fh-water-hot.js?v=20261112-hot-04"></script>
 <script src="./juego/assets/fh-services-core.js?v=20261112-double-outlet-only-1"></script>
 <script src="./juego/assets/fh-floor-levels.js?v=20261109-basements1"></script>
+<script src="./juego/assets/fh-basement-structure.js?v=20261112-basement-native-1"></script>
 <script src="./juego/assets/fh-wifi-editor-overlay.js?v=20261109-wifi-editor-1"></script>
 <script src="./juego/assets/fh-light-strings.js?v=20261109-zones-3"></script>
 <script src="./juego/assets/fh-map-grid.js?v=20261110-grid1"></script>
@@ -3176,7 +3177,7 @@ function modalProject(){modal(`<h2>Proyecto · Forest Horror</h2><p>Conserva los
 function escapeAttr(v){return String(v).replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;')}
 function emptySlab(){return {enabled:false,spans:[],regions:[],micro:1}}
 function slabsForLevels(){const ground=window.FHFloorLevels.mainIndex(project);return project.floors.slice(1).map((_,i)=>i+1<=ground?emptySlab():clone(buildingSlabs(i)))}
-function basementSlabs(){const ground=window.FHFloorLevels.mainIndex(project);return project.floors.map((_,i)=>i<ground?clone(buildingSlabs(i)):null)}
+function basementSlabs(){const ground=window.FHFloorLevels.mainIndex(project);return window.FHBasement?.resolveSlabs(project,i=>buildingSlabs(i))||project.floors.map((_,i)=>i<ground?clone(buildingSlabs(i)):null)}
 function exportProject(includeImages){syncStairLinks();recalcAllSpaces();const out=clone(project);out.buildingSlabs=clone(buildingSlabs(window.FHFloorLevels.mainIndex(project)));out.slabsByLevel=slabsForLevels();out.roofSlabsByFloor=project.floors.map((_,i)=>clone(buildingSlabs(i)));out.basementSlabs=basementSlabs();out.exportedAt=new Date().toISOString();out.floors.forEach((f,i)=>{f.items=courtyardFloorItems(f.items,i);f.architectureGraph=buildArchitectureGraph(f.items.filter(it=>STRUCTURAL_TYPES.has(it.type)));f.grid={columns:out.units.columns,rows:out.units.rows,fitToImage:false,cellWidthPx:window.FHMapGrid.cellSize(out.units),cellHeightPx:window.FHMapGrid.cellSize(out.units),feetPerCell:out.units.feetPerCell};if(!includeImages){delete f.reference.data;f.reference.imageIncluded=false}else{f.reference.imageIncluded=true}for(const it of f.items){if(it.type==='peephole_door'){const dx=it.b.x-it.a.x,dy=it.b.y-it.a.y,len=Math.hypot(dx,dy)||1,sign=it.peekSide||1;it.peekTo={x:rounded(-dy/len*sign,5),y:rounded(dx/len*sign,5)};it.peekFrom={x:-it.peekTo.x,y:-it.peekTo.y}}}});return out}
 function downloadBlob(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000)}
 function fileBase(){return(project.title||'ForestHorror').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\w-]+/g,'_').slice(0,40)||'ForestHorror'}
@@ -3359,7 +3360,7 @@ function makeCurrent3DProject(){
  const mainIndex=main>=0?main:Math.max(0,project.floors.findIndex(f=>f.elevationFt===0));
  const empty={enabled:false,spans:[],regions:[],micro:1};
  const slabsByLevel=project.floors.slice(1).map((_,i)=>i+1<=mainIndex?clone(empty):clone(buildingSlabs(i)));
- const basementSlabs=project.floors.map((_,i)=>i<mainIndex?clone(buildingSlabs(i)):null);
+ const basementSlabs=window.FHBasement?.resolveSlabs(project,i=>buildingSlabs(i))||project.floors.map((_,i)=>i<mainIndex?clone(buildingSlabs(i)):null);
  // Excluir únicamente imágenes de referencia de varios MB; geometría 3D proviene de items.
  return {schema:SCHEMA,version:project.version||1,mainFloorId:project.mainFloorId||undefined,styleSystem:project.styleSystem||0,buildingOwnerId:project.buildingOwnerId||'',buildingOwners:clone(project.buildingOwners||{}),buildingNames:clone(project.buildingNames||{}),properties:clone(project.properties||[]),locationZones:clone(project.locationZones||[]),patterns:clone(project.patterns||[]),title:project.title||'Forest Horror',createdAt:project.createdAt,itemDefs:clone(project.itemDefs||[]),initialGameState:clone(project.initialGameState||{}),weather:clone(project.weather||{enabled:false}),elevatorEvents:clone(project.elevatorEvents||{}),__runtimeSave:fhMapSave,__runtimeCharacter:fhProfile?clone(fhProfile):null,units,buildingSlabs:clone(buildingSlabs(mainIndex)),slabsByLevel,basementSlabs,roofSlabsByFloor:project.floors.map((_,i)=>clone(buildingSlabs(i))),
   floors:project.floors.map(f=>({id:f.id,name:f.name,elevationFt:f.elevationFt,
@@ -3590,6 +3591,7 @@ function prepareGLBEngineDoc(source){
  }
   const roadsScript='<script src="'+new URL('./juego/assets/fh-roads-strings.js',document.baseURI).href+'"></'+'script><script src="'+new URL('./juego/assets/fh-roads.js',document.baseURI).href+'"></'+'script>';
  const drainageScript='<script src="'+new URL('./juego/assets/fh-drainage.js?v=20261112-drain2',document.baseURI).href+'"></'+'script>';
+ const basementScript='<script src="'+new URL('./juego/assets/fh-basement-structure.js?v=20261112-basement-native-1',document.baseURI).href+'"></'+'script>';
  const parkingScript='<script src="'+new URL('./juego/assets/fh-parking.js',document.baseURI).href+'"></'+'script>';
  const playerMenuCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-player-menu.css?v=20261107-help',document.baseURI).href+'">';
  const playerMenuStrings='<script src="'+new URL('./juego/assets/fh-player-menu-strings.js?v=20261110-spawn-return',document.baseURI).href+'"></'+'script>';
@@ -3622,7 +3624,7 @@ function prepareGLBEngineDoc(source){
     ["for(const it of items)if(!['red_wall','wall','half_wall','fence','window','door','peephole_door','room','hall','outside','building','pavement','parking','grass','dirt','opening','spawn'].includes(it.type))",
      "for(const it of items)if(!['red_wall','wall','property_wall','half_wall','fence','window','door','peephole_door','room','hall','outside','building','pavement','parking','grass','dirt','asphalt','alley','sidewalk','concrete','gravel','cobblestone','tile_floor','carpet','wood_floor','parking_decal','opening','spawn'].includes(it.type)&&!it.roadControl)"],
     ["DATA.floors.forEach((_,i)=>buildFloor(i));",
-      "window.FHDrainage?.expandProject(DATA);\nDATA.floors.forEach((_,i)=>buildFloor(i));"],
+      "window.FHBasement?.expandProject(DATA);\nwindow.FHDrainage?.expandProject(DATA);\nDATA.floors.forEach((_,i)=>buildFloor(i));"],
     [" // Anillo discreto alrededor del objetivo activo",
      " window.FHParking?.attachFloor(THREE,DATA,stories[f],f,CELL);\n window.FHRoads?.attachFloor(THREE,DATA,stories[f],f,CELL);\n window.FHDrainage?.attachFloor(THREE,DATA,stories[f],f,CELL);\n // Anillo discreto alrededor del objetivo activo"]
    ];
@@ -4759,7 +4761,7 @@ function floorSightThroughOpening(f,at,target,openings){
   .replace(attachBefore,' window.FHAssets?.attach(g,a);\n'+attachBefore)
   .replace(cloneBefore,'const clone=source.clone(true);\n   window.FHAssets?.mirror(source,clone);\n   clone.position.y+=floorElev[f];')
   .replace(engineSuccessBefore,engineSuccessAfter).replace(engineFailBefore,engineFailAfter).replace(loadFailBefore,loadFailAfter)
-  .replace('</head>',localThree+coverageScript+lightsModule+surfaceScript+decorationScript+furnitureStateScript+ruleScript+inventoryCoreScript+bridge+sleepCss+sleepStrings+sleepModule+unifiedSleepScript+pcAssemblyModule+computerStrings+computerModule+npcGoapModule+npcCourierModule+deliveryStrings+deliveryModule+styleCore+styleRender+parkingScript+roadsScript+drainageScript+playerMenuCss+playerMenuStrings+skillsModule+skillsStrings+helpCss+helpStrings+helpScript+playerMenuScript+locationStrings+locationScript+hudRedesignCss+gameUiCss+hudFrameScript+mobileMenusCss+phoneCss+phoneStrings+phoneScript+mobileCameraScript+locationCss+'</head>'))));
+  .replace('</head>',localThree+coverageScript+lightsModule+surfaceScript+decorationScript+furnitureStateScript+ruleScript+inventoryCoreScript+bridge+sleepCss+sleepStrings+sleepModule+unifiedSleepScript+pcAssemblyModule+computerStrings+computerModule+npcGoapModule+npcCourierModule+deliveryStrings+deliveryModule+styleCore+styleRender+parkingScript+roadsScript+drainageScript+basementScript+playerMenuCss+playerMenuStrings+skillsModule+skillsStrings+helpCss+helpStrings+helpScript+playerMenuScript+locationStrings+locationScript+hudRedesignCss+gameUiCss+hudFrameScript+mobileMenusCss+phoneCss+phoneStrings+phoneScript+mobileCameraScript+locationCss+'</head>'))));
  function addCourtyardsToEngine(doc){
   const surface='function surfaceRectsMinusVoids(f,x,y,w,h){let rects=[{x,y,w,h}];for(const cut of stairVoids[f]||[])';
   const replacement="const courtyardVoids=DATA.floors.map(floor=>(floor.items||[]).filter(area=>area.inheritedCourtyard===true).flatMap(area=>(area.spans?.length?area.spans:[area]).map(rect=>({x1:rect.x,z1:rect.y,x2:rect.x+rect.w,z2:rect.y+rect.h}))));\nfunction surfaceRectsMinusVoids(f,x,y,w,h){let rects=[{x,y,w,h}];for(const cut of [...(stairVoids[f]||[]),...(courtyardVoids[f]||[])])";
