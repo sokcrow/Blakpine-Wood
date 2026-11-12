@@ -203,6 +203,91 @@
   }
   return project;
  }
+ // Estado de contacto real con agua. La geometría es de casillas; el motor
+ // conserva la responsabilidad exclusiva de resolver colisiones con muros.
+ const within=(r,p)=>p.x>=r.x&&p.y>=r.y&&p.x<r.x+r.w&&p.y<r.y+r.h;
+ const center=it=>({x:it.x+it.w/2,y:it.y+it.h/2});
+ function sectionAt(project,floorIndex,point){
+  return pieces(project?.floors?.[floorIndex]?.items).find(it=>within(it,point))||null;
+ }
+ function bridgeAt(project,floorIndex,point){
+  return (project?.floors?.[floorIndex]?.items||[]).some(it=>isBridge(it)&&within(it,point));
+ }
+ function waterAt(project,floorIndex,point,rain=0){
+  const item=sectionAt(project,floorIndex,point);
+  if(!item||bridgeAt(project,floorIndex,point))return null;
+  const state=weatherState(item,rain),c=center(item),dx=point.x-c.x,dy=point.y-c.y;
+  const wet=state.flooded||(item.drainage.kind==='outfall'&&Math.hypot(dx,dy)<=7)||
+   rects(item).some(r=>within(r,point));
+  return wet?{item,state}:null;
+ }
+ function walkFactor(project,floorIndex,point,rain=0){
+  const contact=waterAt(project,floorIndex,point,rain);
+  return contact?.state.walkingFactor??1;
+ }
+ function currentAt(project,floorIndex,point,rain=0,target){
+  const contact=waterAt(project,floorIndex,point,rain);
+  if(!contact)return null;
+  const {item,state}=contact;
+  const c=center(item),outfall=item.drainage.kind==='outfall';
+  if(outfall){
+   const dx=c.x-point.x,dy=c.y-point.y,d=Math.hypot(dx,dy);
+   return {itemId:item.id,x:d>.01?dx/d:0,y:d>.01?dy/d:0,
+    speed:(.16+.65*Math.max(0,Math.min(1,safe(rain))))*state.currentFactor};
+  }
+  const downstreamRef=target===undefined?downstream(project,floorIndex,item.id):target;
+  const next=downstreamRef&&(project?.floors?.[downstreamRef.floorIndex]?.items||[])
+   .find(it=>String(it.id)===String(downstreamRef.itemId));
+  const end=next?center(next):null;
+  let dx=end?end.x-c.x:0,dy=end?end.y-c.y:0;
+  if(!end){
+   const port=ports(item).find(s=>s==='e')||ports(item)[0];
+   dx=port==='e'?1:port==='w'?-1:0;
+   dy=port==='s'?1:port==='n'?-1:0;
+  }
+  const mag=Math.hypot(dx,dy)||1;
+  return {itemId:item.id,x:dx/mag,y:dy/mag,
+   speed:(.12+.42*Math.max(0,Math.min(1,safe(rain))))*state.currentFactor};
+ }
+ function whirlpoolAt(project,floorIndex,point){
+  const item=sectionAt(project,floorIndex,point);
+  if(!item||item.drainage.kind!=='outfall'||bridgeAt(project,floorIndex,point))return null;
+  const c=center(item);
+  return Math.hypot(point.x-c.x,point.y-c.y)<=2.4?item:null;
+ }
+ // Su bucle nunca modifica la posición directamente: move() delega en walk()
+ // del motor, que aplica blockers/doors/canWalk y evita atravesar paredes.
+ function createRuntime({project,position,move,teleport}={}){
+  let cooldown=0,elapsed=0;
+  const cachedRoutes=new Map();
+  function route(f,it){
+   const key=f+':'+it.id;
+   if(!cachedRoutes.has(key))cachedRoutes.set(key,downstream(project,f,it.id));
+   return cachedRoutes.get(key);
+  }
+  function update(dt,weather){
+   const delta=Math.max(0,Math.min(.075,safe(dt)));
+   const rain=weather?.phase==='lluvia'||weather?.type==='llovizna'||
+    weather?.type==='lluvia'||weather?.type==='tormenta'?Math.max(0,Math.min(1,safe(weather?.intensity))):0;
+   updateVisuals(delta,rain,position?.()?.floorIndex);
+   cooldown=Math.max(0,cooldown-delta);elapsed+=delta;
+   if(!delta||!position)return null;
+   const p=position(),f=p.floorIndex,point={x:p.x,y:p.y};
+   const hole=whirlpoolAt(project,f,point);
+   if(hole&&!cooldown){
+    const exit=randomExit(project,f,hole.id);
+    if(exit&&teleport?.(exit)!==false){cooldown=4;return {type:'whirlpool',exit};}
+   }
+   const contact=waterAt(project,f,point,rain);
+   if(!contact||typeof move!=='function')return null;
+   const v=currentAt(project,f,point,rain,route(f,contact.item));
+   // Limita el arrastre por tick y usa la colisión del motor.
+   const speed=Math.min(1.65,v.speed),deltaMove=Math.min(speed*delta,.115);
+   move(v.x*deltaMove,v.y*deltaMove);
+   return {type:'current',itemId:v.itemId,speed};
+  }
+  return {update,waterAt:(f,p,rain)=>waterAt(project,f,p,rain)};
+ }
  function draw2D(ctx,items,units,toPixel,gx,gy,selection){
   const drawRect=(r,color)=>{const p=toPixel(r);ctx.fillStyle=color;ctx.fillRect(p.x,p.y,r.w*gx,r.h*gy);};
   for(const it of items||[])if(isSection(it)){
@@ -268,5 +353,5 @@
   }
  }
  return Object.freeze({SIZES,isSection,isBridge,pieces,ports,rects,touches,makeSection,makeBridge,validate,
-  validateProject,topology,downstream,nearest,weatherState,randomExit,nativeComponents,expandProject,draw2D,attachFloor});
+  validateProject,topology,downstream,nearest,weatherState,randomExit,nativeComponents,expandProject,sectionAt,bridgeAt,waterAt,walkFactor,currentAt,whirlpoolAt,createRuntime,updateVisuals,draw2D,attachFloor});
 });
