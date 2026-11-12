@@ -7,9 +7,10 @@ const catalog=JSON.parse(fs.readFileSync(path.join(__dirname,'../../forest-horro
 function sceneEnvironment({leafFarEdge=1.444}={}){
  let loads=0,masks=0;
  class Group{
-  constructor(){this.children=[];this.parent=null;this.position={x:0,y:0,z:0,set(x,y,z){Object.assign(this,{x,y,z})}};this.rotation={y:0};this.scale={x:1,y:1,z:1};this.visible=true;}
+  constructor(){this.children=[];this.parent=null;this.position={x:0,y:0,z:0,set(x,y,z){Object.assign(this,{x,y,z})}};this.rotation={y:0};this.scale={x:1,y:1,z:1};this.visible=true;this.userData={};}
   add(child){this.children.push(child);child.parent=this;}
   remove(child){this.children=this.children.filter(x=>x!==child);child.parent=null;}
+  clone(){const copy=new Group();copy.name=this.name;copy.position.set(this.position.x,this.position.y,this.position.z);return copy;}
  }
  const nodes={};
  for(const name of ['MARCO_FIJO','HOJA_PIVOTE','VIDRIO'])nodes[name]={
@@ -164,6 +165,58 @@ test('ventana conserva antepecho y dintel y retira panel original del render FOW
  assert.equal(container.children[2].position.y,.83);
  assert.equal(env.masks(),1);
 });
+test('ventana del piso superior: la fachada sustituye copias rosas por GLB real',async()=>{
+ const env=sceneEnvironment(),{api,THREE,Group}=env;
+ const floor=1,item={id:'window-upper',type:'window',a:{x:2,y:1},b:{x:3,y:1}};
+ const story=new Group(),facade=new Group();story.parent={};
+ const built=Array.from({length:5},()=>new Group());
+ for(const mesh of built)story.add(mesh);
+ const proxies=built.map(source=>{
+  const clone=source.clone(true);facade.add(clone);
+  return {source,clone,f:floor,item};
+ });
+ const removed=proxies.slice(2).map(p=>p.clone);
+ const cutaways=proxies.map(p=>({root:p.clone,f:floor}));
+ const cutSet=new Set([removed[0]]);
+ let notified=0;
+ api.decorateWindow({it:item,THREE,container:story,built,a:{x:2,z:1},angle:0,floor,
+  sightMask:()=>{},
+  onReady:nodes=>{
+   notified++;
+   assert.equal(nodes.length,1,'se usa el GLB original de una casilla');
+   assert.equal(api.syncExteriorWindowFacade({
+    floor,item,nodes,proxies,layers:[new Group(),facade],
+    cutaways,elevation:[0,3.66],cutSet
+   }),1);
+  }});
+ await new Promise(setImmediate);
+ assert.equal(notified,1);
+ assert.equal(facade.children.length,3,'antepecho, dintel y GLB real; sin copias viejas');
+ assert.equal(proxies.length,3);
+ assert.equal(proxies[0].source,built[0]);
+ assert.equal(proxies[1].source,built[1]);
+ assert.equal(proxies[2].source.name,'modelo_glb');
+ assert.equal(proxies[2].clone.position.y,3.66+.83);
+ assert.equal(proxies[2].clone.visible,false,'la visibilidad de fachada sigue en el motor');
+ assert.equal(proxies[2].clone.userData.fhOcclusionRoot,true);
+ assert.ok(removed.every(node=>node.parent===null));
+ assert.ok(!cutaways.some(entry=>removed.includes(entry.root)));
+ assert.equal(cutSet.size,0,'no conservar referencias de recorte antiguas');
+ assert.equal(api.syncExteriorWindowFacade({
+  floor,item,nodes:[proxies[2].source],proxies,layers:[new Group(),facade],
+  cutaways,elevation:[0,3.66],cutSet
+ }),0,'no duplicar geometría al volver a sincronizar');
+ assert.equal(facade.children.length,3);
+});
+test('ventana interior no crea fachada nueva',()=>{
+ const {api,Group}=sceneEnvironment();
+ const source=new Group(),parent=new Group();parent.add(source);
+ const layers=[new Group(),new Group()],proxies=[],cutaways=[];
+ assert.equal(api.syncExteriorWindowFacade({
+  floor:1,item:{id:'internal'},nodes:[source],proxies,layers,cutaways,elevation:[0,3]
+ }),0);
+ assert.equal(layers[1].children.length,0);
+});
 test('ventanas nuevas: una instancia de mapa con ID único por casilla horizontal',()=>{
  const {api}=sceneEnvironment();let next=0;
  const source={id:'win_1',type:'window',a:{x:2,y:6},b:{x:5,y:6},windowSkin:'dividida'};
@@ -212,13 +265,14 @@ test('el hook valida anclas y preserva el comportamiento original del motor',()=
  const result=api.patchEngineDoc(fixture);
  assert.match(result,/FHArchitectureSkins\?\.decorateDoor\(d,it,THREE,installVisibility\)/);
  assert.match(result,/FHArchitectureSkins\?\.decorateWindow/);
+ assert.match(result,/onReady:models=>window\.FHArchitectureSkins\?\.syncExteriorWindowFacade/);
  assert.match(result,/function doorTarget\(d\)\{return 1.20;\}/);
  assert.match(result,/d\.family==='double'&&i===1\?-d\.angle:d\.angle/);
  assert.match(result,/fh-architecture-skins\.js/);
  assert.throws(()=>api.patchEngineDoc('incompatible'),/Motor 3D no compatible/);
 });
 test('editor carga el adaptador, permite escoger marco y conserva fallback 3D',()=>{
- assert.match(index,/fh-architecture-skins\.js\?v=20261112-purple-pc-power-1/);
+ assert.match(index,/fh-architecture-skins\.js\?v=20261112-window-facade-glb-1/);
  assert.match(index,/windowPieces=it\.type==='window'/);
  assert.match(index,/FHArchitectureSkins\?\.splitWindow\(it,numId\)/);
  assert.match(index,/architectureSkin/);

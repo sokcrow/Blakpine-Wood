@@ -179,7 +179,7 @@ function decorateDoor(d,it,THREE,sightMask){
  }).catch(error=>reportFailure(model,error));
 }
 function decorateWindow(args){
- const {it,container,built,a,b,angle,sightMask,floor}=args||{};
+ const {it,container,built,a,b,angle,sightMask,floor,onReady}=args||{};
  if(!it||!container||!Array.isArray(built)||!a||global.FHStructureHealthRuntime?.isDestroyed?.(floor,it.id))return;
  // El antepecho y el dintel originales mantienen su colisión y visibilidad.
  const originalPaneAndSideFrames=built.slice(2);
@@ -203,7 +203,37 @@ function decorateWindow(args){
   }
   for(const node of windows){container.add(node);global.FHStructureHealthRuntime?.registerWindowVisual?.(floor,it.id,node);}
   for(const visual of originalPaneAndSideFrames)hideLegacyVisual(visual,true);
+  if(typeof onReady==='function')onReady(windows);
  }).catch(error=>reportFailure(model,error));
+}
+// Al cargar el GLB de una ventana, renovar las copias de fachada entre pisos.
+// La geometría original se sigue mostrando en rosa si falla la carga.
+function syncExteriorWindowFacade({floor,item,nodes,proxies,layers,cutaways,elevation,cutSet}={}){
+ if(!Array.isArray(nodes)||!nodes.length||!Array.isArray(proxies)||!Array.isArray(layers)||!Array.isArray(cutaways))return 0;
+ const previous=proxies.filter(p=>p.f===floor&&p.item===item);
+ const layer=layers[floor];
+ if(!previous.length||!layer)return 0; // No copiar ventanas que no pertenecen a una fachada.
+ for(const entry of previous){
+  if(entry.source?.parent)continue; // El antepecho y dintel todavía se usan.
+  if(entry.clone?.parent)entry.clone.parent.remove(entry.clone);
+  const index=proxies.indexOf(entry);
+  if(index>=0)proxies.splice(index,1);
+  for(let i=cutaways.length-1;i>=0;i--)if(cutaways[i].root===entry.clone)cutaways.splice(i,1);
+  cutSet?.delete?.(entry.clone);
+ }
+ let added=0;
+ for(const source of nodes){
+  if(!source?.parent||proxies.some(p=>p.f===floor&&p.item===item&&p.source===source))continue;
+  const clone=source.clone(true);
+  clone.position.y+=Number(elevation?.[floor])||0;
+  clone.visible=false; // La visibilidad la decide el motor, no el GLB.
+  clone.userData.fhOcclusionRoot=true;
+  layer.add(clone);
+  proxies.push({source,clone,f:floor,item});
+  cutaways.push({root:clone,f:floor});
+  added++;
+ }
+ return added;
 }
 function one(source,anchor,replacement){
  const first=source.indexOf(anchor);
@@ -223,7 +253,7 @@ function patchEngineDoc(doc){
  if(begin<0||end<0)throw Error('No se encontró windowModel o doorTarget');
  const part=out.slice(begin,end),last=part.lastIndexOf('\n}');
  if(last<0)throw Error('No se encontró cierre de windowModel');
- const hook="\n window.FHArchitectureSkins?.decorateWindow({it,THREE,container:stories[f],built:stories[f].children.slice(fhWinVisualStart),a,b,angle,floor:f,sightMask:installVisibility});";
+ const hook="\n window.FHArchitectureSkins?.decorateWindow({it,THREE,container:stories[f],built:stories[f].children.slice(fhWinVisualStart),a,b,angle,floor:f,sightMask:installVisibility,onReady:models=>window.FHArchitectureSkins?.syncExteriorWindowFacade({floor:f,item:it,nodes:models,proxies:exteriorProxies,layers:exteriorLayers,cutaways:exteriorCutawayRoots,elevation:floorElev,cutSet:wasCut})});";
  out=out.slice(0,begin)+part.slice(0,last)+hook+part.slice(last)+out.slice(end);
  const script='<script src="'+scriptUrl.href+'"></scr'+'ipt>';
  const headEnd=out.indexOf('</head>');
@@ -232,6 +262,6 @@ function patchEngineDoc(doc){
  // el primer cierre HTML real, sin exigir exclusividad global del texto.
  return out.slice(0,headEnd)+script+out.slice(headEnd);
 }
-global.FHArchitectureSkins=Object.freeze({chooseDoor,chooseWindow,splitWindow,accessDeviceId,decorateDoor,decorateWindow,patchEngineDoc,load});
+global.FHArchitectureSkins=Object.freeze({chooseDoor,chooseWindow,splitWindow,accessDeviceId,decorateDoor,decorateWindow,patchEngineDoc,load,syncExteriorWindowFacade});
 })(window);
 
