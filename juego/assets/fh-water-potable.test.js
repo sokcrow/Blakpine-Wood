@@ -33,7 +33,6 @@ test('un lavabo recibe agua fría por pared y montante alineado',()=>{
  const map=build();const {runtime:r}=runtime(map);
  const sink=map.floors[1].items.find(x=>x.id==='sink');
  const result=r.waterStatus(1,sink);
- console.log('POTABLE_DIAG',JSON.stringify(r.waterNetwork.diagnostics()),JSON.stringify(result));
  assert.equal(result.water,true);assert.equal(result.sourceId,'main');
  assert.ok(result.feet>=12);assert.ok(result.feet<140);
  const report=r.waterNetwork.diagnostics();
