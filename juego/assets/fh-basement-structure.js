@@ -35,7 +35,7 @@
   const ground=groundIndex(map),source=perimeter(map.floors[ground]);
   if(!ground||!source.length)return map;
   // Si la huella principal no está cerrada, no inventar paredes en sótanos.
-  if(map.buildingSlabs?.enabled===false)return map;
+  if(map.buildingSlabs?.enabled!==true||!map.buildingSlabs.spans?.length)return map;
   for(let i=0;i<ground;i++){
    const floor=map.floors[i],base=(floor.items||[]).filter(it=>it.basementInherited!==true);
    if(base.some(it=>it.type==='red_wall')){floor.items=base;continue;}
