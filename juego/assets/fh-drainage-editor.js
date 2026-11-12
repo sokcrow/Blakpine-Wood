@@ -43,9 +43,21 @@
   return true;
  }
  function beforeRemove(item){
+  if(!item)return;
+  const map=env.project(),floor=env.current();
+  if(R().isSection(item)){
+   const linked=floor.items.filter(it=>A()?.isAccess(it)&&it.drainageAccess.kind==='sewer'&&
+    String(it.drainageAccess.sectionId)===String(item.id));
+   for(const access of linked){
+    const partner=map.floors.find(f=>String(f.id)===String(access.drainageAccess.targetFloorId));
+    if(partner)partner.items=partner.items.filter(it=>String(it.id)!==String(access.drainageAccess.targetItemId));
+   }
+   if(linked.length){const ids=new Set(linked.map(it=>String(it.id)));floor.items=floor.items.filter(it=>!ids.has(String(it.id)));}
+   return;
+  }
   if(!A()?.isAccess(item))return;
-  const link=A().resolve(env.project(),env.floorIndex(),item);
-  if(link)env.project().floors[link.floorIndex].items=env.project().floors[link.floorIndex].items.filter(it=>it.id!==link.item.id);
+  const partner=map.floors.find(f=>String(f.id)===String(item.drainageAccess.targetFloorId));
+  if(partner)partner.items=partner.items.filter(it=>String(it.id)!==String(item.drainageAccess.targetItemId));
  }
  function rotate(item){
   if(!R().isSection(item)&&!R().isBridge(item))return false;
