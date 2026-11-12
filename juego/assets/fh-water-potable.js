@@ -22,7 +22,8 @@
  const distance=(a,b)=>Math.hypot(num(a.x)-num(b.x),num(a.y)-num(b.y));
  const name=it=>String(it?.networkId||'principal');
  const owner=it=>String(it?.buildingId||it?.propertyId||'');
- const compatible=(a,b)=>name(a)===name(b)&&(!owner(a)||!owner(b)||owner(a)===owner(b));
+ const compatible=(a,b)=>(name(a)===name(b)||name(a)==='*'||name(b)==='*')&&
+  (!owner(a)||!owner(b)||owner(a)===owner(b));
  const isFixture=it=>!!it&&it.service?.requiresWater!==false&&
   (FIXTURES.has(it.modelId)||it.service?.requiresWater===true);
  const isTank=it=>it?.type==='water_cistern'||it?.type==='water_tinaco';
@@ -75,8 +76,8 @@
     const key=Math.round(p.x*100)+':'+Math.round(p.y*100);
     if(seen.has(key)||seen.size>=64)continue;
     seen.add(key);
-    const ia=add(a.f,{networkId:'principal',buildingId:owner(wa)},'riser',p);
-    const ib=add(b.f,{networkId:'principal',buildingId:owner(wb)},'riser',p);
+    const ia=add(a.f,{networkId:'*',buildingId:owner(wa)},'riser',p);
+    const ib=add(b.f,{networkId:'*',buildingId:owner(wb)},'riser',p);
     joins.push([ia,ib,Math.abs(b.z-a.z)]);
    }
   }
@@ -166,7 +167,7 @@
    }
    return {connected:false,water:false,reason:'unconnected'};
   }
-  function consume(f,it,liters){
+  function consume(f,it,liters,strict=false){
    const amount=Math.max(0,num(liters));
    const port=portsFor(f,it).find(p=>choices(p).some(x=>available(x.node)));
    if(!port)return 0;
@@ -174,6 +175,7 @@
    if(!selected)return 0;
    if(!isTank(selected.node.it))return amount;
    const key=tankKey(floors[selected.node.f],selected.node.it);
+   if(strict&&num(tankState[key]?.liters)<amount)return 0;
    const taken=Math.min(amount,num(tankState[key]?.liters));
    tankState[key].liters=Math.max(0,tankState[key].liters-taken);
    return taken;
