@@ -184,6 +184,8 @@
   selectMode.value=it.pipeVisibility==='visible'?'visible':'concealed';
   selectMode.onchange=()=>setItemField(it.id,'pipeVisibility',selectMode.value);
   mode.append(selectMode);fields.append(mode);
+  // Agua 03 tiene modelo fijo por tipo; el selector de skins pertenece solo a Agua 01.
+  if(tanks.some(t=>t.type===it.type))return;
   if(!currentMeta)return;
   const label=document.createElement('label');label.textContent=T.choose||'Modelo de agua';label.style.gridColumn='1/-1';
   const select=document.createElement('select');select.style.width='100%';
