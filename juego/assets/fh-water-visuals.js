@@ -134,6 +134,46 @@
     });
    }
   }
+  // Tramos físicos: la capa empotrada solo se enseña en el editor.
+  // Solo se dibujan los recorridos que el creador marcó como visibles.
+  const network=root.FHServicesRuntime?.waterNetwork;
+  if(network?.enabled){
+   const seen=new Set(),mat=new THREE.MeshStandardMaterial({color:0x4b99bb,roughness:.8,metalness:.12});
+   const routes=network.diagnostics().routes;
+   for(const route of routes){
+    const target=(DATA.floors[route.floor].items||[]).find(it=>it.id===route.itemId);
+    if((target?.pipeVisibility||DATA.plumbing?.pipeVisibility||'concealed')!=='visible')continue;
+    for(const section of route.sections){
+     if(section.vertical){
+      const a=section.floor,b=section.toFloor;
+      const lower=Number(DATA.floors[a]?.elevationFt)||0;
+      const higher=Number(DATA.floors[b]?.elevationFt)||0;
+      const key=['vertical',Math.min(a,b),Math.max(a,b),section.point.x.toFixed(3),section.point.y.toFixed(3)].join(':');
+      if(seen.has(key)||!stories[a])continue;seen.add(key);
+      const height=Math.abs(higher-lower)*FT;
+      if(height<.02)continue;
+      const mesh=new THREE.Mesh(new THREE.CylinderGeometry(.023,.023,height,6),mat);
+      mesh.name='FH_AGUA_FRIA_MONTANTE';mesh.position.set(section.point.x*CELL,
+       height/2+2.5*FT,section.point.y*CELL);
+      mesh.userData.fhPipe=true;stories[a].add(mesh);
+      if(typeof applyFOW==='function')applyFOW(mesh);
+      continue;
+     }
+     for(let i=1;i<(section.points||[]).length;i++){
+      const a=section.points[i-1],b=section.points[i],dx=(b.x-a.x)*CELL,dz=(b.y-a.y)*CELL;
+      const len=Math.hypot(dx,dz);if(len<.02||!stories[section.floor])continue;
+      const key=[section.floor,
+       ...[[a.x.toFixed(3),a.y.toFixed(3)].join(','),[b.x.toFixed(3),b.y.toFixed(3)].join(',')].sort()].join(':');
+      if(seen.has(key))continue;seen.add(key);
+      const mesh=new THREE.Mesh(new THREE.CylinderGeometry(.023,.023,len,6),mat);
+      mesh.name='FH_AGUA_FRIA_TUBERIA';mesh.position.set((a.x+b.x)*CELL/2,2.5*FT,(a.y+b.y)*CELL/2);
+      mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),new THREE.Vector3(dx/len,0,dz/len));
+      mesh.userData.fhPipe=true;stories[section.floor].add(mesh);
+      if(typeof applyFOW==='function')applyFOW(mesh);
+     }
+    }
+   }
+  }
   return result;
  }
  function once(doc,before,after){

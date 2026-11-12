@@ -11,7 +11,7 @@
  const WALLS=new Set(['wall','red_wall','property_wall']);
  // La ventana conserva la instalación; puertas y aberturas cortan ese tramo.
  const WALL_PATHS=new Set([...WALLS,'window']);
- const INFRA=new Set(['generator','generator_ats','generator_tank','power_outlet','power_strip','water_main','water_valve','water_outlet','drain_outlet','drain_main','router','ethernet_port','landline_phone','phone_charger']);
+ const INFRA=new Set(['generator','generator_ats','generator_tank','power_outlet','power_strip','water_main','water_valve','water_outlet','water_cistern','water_tinaco','drain_outlet','drain_main','router','ethernet_port','landline_phone','phone_charger']);
  const POWER_NEEDS=new Set(['router','phone_charger','light_fixture','tv','landline_phone','elevator']);
  const ELECTRIC_MODELS=new Set(['refrigerador','estufa_horno','microondas','campana_extractora','cafetera','tostadora',
   'lampara_escritorio','monitor_crt','gabinete_pc','teclado_pc','mouse_pc','impresora_matricial','telefono_fijo',
@@ -145,6 +145,8 @@
    case 'water_main':return {rangeFt:120,flowLpm:50,networkId:'main'};
    case 'water_valve':return {opened:true};
    case 'water_outlet':return {radiusFt:5,flowLpm:12,networkId:'main'};
+   case 'water_cistern':return {capacityLiters:2500,initialLiters:0,fillLpm:30,networkId:'main',rangeFt:240,pipeLeadFt:10};
+   case 'water_tinaco':return {capacityLiters:1100,initialLiters:0,fillLpm:20,networkId:'main',rangeFt:240,pipeLeadFt:10};
    case 'drain_outlet':return {radiusFt:5,networkId:'main'};
    case 'drain_main':return {rangeFt:120,networkId:'main'};
    case 'router':return {wifiRadiusFt:120,ethernetLengthFt:60,wifiPassword:'',rayos:1,watts:18,assignedRoomIds:[],propertyId:''};
@@ -157,7 +159,7 @@
  function ensureState(state){
   if(!state||typeof state!=='object')throw Error('El estado de partida es obligatorio');
   const s=state.services&&typeof state.services==='object'?state.services:{};
-  for(const prop of ['damage','enabled','wifiKeys','connections','meters','usage','generators','ats','fuelTanks']){
+  for(const prop of ['damage','enabled','wifiKeys','connections','meters','usage','generators','ats','fuelTanks','waterTanks']){
    if(!s[prop]||typeof s[prop]!=='object'||Array.isArray(s[prop]))s[prop]={};
   }
   if(!Array.isArray(s.calls))s.calls=[];
@@ -184,6 +186,7 @@
    const exteriorGrid=(typeof globalThis!=='undefined'?globalThis.FHExteriorGrid:null)?.createRuntime(project,state)||null;
   const feetPerCell=Math.max(.1,number(project?.units?.feetPerCell,5));
   const graphs=floors.map(f=>wallGraph(f.items||[]));
+  const waterNetwork=(typeof globalThis!=='undefined'?globalThis.FHWaterPotable:null)?.createRuntime(project,s,wallGraph)||null;
   const powerGraphs=floors.map(f=>wallGraph(f.items||[],{doorways:true}));
   const elements=floors.map(f=>f.items||[]);
   const pcStations=new Set(elements.flatMap((items,f)=>options.isPc?items.filter(it=>options.isPc(it,f)).map(id):[]));
@@ -628,7 +631,7 @@
    return it.service?.onDemand!==true||s.usage[id(it)]===true;
   }
   function requiresPower(it){return needsElectricity(it)||pcStations.has(id(it));}
-  function requiresWater(it){return it.service?.requiresWater===true;}
+  function requiresWater(it){return it?.service?.requiresWater===true||waterNetwork?.enabled===true&&waterNetwork.isFixture(it);}
   function candidates(f,it,types){
    const electrical=types.includes('power_outlet')||types.includes('power_strip');
    // El alcance eléctrico lo determina el cable del aparato; agua y drenaje
@@ -718,6 +721,7 @@
    return {connected:!!parent,powered,via:parent?.id||'',breakerId:supply?.panel.id||'',generated:!!supply?.feed,feet:supply?.feet??null};
   }
   function waterStatus(f,it){
+   if(waterNetwork?.enabled&&(requiresWater(it)||['water_main','water_outlet','water_cistern','water_tinaco'].includes(it?.type)))return waterNetwork.status(f,it);
    if(!requiresWater(it)&&it.type!=='water_outlet')return {connected:true,water:true,legacy:true};
    if(s.contracts.water!=='active')return {connected:false,water:false};
    const mains=values(f,'water_main').filter(x=>active(x));
@@ -921,7 +925,9 @@
    if(!it||!requiresWater(it)||!waterStatus(f,it).water)return {ok:false,reason:'noWater'};
    const mode=String(it.service?.waterMode|| (it.type==='toilet'?'pulse':'continuous'));
    if(mode==='pulse'){
-    const liters=Math.max(0,number(it.service?.litersPerUse,6));
+    const requested=Math.max(0,number(it.service?.litersPerUse,6));
+    const liters=waterNetwork?.enabled?waterNetwork.consume(f,it,requested,true):requested;
+    if(liters<requested)return {ok:false,reason:'insufficientWater'};
     s.meters.waterLiters+=liters;
     if(it.service?.drains!==false&&drainStatus(f,it).draining)s.meters.drainLiters+=liters;
     return {ok:true,mode,liters};
@@ -955,8 +961,10 @@
      }
      if(requiresWater(it)&&active(it)&&s.usage[id(it)]===true&&waterStatus(f,it).water){
       const liters=Math.max(0,number(it.service?.flowLpm))*seconds/60;
-      waterLiters+=liters;
-      if(it.service?.drains!==false&&drainStatus(f,it).draining)drainLiters+=liters;
+      const delivered=waterNetwork?.enabled?waterNetwork.consume(f,it,liters):liters;
+      waterLiters+=delivered;
+      if(delivered<liters)s.usage[id(it)]=false;
+      if(it.service?.drains!==false&&drainStatus(f,it).draining)drainLiters+=delivered;
      }
     }
    }
@@ -976,6 +984,7 @@
    power.currentWatts=usedWatts;power.currentKwh+=deltaKwh;
    s.meters.waterLiters+=waterLiters;
    s.meters.drainLiters+=drainLiters;
+   waterNetwork?.tick(seconds/60);
    if(state.phone.placedAt){
     const f=Math.floor(number(state.phone.placedFloor,-1));
     const charger=itemAt(f,state.phone.placedAt);
@@ -1028,7 +1037,7 @@
   syncATS();
   return Object.freeze({state:s,exteriorGrid,phone:state.phone,graphs,powerGraphs,powerRoute,zoneFor,requiresPower,point,itemAt,defaultsFor,sourceFor,wiringSourceFor,wiredRoute,scopeFor,
    panelStatus,atsStatus,activateATSManual,tankStatus,generatorStatus,setGeneratorEnabled,repairDamage,generatorCircuitPowered,statusFor,electrical,waterStatus,drainStatus,wifiAt,wifiSampler,connectWifi,internetFor,landlineFor,mobileFor,
-   chargePhone,takePhone,useWaterFixture,setUsage,dial,tick,setService,feetPerCell});
+   chargePhone,takePhone,useWaterFixture,setUsage,dial,tick,setService,feetPerCell,waterNetwork});
  }
  return Object.freeze({INFRA,defaultsFor,wallGraph,ensureState,createRuntime,requiresPower:needsElectricity,LIMITS,rangeFor});
 });

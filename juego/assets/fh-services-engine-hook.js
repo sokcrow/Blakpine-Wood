@@ -8,6 +8,7 @@
  };
  function patch(doc){
   const base=new URL('./juego/assets/',root.document.baseURI).href;
+  const potable='<script src="'+base+'fh-water-potable.js?v=20261112-potable-01"></'+'script>';
   const core='<script src="'+base+'fh-services-core.js?v=20261111-wall-wiring-overlay-1"></'+'script>';
   const exteriorCore='<script src="'+base+'fh-exterior-grid.js?v=20261111-pole-collision-1"></'+'script>';
    const exteriorVisual='<script src="'+base+'fh-exterior-visuals.js?v=20261111-exterior-03"></'+'script>';
@@ -21,7 +22,7 @@
   const miniStrings='<script src="'+base+'fh-repair-minigames-strings.js?v=20261111-repair-1"></'+'script>';
   const miniCss='<link rel="stylesheet" href="'+base+'fh-repair-minigames.css?v=20261111-repair-1">';
   const miniHud='<script src="'+base+'fh-repair-minigames.js?v=20261111-repair-1"></'+'script>';
-  doc=doc.slice(0,outerHead)+exteriorCore+exteriorVisual+core+strings+miniCore+miniStrings+miniCss+miniHud+doc.slice(outerHead);
+  doc=doc.slice(0,outerHead)+exteriorCore+exteriorVisual+potable+core+strings+miniCore+miniStrings+miniCss+miniHud+doc.slice(outerHead);
 
   const pc='window.FHComputerRuntime=window.FHComputer?.createRuntime({';
   const pcOptions=[
@@ -67,6 +68,11 @@
    '  if(it.type==="generator_ats"){service.activateATSManual(f,it.id);notice(T.generator.atsStatus(service.atsStatus(f,it)));saveProgress();return true;}',
    '  if(it.type==="generator_tank"){notice(T.generator.tankStatus(service.tankStatus(f,it)));return true;}',
    '  const status=service.statusFor(f,it);',
+   '  if(it.type==="water_cistern"||it.type==="water_tinaco"){',
+   '   const liters=Math.max(0,Number(status.water.liters)||0);',
+   '   const capacity=Math.max(0,Number(it.capacityLiters)||0);',
+   '   notice(window.FH_WATER_TEXT?.tankStatus?.(liters,capacity)||"Depósito potable: "+liters+" / "+capacity+" L");return true;',
+   '  }',
    '  if(it.type==="phone_charger"){',
    '   if(service.phone.placedAt===it.id){service.takePhone();notice(T.phoneTaken||"Celular recuperado.");}',
    '   else if(service.chargePhone(f,it.id)){notice(T.phonePlaced||"Celular conectado al cargador.");}',
@@ -122,7 +128,7 @@
    '   if(mesh){mesh.userData.fhServiceItem=it.id;fhServicesVisuals.push({mesh,it,f});}continue;',
    '  }',
    '  const mat=new THREE.MeshStandardMaterial({color:({power_outlet:0xd9bd74,power_strip:0xa89e8a,phone_charger:0x98b6a2,',
-   '   water_main:0x528bac,water_valve:0x529dbb,water_outlet:0x76b1c8,drain_outlet:0x52707f,drain_main:0x456b80,router:0x678c98,',
+   '   water_main:0x528bac,water_valve:0x529dbb,water_outlet:0x76b1c8,water_cistern:0x4f7088,water_tinaco:0x7391a0,drain_outlet:0x52707f,drain_main:0x456b80,router:0x678c98,',
    '   ethernet_port:0x6c9d9a,landline_phone:0x9099a7})[it.type]||0x999999,roughness:1});',
    '  const wall=["power_outlet","water_main","water_valve","water_outlet","drain_outlet","drain_main","ethernet_port","landline_phone"].includes(it.type);',
    '  const mesh=new THREE.Mesh(new THREE.BoxGeometry(Math.max(.11,Number(it.w||.3)*CELL),wall?.14:.28,Math.max(.11,Number(it.h||.3)*CELL)),mat);',
