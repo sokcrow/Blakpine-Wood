@@ -144,7 +144,13 @@
    box(metal,x,.085,z,.08*CELL,.055,.85*CELL);
    for(const offset of [-.31,-.16,0,.16,.31])box(metal,x+offset*CELL,.099,z,.026*CELL,.027,.78*CELL);
    const rain=[];
-   if(it.drainageAccess.kind==='sewer'&&resolve(map,index,it)?.kind==='street'){
+   const exposedSewer=it.drainageAccess.kind==='sewer'&&resolve(map,index,it)?.kind==='street';
+   let light=null;
+   if(exposedSewer&&typeof THREE.PointLight==='function'){
+    light=new THREE.PointLight(0xc9e7f0,0,2*CELL,1.8);
+    light.position.set(x,1.85,z);light.castShadow=false;story.add(light);
+   }
+   if(exposedSewer){
     const water=new THREE.MeshBasicMaterial({color:0x9bc4da,transparent:true,opacity:.68,depthWrite:false});
     for(let k=0;k<PARTICLES;k++){
      const px=x+((k%3)-1)*.18*CELL,pz=z+(Math.floor(k/3)-.5)*.27*CELL;
@@ -152,16 +158,19 @@
      drop.visible=false;rain.push(drop);
     }
    }
-   visuals.push({floorIndex:index,item:it,rain,clock:0});
+   visuals.push({floorIndex:index,item:it,rain,light,clock:0});
   }
  }
- function updateVisuals(dt,weather,map,outdoors){
+ function updateVisuals(dt,weather,map,outdoors,minutes){
   const delta=Math.max(0,Math.min(.08,Number(dt)||0));
   const rainy=weather?.phase==='lluvia'&&Number(weather.intensity)>0;
+  const sun=Math.max(0,Number(root?.FHNaturalLight?.lightAt?.(minutes??weather?.clock?.minutes??0)?.sun)||0);
+  const daylight=sun*Math.max(0,Math.min(1,Number(weather?.light??1)));
   for(const v of visuals){
    if(!v.rain.length)continue;
    const link=resolve(map,v.floorIndex,v.item);
    const exposed=link&&(!outdoors||outdoors(link.floorIndex,v.item.x,v.item.y));
+   if(v.light)v.light.intensity=exposed?daylight*1.45:0;
    v.clock=(v.clock+delta*(rainy?1+Number(weather.intensity):1))%1;
    for(let i=0;i<v.rain.length;i++){
     const drop=v.rain[i];drop.visible=!!(rainy&&exposed);
