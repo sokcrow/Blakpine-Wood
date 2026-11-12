@@ -11,7 +11,20 @@ global.document={currentScript:{src:'file://'+path.join(__dirname,'fh-cctv-engin
  baseURI:'file://'+path.join(__dirname,'../index.html')};
 require('./fh-cctv-engine-hook.js');
 global.window=oldWindow;global.document=oldDocument;
+// Derivar el fixture de la función real de visión; no mantener otra implementación.
+const engineChunks=Array.from({length:13},(_,i)=>{
+ const file=fs.readFileSync(path.join(__dirname,'engine-'+String(i).padStart(2,'0')+'.js'),'utf8');
+ const match=file.match(/\+"([A-Za-z0-9+/=]+)";/);
+ assert.ok(match,'Fragmento Base64 '+i);return match[1];
+});
+const baseEngine=Buffer.from(engineChunks.join(''),'base64').toString('utf8');
+const sightStart=baseEngine.indexOf('function drawSight(){');
+const sightEnd=baseEngine.indexOf('\nfunction installVisibility(){',sightStart);
+assert.ok(sightStart>0&&sightEnd>sightStart,'Fuente real de drawSight');
+const sightFragment=baseEngine.slice(sightStart,sightEnd);
 const source=`<html><head></head><body><script>
+${sightFragment}
+function installVisibility(){}
 function startGame(){
  window.FHComputerRuntime=window.FHComputer?.createRuntime({
   cameras:()=>DATA.floors.flatMap(f=>(f.items||[]).filter(it=>it.modelId==='camara_seguridad'||it.type==='camera')
@@ -37,13 +50,7 @@ test('adaptador rechaza fuentes sin los puntos de integración necesarios',()=>{
 
 test('P1: adapta el motor real con el cierre de frame instrumentado y varios </head>',()=>{
  // Los trece fragmentos son el mismo motor que el editor ejecuta en su iframe.
- const chunks=Array.from({length:13},(_,i)=>{
-  const file=fs.readFileSync(path.join(__dirname,'engine-'+String(i).padStart(2,'0')+'.js'),'utf8');
-  const match=file.match(/\+"([A-Za-z0-9+/=]+)";/);
-  assert.ok(match,'Fragmento Base64 '+i);
-  return match[1];
- });
- let composed=Buffer.from(chunks.join(''),'base64').toString('utf8');
+ let composed=baseEngine;
  assert.match(composed,/function frame\(now\)\{/);
  assert.match(composed,/circleMask\(\);requestAnimationFrame\(frame\);/);
  // El flujo real inyecta scripts en el head y RAVEN/OS en el motor.
@@ -113,7 +120,7 @@ test('captura CCTV restaura luces, muros y visibilidad del jugador',()=>{
  assert.doesNotThrow(()=>new Function(runtime));
  const CCTV=require('./fh-cctv.js');
  const wall={visible:false,userData:{fhSightVisible:false}};
- const hero={visible:true},shadow={visible:true};
+ const hero={visible:true,position:{x:9,z:9}},shadow={visible:true,position:{x:9,z:9}};
  const ambient={intensity:.2},flashlightSpot={intensity:1.65};
  const poolLight={intensity:0.4,position:{
   x:1,y:2,z:3,clone(){return {x:this.x,y:this.y,z:this.z};},
@@ -138,7 +145,8 @@ test('captura CCTV restaura luces, muros y visibilidad del jugador',()=>{
    assert.equal(ambient.intensity,.37,'La luz ambiente se calcula en la cámara');
    assert.equal(poolLight.intensity,1.58,'La luz de la estancia llega a la cámara');
    assert.equal(fixture.lit.visible,true,'El plafón se actualiza en la cámara');
-   assert.notEqual(sightUniform.value,'sight-mask','No heredar FOW del jugador');
+   assert.notEqual(sightUniform.value,'sight-mask','La cámara usa su máscara propia');
+   assert.equal(sightUniform.value.needsUpdate,true,'La máscara CCTV se actualiza antes del render');
   },
   readRenderTargetPixels(target,x,y,width,height,buffer){
    assert.equal(width,960);assert.equal(height,552);buffer.fill(127);
@@ -149,24 +157,36 @@ test('captura CCTV restaura luces, muros y visibilidad del jugador',()=>{
   constructor(w,h){this.width=w;this.height=h;}
   dispose(){}
  }
- class DataTexture{constructor(){this.needsUpdate=false;}}
+ class CanvasTexture{constructor(canvas){this.canvas=canvas;this.needsUpdate=false;}}
  class PerspectiveCamera{
   constructor(fov,aspect){this.fov=fov;this.aspect=aspect;this.position={set(){}};}
   updateProjectionMatrix(){}
   lookAt(){}
  }
- const THREE={WebGLRenderTarget,DataTexture,PerspectiveCamera,LinearFilter:'linear',NearestFilter:'nearest',RGBAFormat:'rgba'};
+ const THREE={WebGLRenderTarget,CanvasTexture,PerspectiveCamera,LinearFilter:'linear',NearestFilter:'nearest',RGBAFormat:'rgba'};
+ const mockContext={getImageData(){return {data:[255,255,255,255]};}};
+ const document={createElement(){return {getContext(){return mockContext;}};}};
+ const sightCanvas={width:20,height:32},sightTexture={minFilter:'near',magFilter:'near'};
+ let observed=null;
+ const drawSight=observer=>{observed=observer;observer.texture.needsUpdate=true;};
  const lighting={roomLit:()=>true,fixtureLit:()=>true,sourcesNear:()=>[fixture]};
  const ForestShared={lightReachesPoint:()=>true};
  // La prueba ejecuta el mismo cuerpo inyectado que utiliza el motor, con dobles de WebGL.
- const create=new Function('window','THREE','DATA','scene','renderer','hero','shadow','ambient','flashlightSpot',
+ const create=new Function('window','THREE','document','sightCanvas','sightTexture','drawSight',
+  'MAX_X','MAX_Z','DATA','scene','renderer','hero','shadow','ambient','flashlightSpot',
   'roomDynamicLights','roomLampEntries','stories','occlusionRoots','sightUniform','lighting',
   'roomAt','sightWalls','doorList','ForestShared','CELL','floorElev','currentFloor',
   runtime+'\nreturn fhCCTVFrame;');
- const frame=create(window,THREE,DATA,scene,renderer,hero,shadow,ambient,flashlightSpot,
+ const frame=create(window,THREE,document,sightCanvas,sightTexture,drawSight,
+  100,100,DATA,scene,renderer,hero,shadow,ambient,flashlightSpot,
   [poolLight],[fixture],stories,[[wall]],sightUniform,lighting,
   ()=>fixture.room,[[]],[[]],ForestShared,1.5,[0],0);
  frame(1000);
+ assert.ok(observed,'La captura usa drawSight desde la cámara');
+ assert.equal(observed.floor,0);
+ assert.notEqual(observed.canvas,sightCanvas,'El jugador mantiene su canvas');
+ assert.notEqual(observed.texture,sightTexture,'El jugador mantiene su textura');
+ assert.equal(observed.texture.needsUpdate,true);
  assert.equal(received.length,1);
  assert.equal(received[0].pixels.length,960*552*4);
  assert.equal(wall.visible,false);
@@ -177,4 +197,47 @@ test('captura CCTV restaura luces, muros y visibilidad del jugador',()=>{
  assert.equal(fixture.dark.visible,true);
  assert.equal(sightUniform.value,'sight-mask');
  assert.ok(events.some(e=>e[0]==='target'&&e[1]==='player-target'));
+});
+
+test('drawSight acepta cámara observadora con la misma oclusión y luz sin tocar caché jugador',()=>{
+ const patched=sandboxWindow.FHCCTVEngine.patch(source);
+ const start=patched.indexOf('function drawSight(observer=null){');
+ const end=patched.indexOf('\nfunction installVisibility(){',start);
+ assert.ok(start>0&&end>start);
+ const sight=patched.slice(start,end);
+ assert.doesNotThrow(()=>new Function(sight));
+ const wall={x1:0,z1:0,x2:1,z2:1},door={x1:2,z1:0,x2:2,z2:3};
+ const calls=[];
+ const ctx={
+  fillRect(){calls.push('clear');},save(){calls.push('save');},
+  beginPath(){},moveTo(){},lineTo(){},closePath(){},clip(){calls.push('clip');},
+  fill(){calls.push('fill');},restore(){calls.push('restore');}
+ };
+ const cameraCanvas={width:80,height:80},cameraTexture={needsUpdate:false};
+ let rays=0;
+ const lighting={
+  range(floor,room,flash){assert.equal(floor,1);assert.equal(room,'CAMERA_ROOM');
+   assert.equal(flash,false,'La cámara no hereda linterna');return {base:3.1,beam:0,angle:0};},
+  sourcesNear(entries,floor,x,z){assert.equal(floor,1);assert.equal(x,15);assert.equal(z,20);return [];}
+ };
+ const ForestShared={sightRayDistance(x,z,dir,opaque,radius){
+  assert.ok(opaque.includes(wall)&&opaque.includes(door),'Los muros y puertas cerradas bloquean la cámara');
+  rays++;return Math.min(radius,3);
+ }};
+ const maker=new Function('eyeLocation','performance','visibilityDirty','visibilityLast',
+  'currentFloor','peeking','yaw','sightCanvas','q','sightTexture',
+  'lighting','roomAt','sightWalls','doorList','elevatorStops','sightParameters',
+  'ForestShared','STEPS','dirs','LOOK_RADIUS','MAX_X','MAX_Z',
+  'updateSegmentSight','updateFurnitureSight','updateElevatorSight','updateDoorSight','updateLampSight',
+  sight+'\nreturn drawSight;');
+ const unused=()=>{throw Error('La vista remota no debe editar la visibilidad del jugador');};
+ const f=maker(()=>({x:99,z:99}),{now:()=>10},false,{f:0},0,false,0,
+  {width:4,height:4},ctx,{needsUpdate:false},lighting,()=> 'CAMERA_ROOM',
+  [[],[wall]],[[],[{transparent:false,passable:false,block:door}]],[],
+  unused,ForestShared,4,[{x:1,z:0},{x:0,z:1},{x:-1,z:0},{x:0,z:-1}],10.4,100,100,
+  unused,unused,unused,unused,unused);
+ f({floor:1,at:{x:15,z:20},yaw:0,canvas:cameraCanvas,ctx,texture:cameraTexture});
+ assert.equal(cameraTexture.needsUpdate,true);
+ assert.ok(rays>=8);
+ assert.ok(calls.includes('clip')&&calls.includes('restore'));
 });
