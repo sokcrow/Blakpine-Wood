@@ -202,9 +202,9 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
 <script src="./juego/assets/fh-roads-strings.js"></script>
 <script src="./juego/assets/fh-roads.js"></script>
 <script src="./juego/assets/fh-roads-editor.js"></script>
-<script src="./juego/assets/fh-drainage-strings.js?v=20261112-drain1"></script>
-<script src="./juego/assets/fh-drainage.js?v=20261112-drain1"></script>
-<script src="./juego/assets/fh-drainage-editor.js?v=20261112-drain1"></script>
+<script src="./juego/assets/fh-drainage-strings.js?v=20261112-drain2"></script>
+<script src="./juego/assets/fh-drainage.js?v=20261112-drain2"></script>
+<script src="./juego/assets/fh-drainage-editor.js?v=20261112-drain2"></script>
 <link rel="stylesheet" href="./juego/assets/fh-roads-editor.css">
 <script src="./juego/assets/fh-area-merge.js"></script>
 <script src="./juego/assets/fh-structure-health.js?v=20261107-structure-pg"></script>
@@ -1658,7 +1658,7 @@ const TOOL_GROUPS={
  structure:[['select','Seleccionar','☞'],['pan','Mover mapa','✋'],['wall','Pared','▰'],['red_wall','Pared roja · losa','▰'],['paint_wall','Pintar cara','▨'],['half_wall','Pared media','▱'],['fence','Reja','⛶'],['door','Puerta','🚪'],['elevator','Ascensor ⇅','⇅'],['peephole_door','Con mirilla','◉'],['window','Ventana','▤'],['opening','Hueco libre','⟷'],['erase','Borrar','⌫']],
  furniture:[['select','Seleccionar','☞'],['bed','Cama compacta','🛏'],['sofa','Sofá compacto','▰'],['tv','Tele compacta','▭'],['dining','Comedor','◫'],['table','Mesa','▦'],['chair','Silla','▣'],['kitchen','Cocina','▤'],['bath','Ducha / tina','▥'],['toilet','Baño / WC','◉'],['plant','Planta','♧'],['car','Coche','▰'],['misc','Mueble libre','□'],['battery_pickup','Batería de linterna','▰']],
  lighting:[['select','Seleccionar circuito','☞'],['pan','Mover mapa','✋'],['zone_assign','Conectar zona','◈'],['light_fixture','Foco de techo','✦'],['light_strip','Tubo largo','▰'],['light_panel','Panel de techo','▤'],['light_wall','Aplique de pared','◖'],['light_flood','Reflector de pared','◁'],['light_switch','Interruptor','◉'],['breaker_panel','Breaker','▤'],['generator',window.FH_SERVICES_TEXT.generator.normal,'⚙'],['generator_emergency',window.FH_SERVICES_TEXT.generator.emergency,'⚙'],['power_outlet','Enchufe doble','⚡'],['power_strip','Multiconector','▤'],['phone_charger','Cargador de celular','▣']],
-  water:[['select','Seleccionar','☞'],['pan','Mover mapa','✋'],['water_main','Entrada de agua','◉'],['water_valve','Válvula','◈'],['water_outlet','Toma de agua','◉'],['water_cistern','Cisterna potable','▰'],['water_tinaco','Tinaco elevado','◉'],['drain_outlet','Drenaje','◌'],['drain_main','Salida de drenaje','◉'],['drain_straight',window.FH_DRAIN_TEXT.straight,'═'],['drain_tee',window.FH_DRAIN_TEXT.tee,'┬'],['drain_cross',window.FH_DRAIN_TEXT.cross,'┼'],['drain_small',window.FH_DRAIN_TEXT.small,'─'],['drain_outfall',window.FH_DRAIN_TEXT.outfall,'◎'],['drain_bridge',window.FH_DRAIN_TEXT.bridge,'▦'],['drain_audit',window.FH_DRAIN_TEXT.audit,'✓']],
+  water:[['select','Seleccionar','☞'],['pan','Mover mapa','✋'],['water_main','Entrada de agua','◉'],['water_valve','Válvula','◈'],['water_outlet','Toma de agua','◉'],['water_cistern','Cisterna potable','▰'],['water_tinaco','Tinaco elevado','◉'],['drain_outlet','Drenaje','◌'],['drain_main','Salida de drenaje','◉'],['drain_straight',window.FH_DRAIN_TEXT.straight,'═'],['drain_elbow',window.FH_DRAIN_TEXT.elbow,'┐'],['drain_tee',window.FH_DRAIN_TEXT.tee,'┬'],['drain_cross',window.FH_DRAIN_TEXT.cross,'┼'],['drain_dead_end',window.FH_DRAIN_TEXT.dead_end,'⊣'],['drain_small',window.FH_DRAIN_TEXT.small,'─'],['drain_small_elbow',window.FH_DRAIN_TEXT.small_elbow,'└'],['drain_small_tee',window.FH_DRAIN_TEXT.small_tee,'┬'],['drain_small_cross',window.FH_DRAIN_TEXT.small_cross,'┼'],['drain_small_dead_end',window.FH_DRAIN_TEXT.small_dead_end,'⊣'],['drain_outfall',window.FH_DRAIN_TEXT.outfall,'◎'],['drain_bridge',window.FH_DRAIN_TEXT.bridge,'▦'],['drain_audit',window.FH_DRAIN_TEXT.audit,'✓']],
   network:[['select','Seleccionar','☞'],['pan','Mover mapa','✋'],['router','Router Wi-Fi','⌁'],['ethernet_port','Toma Ethernet','▣'],['landline_phone','Teléfono de pared','☎']],
  areas:[['courtyard',window.FH_COURTYARD_TEXT.tool,'☀'],['room_fill','Revisar recinto','⌂'],['room','Zona manual','▣'],['hall','Pasillo','═'],['outside','Exterior','♧'],['building','Edificio','▥'],['pavement','Banqueta / piso','▦'],['parking','Estacionamiento','▤'],['asphalt','Asfalto','▦'],['alley','Callejón manchado','▦'],['sidewalk','Banqueta','▤'],['concrete','Concreto','▦'],['gravel','Grava','░'],['cobblestone','Adoquín','▣'],['tile_floor','Baldosa','▦'],['carpet','Alfombra','▧'],['wood_floor','Madera','▤'],['grass','Pasto','❋'],['dirt','Tierra','░'],['elevator','Ascensor ⇅','⇅'],['stairs','Escaleras ½ cuadro','≋'],['spawn','Jugador','✦'],['npc_portal','Entrada / salida NPC','⇥'],['select','Seleccionar','☞'],['pan','Mover mapa','✋']],
  roads:window.FH_ROAD_TEXT?[['select',window.FH_ROAD_TEXT.select,'☞'],['road_settings',window.FH_ROAD_TEXT.settings,'⚙'],['road_draw',window.FH_ROAD_TEXT.draw,'⇄'],['road_stop',window.FH_ROAD_TEXT.stop,'⬡'],['road_signal',window.FH_ROAD_TEXT.signal,'⋮'],['road_speed',window.FH_ROAD_TEXT.speed,'◉'],['road_crosswalk',window.FH_ROAD_TEXT.crosswalk,'▥'],['road_portal',window.FH_ROAD_TEXT.portal,'↔'],['road_audit',window.FH_ROAD_TEXT.audit,'✓'],['pan',window.FH_ROAD_TEXT.pan,'✋'],['erase',window.FH_ROAD_TEXT.erase,'⌫']]:[],
@@ -3588,7 +3588,7 @@ function prepareGLBEngineDoc(source){
   return doc.split('floorMaterial,.039)').join('roomMaterial,.039)');
  }
   const roadsScript='<script src="'+new URL('./juego/assets/fh-roads-strings.js',document.baseURI).href+'"></'+'script><script src="'+new URL('./juego/assets/fh-roads.js',document.baseURI).href+'"></'+'script>';
- const drainageScript='<script src="'+new URL('./juego/assets/fh-drainage.js?v=20261112-drain1',document.baseURI).href+'"></'+'script>';
+ const drainageScript='<script src="'+new URL('./juego/assets/fh-drainage.js?v=20261112-drain2',document.baseURI).href+'"></'+'script>';
  const parkingScript='<script src="'+new URL('./juego/assets/fh-parking.js',document.baseURI).href+'"></'+'script>';
  const playerMenuCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-player-menu.css?v=20261107-help',document.baseURI).href+'">';
  const playerMenuStrings='<script src="'+new URL('./juego/assets/fh-player-menu-strings.js?v=20261110-spawn-return',document.baseURI).href+'"></'+'script>';
@@ -3620,6 +3620,8 @@ function prepareGLBEngineDoc(source){
      "let groundLayer=0;for(const it of items){if(!it.inheritedCourtyard&&areaMaterials[it.type]){const areaFinish=window.FHStyleRuntime?.roomMaterial(THREE,it,DATA)||areaMaterials[it.type];const baseY=f>0&&SLABS[f].enabled?.028:.008;areaSurfaceGrid(f,it.x,it.y,Math.max(.1,it.w),Math.max(.1,it.h),areaFinish,Math.min(.035,baseY+groundLayer++*.00015))}}"],
     ["for(const it of items)if(!['red_wall','wall','half_wall','fence','window','door','peephole_door','room','hall','outside','building','pavement','parking','grass','dirt','opening','spawn'].includes(it.type))",
      "for(const it of items)if(!['red_wall','wall','property_wall','half_wall','fence','window','door','peephole_door','room','hall','outside','building','pavement','parking','grass','dirt','asphalt','alley','sidewalk','concrete','gravel','cobblestone','tile_floor','carpet','wood_floor','parking_decal','opening','spawn'].includes(it.type)&&!it.roadControl)"],
+    ["DATA.floors.forEach((_,i)=>buildFloor(i));",
+      "window.FHDrainage?.expandProject(DATA);\\nDATA.floors.forEach((_,i)=>buildFloor(i));"],
     [" // Anillo discreto alrededor del objetivo activo",
      " window.FHParking?.attachFloor(THREE,DATA,stories[f],f,CELL);\n window.FHRoads?.attachFloor(THREE,DATA,stories[f],f,CELL);\n window.FHDrainage?.attachFloor(THREE,DATA,stories[f],f,CELL);\n // Anillo discreto alrededor del objetivo activo"]
    ];
