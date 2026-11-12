@@ -18,7 +18,7 @@
  });
  const SIDE=['n','e','s','w'],OPPOSITE={n:'s',e:'w',s:'n',w:'e'};
  // Alturas relativas al tile: superficie -0.2, fondo -0.42, flotación ligera.
- const WATER_LEVEL=-.2,CHANNEL_BOTTOM=-.42;
+ const WATER_LEVEL=-.2,CHANNEL_BOTTOM=-.42,BRIDGE_TOP=.025;
  const safe=n=>Number.isFinite(Number(n))?Number(n):0;
  const round=n=>Math.round(n*10000)/10000;
  const isSection=it=>!!it&&it.type==='hall'&&!!it.drainage&&Object.hasOwn(SIZES,it.drainage.kind);
@@ -328,9 +328,24 @@
   return {itemId:item.id,x:vector.x,y:vector.y,
    speed:next?(.12+.42*Math.max(0,Math.min(1,safe(rain))))*state.currentFactor:0};
  }
- function depthAt(project,floorIndex,point,seconds=0){
-  // Desnivel jugable ligero: el agua sostiene al personaje sin usar fluidos reales.
-  return waterAt(project,floorIndex,point,0)?WATER_LEVEL-.045+.012*Math.sin(safe(seconds)*1.8):0;
+ // El motor mueve X/Z con canWalk(); esta función proporciona la altura
+ // sólida de apoyo para el mismo ancla. El agua es visual, nunca una plataforma.
+ const supportRectsCache=new WeakMap();
+ function supportRects(it){
+  const key=it.x+':'+it.y+':'+it.rotation+':'+it.drainage.kind;
+  const old=supportRectsCache.get(it);
+  if(old?.key===key)return old.rects;
+  const result=channelRects(it);supportRectsCache.set(it,{key,rects:result});return result;
+ }
+ function supportAt(project,floorIndex,point){
+  if(!point||!Number.isFinite(point.x)||!Number.isFinite(point.y))return 0;
+  if(bridgeAt(project,floorIndex,point))return BRIDGE_TOP;
+  const section=sectionAt(project,floorIndex,point);
+  return section&&supportRects(section).some(r=>within(r,point))?CHANNEL_BOTTOM:0;
+ }
+ function depthAt(project,floorIndex,point){
+  // Alias histórico de la altura de pies, para no alterar las otras APIs.
+  return supportAt(project,floorIndex,point);
  }
  function whirlpoolAt(project,floorIndex,point){
   const item=sectionAt(project,floorIndex,point);
@@ -404,6 +419,90 @@
    ctx.strokeStyle=it.id===selection?'#ffe6a5':'#9fb8a8';ctx.strokeRect(p.x,p.y,it.w*gx,it.h*gy);ctx.restore();
   }
  }
+ // Geometría de volumen de drenaje: fondo grueso, pared del canal y
+ // reja abierta; todo agrupado en una sola malla por construcción.
+ function solidBuilder(THREE){
+  const vertices=[],normals=[],indices=[];
+  const face=(corners,normal)=>{
+   const start=vertices.length/3;
+   for(const p of corners){vertices.push(...p);normals.push(...normal);}
+   indices.push(start,start+1,start+2,start,start+2,start+3);
+  };
+  const cube=(cx,cy,cz,w,h,d)=>{
+   if(w<=0||h<=0||d<=0)return;
+   const x0=cx-w/2,x1=cx+w/2,y0=cy-h/2,y1=cy+h/2,z0=cz-d/2,z1=cz+d/2;
+   face([[x0,y1,z0],[x0,y1,z1],[x1,y1,z1],[x1,y1,z0]],[0,1,0]);
+   face([[x0,y0,z1],[x0,y0,z0],[x1,y0,z0],[x1,y0,z1]],[0,-1,0]);
+   face([[x0,y0,z0],[x0,y0,z1],[x0,y1,z1],[x0,y1,z0]],[-1,0,0]);
+   face([[x1,y0,z1],[x1,y0,z0],[x1,y1,z0],[x1,y1,z1]],[1,0,0]);
+   face([[x0,y0,z0],[x0,y1,z0],[x1,y1,z0],[x1,y0,z0]],[0,0,-1]);
+   face([[x1,y0,z1],[x1,y1,z1],[x0,y1,z1],[x0,y0,z1]],[0,0,1]);
+  };
+  const build=()=>{
+   const geo=new THREE.BufferGeometry();
+   geo.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
+   geo.setAttribute('normal',new THREE.Float32BufferAttribute(normals,3));
+   geo.setIndex(indices);return geo;
+  };
+  return {cube,build};
+ }
+ function channelSolid(THREE,story,it,CELL,allWet,stone){
+  const shape=solidBuilder(THREE),rectangles=channelRects(it);
+  const bottomThickness=.07*CELL;
+  const bottomY=(CHANNEL_BOTTOM-.035)*CELL,wallHeight=-CHANNEL_BOTTOM*CELL;
+  const wet=(x,y)=>allWet.some(r=>within(r,{x,y}));
+  for(const r of rectangles){
+   shape.cube((r.x+r.w/2)*CELL,bottomY,(r.y+r.h/2)*CELL,
+    r.w*CELL,bottomThickness,r.h*CELL);
+   // Solo las caras entre agua y banqueta; jamás tabicar dos canales conectados.
+   const edges=[
+    {side:'n',length:r.w,x:t=>r.x+t,y:t=>r.y-.005},
+    {side:'s',length:r.w,x:t=>r.x+t,y:t=>r.y+r.h+.005},
+    {side:'w',length:r.h,x:t=>r.x-.005,y:t=>r.y+t},
+    {side:'e',length:r.h,x:t=>r.x+r.w+.005,y:t=>r.y+t}
+   ];
+   for(const edge of edges){
+    const steps=Math.max(1,Math.ceil(edge.length*2)),step=edge.length/steps;
+    for(let n=0;n<steps;n++){
+     const t=(n+.5)*step;if(wet(edge.x(t),edge.y(t)))continue;
+     const ns=edge.side==='n'||edge.side==='s';
+     const x=ns?r.x+t:edge.side==='w'?r.x:r.x+r.w;
+     const y=ns?(edge.side==='n'?r.y:r.y+r.h):r.y+t;
+     shape.cube(x*CELL,(CHANNEL_BOTTOM/2)*CELL,y*CELL,
+      (ns?step:.055)*CELL,wallHeight,(ns?.055:step)*CELL);
+    }
+   }
+  }
+  const mesh=new THREE.Mesh(shape.build(),stone);mesh.name='fh_drain_solid_'+it.id;
+  mesh.receiveShadow=true;story.add(mesh);return mesh;
+ }
+ function bridgeSolid(THREE,story,it,CELL,metal){
+  // Sin losa decorativa: hay huecos entre barras. La altura de apoyo del
+  // actor viene de supportAt(), no de usar el Mesh como collider independiente.
+  const builder=solidBuilder(THREE),cx=(it.x+it.w/2)*CELL,cz=(it.y+it.h/2)*CELL;
+  const longX=it.w>it.h,span=Math.max(it.w,it.h)*CELL,width=Math.min(it.w,it.h)*CELL;
+  const rail=.07*CELL,bar=.065*CELL,top=BRIDGE_TOP*CELL;
+  const y=top-rail*.5;
+  for(const edge of [-1,1]){
+   const offset=edge*(width*.5-rail*.7);
+   builder.cube(cx+(longX?0:offset),y,cz+(longX?offset:0),
+    longX?span:rail,rail,longX?rail:span);
+  }
+  const across=Math.max(2,Math.ceil(span/(.28*CELL)));
+  for(let n=0;n<=across;n++){
+   const offset=(n/across-.5)*(span-.11*CELL);
+   builder.cube(cx+(longX?offset:0),y,cz+(longX?0:offset),
+    longX?bar:width-.12*CELL,rail,longX?width-.12*CELL:bar);
+  }
+  const lines=4;
+  for(let n=1;n<lines;n++){
+   const offset=(n/lines-.5)*(width-.12*CELL);
+   builder.cube(cx+(longX?0:offset),y,cz+(longX?offset:0),
+    longX?span:bar,rail,longX?bar:span);
+  }
+  const mesh=new THREE.Mesh(builder.build(),metal);mesh.name='fh_drain_grate_'+it.id;
+  mesh.receiveShadow=true;story.add(mesh);return mesh;
+ }
  // Una malla por tramo: las máscaras se calculan en vértices, no por píxel.
  // La superficie es opaca para evitar transparencia, sobrepintado y fragmentos
  // caros en equipos móviles. No hay simulación de fluidos ni texturas en CPU.
@@ -465,7 +564,9 @@
    if(sharedWater){sharedWater.dispose?.();sharedWater=null;}
   }
   const hole=new THREE.MeshBasicMaterial({color:0x02070b});
-  const metal=new THREE.MeshLambertMaterial({color:0x74847f});
+  const metal=new THREE.MeshLambertMaterial({color:0x74847f,side:THREE.DoubleSide});
+  const stone=new THREE.MeshLambertMaterial({color:0x263034,side:THREE.DoubleSide});
+  const allWet=sections.flatMap(channelRects);
   const water=sections.length?waterMaterial(THREE,CELL):null;
   const box=(mat,x,y,z,w,h,d)=>{const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);mesh.position.set(x,y,z);story.add(mesh);return mesh;};
   // Se combinan todos los polígonos de un mismo tramo en un BufferGeometry.
@@ -500,6 +601,7 @@
    story.add(mesh);return mesh;
   }
   for(const it of sections){
+   channelSolid(THREE,story,it,CELL,allWet,stone);
    const next=downstream(map,index,it.id,visualGraph);
    const surface=sheet(channelRects(it),it,false,next);
    let flood=null,ring=null;
@@ -515,17 +617,8 @@
    }
    visuals.push({floorIndex:index,itemId:it.id,surface,ring,flood});
   }
-  for(const it of bridges){
-   const cx=(it.x+it.w/2)*CELL,cz=(it.y+it.h/2)*CELL,w=it.w*CELL,d=it.h*CELL;
-   box(metal,cx,.23,cz,w,.13,d);
-   const across=it.w<it.h;
-   for(let n=1;n<7;n++){
-    const t=n/7-.5;
-    if(across)box(hole,cx,.305,cz+t*d,w*.95,.024,.055*CELL);
-    else box(hole,cx+t*w,.305,cz,.055*CELL,.024,d*.95);
-   }
-  }
+  for(const it of bridges)bridgeSolid(THREE,story,it,CELL,metal);
  }
- return Object.freeze({SIZES,WATER_LEVEL,CHANNEL_BOTTOM,isSection,isBridge,pieces,ports,rects,channelRects,cutFloorRects,touches,makeSection,makeBridge,validate,
-  validateProject,topology,downstream,nearest,weatherState,randomExit,nativeComponents,expandProject,sectionAt,bridgeAt,waterAt,walkFactor,currentAt,depthAt,whirlpoolAt,createRuntime,updateVisuals,draw2D,attachFloor});
+ return Object.freeze({SIZES,WATER_LEVEL,CHANNEL_BOTTOM,BRIDGE_TOP,isSection,isBridge,pieces,ports,rects,channelRects,cutFloorRects,touches,makeSection,makeBridge,validate,
+  validateProject,topology,downstream,nearest,weatherState,randomExit,nativeComponents,expandProject,sectionAt,bridgeAt,waterAt,walkFactor,currentAt,supportAt,depthAt,whirlpoolAt,createRuntime,updateVisuals,draw2D,attachFloor});
 });
