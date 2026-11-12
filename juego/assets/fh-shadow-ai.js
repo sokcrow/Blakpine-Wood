@@ -29,7 +29,7 @@
   state.seq=Number.isSafeInteger(state.seq)&&state.seq>=0?state.seq:0;
   let nextAt=finite(state.nextAt)?state.nextAt:null;
   const active=new Map();
-  let previousPlayer=null;
+  let previousPlayer=null,movementRemainder=0;
   function event(name,payload){
    if(name==='blocked'){state.lastBlocked=payload.reason;state.blockedCount=(state.blockedCount||0)+1;}
    options.onEvent?.(name,payload);
@@ -204,7 +204,12 @@
   function tick(minute,dt,player){
    if(!finite(minute)||!player||!Number.isInteger(player.floor)||!finite(player.x)||!finite(player.z))return;
    if(nextAt===null)schedule(minute,true);
-   const moved=previousPlayer!==null&&previousPlayer.floor===player.floor&&distance(previousPlayer,player)>.015;
+   // Accumulate sub-frame steps: movement detection must work equally at 30, 60 or 240 FPS.
+   const sameFloor=previousPlayer!==null&&previousPlayer.floor===player.floor;
+   if(!sameFloor||player.sleeping||player.inElevator||player.outside||player.inactive)movementRemainder=0;
+   else movementRemainder+=Math.min(distance(previousPlayer,player),.3);
+   const moved=movementRemainder>.015;
+   if(moved)movementRemainder=0;
    previousPlayer={floor:player.floor,x:player.x,z:player.z};
    const escape=player.inElevator===true||player.outside===true||!inside(player.floor,player.x,player.z);
    if(escape||player.inactive){
@@ -225,7 +230,8 @@
     chooseTarget(actor,player,minute);
     move(actor,dt);
     const near=actor.floor===player.floor&&distance(actor,player)<=meters(cfg.detectFt);
-    if(actor.kind==='la_nina'&&player.sleeping===true&&near&&!actor.nightmareDone&&contactClear(actor,player)){
+    if(actor.kind==='la_nina'&&player.sleeping===true&&near&&!actor.nightmareDone&&
+     (contactClear(actor,player)||options.canReachSleeping?.(actor,player)===true)){
      actor.nightmareDone=true;
      event('nightmare',{id:actor.id,kind:actor.kind,minute});
     }
