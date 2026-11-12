@@ -4815,7 +4815,7 @@ async function start3DPreview(){
     preview3DArchitectureError=window.FH_STRUCTURE_TEXT.integrationFailure;
    }
    // El 3D debe compartir colisión, losas y visibilidad con el motor existente.
-   try{architectureDoc=window.FHBarriersEngine.patch(architectureDoc);}
+   try{if(window.FHBarriersEngine?.patch)architectureDoc=window.FHBarriersEngine.patch(architectureDoc);}
    catch(barrierError){
     console.error('[Blakpine barreras] Falló la integración 3D:',barrierError);
     preview3DDiagnostics?.record({kind:'resource',stage:'adapter',message:barrierError.message,stack:barrierError.stack});
