@@ -110,7 +110,7 @@
  setCategory=function(category){previousCategory(category);launcher();};
  const previousCreate=createObject;
  createObject=function(type,p){
-  if(type==='misc'&&activeCategory==='water'&&selectedTank){
+  if(type==='misc'&&activeCategory==='water'&&selectedTank&&!window.__fhBoilerCreating){
    const tank=selectedTank,item=previousCreate('misc',p);if(!item)return null;
    item.type=tank.type;delete item.modelId;delete item.utilitySkin;
    Object.assign(item,window.FHServices?.defaultsFor(tank.type)||{});
