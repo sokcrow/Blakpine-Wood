@@ -26,14 +26,17 @@ test('red conecta solo piezas que comparten borde y puerto en el mismo piso',()=
  assert.equal(D.touches(a,b),true);
  assert.equal(D.touches(b,c),true);
  assert.equal(D.touches(c,d),false);
+ const wrong=section('outfall',20,0,'wrong');
+ wrong.y=4; // comparte borde con b, pero su canal está desalineado
+ assert.equal(D.touches(b,wrong),false);
  const g=D.topology(map([[a,b,c], [d]]));
  assert.equal(g.links.get('f0:a').length,1);
  assert.equal(g.links.get('f0:c').length,1);
  assert.equal(g.links.get('f1:d').length,0);
 });
 test('corriente automática va al desagüe conectado y no atraviesa huecos',()=>{
- const a=section('straight',0,0,'a'),b=section('straight',10,0,'b');
- const sink=section('outfall',20,0,'sink'); // gran cámara conectada al borde este del 10×10
+ const a=section('straight',0,20,'a'),b=section('straight',10,20,'b');
+ const sink=section('outfall',20,15,'sink'); // canales alineados entre pasillo 10×10 y cámara 20×20
  const p=map([[a,b,sink]]);
  assert.deepEqual(D.downstream(p,0,'a'),{floorIndex:0,itemId:'b'});
  b.drainage.flowTo='a';
