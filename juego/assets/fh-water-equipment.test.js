@@ -98,3 +98,42 @@ test('la red fría y la caliente son circuitos separados y medibles',()=>{
  assert.equal(r.hotWater.diagnostics().routes[0].itemId,'doble');
  assert.ok(r.hotWater.diagnostics().routes[0].sections.length>0);
 });
+
+test('las 10 mallas GLB originales y miniaturas existen y tienen formato glTF 2.0',()=>{
+ const models=[...Boilers.models,...Storage.models];
+ const visual=require('./fh-water-visuals.js');
+ assert.equal(models.length,10);
+ for(const m of models){
+  const glbPath=path.join(repo,'forest-horror/biblioteca/agua',m.glb);
+  const thumbPath=path.join(repo,'forest-horror/biblioteca/agua',m.thumbnail);
+  const bytes=fs.readFileSync(glbPath);
+  const png=fs.readFileSync(thumbPath);
+  assert.equal(bytes.toString('ascii',0,4),'glTF',m.id);
+  assert.equal(bytes.readUInt32LE(4),2,m.id);
+  assert.equal(bytes.readUInt32LE(8),bytes.length,m.id);
+  assert.equal(bytes.readUInt32LE(16),0x4e4f534a,m.id);
+  const json=JSON.parse(bytes.subarray(20,20+bytes.readUInt32LE(12)).toString('utf8'));
+  assert.equal(json.meshes.length,1,m.id);
+  assert.equal(json.textures.length,1,m.id);
+  assert.ok(json.images.length>=1,m.id);
+  assert.equal(png.toString('hex',0,8),'89504e470d0a1a0a',m.id);
+  const probe={type:m.type,modelId:m.id};
+  assert.equal(visual.choose(probe)?.id,m.id);
+ }
+ const legacy=visual.choose({type:'misc',modelId:'caldera_residencial_mediana'});
+ assert.equal(legacy?.glb,'calderas/modelos_glb/caldera_residencial_mediana.glb');
+});
+test('la conexión directa no ocupa enchufes ni requiere outletId',()=>{
+ const x=scene({socket:true}),r=runtime(x);
+ const elec=r.electrical();
+ assert.equal(elec.bindings.has('0:caldera'),false,'no ocupa ranura de enchufe');
+ assert.equal(r.statusFor(0,x.boiler).power.direct,true);
+ assert.equal(r.statusFor(0,x.boiler).power.powered,true);
+ assert.equal(x.boiler.outletId,undefined);
+});
+test('el breaker apagado desconecta caldera sin cambiar su GLB',()=>{
+ const x=scene(),r=runtime(x,{'power_zone:casa':false});
+ assert.equal(r.statusFor(0,x.boiler).power.connected,true);
+ assert.equal(r.statusFor(0,x.boiler).power.powered,false);
+ assert.equal(x.boiler.modelId,'calentador_domestico_vertical');
+});
