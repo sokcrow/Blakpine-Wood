@@ -81,7 +81,7 @@
   rotateButton.onclick=()=>rotate(item);fields.append(rotateButton);
   if(R().isSection(item)){
    const ports=R().ports(item).map(side=>T().directions[side]).join(', ');
-   const native=R().nativeComponents(item);
+   const native=R().nativeComponents(item,env.current().items.filter(peer=>peer!==item&&R().isSection(peer)&&R().touches(item,peer)));
    fields.append(createEl('p',T().nativeInfo(native.filter(x=>x.type==='wall').length,ports)));
    const graph=R().topology(env.project()),node=graph.nodes.find(n=>n.item===item);
    const neighbors=(graph.links.get(node?.id)||[]).map(id=>graph.nodes.find(n=>n.id===id)).filter(Boolean);
