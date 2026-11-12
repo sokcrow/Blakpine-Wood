@@ -29,7 +29,8 @@ test('sin piezas nuevas, FHServices mantiene la lógica heredada',()=>{
  const {project,outlet}=create(false),legacy=Services.createRuntime(project,{}, {drainageCore:D});
  const direct=legacy.drainStatus(0,outlet);
  assert.equal(direct.draining,false);
- project.floors[0].items.push({id:'main',type:'drain_main',x:32,y:32,rangeFt:120});
+ outlet.drainMode='automatic';
  const original=Services.createRuntime(project,{}, {drainageCore:D});
  assert.equal(original.drainStatus(0,outlet).draining,true);
+ assert.equal(original.drainStatus(0,outlet).mode,'exterior');
 });
