@@ -148,3 +148,28 @@ test('FHServices integra el estado sin habilitar acciones de higiene',()=>{
  assert.ok(state.services.hotWater['planta:boiler'].liters>0);
  assert.equal(state.character?.resources?.sp,undefined);
 });
+
+test('FHServices calienta con una toma eléctrica real, mide kWh y respeta el apagón',()=>{
+ const m=map();
+ m.floors[0].items.push(
+  {id:'breaker',type:'breaker_panel',x:0,y:0,
+   circuits:[{zoneId:'main',rangeFt:160}]},
+  {id:'socket',type:'power_outlet',x:3,y:0,zoneId:'main',radiusFt:5,slots:2}
+ );
+ const boiler=m.floors[0].items.find(it=>it.id==='boiler');
+ boiler.zoneId='main';boiler.outletId='socket';
+ const sink=m.floors[1].items.find(it=>it.id==='sink');
+ const state={services:{contracts:{water:'active',electricity:'active'}}};
+ const runtime=servicesCore.createRuntime(m,state,{waterCore:potable,hotCore});
+ assert.equal(runtime.statusFor(0,boiler).power.powered,true);
+ for(let i=0;i<60;i++)runtime.tick(.5,1);
+ assert.equal(runtime.hotWaterStatus(1,sink).hotWater,true);
+ assert.ok(state.services.meters.kwh>0,'la calefacción usa el contador eléctrico existente');
+ runtime.setService('electricity',false);
+ assert.equal(runtime.statusFor(0,boiler).power.powered,false);
+ const before=runtime.hotWaterStatus(0,boiler).temperatureC;
+ runtime.tick(2,1);
+ assert.ok(runtime.hotWaterStatus(0,boiler).temperatureC<before);
+ assert.equal(runtime.hotWaterStatus(1,sink).hotWater,true,
+  'el agua caliente almacenada no desaparece instantáneamente');
+});
