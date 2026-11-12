@@ -65,6 +65,15 @@ test('niebla distante tapa el límite y no invade el interior',()=>{
   assert.equal(s.runtime.mesh.position.y,3.07);
  }finally{s.restore()}
 });
+test('la niebla distante termina antes del límite de visión del jugador',()=>{
+ const s=setup({visionDistance:()=>20});
+ try{
+  s.runtime.update(.12);
+  assert.equal(s.scene.fog.near,12);
+  assert.equal(s.scene.fog.far,17.6);
+  assert.ok(s.runtime.mesh.material.fragmentShader.includes('uClearRadius'),'radio exacto de 3 pies en GPU');
+ }finally{s.restore()}
+});
 test('la dispersión del jugador persiste y se recupera en cuatro segundos',()=>{
  const s=setup();
  try{
