@@ -38,10 +38,13 @@ test('el HTML generado integra radial y decoración sin afectar el editor 2D',()
  assert.match(output,/function fhPlayerHold\(event\)/);
  assert.match(output,/window\.FHMoodFearUI\?\.targetAt\?\.\(event\)/);
  assert.match(output,/window\.FHMoodFearUI\?\.tap\?\.\(event\)/);
- assert.match(output,/window\.FHPlayerMenu\?\.openSection\?\.\('inventory'\)/);
- assert.match(output,/key:'player:'\+actor\.id/);
- assert.match(output,/radial\.target==='player:'\+String\(GameState\.character\?\.id\)/);
- assert.match(output,/\{suppressClick:true\}\)/);
+ assert.doesNotMatch(output,/window\.FHPlayerMenu\?\.openSection\?\.\('inventory'\)/,'el hold de pies sólo alterna el HUD');
+ assert.doesNotMatch(output,/key:'player:'\+actor\.id/,'no crear radial separado para el propio jugador');
+ assert.doesNotMatch(output,/radial\.target==='player:'\+String\(GameState\.character\?\.id\)/,'el radial ambiental no depende de un objetivo obsoleto');
+ assert.match(output,/\{threshold:400,suppressClick:true\}\)/,'el canvas exige una pulsación de 400 ms');
+ assert.match(output,/onTap:event=>fhRequestContext\('tap','canvas',event\)/,'un toque corto llega al contexto');
+ assert.match(output,/if\(fhPlayerHold\(event\)\)return/,'el hold de pies se resuelve antes del contexto');
+ assert.doesNotMatch(output,/onTap:event=>\{\s*if\(window\.FHMoodFearUI\?\.tap/,'el toque nunca alterna el HUD');
  assert.match(output,/FHSafeLock\?\.bind\(\$\('use'\)/);
  assert.match(output,/fhUseButtonClick/);
  assert.match(output,/capture:true,suppressClick:true/);
