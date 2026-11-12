@@ -337,6 +337,62 @@ test('geometría: el fondo queda por debajo del agua y solo se recortan canales 
  assert.equal(D.depthAt(p,0,{x:5,y:1},0),0,'Pasillo seco conserva altura');
 });
 
+test('render 3D real: fondo sólido del canal y reja abierta con altura de apoyo',()=>{
+ const sectionMain=section('straight',0,0,'canal_solid');
+ const bridge=D.makeBridge({x:5,y:5},units,'puente_reja');
+ const project=map([[sectionMain,bridge]]);
+ assert.equal(D.supportAt(project,0,{x:5,y:5}),D.BRIDGE_TOP,
+  'Los pies reposan sobre las barras, no atraviesan el puente');
+ assert.equal(D.depthAt(project,0,{x:5,y:5}),D.BRIDGE_TOP,
+  'El adaptador de cámara también recibe altura de reja');
+ assert.equal(D.waterAt(project,0,{x:5,y:5}),null,'La corriente no arrastra al cruzar la reja');
+ assert.equal(D.supportAt(project,0,{x:5,y:4}),D.BRIDGE_TOP);
+ assert.equal(D.supportAt(project,0,{x:8,y:5}),D.CHANNEL_BOTTOM,
+  'Los pies descansan sobre el fondo sólido, no sobre el shader de agua');
+ assert.equal(D.supportAt(project,0,{x:8,y:1}),0,'La banqueta es el nivel 0');
+ const html=fs.readFileSync(path.join(__dirname,'../../index.html'),'utf8');
+ assert.match(html,/!window\\.FHDrainage\\?\\.isBridge\\(it\\)/,
+  'El motor no puede pintar una losa opaca debajo de una reja real');
+ const scene={children:[],add(mesh){this.children.push(mesh);}};
+ class Material{constructor(opts){Object.assign(this,opts);}}
+ class Geometry{
+  constructor(){this.attributes={};}
+  setAttribute(name,attribute){this.attributes[name]=attribute;}
+  setIndex(indices){this.indices=indices;}
+ }
+ class Attribute{constructor(values,size){this.values=values;this.itemSize=size;}}
+ class Mesh{
+  constructor(geometry,material){this.geometry=geometry;this.material=material;
+   this.position={set(x,y,z){this.x=x;this.y=y;this.z=z;}};
+   this.rotation={x:0,y:0,z:0};this.visible=true;}
+ }
+ const THREE={Mesh,BufferGeometry:Geometry,BoxGeometry:Geometry,RingGeometry:Geometry,
+  CircleGeometry:Geometry,ShaderMaterial:Material,MeshLambertMaterial:Material,
+  MeshBasicMaterial:Material,Float32BufferAttribute:Attribute,DoubleSide:2,FrontSide:0};
+ D.attachFloor(THREE,project,scene,0,1);
+ const floor=scene.children.find(m=>m.name==='fh_drain_solid_canal_solid');
+ const grate=scene.children.find(m=>m.name==='fh_drain_grate_puente_reja');
+ assert.ok(floor&&grate,'El piso y el puente deben existir como mallas 3D con volumen');
+ assert.ok(floor.geometry.attributes.normal,'Paredes y suelo tienen normales y reciben luz');
+ assert.ok(grate.geometry.attributes.normal,'La reja tiene barras de volumen');
+ const coords=floor.geometry.attributes.position.values;
+ const heightValues=Array.from({length:coords.length/3},(_,i)=>coords[i*3+1]);
+ assert.ok(heightValues.some(y=>Math.abs(y-D.CHANNEL_BOTTOM)<1e-5),
+  'La cara superior del fondo coincide con la altura que pisa el jugador');
+ assert.ok(heightValues.some(y=>Math.abs(y)<1e-5),'Hay paredes laterales hasta la banqueta');
+ const grateCoords=grate.geometry.attributes.position.values;
+ const grateY=Array.from({length:grateCoords.length/3},(_,i)=>grateCoords[i*3+1]);
+ assert.ok(grateY.some(y=>Math.abs(y-D.BRIDGE_TOP)<1e-5),
+  'La reja visible y el soporte del jugador están a la misma altura');
+ let totalTopArea=0;
+ for(let i=0;i<grateCoords.length;i+=24*3){
+  const xs=[],zs=[];
+  for(let k=0;k<4;k++){xs.push(grateCoords[i+k*3]);zs.push(grateCoords[i+k*3+2]);}
+  totalTopArea+=(Math.max(...xs)-Math.min(...xs))*(Math.max(...zs)-Math.min(...zs));
+ }
+ assert.ok(totalTopArea<bridge.w*bridge.h*.7,
+  'Más del 30% del puente es hueco: no es una placa con franjas pintadas');
+});
 test('corte de suelos: caché del motor sin impedir cambios del editor',()=>{
  const a=section('straight',0,0,'a'),p=map([[a]]);
  const r=[{x:0,y:0,w:10,h:10}];
