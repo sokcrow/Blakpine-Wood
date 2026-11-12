@@ -2041,6 +2041,24 @@ function drawUtilityNetworkOverlay(c,z){
  }
  if(activeCategory==='water'&&runtime.hotWater?.enabled){
   const hot=runtime.hotWater.diagnostics();
+  const boilers=items.filter(it=>window.FHBoilersCatalog?.has(it.modelId)&&
+   it.service?.waterHeating===true);
+  const hotPorts=items.filter(it=>it.type==='water_outlet'&&
+   (it.hotWaterEnabled===true||it.utilitySkin==='toma_agua_doble'));
+  c.save();c.font=(11/z)+'px system-ui';c.fillStyle='#eab881';
+  if(boilers.length&&!hotPorts.length){
+   const at=toPixel(boilers[0]);
+   c.fillText('SIN TUBERÍA CALIENTE: coloca una toma doble y conéctala por las paredes',
+    at.x+10/z,at.y-22/z);
+  }
+  for(const route of hot.routes.filter(r=>!r.connected&&r.floor===floorIndex)){
+   const it=items.find(x=>x.id===route.itemId);
+   if(it){const at=toPixel(it);
+    c.fillText('SIN RUTA CALIENTE: revisa la red, paredes y montantes',
+     at.x+10/z,at.y+17/z);
+   }
+  }
+  c.restore();
   drawWallPaths(c,z,hot.routes.flatMap(r=>r.sections.filter(s=>!s.vertical&&s.floor===floorIndex).map(s=>({points:s.points}))), '#eaa16c',true);
   c.save();c.fillStyle='#eabb7d';
   for(const route of hot.routes.filter(r=>r.floor===floorIndex&&!r.heated)){
