@@ -51,23 +51,20 @@ test('P1: adapta el motor real con el cierre de frame instrumentado y varios </h
   "window.FHComputerRuntime=window.FHComputer?.createRuntime({",
   " cameras:()=>DATA.floors.flatMap(f=>(f.items||[]).filter(it=>it.modelId==='camara_seguridad'||it.type==='camera')",
   "  .map(it=>({id:it.id,place:it.label||it.id,online:it.cameraOnline!==false}))),",
-  "});",
-  // Documentos embebidos válidos: el adaptador solo debe cerrar el head de fuera.
-  "const embeddedDocuments=['</head>','</head>','</head>','</head>'];"
+  "});"
  ].join('\n');
  composed=composed.replace('function frame(now){',cameraSource+'\nfunction frame(now){');
  const diagnostics="circleMask();if(!frame.fhReady&&!window.FHPreviewDiagnostics?.failed){frame.fhReady=true;if(window.FH_PREVIEW_TEXT?.engineReady)notice(window.FH_PREVIEW_TEXT.engineReady,5500);if(!window.FHPreviewDiagnostics?.frame)parent.postMessage({type:'FOREST_PREVIEW_RUNNING'},'*')}window.FHPreviewDiagnostics?.frame();requestAnimationFrame(frame);";
  const editor=fs.readFileSync(path.join(__dirname,'../../index.html'),'utf8');
  assert.ok(editor.includes('circleMask();if(!frame.fhReady'),'El fixture respeta el punto real del diagnósticador');
  composed=composed.replace('circleMask();requestAnimationFrame(frame);',diagnostics);
- assert.equal(composed.split('</head>').length-1,5);
+ assert.ok(composed.split('</head>').length-1>1,'El motor real ya contiene varios </head>');
  const patched=sandboxWindow.FHCCTVEngine.patch(composed);
  assert.equal(patched.split('fh-cctv.js"></script>').length-1,1);
  assert.ok(patched.indexOf('fh-cctv.js"></script>')<patched.indexOf('</head>'));
  assert.match(patched,/cameras:\(\)=>fhCCTV.list\(performance.now\(\)\)/);
  assert.match(patched,/fhCCTVFrame\(now\);\s*circleMask\(\);if\(!frame.fhReady/);
  assert.match(patched,/window.FHPreviewDiagnostics\?\.frame\(\);requestAnimationFrame\(frame\);/);
- assert.ok(patched.includes('const embeddedDocuments='));
 });
 test('P1: el receptor de cámara acepta Uint8ClampedArray de otro iframe',()=>{
  const source=fs.readFileSync(path.join(__dirname,'fh-terminal.html'),'utf8');
