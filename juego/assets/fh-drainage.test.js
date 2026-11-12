@@ -229,9 +229,19 @@ test('simulación: la corriente delega movimiento al motor y el remolino respeta
  const result=runtime.update(.05,{phase:'lluvia',intensity:1});
  assert.equal(result?.type,'whirlpool','Remolino actúa durante gameplay');
  assert.deepEqual(transfers[0],{floorIndex:0,itemId:'remote',x:41,y:41});
- assert.equal(runtime.update(.05,{phase:'lluvia',intensity:.58})?.type,'current');
+ assert.equal(runtime.update(.05,{phase:'lluvia',intensity:.58}),null,
+  'El tramo aislado no inventa una corriente después del remolino');
  assert.equal(transfers.length,1,'Enfriamiento evita teletransportes encadenados');
- assert.ok(moves.length>0&&moves[0].every(Number.isFinite),'El desplazamiento pasa por move() externo');
+ assert.equal(moves.length,0,'El tramo aislado no ejerce empuje');
+ const linked=section('straight',0,0,'linked'),sink=section('small_dead_end',10,3,'sink',180);
+ linked.drainage.flowTo='sink';
+ const linkedMoves=[];
+ const linkedRuntime=D.createRuntime({project:map([[linked,sink]]),
+  position:()=>({floorIndex:0,x:5,y:5}),
+  move:(x,y)=>linkedMoves.push([x,y])});
+ assert.equal(linkedRuntime.update(.05,{phase:'lluvia',intensity:.58})?.type,'current');
+ assert.ok(linkedMoves.length>0&&linkedMoves[0].every(Number.isFinite),
+  'Una conexión válida delega el arrastre al motor externo');
  const noExit=D.createRuntime({project:map([[source]]),position:()=>({floorIndex:0,x:10,y:10}),
   move:()=>{},teleport:()=>{throw Error('Sin salida no hay teletransporte');}});
  assert.doesNotThrow(()=>noExit.update(.05,{phase:'lluvia',intensity:.58}));
