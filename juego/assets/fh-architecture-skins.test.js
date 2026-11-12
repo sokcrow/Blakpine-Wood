@@ -10,7 +10,7 @@ function sceneEnvironment({leafFarEdge=1.444}={}){
   constructor(){this.children=[];this.parent=null;this.position={x:0,y:0,z:0,set(x,y,z){Object.assign(this,{x,y,z})}};this.rotation={y:0};this.scale={x:1,y:1,z:1};this.visible=true;this.userData={};}
   add(child){this.children.push(child);child.parent=this;}
   remove(child){this.children=this.children.filter(x=>x!==child);child.parent=null;}
-  clone(){const copy=new Group();copy.name=this.name;copy.position.set(this.position.x,this.position.y,this.position.z);return copy;}
+  clone(){const copy=new Group();copy.name=this.name;copy.position.set(this.position.x,this.position.y,this.position.z);copy.rotation.y=this.rotation.y;copy.visible=this.visible;copy.userData={...this.userData};for(const child of this.children)copy.add(typeof child.clone==='function'?child.clone(true):{...child});return copy;}
  }
  const nodes={};
  for(const name of ['MARCO_FIJO','HOJA_PIVOTE','VIDRIO'])nodes[name]={
@@ -129,6 +129,80 @@ test('dos puertas sencillas independientes conservan cada marco cuando hay pared
   assert.equal(door.frame.children[1].children[0].name,'MARCO_FIJO');
   assert.equal(door.animated[0].group.children[1].scale.x,1,'La puerta sencilla no se estira');
  }
+});
+test('fachada superior: puerta simple muestra hoja y marco GLB auténticos',async()=>{
+ const {api,THREE,Group}=sceneEnvironment();
+ const floor=1,item={id:'door-upper',type:'door'};
+ const hinge=new Group(),frame=new Group(),leaf=new Group();hinge.parent={};frame.parent={};hinge.add(leaf);
+ leaf.add(new Group());frame.add(new Group());
+ const door={family:'single',variant:'wood',transparent:false,hinge,frame,animated:[{group:leaf,base:0}]};
+ const facade=new Group(),proxies=[hinge,frame].map(source=>{
+  const clone=source.clone(true);clone.userData.fhOcclusionRoot=true;facade.add(clone);return {source,clone,f:floor,item};
+ });
+ const initial=proxies.map(p=>p.clone);let calls=0;
+ api.decorateDoor(door,item,THREE,()=>{},()=>{
+  calls++;assert.equal(api.syncExteriorDoorFacade({floor,item,door,proxies}),2);
+ });
+ await new Promise(setImmediate);
+ assert.equal(door.skinId,'puerta_madera');assert.equal(calls,1);
+ assert.equal(proxies[0].clone,initial[0]);assert.equal(proxies[1].clone,initial[1]);
+ const copyLeaf=proxies[0].clone.children[0];
+ assert.equal(copyLeaf.children[0].visible,false,'no reaparece el placeholder');
+ assert.equal(copyLeaf.children[1].name,'HOJA_PIVOTE');
+ assert.equal(proxies[1].clone.children[0].visible,false);
+ assert.equal(proxies[1].clone.children[1].children[0].name,'MARCO_FIJO');
+ assert.equal(proxies[0].clone.userData.fhOcclusionRoot,true);
+ assert.equal(facade.children.length,2,'sin proxies duplicados');
+});
+test('fachada superior: puerta doble refleja dos hojas GLB sin poste nuevo',async()=>{
+ const {api,THREE,Group}=sceneEnvironment();
+ const floor=1,item={id:'door-double',type:'door'},hinge=new Group(),frame=new Group();
+ hinge.parent={};frame.parent={};
+ for(let i=0;i<2;i++){const part=new Group();part.position.set(i*3.048,0,0);hinge.add(part);part.add(new Group());}
+ for(let i=0;i<3;i++)frame.add(new Group());
+ const door={family:'double',variant:'wood',transparent:false,hinge,frame,
+  animated:hinge.children.map((group,i)=>({group,base:i*Math.PI}))};
+ const facade=new Group(),proxies=[hinge,frame].map(source=>{
+  const clone=source.clone(true);facade.add(clone);return {source,clone,f:floor,item};
+ });
+ api.decorateDoor(door,item,THREE,()=>{},()=>api.syncExteriorDoorFacade({floor,item,door,proxies}));
+ await new Promise(setImmediate);
+ assert.equal(proxies[0].clone.children.length,2);
+ assert.ok(proxies[0].clone.children.every(part=>part.children.some(c=>c.name==='HOJA_PIVOTE')));
+ assert.equal(proxies[1].clone.children.length,3,'mantener solo marco exterior');
+ assert.equal(facade.children.length,2);
+});
+test('puerta electrónica refleja el GLB del PIN de ambos lados cargado más tarde',async()=>{
+ const {api,THREE,Group}=sceneEnvironment();
+ const floor=1,item={id:'door-pin',type:'door',architectureSkin:'puerta_electronica_opaca',accessDevice:'pin',accessSide:'both'};
+ const hinge=new Group(),frame=new Group(),leaf=new Group();hinge.parent={};frame.parent={};
+ hinge.add(leaf);leaf.add(new Group());frame.add(new Group());
+ const door={family:'single',variant:'metal',transparent:false,hinge,frame,animated:[{group:leaf,base:0}]};
+ const facade=new Group(),proxies=[hinge,frame].map(source=>{const clone=source.clone(true);facade.add(clone);return {source,clone,f:floor,item};});
+ let changes=0;
+ api.decorateDoor(door,item,THREE,()=>{},()=>{changes++;assert.equal(api.syncExteriorDoorFacade({floor,item,door,proxies}),2);});
+ await new Promise(setImmediate);
+ assert.equal(door.skinId,'puerta_electronica_opaca');assert.equal(changes,3,'GLB principal + dos lectores');
+ assert.equal(door.accessVisuals.length,2);
+ const frameGLB=proxies[1].clone.children[1];
+ assert.equal(frameGLB.children.length,3,'marco y ambos PIN reales');
+ assert.deepEqual(frameGLB.children.slice(1).map(x=>x.name),['modelo_glb','modelo_glb']);
+});
+test('puerta interior o GLB fallido no fabrica nuevos proxies',async()=>{
+ const {api,THREE,Group}=sceneEnvironment();
+ const floor=1,item={id:'door-internal',type:'door'};
+ const hinge=new Group(),frame=new Group(),leaf=new Group();hinge.parent={};frame.parent={};
+ hinge.add(leaf);leaf.add(new Group());frame.add(new Group());
+ const door={family:'single',variant:'wood',transparent:false,hinge,frame,animated:[{group:leaf,base:0}]};
+ assert.equal(api.syncExteriorDoorFacade({floor,item,door,proxies:[]}),0);
+ const facade=new Group(),proxies=[hinge,frame].map(source=>{const clone=source.clone(true);facade.add(clone);return {source,clone,f:floor,item};});
+ const before=proxies.map(p=>p.clone.children.length);
+ THREE.GLTFLoader=class{load(url,done,progress,fail){fail(Error('GLB no encontrado'));}};
+ let calls=0;api.decorateDoor(door,item,THREE,()=>{},()=>{calls++;});
+ await new Promise(setImmediate);
+ assert.equal(calls,0,'un GLB fallido conserva el diagnóstico rosa');
+ assert.deepEqual(proxies.map(p=>p.clone.children.length),before);
+ assert.equal(facade.children.length,2);
 });
 test('rotaciones de puerta doble: ambas hojas avanzan al mismo lado del muro',()=>{
  const {api}=sceneEnvironment();
@@ -263,7 +337,7 @@ test('el hook valida anclas y preserva el comportamiento original del motor',()=
   'function doorTarget(d){return 1.20;}\n'+
   'function doorModel(f,it){applyDoorPose(d);doorList[f].push(d);return d;}</scr'+'ipt></body></html>';
  const result=api.patchEngineDoc(fixture);
- assert.match(result,/FHArchitectureSkins\?\.decorateDoor\(d,it,THREE,installVisibility\)/);
+ assert.match(result,/FHArchitectureSkins\?\.decorateDoor\(d,it,THREE,installVisibility,\(\)=>window\.FHArchitectureSkins\?\.syncExteriorDoorFacade/);
  assert.match(result,/FHArchitectureSkins\?\.decorateWindow/);
  assert.match(result,/onReady:models=>window\.FHArchitectureSkins\?\.syncExteriorWindowFacade/);
  assert.match(result,/function doorTarget\(d\)\{return 1.20;\}/);
@@ -272,7 +346,7 @@ test('el hook valida anclas y preserva el comportamiento original del motor',()=
  assert.throws(()=>api.patchEngineDoc('incompatible'),/Motor 3D no compatible/);
 });
 test('editor carga el adaptador, permite escoger marco y conserva fallback 3D',()=>{
- assert.match(index,/fh-architecture-skins\.js\?v=20261112-window-facade-glb-1/);
+ assert.match(index,/fh-architecture-skins\.js\?v=20261112-door-facade-glb-1/);
  assert.match(index,/windowPieces=it\.type==='window'/);
  assert.match(index,/FHArchitectureSkins\?\.splitWindow\(it,numId\)/);
  assert.match(index,/architectureSkin/);
@@ -292,7 +366,7 @@ test('regresión: el motor REAL contiene varias etiquetas de cierre de head y ac
  const realHtml=Buffer.from(globals.window.__FOREST_EMBEDDED_ENGINE__,'base64').toString('utf8');
  assert.ok((realHtml.match(/<\/head>/g)||[]).length>1,'el caso original tiene cierres repetidos en strings');
  const patched=api.patchEngineDoc(realHtml);
- assert.ok(patched.includes('FHArchitectureSkins?.decorateDoor(d,it,THREE,installVisibility)'));
+ assert.ok(patched.includes('FHArchitectureSkins?.decorateDoor(d,it,THREE,installVisibility,()=>window.FHArchitectureSkins?.syncExteriorDoorFacade'));
  assert.ok(patched.includes('FHArchitectureSkins?.decorateWindow({it,THREE,container:stories[f]'));
  assert.ok(patched.includes("d.family==='double'&&i===1?-d.angle:d.angle"));
  const injected='<script src="https://example.test/juego/assets/fh-architecture-skins.js"></script>';
