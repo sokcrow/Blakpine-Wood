@@ -58,7 +58,12 @@
    const base=finite(elevations[cam.floor],0);
    const bearing=(finite(item.rotation,0)+angleFor(id,nowMs))*Math.PI/180;
    const mount=Math.max(.5,finite(item.mountHeightFt,7))*.3048;
-   const x=finite(item.x)*cell,z=finite(item.y)*cell;
+   // Un montaje sobre pared sitúa el origen en su superficie. La lente debe
+   // quedar delante del muro, no en medio del espesor ni del plano de corte.
+   const baseBearing=finite(item.rotation,0)*Math.PI/180;
+   const forward=typeof item.wallId==='string'&&item.wallId?0.20:0;
+   const x=finite(item.x)*cell-Math.sin(baseBearing)*forward;
+   const z=finite(item.y)*cell+Math.cos(baseBearing)*forward;
    return {id:item.id,floor:cam.floor,x,y:base+mount,z,
     bearing,angleDeg:angleFor(id,nowMs),mode:cam.mode,
     fovDeg:Math.max(25,Math.min(100,finite(item.cameraFovDeg,65)))};
