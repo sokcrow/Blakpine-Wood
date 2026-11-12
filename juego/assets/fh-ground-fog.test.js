@@ -101,7 +101,7 @@ test('arranque del motor carga niebla sin requerir clima habilitado',()=>{
  const index=fs.readFileSync(path.resolve(__dirname,'../../index.html'),'utf8');
  assert.match(index,/fh-ground-fog\.js\?v=/);
  assert.match(index,/const fhGroundFog=window\.FHGroundFog\?\.createRuntime/);
- assert.match(index,/const fhWeatherExposure=window\.FHWeatherRenderer\?\.createExteriorExposure/);
+ assert.match(index,/const fhGroundExposure=fhWeatherExposure\|\|window\.FHWeatherRenderer\?\.createExteriorExposure/);
  assert.match(index,/fhGroundFog\?\.update\(dt,fhWeatherEnabled\?fhWeather\?\.view\(\):null\)/);
  assert.match(index,/fhGroundFog\?\.dispose\(\)/);
 });
