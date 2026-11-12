@@ -32,5 +32,5 @@ jobs:
           node-version: '22'
       - name: Validar motor de red exterior, batería, combustible y catálogo
         run: |
-          node --test juego/assets/fh-exterior-grid.test.js juego/assets/fh-exterior-visuals.test.js juego/assets/fh-exterior-services.test.js juego/assets/fh-generators.test.js juego/assets/fh-hamazon-availability.test.js
+          node --test juego/assets/fh-exterior-grid.test.js juego/assets/fh-exterior-visuals.test.js juego/assets/fh-exterior-editor.test.js juego/assets/fh-exterior-services.test.js juego/assets/fh-generators.test.js juego/assets/fh-hamazon-availability.test.js
           node juego/assets/fh-glb-bridge.test.js
