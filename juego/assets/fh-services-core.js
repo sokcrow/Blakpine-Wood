@@ -11,8 +11,12 @@
  const WALLS=new Set(['wall','red_wall','property_wall']);
  // La ventana conserva la instalación; puertas y aberturas cortan ese tramo.
  const WALL_PATHS=new Set([...WALLS,'window']);
- const INFRA=new Set(['generator','generator_ats','generator_tank','power_outlet','power_strip','water_main','water_valve','water_outlet','water_cistern','water_tinaco','drain_outlet','drain_main','router','ethernet_port','landline_phone','phone_charger']);
+ const INFRA=new Set(['generator','generator_ats','generator_tank','water_boiler','water_boiler_aux','power_outlet','power_strip','water_main','water_valve','water_outlet','water_cistern','water_tinaco','drain_outlet','drain_main','router','ethernet_port','landline_phone','phone_charger']);
  const POWER_NEEDS=new Set(['router','phone_charger','light_fixture','tv','landline_phone','elevator']);
+ const BOILER_MODELS=new Set(['calentador_domestico_vertical','calentador_domestico_horizontal',
+  'caldera_residencial_mediana','caldera_industrial_grande']);
+ const directPower=it=>!!it&&((it.type==='water_boiler'||it.type==='water_boiler_aux')&&
+  it.service?.requiresPower===true||BOILER_MODELS.has(it.modelId)&&it.service?.waterHeating===true);
  const ELECTRIC_MODELS=new Set(['refrigerador','estufa_horno','microondas','campana_extractora','cafetera','tostadora',
   'lampara_escritorio','monitor_crt','gabinete_pc','teclado_pc','mouse_pc','impresora_matricial','telefono_fijo',
   'telefono_pared','contestadora','fax','televisor_crt','videocasetera_vhs','radio_portatil','grabadora_boombox',
@@ -206,7 +210,9 @@
   function powerRoute(f,panel,target){
    if(!powerGraphs[f])return null;
    const panelLeadFt=LIMITS[panel.breakerType||'medium']?.rangeFt||180;
-   const leadFt=(target.type==='light_fixture'&&!target.wallId)||target.type==='elevator'?Math.max(0,number(target.service?.maxWallDistanceFt,panelLeadFt)):3.25;
+   const leadFt=directPower(target)?Math.max(0,number(target.service?.maxWallDistanceFt,10)):
+    (target.type==='light_fixture'&&!target.wallId)||target.type==='elevator'?
+    Math.max(0,number(target.service?.maxWallDistanceFt,panelLeadFt)):3.25;
    const key=[number(panel.x),number(panel.y),number(target.x),number(target.y),leadFt,panelLeadFt].join(':');
    const cache=powerRouteCache[f];
    if(cache.has(key))return cache.get(key);
@@ -516,10 +522,10 @@
   // Una sola consulta geométrica sostiene tanto el dibujo como la energía real.
   function cableCandidates(f,it,zone=''){
    zone=zone||zoneFor(f,it);
-   if(!zone)return [];
+   if(!zone&&!directPower(it))return [];
    const cables=[];
    for(const c of powerScopes[f]||[]){
-    if(c.zoneId!==zone)continue;
+    if(zone&&c.zoneId!==zone)continue;
     const path=powerRoute(f,c.panel,it),verticalFt=c.verticalFt||0;
     if(!path||path.feet+verticalFt>c.rangeFt+1e-7)continue;
     cables.push({c,feet:path.feet+verticalFt,route:{...path,verticalFt,feet:path.feet+verticalFt,
@@ -560,7 +566,8 @@
    const snapshot=electrical(true),loads=new Map();
    for(let f=0;f<floors.length;f++)for(const it of elements[f]){
     if(!requiresPower(it)||!drawingPower(it)||number(s.damage[id(it)])>=100)continue;
-    const source=['light_fixture','elevator'].includes(it.type)?sourcesFor(f,it,'',true)[0]:snapshot.supplies.get(f+':'+id(it));
+    const source=['light_fixture','elevator'].includes(it.type)||directPower(it)?
+     sourcesFor(f,it,'',true)[0]:snapshot.supplies.get(f+':'+id(it));
     if(source?.feed)loads.set(source.feed.key,(loads.get(source.feed.key)||0)+watts(it,true));
    }
    const accepted=new Set(),running=new Set();
@@ -676,7 +683,9 @@
      return null;
     };
     for(const strip of strips.slice().sort((a,b)=>id(a).localeCompare(id(b))))claim(strip,['power_outlet']);
-    for(const it of (elements[f]||[]).filter(x=>requiresPower(x)&&!['power_strip','light_fixture','elevator'].includes(x.type)).sort((a,b)=>id(a).localeCompare(id(b))))
+    for(const it of (elements[f]||[]).filter(x=>requiresPower(x)&&
+     !['power_strip','light_fixture','elevator'].includes(x.type)&&!directPower(x))
+     .sort((a,b)=>id(a).localeCompare(id(b))))
      claim(it,['power_strip','power_outlet']);
     // La regleta no crea potencia: propagar la suma de sus aparatos al enchufe.
     for(const strip of strips){
@@ -710,6 +719,14 @@
   }
   function electricalStatus(f,it,snapshot){
    const key=f+':'+id(it);
+   if(directPower(it)){
+    const wired=wiringSourceFor(f,it),source=active(it)&&number(s.damage[id(it)])<100?
+     sourceFor(f,it):null;
+    return {connected:!!wired,powered:!!source,via:source?.panel.id||wired?.panel.id||'',
+     breakerId:source?.panel.id||wired?.panel.id||'',generated:!!source?.feed,
+     feet:source?.feet??wired?.feet??null,reason:!wired?'sinCircuito':
+      !source?'sinElectricidad':null,direct:true};
+   }
    if(['light_fixture','elevator'].includes(it.type)){
     const source=it.type==='elevator'&&(!active(it)||number(s.damage[id(it)])>=100)?null:sourceFor(f,it);
     return {connected:!!source,powered:!!source,via:source?.panel.id||'',generated:!!source?.feed,feet:source?.feet??null};
