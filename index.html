@@ -4920,6 +4920,14 @@ function floorSightThroughOpening(f,at,target,openings){
    "  visibilityDirty=true;drawSight();notice(window.FH_DRAIN_TEXT.accessReady);return {ok:true};",
    " }"
   ].join('\n');
+  const target='function useTarget(){';
+  const targetAfter=[
+   target,
+   " const nearest=(DATA.floors[currentFloor]?.items||[]).filter(it=>window.FHDrainageAccess?.isAccess(it))",
+   "  .map(item=>({item,dist:Math.hypot(user.x-item.x*CELL,user.z-item.y*CELL)}))",
+   "  .filter(entry=>entry.dist<=.9*CELL).sort((a,b)=>a.dist-b.dist)[0];",
+   " if(nearest)return {kind:'furniture',target:{item:nearest.item,dist:nearest.dist,score:nearest.dist}};"
+  ].join('\n');
   const sight='function litPointVisible(x,z,at,opaque,params){';
   const sightAfter=[
    "let fhDrainAccessLights=[];",
@@ -4940,7 +4948,7 @@ function floorSightThroughOpening(f,at,target,openings){
   ].join('\n');
   const tick='window.FHDrainageRuntime?.update(dt,fhWeatherEnabled?fhWeather?.view():null);';
   const tickAfter=tick+"window.FHDrainageAccess?.updateVisuals(dt,fhWeatherEnabled?fhWeather?.view():null,DATA,(f,x,y)=>fhGroundExposure?.(f,x*CELL,y*CELL)===true);";
-  for(const [before,after] of [[open,use],[sight,sightAfter],[vision,visionAfter],[tick,tickAfter]]){
+  for(const [before,after] of [[open,use],[target,targetAfter],[sight,sightAfter],[vision,visionAfter],[tick,tickAfter]]){
    const count=doc.split(before).length-1;
    if(count!==1)throw Error('Hook Drenajes 05 incompatible ('+count+'): '+before.slice(0,70));
    doc=doc.replace(before,after);
