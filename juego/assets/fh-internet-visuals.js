@@ -85,6 +85,7 @@
    const items=DATA.floors[f].items||[];
    for(const item of items){
     if(!isInternetType(item.type))continue;
+    for(const entry of renderedByItem[f]?.get?.(item.id)||[])global.FHAssets?.markPlaceholder(entry.root||entry,applyFOW);
     const meta=choose(item),pose=mountPose(item,meta,items,CELL,ForestShared);
     if(!meta||!pose){console.warn('[Internet 01] Equipo sin pared válida o skin:',item.id);continue;}
     const root=new THREE.Group();root.name='FH_NET_'+item.id;root.userData.fhServiceItem=item.id;
@@ -117,10 +118,11 @@
   const handle='handle:(it,f)=>{\n  const service=window.FHServicesRuntime,T=window.FH_SERVICES_TEXT||{};';
   doc=once(doc,handle,handle+'\n  if(window.FHInternetVisuals.isInternetType(it.type)&&!window.FHInternetVisuals.frontAllowed(it,user.x/CELL,user.z/CELL)){notice(window.FH_INTERNET_TEXT?.wrongSide||"Usa el dispositivo desde su frente.");return true;}');
   const base=new URL('./juego/assets/',global.document?.baseURI||'https://localhost/');
-  const scripts=['fh-internet-catalog.js','fh-internet-strings.js','fh-internet-visuals.js?v=20261109-wall-mount-1'].map(p=>
+  const scripts=['fh-internet-catalog.js','fh-internet-strings.js','fh-internet-visuals.js?v=20261112-purple-pc-power-1'].map(p=>
    '<script src="'+new URL(p,base).href+'"></scr'+'ipt>').join('');
   const h=doc.indexOf('</head>');if(h<0)throw Error('No se encontró cabecera del motor');
   return doc.slice(0,h)+scripts+doc.slice(h);
  }
  return {DEFAULT,choose,normal,isInternetType,frontAllowed,mountPose,install,patchEngineDoc,load};
 });
+
