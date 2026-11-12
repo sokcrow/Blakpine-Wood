@@ -10,14 +10,31 @@
  }
  function patch(source){
   if(typeof source!=='string')throw Error('Documento del motor CCTV no válido');
-  let doc=replaceOnce(source,'</head>','<script src="'+jsUrl+'"><\\/script>'.replace('<\\/script>','</script>')+'</head>');
+  let doc=replaceOnce(source,'</head>','<script src="'+jsUrl+'"></script></head>');
   const computers='window.FHComputerRuntime=window.FHComputer?.createRuntime({';
   const runtime=String.raw`
 const fhCCTV=window.FHCCTV.createRuntime(DATA.floors);
 let fhCCTVTarget=null,fhCCTVView=null,fhCCTVRead=null,fhCCTVFrameStamp=-1;
 const fhCCTVWhite=new THREE.DataTexture(new Uint8Array([255,255,255,255]),1,1,THREE.RGBAFormat);
 fhCCTVWhite.needsUpdate=true;
+let fhCCTVModels=[],fhCCTVLastScan=-2000;
+function fhCCTVVisuals(now){
+ // Reindexar al cargar modelos GLB asíncronos; actualizar giros aun sin terminal abierta.
+ if(now-fhCCTVLastScan>1200){
+  fhCCTVLastScan=now;fhCCTVModels=[];
+  scene.traverse(root=>{
+   if(root.userData?.fhModelId!=='camara_seguridad'||!root.userData?.fhItemId)return;
+   const pivot=root.getObjectByName('CAM_YAW');
+   if(pivot)fhCCTVModels.push({id:root.userData.fhItemId,pivot});
+  });
+ }
+ for(const cam of fhCCTVModels){
+  const angle=fhCCTV.angleFor(cam.id,now);
+  if(angle!==null)cam.pivot.rotation.y=-angle*Math.PI/180;
+ }
+}
 function fhCCTVFrame(now){
+ fhCCTVVisuals(now);
  const pc=window.FHComputerRuntime;
  if(!pc?.isOpen)return;
  const api=pc.terminalApi?.(),screen=api?.getState?.(),session=pc.session;
@@ -37,6 +54,7 @@ function fhCCTVFrame(now){
  fhCCTVView.lookAt(cameraPose.x-Math.sin(cameraPose.bearing),cameraPose.y,cameraPose.z+Math.cos(cameraPose.bearing));
  const oldTarget=renderer.getRenderTarget(),oldMask=sightUniform.value;
  const oldHero=hero.visible,oldShadow=shadow.visible;
+ const storyVisibility=stories.map(story=>story.visible);
  const objects=[];
  scene.traverse(obj=>{
   // Solo reponer por un instante la ocultación FOW del jugador.
@@ -46,6 +64,7 @@ function fhCCTVFrame(now){
  });
  try{
   sightUniform.value=fhCCTVWhite;
+  stories.forEach((story,i)=>story.visible=i===cameraPose.floor);
   if(cameraPose.floor!==currentFloor){hero.visible=false;shadow.visible=false;}
   renderer.setRenderTarget(fhCCTVTarget);
   renderer.render(scene,fhCCTVView);
@@ -56,6 +75,7 @@ function fhCCTVFrame(now){
  }finally{
   renderer.setRenderTarget(oldTarget);
   sightUniform.value=oldMask;hero.visible=oldHero;shadow.visible=oldShadow;
+  stories.forEach((story,i)=>story.visible=storyVisibility[i]);
   for(const [obj,visible] of objects)obj.visible=visible;
  }
  // WebGL devuelve píxeles desde abajo; Canvas2D los espera desde arriba.
