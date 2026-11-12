@@ -62,6 +62,8 @@ test('el picker activa la capa Iluminación y conserva el modelo eléctrico al c
  assert.equal(obj.modelId,'transformador_poste_simple');
  assert.equal(obj.exteriorKind,'transformer');
  assert.equal(obj.exteriorGridEnabled,true);
+ assert.equal(obj.w,1.1/5,'hitbox del transformador pegada al tubo');
+ assert.equal(obj.h,1.0/5);
  const panelItem={id:'breaker',type:'breaker_panel',x:1.5,y:2,exteriorAutoConnect:true,powerSource:{kind:'none'}};
  h.project.floors[0].items.push(obj,panelItem);
  const grid=Exterior.createRuntime(h.project,{});

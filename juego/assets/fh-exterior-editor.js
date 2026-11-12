@@ -77,6 +77,7 @@
   if(!item)return item;
   if(selectedExterior){
    root.FHFurnitureRules.applyCatalogModel(item,selectedExterior,ForestShared,Number(project.units?.feetPerCell)||5);
+   G.compactFootprint(item,Number(project.units?.feetPerCell)||5,true);
    item.exteriorCableFt=90;item.exteriorFeedFt=90;item.exteriorGridEnabled=true;
    item.exteriorKind=G.roleFor(item);
    if(G.roleFor(item)==='lamp'){item.exteriorBrightFt=30;item.exteriorDimFt=30;}

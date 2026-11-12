@@ -209,7 +209,7 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
 <script src="./juego/assets/fh-weather-strings.js?v=20261108-clima1"></script>
 <script src="./juego/assets/fh-weather-editor.js?v=20261108-clima1"></script>
 <script src="./juego/assets/fh-services-strings.js?v=20261111-elevator-power-1"></script>
-<script src="./juego/assets/fh-exterior-grid.js?v=20261111-exterior-03"></script>
+<script src="./juego/assets/fh-exterior-grid.js?v=20261111-pole-collision-1"></script>
 <script src="./juego/assets/fh-exterior-strings.js?v=20261111-exterior-03-fix1"></script>
 <script src="./juego/assets/fh-services-core.js?v=20261111-wall-wiring-overlay-1"></script>
 <script src="./juego/assets/fh-floor-levels.js?v=20261109-basements1"></script>
@@ -3148,7 +3148,7 @@ function importProject(obj){
   next.floors[i].items=next.floors[i].items.filter(it=>!it.inheritedCourtyard);
   if(!next.floors[i].reference)next.floors[i].reference=clone(floorDefault(next.floors[i].id,next.floors[i].name,next.floors[i].elevationFt,i).reference);
  }
- project=next;floorRefArchive.clear();rememberFloorRefs();ensureGridConfig(true);recalcAllSpaces();floorIndex=0;selection=null;history=[];historyIndex=-1;closeInspector();closeModal();loadedImgs=next.floors.map(()=>null);refreshFloorTabs();next.floors.forEach((_,i)=>setupImage(i));record();setTimeout(fitMap,140);toast('Proyecto cargado correctamente');
+ project=next;window.FHExteriorGrid?.compactMapFootprints(project);floorRefArchive.clear();rememberFloorRefs();ensureGridConfig(true);recalcAllSpaces();floorIndex=0;selection=null;history=[];historyIndex=-1;closeInspector();closeModal();loadedImgs=next.floors.map(()=>null);refreshFloorTabs();next.floors.forEach((_,i)=>setupImage(i));record();setTimeout(fitMap,140);toast('Proyecto cargado correctamente');
 }
 function imageFile(f){if(!f)return;if(!f.type.startsWith('image/')){toast('Selecciona una imagen PNG, JPG o WebP');return}const floor=current(),targetIndex=floorIndex,url=URL.createObjectURL(f),im=new Image();im.onload=()=>{if(project.floors[targetIndex]!==floor){URL.revokeObjectURL(url);return}let w=im.naturalWidth,h=im.naturalHeight;if(!w||!h){URL.revokeObjectURL(url);return}const max=2400,factor=Math.min(1,max/Math.max(w,h)),c=document.createElement('canvas');c.width=Math.round(w*factor);c.height=Math.round(h*factor);c.getContext('2d').drawImage(im,0,0,c.width,c.height);let data=c.toDataURL('image/jpeg',.84);floor.reference={name:f.name,data,width:c.width,height:c.height,opacity:.78};window.FHMapGrid.normalize(project);setupImage(targetIndex);URL.revokeObjectURL(url);saveSoon();setTimeout(fitMap,100);toast(window.FH_MAP_GRID_TEXT.imported)};im.onerror=()=>{toast('No se pudo abrir la imagen');URL.revokeObjectURL(url)};im.src=url}
 function modalImage(){const r=current().reference,T=window.FH_MAP_GRID_TEXT,rect=window.FHMapGrid.referenceRect(project.units,r),cell=gridX();
@@ -3189,8 +3189,11 @@ window.FHRoadEditor?.install({project:()=>project,current,modal,closeModal,toast
  else status('Nuevo borrador');
  ensureGridConfig(!!raw);rememberFloorRefs();window.FHStyleEditor?.install({project:()=>project,current,record,modal,closeModal,toast});window.FHParkingEditor?.install({project:()=>project,current,record,modal,closeModal,toast,newId:numId,canEditAt:item=>{const p=window.FHStyleEditor;if(!p?.hasActor())return true;const a=Number(item.rotation||0)*Math.PI/180,points=[[0,0],[-.5,-.5],[.5,-.5],[-.5,.5],[.5,.5]];return points.every(([u,v])=>p.canEditAt({x:item.x+Math.cos(a)*item.w*u-Math.sin(a)*item.h*v,y:item.y+Math.sin(a)*item.w*u+Math.cos(a)*item.h*v}));},canEditItem:item=>window.FHStyleEditor?.canEditItem(item)!==false});window.FHWeatherEditor?.install({project:()=>project,record,modal,closeModal,toast});wire();refreshFloorTabs();setCategory('structure');loadedImgs=project.floors.map(()=>null);
  project.floors.forEach((_,i)=>setupImage(i));
- const migratedFurniture=normalizeFurnitureFootprints();recalcAllSpaces();record();resize();
+ const migratedFurniture=normalizeFurnitureFootprints();
+ const migratedPoles=window.FHExteriorGrid?.compactMapFootprints(project)||0;
+ recalcAllSpaces();record();resize();
  if(error)toast(`Error al restaurar borrador: ${error.message}`);
+ else if(migratedPoles)toast('Postes anteriores: colisión ajustada a la base del tubo');
  else if(migratedFurniture)toast('Muebles ajustados a proporción más compacta');
  setTimeout(fitMap,110);if(!readStorage('fh_editor_help_seen_v2'))setTimeout(modalHelp,420);
 }
@@ -3439,9 +3442,9 @@ function prepareGLBEngineDoc(source){
  const surfaceScript='<script src="'+new URL('./juego/assets/fh-surface-placement.js',document.baseURI).href+'"></'+'script>';
  const decorationScript='<script src="'+new URL('./juego/assets/fh-decoration.js?v=20261106-interiores-1',document.baseURI).href+'"></'+'script>';
  const furnitureStateScript='<script src="'+new URL('./juego/assets/fh-furniture-state.js?v=20261110-editor1',document.baseURI).href+'"></'+'script>';
- const ruleScript='<script src="'+new URL('./juego/assets/fh-furniture-rules.js',document.baseURI).href+'"></'+'script>';
+ const ruleScript='<script src="'+new URL('./juego/assets/fh-furniture-rules.js?v=20261111-pole-collision-1',document.baseURI).href+'"></'+'script>';
  const inventoryCoreScript='<script src="'+new URL('./juego/assets/fh-inventory-core.js?v=20261108-encimera-1',document.baseURI).href+'"></'+'script>';
- const bridge='<script src="'+new URL('./juego/assets/fh-glb-bridge.js?v=20261111-elevator-power-1',document.baseURI).href+'"></'+'script>';
+ const bridge='<script src="'+new URL('./juego/assets/fh-glb-bridge.js?v=20261111-pole-collision-1',document.baseURI).href+'"></'+'script>';
  const localThree='<script src="'+new URL('./juego/assets/vendor/three.min.js',document.baseURI).href+'"></'+'script>';
  const sleepStrings='<script src="'+new URL('./juego/assets/fh-sleep-strings.js?v=20261108-comfort-1',document.baseURI).href+'"></'+'script>';
  const sleepModule='<script src="'+new URL('./juego/assets/fh-sleep.js?v=20261108-comfort-1',document.baseURI).href+'"></'+'script>';
@@ -4981,7 +4984,7 @@ init();
 <script src="./juego/assets/fh-lights.js?v=20261105-light-ui2"></script>
 <script src="./juego/assets/fh-light-editor-overlay.js?v=20261105-light-ui2"></script>
 <script src="./juego/assets/fh-surface-placement.js"></script>
-<script src="./juego/assets/fh-furniture-rules.js"></script>
+<script src="./juego/assets/fh-furniture-rules.js?v=20261111-pole-collision-1"></script>
 <script src="./juego/assets/fh-inventory-core.js?v=20261108-encimera-1"></script>
 <link rel="stylesheet" href="./juego/assets/fh-storage-editor.css?v=20261108-storage-editor-1">
 <script src="./juego/assets/fh-storage-editor.js?v=20261108-storage-editor-1"></script>
@@ -5014,7 +5017,7 @@ init();
 <script src="./juego/assets/fh-furniture-editor-strings.js?v=20261110-editor1"></script>
 <script src="./juego/assets/fh-furniture-editor.js?v=20261110-editor1"></script>
 <script src="./juego/assets/fh-generators-editor.js?v=20261111-elevator-power-1"></script>
-<script src="./juego/assets/fh-exterior-editor.js?v=20261111-exterior-03-fix1"></script>
+<script src="./juego/assets/fh-exterior-editor.js?v=20261111-pole-collision-1"></script>
 <script src="./juego/assets/fh-roof-editor.js?v=20261110-roof3"></script>
 </body>
 </html>

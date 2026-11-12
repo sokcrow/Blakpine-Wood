@@ -11,11 +11,12 @@ const source=fs.readFileSync(path.join(__dirname,'fh-glb-bridge.js'),'utf8');
 function setup(deliveryDoc=delivery){
  let glbLoads=0,maskCalls=0;
  const errors=[];
- const scene={traverse(){},clone(){return {isGLB:true,traverse(){},position:{y:0}}}};
+ const scene={traverse(){},clone(){return {isGLB:true,traverse(){},position:{x:0,y:0,z:0}}}};
  const window={
   THREE:{NearestFilter:1,NearestMipmapNearestFilter:2,
    GLTFLoader:class{load(url,done){glbLoads++;done({scene})}}},
-  FHFurnitureRules:{defaultFor:type=>type==='chair'?'silla_comedor':null}
+  FHFurnitureRules:{defaultFor:type=>type==='chair'?'silla_comedor':null},
+  FHExteriorGrid:require('./fh-exterior-grid.js')
  };
  const document={currentScript:{src:'https://example.org/juego/assets/fh-glb-bridge.js'},baseURI:'https://example.org/index.html'};
  const fetch=async url=>({ok:true,json:async()=>url.includes('catalogo_delivery')?deliveryDoc:main});
@@ -68,6 +69,18 @@ async function test(name,fn){await fn();checks++;console.log('OK',name)}
   assert.equal(a.children[0].isGLB,true);
   assert.equal(b.children[0].isGLB,true);
   assert.notEqual(a.children[0],b.children[0]);
+ });
+ await test('Los brazos se dibujan completos pero la base del poste queda centrada en su hitbox',async()=>{
+  const t=setup();t.assets.setSightMaskInstaller(t.mask);
+  const arm=group(),transformer=group(),other=group();
+  t.assets.attach(arm,{type:'misc',modelId:'poste_luz_con_brazo'});
+  t.assets.attach(transformer,{type:'misc',modelId:'transformador_poste_simple'});
+  t.assets.attach(other,{type:'misc',modelId:'caja_distribucion_exterior'});
+  await tick();
+  assert.ok(Math.abs(arm.children[0].position.x-.695)<.002,'el tubo de la farola se centra');
+  assert.ok(Math.abs(transformer.children[0].position.x-.475)<.002,'el tubo del transformador se centra');
+  assert.equal(other.children[0].position.x,0,'las cajas no se desplazan');
+  assert.equal(arm.children[0].isGLB,true,'sin deformar geometría');
  });
  await test('Los objetos sin modelo asignado no se inventan como GLB',async()=>{
   const t=setup(),root=group();t.assets.attach(root,{type:'plant'});

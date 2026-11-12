@@ -113,6 +113,8 @@
     item.label = catalogEntry.name;
     item.w = Number(catalogEntry.widthFt) / cellFt;
     item.h = Number(catalogEntry.depthFt) / cellFt;
+    // Los brazos de los postes son visuales, no un obstáculo a nivel del suelo.
+    global.FHExteriorGrid?.compactFootprint(item,cellFt,true);
     item.heightFt = Number(catalogEntry.heightFt) || 2;
     item.blocksMovement = catalogEntry.blocksMovement !== false;
     item.placement = catalogEntry.placement || 'floor';
