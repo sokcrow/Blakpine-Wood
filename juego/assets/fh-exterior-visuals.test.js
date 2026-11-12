@@ -45,6 +45,7 @@ test('la bombilla del poste ilumina y se apaga con la red sin crear PointLights 
  const THREE_EXT={...THREE,SphereGeometry:class{dispose(){}},MeshBasicMaterial:class{constructor(spec){this.spec=spec;}dispose(){}},
   Mesh:class{constructor(g,m){this.geometry=g;this.material=m;this.userData={};this.position={set(x,y,z){this.x=x;this.y=y;this.z=z;}}}}};
  global.FHLights={setDynamicSource:(id,v)=>sources.set(id,v),removeDynamicSource:id=>sources.delete(id)};
+ global.FHExteriorGrid=gridApi;
  const result=visual.install({THREE:THREE_EXT,DATA:project,CELL:5*.3048,
   stories:[{add(mesh){mesh.parent={remove(){}};added.push(mesh);}}],service:{exteriorGrid:grid}});
  assert.ok(result);
