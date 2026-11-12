@@ -89,17 +89,25 @@ test('lluvia por rejillas exteriores: crea gotas y solo las muestra bajo lluvia'
  class M{constructor(params){Object.assign(this,params)}}
  class B{constructor(){}}
  class Mesh{constructor(geometry,material){this.geometry=geometry;this.material=material;this.visible=true;this.position={x:0,y:0,z:0,set(x,y,z){this.x=x;this.y=y;this.z=z}};}}
- const Three={MeshLambertMaterial:M,MeshBasicMaterial:M,Mesh,BoxGeometry:B};
+ class Light{constructor(color,intensity,distance){this.color=color;this.intensity=intensity;this.distance=distance;this.position={set(){}};}}
+ const Three={MeshLambertMaterial:M,MeshBasicMaterial:M,Mesh,BoxGeometry:B,PointLight:Light};
  const scene={children:[],add(x){this.children.push(x)}};
  A.attachFloor(Three,p,scene,0,1.524);
  const drops=scene.children.filter(x=>x.material?.color===0x9bc4da);
  assert.equal(drops.length,6);assert.ok(drops.every(x=>x.visible===false));
- A.updateVisuals(.05,{phase:'lluvia',intensity:1},p,()=>true);
+ const light=scene.children.find(x=>x instanceof Light);
+ assert.ok(light,'La rejilla debe iluminar físicamente el túnel');
+ assert.equal(light.distance,2*1.524);
+ A.updateVisuals(.05,{phase:'lluvia',intensity:1,light:1},p,()=>true,720);
  assert.ok(drops.every(x=>x.visible===true));
+ assert.ok(light.intensity>0,'La luz del sol llega por la rejilla');
  A.updateVisuals(.05,{phase:'nieve',intensity:1},p,()=>true);
  assert.ok(drops.every(x=>x.visible===false));
- A.updateVisuals(.05,{phase:'lluvia',intensity:1},p,()=>false);
+ A.updateVisuals(.05,{phase:'lluvia',intensity:1},p,()=>false,720);
  assert.ok(drops.every(x=>x.visible===false));
+ assert.equal(light.intensity,0,'Bajo techo la luz se apaga');
+ A.updateVisuals(.05,{phase:'nieve',intensity:0},p,()=>true,0);
+ assert.equal(light.intensity,0,'De noche no entra luz solar');
 });
 test('contrato motor/editor: menú, validación, interacción nativa, control de FOW y lluvia',()=>{
  const html=fs.readFileSync(path.join(__dirname,'../../index.html'),'utf8');
@@ -113,4 +121,20 @@ test('contrato motor/editor: menú, validación, interacción nativa, control de
  assert.match(editor,/function beforeRemove\(/);
  assert.match(editor,/A\(\)\.makePair\(/);
  assert.match(html,/'parking_decal','drain_access','opening','spawn'/);
+});
+
+test('borrar un tramo o una entrada elimina la pareja sin crear vínculos huérfanos',()=>{
+ require('./fh-drainage-editor.js');
+ const editor=globalThis.FHDrainageEditor,p=project();let i=0;
+ const link=A.makePair(p,1,{x:15,y:15},'street',()=>String(++i));append(p,link);
+ editor.install({project:()=>p,current:()=>p.floors[0],floorIndex:()=>0});
+ editor.beforeRemove(p.floors[0].items.find(it=>D.isSection(it)));
+ assert.equal(p.floors[0].items.filter(A.isAccess).length,0);
+ assert.equal(p.floors[1].items.filter(A.isAccess).length,0);
+ const p2=project();i=0;const pair=A.makePair(p2,1,{x:15,y:15},'street',()=>String(++i));append(p2,pair);
+ editor.install({project:()=>p2,current:()=>p2.floors[1],floorIndex:()=>1});
+ editor.beforeRemove(pair.source);
+ p2.floors[1].items=p2.floors[1].items.filter(it=>it.id!==pair.source.id);
+ assert.equal(A.validateProject(p2),true);
+ assert.equal(p2.floors[0].items.filter(A.isAccess).length,0);
 });
