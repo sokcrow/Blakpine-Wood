@@ -35,6 +35,13 @@ test('el HTML generado integra radial y decoración sin afectar el editor 2D',()
  const output=generateEngine();
  assert.match(output,/function fhContextRefresh\(\)/);
  assert.match(output,/FHSafeLock\?\.bind\(fhContextCanvas/);
+ assert.match(output,/function fhPlayerHold\(event\)/);
+ assert.match(output,/window\.FHMoodFearUI\?\.targetAt\?\.\(event\)/);
+ assert.match(output,/window\.FHMoodFearUI\?\.tap\?\.\(event\)/);
+ assert.match(output,/window\.FHPlayerMenu\?\.openSection\?\.\('inventory'\)/);
+ assert.match(output,/key:'player:'\+actor\.id/);
+ assert.match(output,/radial\.target==='player:'\+String\(GameState\.character\?\.id\)/);
+ assert.match(output,/\{suppressClick:true\}\)/);
  assert.match(output,/FHSafeLock\?\.bind\(\$\('use'\)/);
  assert.match(output,/fhUseButtonClick/);
  assert.match(output,/capture:true,suppressClick:true/);
