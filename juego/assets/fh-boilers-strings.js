@@ -4,6 +4,7 @@
   hint:'Los cuatro calentadores producen agua caliente con suministro frío y energía; accesorios restantes son visuales.',
   assetPending:'Modelo 3D pendiente de incorporar al repositorio',
   boiler:'Caldera',capacity:'Capacidad de agua caliente (litros)',initial:'Reserva inicial (litros)',
+  enable:'Activar producción de agua caliente',
   temperature:'Temperatura objetivo (°C)',heatingRate:'Calentamiento (°C/min de juego)',
   fillRate:'Llenado de agua fría (L/min)',range:'Alcance de tuberías calientes (pies)',
   inlet:'Red de entrada fría',outlet:'Red de salida caliente',pipe:'Tubería caliente',
