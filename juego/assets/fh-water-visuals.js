@@ -130,7 +130,7 @@
     load(meta,THREE).then(scene=>{
      if(!root3D.parent)return;
      const instance=scene.clone(true);if(typeof applyFOW==='function')applyFOW(instance);
-     root3D.add(instance);root3D.userData.fhModelState=meta.glbAvailable===false?'fallback':'ready';
+     root3D.add(instance);root3D.userData.fhModelState='ready';
      for(const old of originals)if(old.parent&&old!==root3D)old.parent.remove(old);
      renderedByItem[f]?.set?.(it.id,[{root:root3D}]);
     }).catch(error=>{
