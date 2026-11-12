@@ -9,7 +9,7 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(root){
  'use strict';
  const EPS=1e-5,RAIN_LENGTH=.48,PARTICLES=6;
- const isAccess=it=>it?.type==='drain_access'&&it.drainAccess?.version===1;
+ const isAccess=it=>it?.type==='drain_access'&&it.drainageAccess?.version===1;
  const finite=n=>typeof n==='number'&&Number.isFinite(n);
  const inside=(s,p)=>p.x>=s.x&&p.y>=s.y&&p.x<s.x+s.w&&p.y<s.y+s.h;
  const center=it=>({x:it.x,y:it.y});
