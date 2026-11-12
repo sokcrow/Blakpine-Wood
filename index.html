@@ -4579,6 +4579,12 @@ function addBuildingLevelsToEngine(doc){
    "// Cada escalera reserva su abertura en el nivel inmediatamente superior.\nfor(let i=0;i<DATA.floors.length-1;i++)for(const item of DATA.floors[i].items||[]){"],
   ["'dirt','elevator'].includes(a.type)));",
    "'dirt','elevator','stairs'].includes(a.type)));"],
+  // Losa heredada válida: sótano construido aunque el editor no tenga muebles allí.
+  ["const isBuilt=DATA.floors.map((f,i)=>(i>0&&SLABS[i].spans?.length>0)||(f.items||[]).some(a=>",
+   "const isBuilt=DATA.floors.map((f,i)=>(i<mainFloorIndex&&DATA.basementSlabs?.[i]?.enabled&&DATA.basementSlabs[i].spans?.length>0)||(i>0&&SLABS[i].spans?.length>0)||(f.items||[]).some(a=>"],
+  // Posición inicial dentro del rectángulo más amplio de la huella, no en el vacío.
+  ["const r=roomList[f][0];if(r)return {x:(r.x+r.w/2)*CELL,z:(r.y+r.h/2)*CELL};return {x:MAX_X/2,z:MAX_Z/2}}",
+   "const r=roomList[f][0];if(r)return {x:(r.x+r.w/2)*CELL,z:(r.y+r.h/2)*CELL};const slab=f<mainFloorIndex?DATA.basementSlabs?.[f]:SLABS[f];const sp=(slab?.spans||[]).reduce((best,part)=>!best||part.w*part.h>best.w*best.h?part:best,null);if(sp)return {x:(sp.x+sp.w/2)*CELL,z:(sp.y+sp.h/2)*CELL};return {x:MAX_X/2,z:MAX_Z/2}}"],
   ["const floorElev=DATA.floors.map((f,i)=>Number.isFinite(Number(f.elevationFt))?Number(f.elevationFt)*.3048:i*3.65);",
    "const groundElevationFt=DATA.mainFloorId?(Number(DATA.floors[mainFloorIndex]?.elevationFt)||0):0;\n"+
    "const floorElev=DATA.floors.map((f,i)=>(Number.isFinite(Number(f.elevationFt))?Number(f.elevationFt)*.3048:i*3.65)-groundElevationFt*.3048);"]
