@@ -230,6 +230,10 @@
    // Older elevator inspectors used "main" as a placeholder, not a real assignment.
    // A declared main circuit is still respected; otherwise inherit the room's circuit.
    if(it.type==='elevator'&&(!zone||zone==='main'&&!(powerScopes[f]||[]).some(c=>c.zoneId==='main')))return String(room?.zoneId||'');
+   // Las habitaciones nuevas usan "main" como valor provisional. Un equipo directo
+   // sin zona propia puede tomar cualquier breaker alcanzable si no existe "main".
+   if(directPower(it)&&!zone&&room?.zoneId==='main'&&
+    !(powerScopes[f]||[]).some(c=>c.zoneId==='main'))return '';
    return String(zone||room?.zoneId||'');
   };
   function powerRoute(f,panel,target){
