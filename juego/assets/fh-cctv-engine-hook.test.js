@@ -66,26 +66,115 @@ test('P1: adapta el motor real con el cierre de frame instrumentado y varios </h
  assert.match(patched,/fhCCTVFrame\(now\);\s*circleMask\(\);if\(!frame.fhReady/);
  assert.match(patched,/window.FHPreviewDiagnostics\?\.frame\(\);requestAnimationFrame\(frame\);/);
 });
-test('P1: el receptor de cámara acepta Uint8ClampedArray de otro iframe',()=>{
+test('P1: el receptor acepta vídeo HD de otro iframe y descarta tamaños erróneos',()=>{
  const source=fs.readFileSync(path.join(__dirname,'fh-terminal.html'),'utf8');
  const start=source.indexOf('receiveCameraPixels(frame){');
  const end=source.indexOf('setLogs(logs){',start);
  assert.ok(start>0&&end>start,'El método real está disponible');
  const method=source.slice(start,end).trim().replace(/,\s*$/,'');
- const pixels=vm.runInNewContext('new Uint8ClampedArray(320*184*4)');
- assert.equal(pixels instanceof Uint8ClampedArray,false,'Distinto realm: instancia no compatible');
+ const pixels=vm.runInNewContext('new Uint8ClampedArray(960*552*4)');
+ assert.equal(pixels instanceof Uint8ClampedArray,false,'La transferencia viene de otro realm');
  let draws=0;
- const canvas={getContext:()=>({putImageData(img){assert.ok(img.data instanceof Uint8ClampedArray);assert.equal(img.data.length,320*184*4);draws++;}})};
- const state={power:true,boot:false,camera:0};
+ const canvas={width:960,height:552,getContext:()=>({putImageData(img){
+  assert.ok(img.data instanceof Uint8ClampedArray);
+  assert.equal(img.data.length,canvas.width*canvas.height*4);
+  draws++;
+ }})};
+ const state={power:true,boot:false,camera:0,cameraQuality:'hd'};
  const DATA={cameras:[{id:'CAM-A',online:true,angleDeg:0}]};
+ const status={textContent:''};
  class FakeImageData{
-  constructor(data,width,height){assert.ok(data instanceof Uint8ClampedArray);this.data=data;this.width=width;this.height=height;}
+  constructor(data,width,height){
+   assert.ok(data instanceof Uint8ClampedArray);
+   assert.equal(width,canvas.width);assert.equal(height,canvas.height);
+   this.data=data;this.width=width;this.height=height;
+  }
  }
- const make=new Function('state','DATA','$','ImageData',
+ const CCTV_VIDEO={hd:{width:960,height:552},normal:{width:640,height:368}};
+ const make=new Function('state','DATA','$','ImageData','CCTV_VIDEO',
   'let cameraFrameReceived=false; return {api:{'+method+'},received:()=>cameraFrameReceived};');
- const session=make(state,DATA,()=>canvas,FakeImageData);
- session.api.receiveCameraPixels({id:'CAM-A',width:320,height:184,pixels,angleDeg:20});
- assert.equal(draws,1);assert.equal(session.received(),true);assert.equal(DATA.cameras[0].angleDeg,20);
- session.api.receiveCameraPixels({id:'CAM-A',width:320,height:184,pixels:new Uint8ClampedArray(4)});
+ const session=make(state,DATA,id=>id==='camCanvas'?canvas:status,FakeImageData,CCTV_VIDEO);
+ session.api.receiveCameraPixels({id:'CAM-A',width:960,height:552,pixels,angleDeg:20});
+ assert.equal(draws,1);assert.equal(session.received(),true);
+ assert.equal(DATA.cameras[0].angleDeg,20);
+ assert.match(status.textContent,/960×552/);
+ session.api.receiveCameraPixels({id:'CAM-A',width:960,height:552,pixels:new Uint8ClampedArray(4)});
  assert.equal(draws,1,'No dibujar frames truncados');
+ state.cameraQuality='normal';canvas.width=640;canvas.height=368;
+ session.api.receiveCameraPixels({id:'CAM-A',width:960,height:552,pixels});
+ assert.equal(draws,1,'Descartar resolución anterior al cambio de calidad');
+ const normal=vm.runInNewContext('new Uint8ClampedArray(640*368*4)');
+ session.api.receiveCameraPixels({id:'CAM-A',width:640,height:368,pixels:normal});
+ assert.equal(draws,2,'Aceptar modo rendimiento desde otro iframe');
+});
+test('captura CCTV restaura luces, muros y visibilidad del jugador',()=>{
+ const patched=sandboxWindow.FHCCTVEngine.patch(source);
+ const runtime=patched.slice(patched.indexOf('const fhCCTV='),patched.indexOf('window.FHComputerRuntime='));
+ assert.doesNotThrow(()=>new Function(runtime));
+ const CCTV=require('./fh-cctv.js');
+ const wall={visible:false,userData:{fhSightVisible:false}};
+ const hero={visible:true},shadow={visible:true};
+ const ambient={intensity:.2},flashlightSpot={intensity:1.65};
+ const poolLight={intensity:0.4,position:{
+  x:1,y:2,z:3,clone(){return {x:this.x,y:this.y,z:this.z};},
+  set(x,y,z){this.x=x;this.y=y;this.z=z;},
+  copy(p){this.x=p.x;this.y=p.y;this.z=p.z;}
+ }};
+ const fixture={floor:0,x:9,z:10,room:{id:'R'},lamp:null,lit:{visible:false},dark:{visible:true}};
+ const active={id:'c',modelId:'camara_seguridad',cameraMode:'fixed',x:6,y:6,rotation:0};
+ const DATA={floors:[{items:[active]}]};
+ const received=[];
+ const screen={power:true,mode:'on',front:'cams',camera:0,cameraQuality:'hd'};
+ const window={FHCCTV:CCTV,FHComputerRuntime:{
+  isOpen:true,session:{cameras:[{id:'c',online:true}]},
+  terminalApi:()=>({getState:()=>screen,receiveCameraPixels:frame=>received.push(frame)})
+ }};
+ const stories=[{visible:true}],sightUniform={value:'sight-mask'};
+ const events=[],renderer={
+  getRenderTarget:()=> 'player-target',
+  setRenderTarget:target=>events.push(['target',target]),
+  render(scene,camera){
+   assert.equal(wall.visible,true,'El muro previamente recortado debe tapar la vista');
+   assert.equal(ambient.intensity,.37,'La luz ambiente se calcula en la cámara');
+   assert.equal(poolLight.intensity,1.58,'La luz de la estancia llega a la cámara');
+   assert.equal(fixture.lit.visible,true,'El plafón se actualiza en la cámara');
+   assert.notEqual(sightUniform.value,'sight-mask','No heredar FOW del jugador');
+  },
+  readRenderTargetPixels(target,x,y,width,height,buffer){
+   assert.equal(width,960);assert.equal(height,552);buffer.fill(127);
+  }
+ };
+ const scene={traverse(cb){cb(wall)}};
+ class WebGLRenderTarget{
+  constructor(w,h){this.width=w;this.height=h;}
+  dispose(){}
+ }
+ class DataTexture{constructor(){this.needsUpdate=false;}}
+ class PerspectiveCamera{
+  constructor(fov,aspect){this.fov=fov;this.aspect=aspect;this.position={set(){}};}
+  updateProjectionMatrix(){}
+  lookAt(){}
+ }
+ const THREE={WebGLRenderTarget,DataTexture,PerspectiveCamera,LinearFilter:'linear',NearestFilter:'nearest',RGBAFormat:'rgba'};
+ const lighting={roomLit:()=>true,fixtureLit:()=>true,sourcesNear:()=>[fixture]};
+ const ForestShared={lightReachesPoint:()=>true};
+ // La prueba ejecuta el mismo cuerpo inyectado que utiliza el motor, con dobles de WebGL.
+ const create=new Function('window','THREE','DATA','scene','renderer','hero','shadow','ambient','flashlightSpot',
+  'roomDynamicLights','roomLampEntries','stories','occlusionRoots','sightUniform','lighting',
+  'roomAt','sightWalls','doorList','ForestShared','CELL','floorElev','currentFloor',
+  runtime+'\nreturn fhCCTVFrame;');
+ const frame=create(window,THREE,DATA,scene,renderer,hero,shadow,ambient,flashlightSpot,
+  [poolLight],[fixture],stories,[[wall]],sightUniform,lighting,
+  ()=>fixture.room,[[]],[[]],ForestShared,1.5,[0],0);
+ frame(1000);
+ assert.equal(received.length,1);
+ assert.equal(received[0].pixels.length,960*552*4);
+ assert.equal(wall.visible,false);
+ assert.equal(ambient.intensity,.2);
+ assert.equal(poolLight.intensity,.4);
+ assert.deepEqual([poolLight.position.x,poolLight.position.y,poolLight.position.z],[1,2,3]);
+ assert.equal(fixture.lit.visible,false);
+ assert.equal(fixture.dark.visible,true);
+ assert.equal(sightUniform.value,'sight-mask');
+ assert.ok(events.some(e=>e[0]==='target'&&e[1]==='player-target'));
 });

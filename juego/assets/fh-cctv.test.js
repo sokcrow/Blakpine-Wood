@@ -53,3 +53,18 @@ test('las cámaras no heredan conexiones de una terminal',()=>{
  assert.equal(rt.list().length,5);
  assert.equal(rt.has('unknown'),false);
 });
+
+test('la lente montada se coloca delante del muro sin alterar el giro manual',()=>{
+ const rt=CCTV.createRuntime([{items:[{
+  id:'mounted',modelId:'camara_seguridad',cameraMode:'manual',
+  wallId:'pared-1',rotation:90,cameraManualDeg:0,mountHeightFt:7,x:4,y:6
+ }]}]);
+ const pose=rt.view('mounted',0,1.5,[0]);
+ assert.ok(Math.abs(pose.x-(4*1.5-.2))<1e-8);
+ assert.ok(Math.abs(pose.z-(6*1.5))<1e-8);
+ rt.setManualAngle('mounted',45);
+ const angled=rt.view('mounted',0,1.5,[0]);
+ assert.equal(angled.x,pose.x,'El giro no atraviesa el muro moviendo la lente');
+ assert.equal(angled.z,pose.z);
+ assert.equal(angled.bearing,135*Math.PI/180);
+});
