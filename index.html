@@ -4526,8 +4526,8 @@ function fhRefreshActorVisibility(){
   const tickAfter='window.FHDeliveryRuntime?.update(dt);window.FHPhoneRuntime?.update(dt);window.FHUnifiedSleep?.before(GameState);if(fhWeather?.update(dt))visibilityDirty=true;window.FHUnifiedSleep?.after(GameState);fhWeatherRenderer?.update(dt,fhWeather?.view());fhGroundFog?.update(dt,fhWeatherEnabled?fhWeather?.view():null);fhWeatherAudio?.update(dt,fhWeather?.view());fhDrainageRuntime?.update(dt,fhWeatherEnabled?fhWeather?.view():null);if(fhNatural?.update())visibilityDirty=true;';
   // MOV del jugador: penalización solo en pasillos secundarios inundados.
   // Corrientes usan la misma función walk(), con bypass de penalización.
-  const drainWalkBefore='function walk(dx,dz){const n=Math.max(1,Math.ceil(Math.hypot(dx,dz)/.065));';
-  const drainWalkAfter='function walk(dx,dz,fhDrainCurrent=false){if(!fhDrainCurrent){const weather=fhWeatherEnabled?fhWeather?.view():null;const factor=window.FHDrainage?.walkFactor(DATA,currentFloor,{x:user.x/CELL,y:user.z/CELL},weather?.phase==="lluvia"?weather.intensity:0)??1;dx*=factor;dz*=factor;}const n=Math.max(1,Math.ceil(Math.hypot(dx,dz)/.065));';
+  const drainWalkBefore='function walk(dx,dz){if(window.FHLiveText?.isDialogOpen()||window.FHPlayerMenu?.isOpen())return 0;const n=';
+  const drainWalkAfter='function walk(dx,dz,fhDrainCurrent=false){if(window.FHLiveText?.isDialogOpen()||window.FHPlayerMenu?.isOpen())return 0;if(!fhDrainCurrent){const weather=fhWeatherEnabled?fhWeather?.view():null;const factor=window.FHDrainage?.walkFactor(DATA,currentFloor,{x:user.x/CELL,y:user.z/CELL},weather?.phase==="lluvia"?weather.intensity:0)??1;dx*=factor;dz*=factor;}const n=';
   if(doc.split(drainWalkBefore).length!==2)throw Error('Hook de velocidad del drenaje incompatible con el motor');
   doc=doc.replace(drainWalkBefore,drainWalkAfter);
   const pointBefore='if(dist<=radius&&ForestShared.pointInSight(x,z,at,opaque,radius))return true;';
