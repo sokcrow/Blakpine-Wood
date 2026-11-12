@@ -10,7 +10,11 @@
  }
  function patch(source){
   if(typeof source!=='string')throw Error('Documento del motor CCTV no válido');
-  let doc=replaceOnce(source,'</head>','<script src="'+jsUrl+'"></script></head>');
+  // El motor compuesto contiene "</head>" también dentro de strings embebidos.
+  // Insertar únicamente en el cierre del head del documento raíz.
+  const headStart=source.indexOf('<head>'),headEnd=source.indexOf('</head>',headStart);
+  if(headStart<0||headEnd<0)throw Error('Hook CCTV incompatible: falta head del motor');
+  let doc=source.slice(0,headEnd)+'<script src="'+jsUrl+'"></script>'+source.slice(headEnd);
   const computers='window.FHComputerRuntime=window.FHComputer?.createRuntime({';
   const runtime=String.raw`
 const fhCCTV=window.FHCCTV.createRuntime(DATA.floors);
@@ -89,7 +93,15 @@ function fhCCTVFrame(now){
   const matches=[...doc.matchAll(cameraList)];
   if(matches.length!==1)throw Error('Conexiones CCTV incompatibles ('+matches.length+')');
   doc=doc.replace(cameraList,'cameras:()=>fhCCTV.list(performance.now()),\n onCameraControl:(id,angle)=>fhCCTV.setManualAngle(id,angle),');
-  doc=replaceOnce(doc,'circleMask();requestAnimationFrame(frame);','fhCCTVFrame(now);\n circleMask();requestAnimationFrame(frame);');
+  // El diagnósticador de 3D sustituye el cierre del frame antes de ejecutar este hook.
+  // Admitir tanto su cierre instrumentado como el del motor sin instrumentar.
+  const frameAnchors=[
+   'circleMask();if(!frame.fhReady&&!window.FHPreviewDiagnostics?.failed){',
+   'circleMask();requestAnimationFrame(frame);'
+  ];
+  const matching=frameAnchors.filter(anchor=>doc.includes(anchor));
+  if(matching.length!==1)throw Error('Hook CCTV incompatible: cierre de frame ('+matching.length+')');
+  doc=replaceOnce(doc,matching[0],'fhCCTVFrame(now);\n '+matching[0]);
   return doc;
  }
  global.FHCCTVEngine=Object.freeze({patch});
