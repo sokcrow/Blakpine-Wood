@@ -168,7 +168,7 @@
    upload(exposure,mask);exteriorMap.needsUpdate=true;
    trail.fill(0);upload(footprints,trail);trailMap.needsUpdate=true;
    accumulator=0;lastX=lastZ=NaN;mesh.visible=open>0;
-   for(const layer of hazeLayers)layer.visible=open>0;
+   for(const layer of hazeLayers)layer.visible=false;
   }
   function stamp(x,z){
    const cx=x/maxX*size,cy=z/maxZ*size;
@@ -200,6 +200,8 @@
    if(f!==activeFloor){activeFloor=f;loadFloor();}
    const position=actor?.()||{x:0,z:0},x=finite(position.x,0),z=finite(position.z,0);
    const outside=isOutside?.(x,z)===true;
+   // Al aire libre scene.fog ya dibuja la distancia: evitar sobrecoste y doble niebla.
+   for(const layer of hazeLayers)layer.visible=mesh.visible&&!outside;
    const seconds=clamp(finite(dt,0),0,.25);
    accumulator+=seconds;clock+=seconds;
    const baseY=finite(floorY?.(),0);
