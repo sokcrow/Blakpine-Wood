@@ -319,6 +319,8 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 }
 
 </style>
+<script src="fh-cctv-strings.js"></script>
+<style>.cam-control{display:flex;flex-direction:column;gap:7px;width:100%;padding:8px;border:1px solid #728f9a;background:#c5d5d4;color:#24404d;font:12px system-ui}.cam-control input{width:100%;accent-color:#416781}.cam-control label{display:flex;justify-content:space-between}.cam-control small{font-size:11px}</style>
 </head>
 <body>
 <main id="stage" aria-label="Terminal retro de vigilancia">
@@ -388,7 +390,7 @@ const DATA = {
 const state={power:false,boot:false,waking:false,mode:'off',bootStarted:0,bootReady:0,bootDuration:0,lastBootDraw:0,zoom:false,windows:[],front:null,topZ:5,mail:0,floor:0,room:'VESTÍBULO',camera:0,log:0};
 const reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const winEls=new Map();
-let toastTimer=null,renderer=null,scene=null,camera3d=null,monitorGroup=null,screenPlane=null,powerKnob=null,raycaster=null,ndc=null,texture=null,modelEnabled=false,camFrameLast=0;
+let toastTimer=null,renderer=null,scene=null,camera3d=null,monitorGroup=null,screenPlane=null,powerKnob=null,raycaster=null,ndc=null,texture=null,modelEnabled=false,camFrameLast=0,cameraFrameReceived=false;
 const preview=$('screenTexture'),pctx=preview.getContext('2d',{alpha:false});pctx.imageSmoothingEnabled=false;
 const emit=(name,detail)=>{window.dispatchEvent(new CustomEvent('forest-terminal:'+name,{detail}));if(window.parent!==window)window.parent.postMessage({type:'FOREST_TERMINAL_EVENT',name,detail},'*')};
 window.addEventListener('message',event=>{
@@ -620,10 +622,47 @@ function renderMap(body){let tabs=node('div','floor-tabs');let map=node('div','m
  floor.rooms.forEach(r=>{const locked=floor.locked?.includes(r),sel=state.room===r;let b=labelButton(r,'room'+(locked?' locked':'')+(sel?' selected':''),()=>{state.room=r;renderWindow('map');emit('sala',{floor:state.floor,room:r,locked})});if(floor.player===r)b.append(node('span','room-dot'));layout.append(b)});
  map.append(node('div','map-detail','SELECCIÓN: '+state.room+'  /  '+(floor.locked?.includes(state.room)?'ACCESO RESTRINGIDO':'REGISTRO DISPONIBLE')));
 }
-function renderCams(body){let layout=node('div','cams-layout'),list=node('div','cams-list'),view=node('div','cam-view');layout.append(list,view);body.append(layout);
+function renderCams(body){
+ const T=window.FH_CCTV_TEXT||{};
+ const layout=node('div','cams-layout'),list=node('div','cams-list'),view=node('div','cam-view');
+ layout.append(list,view);body.append(layout);
  if(!DATA.cameras.length){body.append(node('div','hamazon-empty',COMPUTER_TEXT.noCameras||'No hay cámaras conectadas.'));return;}
- DATA.cameras.forEach((m,i)=>{let b=labelButton('', 'cam-choice'+(state.camera===i?' selected':''),()=>{state.camera=i;renderWindow('cams');emit('camara',{id:m.id})});b.append(node('span','',m.id),node('small','',m.online?'● EN LÍNEA':'× SIN SEÑAL'));list.append(b)});
- let canvas=node('canvas','');canvas.id='camCanvas';canvas.width=320;canvas.height=184;canvas.setAttribute('aria-label','Vista simulada de cámara de seguridad');view.append(canvas);const cap=node('div','cam-caption');cap.append(node('span','',DATA.cameras[state.camera]?.place||'SIN DATOS'),node('span','','IMAGEN SIMULADA'));view.append(cap);drawCamera(performance.now())}
+ state.camera=Math.max(0,Math.min(DATA.cameras.length-1,state.camera));
+ DATA.cameras.forEach((cam,i)=>{
+  const b=labelButton('','cam-choice'+(state.camera===i?' selected':''),()=>{
+   state.camera=i;cameraFrameReceived=false;renderWindow('cams');emit('camara',{id:cam.id});
+  });
+  b.append(node('span','',cam.id),node('small','',cam.online?'● EN LÍNEA':'× SIN SEÑAL'));
+  list.append(b);
+ });
+ const current=DATA.cameras[state.camera];
+ const canvas=node('canvas','');
+ canvas.id='camCanvas';canvas.width=320;canvas.height=184;
+ canvas.setAttribute('aria-label','Transmisión real de cámara de seguridad');
+ view.append(canvas);
+ const cap=node('div','cam-caption');
+ const kind=current.mode==='manual'?T.manual:current.mode==='automatic'?T.automatic:T.fixed;
+ cap.append(node('span','',current.place||current.id),node('span','',kind||'CCTV'));
+ view.append(cap);
+ if(current.online&&current.mode==='manual'){
+  const box=node('div','cam-control'),title=node('label','');
+  const name=node('span','',T.manualControl||'Giro horizontal');
+  const value=node('strong','',String(Math.round(current.angleDeg||0))+'°');
+  title.append(name,value);
+  const range=node('input','');range.type='range';range.min='-45';range.max='45';range.step='1';
+  range.value=String(Math.max(-45,Math.min(45,current.angleDeg||0)));
+  range.setAttribute('aria-label',T.manualControl||'Giro horizontal');
+  range.oninput=()=>{
+   const angle=Number(range.value);
+   current.angleDeg=angle;value.textContent=angle+'°';
+   emit('camara-giro',{id:current.id,angleDeg:angle,stationId:sessionStationId});
+  };
+  box.append(title,range);view.append(box);
+ }else if(current.online){
+  view.append(node('small','',current.mode==='automatic'?(T.automaticNote||'Barrido automático de 90°'):(T.fixedNote||'Orientación fija')));
+ }
+ drawCamera(performance.now());
+}
 function renderFiles(body){let layout=node('div','files-layout'),list=node('div','files-list'),read=node('article','file-reading');layout.append(list,read);body.append(layout);
  DATA.logs.forEach((l,i)=>{let b=labelButton('','file-choice'+(state.log===i?' selected':''),()=>{state.log=i;renderWindow('files');emit('archivo',{index:i})});b.append(node('strong','',l.t+' / '+l.type),node('span','',l.txt.split('\n')[0]));list.append(b)});
  let l=DATA.logs[state.log];if(!l){read.textContent='Sin registros.';return}read.append(node('h3','','INFORME '+String(state.log+1).padStart(3,'0')),node('span','tag',l.type),node('p','',l.txt));read.append(node('p','','HORA: '+l.t+'\nESTADO: ARCHIVADO'))}
@@ -773,14 +812,15 @@ function renderHamazon(body){
  side.append(node('strong','',t.shopOrders||'MIS PEDIDOS'));
  renderHamazonOrders(side,true,t);updateHamazonCountdowns();
 }
-function drawCamera(t){let cnv=$('camCanvas');if(!cnv||!state.power)return;const c=cnv.getContext('2d');c.imageSmoothingEnabled=false;const w=cnv.width,h=cnv.height;let cam=DATA.cameras[state.camera];c.fillStyle='#0b1b24';c.fillRect(0,0,w,h);
- if(!cam||!cam.online){c.fillStyle='#1c2c39';c.fillRect(0,0,w,h);c.fillStyle='#d77b81';c.font='bold 17px monospace';c.fillText('SIN SEÑAL',104,92);c.fillStyle='#6b7580';c.font='12px monospace';c.fillText('CANAL 04 / DESCONECTADO',55,116);return}
- c.fillStyle='#3c5861';c.fillRect(0,0,w,95);c.fillStyle='#263c44';c.fillRect(0,95,w,89);c.fillStyle='#4a6870';c.fillRect(16,24,70,104);c.fillRect(233,20,64,106);c.fillStyle='#1c353a';c.fillRect(24,30,54,89);c.fillRect(241,29,48,90);c.fillStyle='#728784';c.fillRect(50,36,8,12);c.fillRect(263,35,8,12);
- if(state.camera===0){c.fillStyle='#79958c';c.fillRect(130,35,57,68);c.fillStyle='#192f36';c.fillRect(137,43,43,58);c.fillStyle='#c3b88e';c.fillRect(150,66,5,7)}
- if(state.camera===1){c.fillStyle='#13262d';c.fillRect(138,24,40,76);c.fillStyle='#617c7b';c.fillRect(151,32,12,57);c.fillStyle='#d98580';c.fillRect(160,58,4,4)}
- if(state.camera===2){c.fillStyle='#8da6a0';c.fillRect(94,106,139,20);c.fillStyle='#283a41';c.fillRect(109,126,9,29);c.fillRect(204,126,9,29);c.fillStyle='#c6d3c2';c.fillRect(103,101,41,6)}
- c.strokeStyle='#5a7780';for(let i=0;i<8;i++){c.beginPath();c.moveTo(i*45,97);c.lineTo(160+(i*45-160)*1.9,h);c.stroke()}for(let y=0;y<h;y+=4){c.fillStyle='#00000012';c.fillRect(0,y,w,1)}
- const sec=Math.floor(t/1000),clock='23:'+String(47+Math.floor(sec/60)%12).padStart(2,'0')+':'+String(sec%60).padStart(2,'0');c.fillStyle='#d2ece1';c.font='bold 12px monospace';c.fillText(cam.id+' / '+clock,9,16);c.fillStyle='#e19393';c.fillText('REC',270,16);
+function drawCamera(t){
+ const cnv=$('camCanvas');
+ if(!cnv||!state.power||cameraFrameReceived)return;
+ const ctx=cnv.getContext('2d'),cam=DATA.cameras[state.camera];
+ ctx.fillStyle='#0b1820';ctx.fillRect(0,0,cnv.width,cnv.height);
+ ctx.fillStyle=cam?.online?'#a9c5c4':'#da8d8d';
+ ctx.font='bold 15px monospace';ctx.textAlign='center';
+ ctx.fillText(cam?.online?(window.FH_CCTV_TEXT?.waiting||'ESPERANDO TRANSMISIÓN'):(window.FH_CCTV_TEXT?.noSignal||'SIN SEÑAL'),160,91);
+ ctx.textAlign='start';
 }
 function paintText(text,x,y,color='#e3e6c8',size=12){pctx.fillStyle=color;pctx.font='bold '+size+'px monospace';pctx.textBaseline='top';pctx.fillText(String(text),x,y)}
 function syncGameClock(value){const clock=/^\d{2}:\d{2}$/.test(String(value||''))?String(value):'08:00';DATA.gameClock=clock;const el=document.querySelector('.os-date');if(el)el.textContent=(COMPUTER_TEXT.userLabel||'USUARIO')+': '+sessionUserId+'   │   '+clock;previewPaint();}
@@ -836,15 +876,23 @@ window.ForestTerminal3D={
   sessionUserId=String(session.userId||'GUARDIA_03').slice(0,24);
   sessionApps=Array.isArray(session.apps)?APPS.filter(app=>session.apps.includes(app)):APPS.slice();
   DATA.cameras=Array.isArray(session.cameras)?session.cameras.map((cam,i)=>({
-   id:String(cam.id??i),place:String(cam.place??cam.id??''),online:cam.online!==false
+   id:String(cam.id??i),place:String(cam.place??cam.id??''),online:cam.online!==false,mode:['manual','automatic','fixed'].includes(cam.mode)?cam.mode:'fixed',angleDeg:Number(cam.angleDeg)||0
   })):[];
-  state.camera=0;state.mail=0;state.log=0;
+  state.camera=0;state.mail=0;state.log=0;cameraFrameReceived=false;
   refreshStartMenu();makeIcons();syncGameClock(DATA.gameClock);previewPaint();
  },
  show(section){const key=APPS.find(k=>LABELS[k].toLowerCase()===String(section).toLowerCase()||k===String(section).toLowerCase());if(key){if(!state.zoom)toggleZoom(true);openWindow(key)}},
  setMails(items){if(!Array.isArray(items))return;DATA.mails=items.slice(0,100).map((m,i)=>({id:String(m.id??i),from:String(m.from??''),subject:String(m.subject??''),date:String(m.date??''),body:Array.isArray(m.body)?m.body.join('\n'):String(m.body??'')}));state.mail=0;renderWindow('mail');previewPaint()},
  setFloors(floors){if(!Array.isArray(floors)||!floors.length)return;DATA.floors=floors.map(f=>({name:String(f.name??'PLANTA'),rooms:(f.rooms??[]).map(r=>Array.isArray(r)?String(r[0]):String(r)),locked:Array.isArray(f.locked)?f.locked.map(String):[],player:f.player??null}));state.floor=0;state.room=DATA.floors[0].rooms[0]||'';renderWindow('map');previewPaint()},
- setCameras(cams){if(!Array.isArray(cams))return;DATA.cameras=cams.map((c,i)=>({id:String(c.id??i),place:String(c.place??''),online:!!c.online}));state.camera=0;renderWindow('cams');previewPaint()},
+ setCameras(cams){if(!Array.isArray(cams))return;DATA.cameras=cams.map((c,i)=>({id:String(c.id??i),place:String(c.place??''),online:!!c.online,mode:['manual','automatic','fixed'].includes(c.mode)?c.mode:'fixed',angleDeg:Number(c.angleDeg)||0}));state.camera=0;cameraFrameReceived=false;renderWindow('cams');previewPaint()},
+ receiveCameraPixels(frame){
+  if(!state.power||state.boot||!frame||frame.width!==320||frame.height!==184)return;
+  const cam=DATA.cameras[state.camera],canvas=$('camCanvas');
+  if(!cam?.online||cam.id!==frame.id||!canvas||!(frame.pixels instanceof Uint8ClampedArray)||frame.pixels.length!==320*184*4)return;
+  canvas.getContext('2d').putImageData(new ImageData(frame.pixels,320,184),0,0);
+  cameraFrameReceived=true;
+  if(Number.isFinite(frame.angleDeg))cam.angleDeg=frame.angleDeg;
+ },
  setLogs(logs){if(!Array.isArray(logs))return;DATA.logs=logs.map(l=>({t:String(l.t??''),type:String(l.type??''),txt:Array.isArray(l.txt)?l.txt.join('\n'):String(l.txt??'')}));state.log=0;renderWindow('files');previewPaint()},
  setHamazonProducts(items){if(!Array.isArray(items))return;DATA.hamazonProducts=items.map(p=>({...p,id:String(p.id??''),name:String(p.name??p.id??''),kind:String(p.kind??'furniture')}));renderWindow('hamazon');previewPaint()},
  setHamazonAddresses(items){DATA.hamazonAddresses=Array.isArray(items)?items.map(a=>({...a,id:String(a.id??''),name:String(a.name??''),doorId:String(a.doorId??'')})):[];renderWindow('hamazon')},
