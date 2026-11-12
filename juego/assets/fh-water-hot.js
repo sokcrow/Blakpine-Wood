@@ -24,7 +24,7 @@
  const wantsHot=it=>!!it&&it.service?.hotWaterEnabled!==false&&
   !NO_HOT.has(it.modelId)&&(
    it.type==='water_outlet'&&(it.hotWaterEnabled===true||it.utilitySkin==='toma_agua_doble')||
-   HOUSING.has(it.modelId)&&it.service?.hotWaterEnabled===true||
+   HOUSING.has(it.modelId)||
    it.service?.hotWaterEnabled===true);
  const network=it=>String(it?.hotNetworkId||it?.networkId||'main');
  const building=it=>String(it?.buildingId||it?.propertyId||'');
@@ -57,7 +57,6 @@
     saved.temperatureC=clamp(num(saved.temperatureC,tempFor(b.it)),0,100);
    }
   }
-  const selection=new Map();
   function routesTo(f,it){
    if(!floors[f]||!wantsHot(it))return [];
    const ports=it.type==='water_outlet'?[{f,it}]:cold.portsFor?.(f,it)||[];
