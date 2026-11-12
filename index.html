@@ -1975,7 +1975,7 @@ function drawUtilityNetworkOverlay(c,z){
  if(!graph||!runtime)return;
  const items=current().items,ft=Math.max(.1,Number(project.units.feetPerCell)||5);
  const groups=activeCategory==='water'?
-  [{from:'water_main',to:'water_outlet',color:'#65bee9'},
+  [...(runtime?.waterNetwork?.enabled?[]:[{from:'water_main',to:'water_outlet',color:'#65bee9'}]),
    {from:'drain_main',to:'drain_outlet',color:'#75bea6'}]:
   activeCategory==='network'?
   [{from:'router',to:'ethernet_port',color:'#d9ba72'},
@@ -2001,6 +2001,19 @@ function drawUtilityNetworkOverlay(c,z){
   drawWallPaths(c,z,paths,group.color,true);
   c.save();c.fillStyle='#d88478';c.globalAlpha=.85;
   for(const item of invalid){const p=toPixel(item);c.beginPath();c.arc(p.x,p.y,3/z,0,2*Math.PI);c.fill()}
+  c.restore();
+ }
+ if(activeCategory==='water'&&runtime.waterNetwork?.enabled){
+  const report=runtime.waterNetwork.diagnostics();
+  const paths=report.routes.flatMap(route=>route.sections
+   .filter(section=>!section.vertical&&section.floor===floorIndex)
+   .map(section=>({points:section.points})));
+  drawWallPaths(c,z,paths,'#65bee9',true);
+  c.save();c.fillStyle='#e49d88';c.globalAlpha=.93;
+  for(const route of report.routes.filter(r=>r.floor===floorIndex&&!r.supplied)){
+   const item=items.find(it=>it.id===route.itemId);if(!item)continue;
+   const p=toPixel(item);c.beginPath();c.arc(p.x,p.y,4/z,0,2*Math.PI);c.fill();
+  }
   c.restore();
  }
 }
