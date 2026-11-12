@@ -95,7 +95,6 @@ test('inspector permite conectar y desconectar un poste mediante selector eléct
  input.value='node:t';input.onchange();
  assert.equal(pole.exteriorLinkMode,'manual');
  assert.equal(pole.exteriorParentId,'t');
- assert.equal(Exterior.createRuntime(h.project,{}).energized(Exterior.createRuntime(h.project,{}).nodes[1]),false);
  const grid=Exterior.createRuntime(h.project,{});
  assert.equal(grid.energized(grid.nodes[1]),true);
 });
