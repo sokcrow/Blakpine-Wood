@@ -461,7 +461,7 @@
   const sections=pieces(map.floors[index]?.items),bridges=(map.floors[index]?.items||[]).filter(isBridge);
   if(!sections.length&&!bridges.length)return;
   if(visualProject!==map){
-   visualProject=map;visuals.length=0;visualGraph=sections.length?topology(map):null;
+   visualProject=map;visuals.length=0;visualGraph=topology(map);
    if(sharedWater){sharedWater.dispose?.();sharedWater=null;}
   }
   const hole=new THREE.MeshBasicMaterial({color:0x02070b});
@@ -495,7 +495,7 @@
    geo.setIndex(indices);
    const mesh=new THREE.Mesh(geo,water);
    mesh.rotation.x=-Math.PI/2;
-   mesh.position.set(centerX*CELL,(flood?.025:WATER_LEVEL)*CELL,centerY*CELL);
+   mesh.position.set(centerX*CELL,(flood ? .025 : WATER_LEVEL)*CELL,centerY*CELL);
    mesh.visible=!flood;
    story.add(mesh);return mesh;
   }
