@@ -196,3 +196,12 @@ test('un 4×4 conectado a un 10×10 abre solo la puerta real y cierra los huecos
  assert.equal(walls.length,4,'La unión menor no deja agujeros laterales transitables');
  assert.equal(D.topology(map([[main,small]])).warnings.some(x=>x.code==='isolated'),false);
 });
+
+test('cada variante secundaria usa el estado de lluvia del perfil de 4×4',()=>{
+ for(const kind of ['small','small_elbow','small_tee','small_cross','small_dead_end']){
+  const it=section(kind,0,0,kind);
+  assert.equal(D.weatherState(it,0).waterWidth,1,kind);
+  assert.equal(D.weatherState(it,.58).waterWidth,4,kind);
+  assert.equal(D.weatherState(it,.58).walkingFactor,.5,kind);
+ }
+});
