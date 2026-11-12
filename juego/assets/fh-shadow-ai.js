@@ -113,7 +113,7 @@
    let target=null;
    if(actor.kind==='la_nina'){
     if(actor.mode!=='search'){
-     if(dist<=meters(cfg.touchFt)){
+     if(dist<=meters(cfg.touchFt)&&contactClear(actor,player)){
       if(actor.nearSince===null)actor.nearSince=minute;
       if(minute-actor.nearSince>=cfg.interestMin){
        actor.mode='search';actor.nearSince=null;actor.target=null;
@@ -125,11 +125,11 @@
      if(!actor.target||actor.floor!==actor.target.floor||distance(actor,actor.target)<meters(2)){
       target=options.nextRoom?.(actor.floor,actor,player)||wanderTarget(actor,player,24);
      }
-    }else if(dist<=meters(cfg.touchFt)){
+    }else if(dist<=meters(cfg.touchFt)&&contactClear(actor,player)){
      actor.routeNodes=[];target={floor:actor.floor,x:actor.x,z:actor.z};
     }else target={floor:player.floor,x:player.x,z:player.z};
    }else{
-    if(actor.mode==='approach'&&dist<=meters(cfg.touchFt)){
+    if(actor.mode==='approach'&&dist<=meters(cfg.touchFt)&&contactClear(actor,player)){
      actor.mode='stare';actor.nearSince=minute;actor.target=null;actor.routeNodes=[];
     }
     if(actor.mode==='stare'&&actor.nearSince!==null&&minute-actor.nearSince>=cfg.interestMin){
