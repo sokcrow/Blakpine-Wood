@@ -120,11 +120,12 @@
     const meta=choose(it);if(!meta)continue;
     const pose=mountPose(it,meta,items,CELL,ForestShared);if(!pose)continue;
     const originals=(renderedByItem[f]?.get?.(it.id)||[]).map(o=>o.root||o).filter(Boolean);
-    // Quitar el viejo 'Mueble libre' de calderas legadas antes de pedir el GLB,
-    // no después de cargarlo. Así nunca aparece como sustituto temporal.
-    if(it.type==='misc'&&root.FHBoilersCatalog?.has(meta.id))
-     for(const old of originals)if(old.parent)old.parent.remove(old);
+    // Los diez equipos técnicos siempre se representan por su GLB real.
+    // Retirar la malla genérica desde el comienzo: nunca aparece "Mueble libre"
+    // mientras el recurso carga o si termina en error. No mutar colisiones/JSON.
+    for(const old of originals)if(old.parent)old.parent.remove(old);
     const root3D=new THREE.Group();root3D.name='FH_AGUA_'+it.id;root3D.userData.fhServiceItem=it.id;
+    root3D.userData.fhModelId=meta.id;root3D.userData.fhModelState='loading';
     root3D.position.set(pose.x,pose.y,pose.z);root3D.rotation.y=pose.rotation;stories[f]?.add(root3D);
     result.push({it,meta,pose,root:root3D});
     load(meta,THREE).then(scene=>{
