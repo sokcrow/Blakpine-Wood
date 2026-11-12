@@ -8,7 +8,7 @@
     elevatorUnavailable:'El ascensor no está disponible.',elevatorNotHere:'El ascensor no está en este piso.',
     elevatorAlreadyOpen:'Las puertas ya están abiertas.',elevatorOpening:'Abriendo puertas.',
     elevatorCannotOpen:'Las puertas no pueden abrirse en este momento.',elevatorNoPower:'El ascensor no tiene energía.',
-    courier:'Repartidor',talk:'Hablar',peephole:'Mirar por la mirilla',peepholeShort:'Mirilla',knock:'Llamar',examine:'Examinar',
+    courier:'Repartidor',talk:'Hablar',player:'Personaje',playerInventory:'Inventario',peephole:'Mirar por la mirilla',peepholeShort:'Mirilla',knock:'Llamar',examine:'Examinar',
     decorate:'Decorar',decorateMove:'Mover frente a mí',decorateSelect:'Seleccionar / mover',decorateStore:'Muebles guardados',
     decoratePlace:'Colocar',decorateCancel:'Cancelar',decorateTurnFine:'Girar 15°',
     decorateTurn:'Girar 90°',decorateStoreItem:'Guardar mueble',
