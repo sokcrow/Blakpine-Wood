@@ -41,11 +41,14 @@
    const button=document.createElement('button');button.type='button';
    button.setAttribute('aria-pressed',String(selected?.id===m.id));
    const name=document.createElement('strong');name.textContent=m.name;
+   const preview=document.createElement('img');preview.alt='';preview.loading='lazy';
+   preview.src=new URL('forest-horror/biblioteca/agua/'+m.thumbnail,document.baseURI).href;
+   preview.style.cssText='width:100%;max-height:122px;object-fit:contain;image-rendering:pixelated';
    const info=document.createElement('small');info.textContent=m.widthFt+' × '+m.heightFt+' × '+m.depthFt+' pies · '+
     (m.kind==='heater'?'Agua caliente':'Accesorio técnico');
-   const pending=document.createElement('small');pending.textContent=T.assetPending||'GLB pendiente';
-   button.append(name,info,pending);
-   button.onclick=()=>{selected=m;hide();setCategory('water');chooseTool('misc');toast('Seleccionado: '+m.name);};
+   button.append(preview,name,info);
+   button.onclick=()=>{selected=m;hide();setCategory('water');chooseTool(m.type);
+    toast((T.selected||'Seleccionado: ')+m.name);};
    grid.append(button);
   }
   grid.querySelector('button')?.focus();
@@ -60,7 +63,8 @@
  setCategory=function(cat){oldCategory(cat);launcher();};
  const oldCreate=createObject;
  createObject=function(type,pos){
-  if(type!=='misc'||activeCategory!=='water'||!selected)return oldCreate(type,pos);
+  if(!['water_boiler','water_boiler_aux'].includes(type)||activeCategory!=='water'||
+    !selected||selected.type!==type)return oldCreate(type,pos);
   const model=selected,cell=Math.max(.1,Number(project.units?.feetPerCell)||5);
   let mount=null;
   if(model.placement==='wall'){
@@ -69,22 +73,26 @@
     toast('Este equipo necesita una pared estructural.');return null;
    }
   }
-  root.__fhBoilerCreating=true;root.__fhWaterCreatingFloor=true;
-  let item;
-  try{item=oldCreate('misc',mount?.point||pos);}
-  finally{root.__fhBoilerCreating=false;root.__fhWaterCreatingFloor=false;}
+  // Crear el objeto técnico nativo, nunca el mueble libre ni su preset.
+  const item=oldCreate(type,mount?.point||pos);
   if(!item)return null;
-  item.type='misc';item.modelId=model.id;item.label=model.name;
+  item.type=type;item.modelId=model.id;item.label=model.name;
   item.placement=model.placement;item.w=model.widthFt/cell;item.h=model.depthFt/cell;
   item.heightFt=model.heightFt;item.blocksMovement=model.placement==='floor';
+  item.zoneId=''; // El motor elige automáticamente el breaker alcanzable por la pared.
   if(mount){
    Object.assign(item,{x:mount.point.x,y:mount.point.y,wallId:mount.wallId,
     rotation:mount.rotation,mountHeightFt:model.mountHeightFt||0});
   }
+  if(model.kind==='auxiliary'&&['bomba_recirculacion','panel_control_caldera'].includes(model.id)){
+   const watts=model.id==='bomba_recirculacion'?150:30;
+   item.service={requiresPower:true,powerConnection:'direct',watts,rayos:Math.ceil(watts/200)};
+  }
   if(model.kind==='heater'){
    const preset=root.FHWaterHot?.PRESETS[model.id]||{};
    item.service={...item.service,requiresPower:true,requiresWater:true,waterHeating:true,
-    onDemand:true,watts:preset.watts||1200,rayos:Math.ceil((preset.watts||1200)/200)};
+    powerConnection:'direct',onDemand:true,watts:preset.watts||1200,
+    rayos:Math.ceil((preset.watts||1200)/200)};
    item.boilerCapacityLiters=preset.capacityLiters||model.capacityLiters;
    item.initialHotLiters=0;item.targetTemperatureC=55;item.heatCPerMinute=preset.heatCPerMinute||1;
    item.fillLpm=preset.fillLpm||12;item.hotRangeFt=240;
@@ -148,7 +156,8 @@
    const watts=Number(it.service?.watts)||preset.watts||1200;
    it.service={...it.service,waterHeating:checkbox.checked,
     requiresWater:checkbox.checked,requiresPower:checkbox.checked,
-    onDemand:true,watts,rayos:Number(it.service?.rayos)||Math.ceil(watts/200)};
+    powerConnection:'direct',onDemand:true,watts,
+    rayos:Number(it.service?.rayos)||Math.ceil(watts/200)};
    if(checkbox.checked){it.boilerVisualOnly=false;it.networkId||='main';
     it.hotNetworkId||='main';it.pipeLeadFt??=10;
     project.plumbing={...project.plumbing,enabled:true};}
