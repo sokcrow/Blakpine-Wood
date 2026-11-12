@@ -140,6 +140,21 @@
    (T.assetPending||'Accesorio visual');fields.append(note);
   if(model.kind!=='heater')return;
   const preset=root.FHWaterHot?.PRESETS[model.id]||{};
+  const activate=document.createElement('label');activate.style.gridColumn='1/-1';
+  const checkbox=document.createElement('input');checkbox.type='checkbox';
+  checkbox.checked=it.service?.waterHeating===true;
+  checkbox.onchange=()=>{
+   if(root.FHStyleEditor&&!root.FHStyleEditor.canEditItem(it)){openInspector();return;}
+   const watts=Number(it.service?.watts)||preset.watts||1200;
+   it.service={...it.service,waterHeating:checkbox.checked,
+    requiresWater:checkbox.checked,requiresPower:checkbox.checked,
+    onDemand:true,watts,rayos:Number(it.service?.rayos)||Math.ceil(watts/200)};
+   if(checkbox.checked){it.boilerVisualOnly=false;it.networkId||='main';
+    it.hotNetworkId||='main';it.pipeLeadFt??=10;}
+   record();render();openInspector();
+  };
+  activate.append(checkbox,document.createTextNode(' '+(T.enable||'Activar agua caliente')));
+  fields.append(activate);
   numberField(fields,it,'boilerCapacityLiters',T.capacity||'Capacidad (litros)',preset.capacityLiters||80);
   numberField(fields,it,'initialHotLiters',T.initial||'Reserva inicial',0);
   numberField(fields,it,'targetTemperatureC',T.temperature||'Temperatura (°C)',55,30,90);
