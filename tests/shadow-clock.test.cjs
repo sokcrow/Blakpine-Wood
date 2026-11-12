@@ -152,3 +152,36 @@ test('apagón sobrenatural anula linterna y fuentes de la máscara de visión',(
  const src=result.match(/<script>([\s\S]*?)<\/script>/)[1];
  assert.doesNotThrow(()=>new Function(src));
 });
+
+test('El motor ignora únicamente la cama ocupada al comprobar la pesadilla',()=>{
+ const fs=require('node:fs'),path=require('node:path');
+ const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
+ const patch=html.slice(html.indexOf('function addShadowEncountersToEngine(doc){'),
+  html.indexOf(' const assembled=',html.indexOf('function addShadowEncountersToEngine(doc){')));
+ const match=patch.match(/const insert=("(?:\\.|[^"\\])*");/);
+ assert.ok(match,'se encuentra el hook del motor de Sombras');
+ const source=JSON.parse(match[1]);
+ const start=source.indexOf('function fhShadowNightmareClear(');
+ const end=source.indexOf('let fhHorrorFlickerUntil=',start);
+ assert.ok(start>=0&&end>start,'existe la verificación de cama');
+ let closed=false,seenCollision=false;
+ const collider=(x,z,params)=>{
+  seenCollision=true;
+  assert.deepEqual(params.objects.map(o=>o.id),['mesa'],
+   'la excepción es exclusiva de la cama ocupada');
+  assert.equal(params.doors.length,1,'las puertas reales conservan su colisión');
+  return closed&&x>20.15&&x<20.25;
+ };
+ const factory=new Function('playerPoseItem','elevatorPortals','elevatorSystem',
+  'furnitureColliders','doorList','blockers','ForestShared','MAX_X','MAX_Z',
+  'PLAYER_RADIUS','WALL_THICK','SLABS','onStructuralSlab','fhShadowInside',
+  source.slice(start,end)+'return fhShadowNightmareClear;');
+ const clear=factory({id:'cama',type:'bed'},[[]],{get:()=>null},
+  [[{id:'cama'},{id:'mesa'}]],[[{id:'puerta',closed:true}]],[[]],
+  {solidAt:collider},100,100,.2,.12,[{enabled:false}],()=>true,()=>true);
+ const actor={floor:0,x:20.35,z:20},player={floor:0,x:20,z:20};
+ assert.equal(clear(actor,player),true,'la cama ya no impide el contacto onírico');
+ assert.ok(seenCollision);
+ closed=true;
+ assert.equal(clear(actor,player),false,'la puerta cerrada sigue deteniendo la pesadilla');
+});
