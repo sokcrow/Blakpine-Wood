@@ -84,7 +84,7 @@
   if(model.kind==='heater'){
    const preset=root.FHWaterHot?.PRESETS[model.id]||{};
    item.service={...item.service,requiresPower:true,requiresWater:true,waterHeating:true,
-    onDemand:true,watts:preset.watts||1200};
+    onDemand:true,watts:preset.watts||1200,rayos:Math.ceil((preset.watts||1200)/200)};
    item.boilerCapacityLiters=preset.capacityLiters||model.capacityLiters;
    item.initialHotLiters=0;item.targetTemperatureC=55;item.heatCPerMinute=preset.heatCPerMinute||1;
    item.fillLpm=preset.fillLpm||12;item.hotRangeFt=240;
@@ -144,6 +144,7 @@
   numberField(fields,it,'initialHotLiters',T.initial||'Reserva inicial',0);
   numberField(fields,it,'targetTemperatureC',T.temperature||'Temperatura (°C)',55,30,90);
   numberField(fields,it,'heatCPerMinute',T.heatingRate||'Calentamiento (°C/min)',preset.heatCPerMinute||1);
+  numberField(fields,it,'service.watts','Potencia eléctrica (W)',preset.watts||1200);
   numberField(fields,it,'fillLpm',T.fillRate||'Llenado (L/min)',preset.fillLpm||12);
   numberField(fields,it,'hotRangeFt',T.range||'Tuberías calientes (pies)',240);
   textField(fields,it,'networkId',T.inlet||'Red fría');
@@ -151,7 +152,9 @@
   numberField(fields,it,'pipeLeadFt','Conexión hasta la pared (pies)',10);
   const report=document.createElement('div');report.style.gridColumn='1/-1';
   const status=utilityVisual().runtime?.hotWaterStatus(project.floors.indexOf(current()),it);
-  report.textContent=T.report?T.report(status||{}):'';
+  const installed=utilityVisual().runtime?.hotWater?.diagnostics()?.hotFeet;
+  report.textContent=(T.report?T.report(status||{}):'')+
+   (Number.isFinite(installed)?' · '+(T.pipeFeet?T.pipeFeet(installed):installed+' pies de tubería caliente'):'');
   fields.append(report);
  };
  launcher();
