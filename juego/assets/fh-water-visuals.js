@@ -13,11 +13,12 @@
  const FT=.3048,WALL_HALF=.065,CLEARANCE=.015;
  const base=root.document?.currentScript?.src?new URL('../../forest-horror/biblioteca/agua/',root.document.currentScript.src):null;
  const scriptBase=root.document?.currentScript?.src?new URL('.',root.document.currentScript.src):null;
- const DEFAULT=Object.freeze({water_main:'medidor_agua',water_valve:'llave_paso_principal',water_outlet:'toma_agua_pared',drain_outlet:'desague_pared'});
- const catalog=()=>root.FHWaterCatalog?.models||[];
+ const DEFAULT=Object.freeze({water_main:'medidor_agua',water_valve:'llave_paso_principal',water_outlet:'toma_agua_pared',
+  water_cistern:'cisterna_principal',water_tinaco:'tinaco_elevado',drain_outlet:'desague_pared'});
+ const catalog=()=>[...(root.FHWaterCatalog?.models||[]),...(root.FHWaterStorageCatalog?.models||[])];
  const byId=id=>catalog().find(m=>m.id===id)||null;
  const choose=it=>{
-  const selected=byId(it?.utilitySkin);
+  const selected=byId(it?.utilitySkin||it?.modelId);
   if(selected&&selected.type===it.type)return selected;
   return byId(DEFAULT[it?.type])||null;
  };
