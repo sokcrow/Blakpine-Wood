@@ -1162,7 +1162,7 @@ function rayThroughExteriorOpening(eye,target,openings,cell,baseElevation,roofEl
 const MAP_SCHEMA='forest-horror-map-v1';
 const CURRENT_VERSION=2;
 const SEGMENT_TYPES=new Set(['red_wall','wall','property_wall','half_wall','fence','door','peephole_door','window','opening']);
-const XY_TYPES=new Set(['power_outlet','power_strip','water_main','water_valve','water_outlet','water_cistern','water_tinaco','drain_outlet','drain_main','router','ethernet_port','landline_phone','phone_charger','spawn','npc_portal','stairs','elevator','light_switch','breaker_panel','light_fixture','battery_pickup','bed','sofa','tv','dining','table','chair','kitchen','bath','toilet','plant','car','misc','room','hall','outside','building','pavement','parking','grass','dirt','asphalt','alley','sidewalk','concrete','gravel','cobblestone','tile_floor','carpet','wood_floor','parking_decal']);
+const XY_TYPES=new Set(['power_outlet','power_strip','water_main','water_valve','water_outlet','water_cistern','water_tinaco','water_boiler','water_boiler_aux','drain_outlet','drain_main','router','ethernet_port','landline_phone','phone_charger','spawn','npc_portal','stairs','elevator','light_switch','breaker_panel','light_fixture','battery_pickup','bed','sofa','tv','dining','table','chair','kitchen','bath','toilet','plant','car','misc','room','hall','outside','building','pavement','parking','grass','dirt','asphalt','alley','sidewalk','concrete','gravel','cobblestone','tile_floor','carpet','wood_floor','parking_decal']);
 class MapValidationError extends Error{
  constructor(errors){super('Mapa inválido:\n'+errors.map(e=>`${e.path}: ${e.message}`).join('\n'));this.name='MapValidationError';this.errors=errors}
 }
@@ -1654,12 +1654,12 @@ return {DOOR_VARIANTS,DOOR_LENGTH_TOLERANCE,doorSpan,doorWidthClass,doorSpec,doo
 'use strict';
 
 const SCHEMA=ForestShared.MAP_SCHEMA;
-const COLORS={generator:'#bc8b68',generator_ats:'#7f9392',generator_tank:'#b69b63',red_wall:'#ef5656',property_wall:'#E6BD43',wall:'#64bdf9',half_wall:'#82c4ff',fence:'#97d8c3',door:'#ffbc66',peephole_door:'#ce92ff',window:'#70ecd6',opening:'#b7d184',room:'#ffad79',room_fill:'#ffad79',hall:'#8ab1ff',outside:'#7de39c',building:'#a7b2c4',pavement:'#8b96a9',parking:'#b8c0cf',asphalt:'#55575a',alley:'#65655b',sidewalk:'#a1a09c',concrete:'#a8a29a',gravel:'#ada69a',cobblestone:'#aaa396',tile_floor:'#d1bab3',carpet:'#b7a0a9',wood_floor:'#b3967b',parking_stall:'#f6ecb4',parking_arrow:'#f6ecb4',parking_crosswalk:'#f6ecb4',parking_double_yellow:'#e4be47',parking_dashed_yellow:'#e4be47',parking_speed_bump:'#e4be47',parking_curb:'#beb3a3',parking_decal:'#f4d985',grass:'#6ecb7d',dirt:'#b58c63',stairs:'#edb676',spawn:'#f5df71',npc_portal:'#77d7ba',elevator:'#8b99ff',light_switch:'#d3c06d',breaker_panel:'#bc8b68',battery_pickup:'#dfc56b',power_outlet:'#efc66b',power_strip:'#cba579',phone_charger:'#cbe2a3',water_cistern:'#537e98',water_tinaco:'#78a0ad',water_main:'#52a9e2',water_valve:'#67bce9',water_outlet:'#76d3f1',drain_outlet:'#567b9b',drain_main:'#4a829f',router:'#68b4c6',ethernet_port:'#59a5ae',landline_phone:'#b5c6d5',light_fixture:'#fff0aa',zone_assign:'#d6a55c',bed:'#da9ac0',sofa:'#81a9c8',tv:'#8ea1e1',dining:'#d8b47f',table:'#bfa478',chair:'#71b1cd',kitchen:'#b2b8c2',bath:'#75cde6',toilet:'#a8cce5',plant:'#83d28f',misc:'#c0c5d2',car:'#a88dd5'};
+const COLORS={generator:'#bc8b68',generator_ats:'#7f9392',generator_tank:'#b69b63',red_wall:'#ef5656',property_wall:'#E6BD43',wall:'#64bdf9',half_wall:'#82c4ff',fence:'#97d8c3',door:'#ffbc66',peephole_door:'#ce92ff',window:'#70ecd6',opening:'#b7d184',room:'#ffad79',room_fill:'#ffad79',hall:'#8ab1ff',outside:'#7de39c',building:'#a7b2c4',pavement:'#8b96a9',parking:'#b8c0cf',asphalt:'#55575a',alley:'#65655b',sidewalk:'#a1a09c',concrete:'#a8a29a',gravel:'#ada69a',cobblestone:'#aaa396',tile_floor:'#d1bab3',carpet:'#b7a0a9',wood_floor:'#b3967b',parking_stall:'#f6ecb4',parking_arrow:'#f6ecb4',parking_crosswalk:'#f6ecb4',parking_double_yellow:'#e4be47',parking_dashed_yellow:'#e4be47',parking_speed_bump:'#e4be47',parking_curb:'#beb3a3',parking_decal:'#f4d985',grass:'#6ecb7d',dirt:'#b58c63',stairs:'#edb676',spawn:'#f5df71',npc_portal:'#77d7ba',elevator:'#8b99ff',light_switch:'#d3c06d',breaker_panel:'#bc8b68',battery_pickup:'#dfc56b',power_outlet:'#efc66b',power_strip:'#cba579',phone_charger:'#cbe2a3',water_cistern:'#537e98',water_tinaco:'#78a0ad',water_boiler:'#cc8554',water_boiler_aux:'#ba9c70',water_main:'#52a9e2',water_valve:'#67bce9',water_outlet:'#76d3f1',drain_outlet:'#567b9b',drain_main:'#4a829f',router:'#68b4c6',ethernet_port:'#59a5ae',landline_phone:'#b5c6d5',light_fixture:'#fff0aa',zone_assign:'#d6a55c',bed:'#da9ac0',sofa:'#81a9c8',tv:'#8ea1e1',dining:'#d8b47f',table:'#bfa478',chair:'#71b1cd',kitchen:'#b2b8c2',bath:'#75cde6',toilet:'#a8cce5',plant:'#83d28f',misc:'#c0c5d2',car:'#a88dd5'};
 const TOOL_GROUPS={
  structure:[['select','Seleccionar','☞'],['pan','Mover mapa','✋'],['wall','Pared','▰'],['red_wall','Pared roja · losa','▰'],['paint_wall','Pintar cara','▨'],['half_wall','Pared media','▱'],['fence','Reja','⛶'],['door','Puerta','🚪'],['elevator','Ascensor ⇅','⇅'],['peephole_door','Con mirilla','◉'],['window','Ventana','▤'],['opening','Hueco libre','⟷'],['erase','Borrar','⌫']],
  furniture:[['select','Seleccionar','☞'],['bed','Cama compacta','🛏'],['sofa','Sofá compacto','▰'],['tv','Tele compacta','▭'],['dining','Comedor','◫'],['table','Mesa','▦'],['chair','Silla','▣'],['kitchen','Cocina','▤'],['bath','Ducha / tina','▥'],['toilet','Baño / WC','◉'],['plant','Planta','♧'],['car','Coche','▰'],['misc','Mueble libre','□'],['battery_pickup','Batería de linterna','▰']],
  lighting:[['select','Seleccionar circuito','☞'],['pan','Mover mapa','✋'],['zone_assign','Conectar zona','◈'],['light_fixture','Foco de techo','✦'],['light_strip','Tubo largo','▰'],['light_panel','Panel de techo','▤'],['light_wall','Aplique de pared','◖'],['light_flood','Reflector de pared','◁'],['light_switch','Interruptor','◉'],['breaker_panel','Breaker','▤'],['generator',window.FH_SERVICES_TEXT.generator.normal,'⚙'],['generator_emergency',window.FH_SERVICES_TEXT.generator.emergency,'⚙'],['power_outlet','Enchufe doble','⚡'],['phone_charger','Cargador de celular','▣']],
-  water:[['select','Seleccionar','☞'],['pan','Mover mapa','✋'],['water_main','Entrada de agua','◉'],['water_valve','Válvula','◈'],['water_outlet','Toma de agua','◉'],['water_cistern','Cisterna potable','▰'],['water_tinaco','Tinaco elevado','◉'],['drain_outlet','Drenaje','◌'],['drain_main','Salida de drenaje','◉'],['drain_straight',window.FH_DRAIN_TEXT.straight,'═'],['drain_elbow',window.FH_DRAIN_TEXT.elbow,'┐'],['drain_tee',window.FH_DRAIN_TEXT.tee,'┬'],['drain_cross',window.FH_DRAIN_TEXT.cross,'┼'],['drain_dead_end',window.FH_DRAIN_TEXT.dead_end,'⊣'],['drain_small',window.FH_DRAIN_TEXT.small,'─'],['drain_small_elbow',window.FH_DRAIN_TEXT.small_elbow,'└'],['drain_small_tee',window.FH_DRAIN_TEXT.small_tee,'┬'],['drain_small_cross',window.FH_DRAIN_TEXT.small_cross,'┼'],['drain_small_dead_end',window.FH_DRAIN_TEXT.small_dead_end,'⊣'],['drain_outfall',window.FH_DRAIN_TEXT.outfall,'◎'],['drain_bridge',window.FH_DRAIN_TEXT.bridge,'▦'],['drain_audit',window.FH_DRAIN_TEXT.audit,'✓']],
+  water:[['select','Seleccionar','☞'],['pan','Mover mapa','✋'],['water_main','Entrada de agua','◉'],['water_valve','Válvula','◈'],['water_outlet','Toma de agua','◉'],['water_cistern','Cisterna potable','▰'],['water_tinaco','Tinaco elevado','◉'],['water_boiler','Caldera / calentador GLB','♨'],['water_boiler_aux','Equipos de caldera GLB','⚙'],['drain_outlet','Drenaje','◌'],['drain_main','Salida de drenaje','◉'],['drain_straight',window.FH_DRAIN_TEXT.straight,'═'],['drain_elbow',window.FH_DRAIN_TEXT.elbow,'┐'],['drain_tee',window.FH_DRAIN_TEXT.tee,'┬'],['drain_cross',window.FH_DRAIN_TEXT.cross,'┼'],['drain_dead_end',window.FH_DRAIN_TEXT.dead_end,'⊣'],['drain_small',window.FH_DRAIN_TEXT.small,'─'],['drain_small_elbow',window.FH_DRAIN_TEXT.small_elbow,'└'],['drain_small_tee',window.FH_DRAIN_TEXT.small_tee,'┬'],['drain_small_cross',window.FH_DRAIN_TEXT.small_cross,'┼'],['drain_small_dead_end',window.FH_DRAIN_TEXT.small_dead_end,'⊣'],['drain_outfall',window.FH_DRAIN_TEXT.outfall,'◎'],['drain_bridge',window.FH_DRAIN_TEXT.bridge,'▦'],['drain_audit',window.FH_DRAIN_TEXT.audit,'✓']],
   network:[['select','Seleccionar','☞'],['pan','Mover mapa','✋'],['router','Router Wi-Fi','⌁'],['ethernet_port','Toma Ethernet','▣'],['landline_phone','Teléfono de pared','☎']],
  areas:[['courtyard',window.FH_COURTYARD_TEXT.tool,'☀'],['room_fill','Revisar recinto','⌂'],['room','Zona manual','▣'],['hall','Pasillo','═'],['outside','Exterior','♧'],['building','Edificio','▥'],['pavement','Banqueta / piso','▦'],['parking','Estacionamiento','▤'],['asphalt','Asfalto','▦'],['alley','Callejón manchado','▦'],['sidewalk','Banqueta','▤'],['concrete','Concreto','▦'],['gravel','Grava','░'],['cobblestone','Adoquín','▣'],['tile_floor','Baldosa','▦'],['carpet','Alfombra','▧'],['wood_floor','Madera','▤'],['grass','Pasto','❋'],['dirt','Tierra','░'],['elevator','Ascensor ⇅','⇅'],['stairs','Escaleras ½ cuadro','≋'],['spawn','Jugador','✦'],['npc_portal','Entrada / salida NPC','⇥'],['select','Seleccionar','☞'],['pan','Mover mapa','✋']],
  roads:window.FH_ROAD_TEXT?[['select',window.FH_ROAD_TEXT.select,'☞'],['road_settings',window.FH_ROAD_TEXT.settings,'⚙'],['road_draw',window.FH_ROAD_TEXT.draw,'⇄'],['road_stop',window.FH_ROAD_TEXT.stop,'⬡'],['road_signal',window.FH_ROAD_TEXT.signal,'⋮'],['road_speed',window.FH_ROAD_TEXT.speed,'◉'],['road_crosswalk',window.FH_ROAD_TEXT.crosswalk,'▥'],['road_portal',window.FH_ROAD_TEXT.portal,'↔'],['road_audit',window.FH_ROAD_TEXT.audit,'✓'],['pan',window.FH_ROAD_TEXT.pan,'✋'],['erase',window.FH_ROAD_TEXT.erase,'⌫']]:[],
@@ -1672,8 +1672,8 @@ const SEGMENT_TYPES=new Set(['red_wall','wall','property_wall','half_wall','fenc
 const AREA_TYPES=new Set(['room','hall','outside','building','pavement','parking','grass','dirt','asphalt','alley','sidewalk','concrete','gravel','cobblestone','tile_floor','carpet','wood_floor']);
 const POINT_TYPES=new Set(['spawn','npc_portal']);
 const LEGACY_OBJECT_SIZES={bed:[1,2],sofa:[2,1],tv:[2,1],dining:[2,2],table:[1.35,1],chair:[.65,.65],kitchen:[2,1],bath:[1,2],toilet:[.65,.75],plant:[.7,.7],car:[1.8,3.2],misc:[1,1],stairs:[2,2.4],elevator:[1.8,1.8],light_switch:[.40,.28],breaker_panel:[.75,.40],battery_pickup:[.5,.5],light_fixture:[.4,.4],power_outlet:[.25,.25],power_strip:[.6,.25],phone_charger:[.45,.4],water_main:[.35,.4],water_valve:[.25,.25],water_outlet:[.25,.25],drain_outlet:[.3,.3],drain_main:[.3,.3],router:[.55,.4],ethernet_port:[.25,.25],landline_phone:[.35,.3],spawn:[.4,.4]};
-const OBJECT_SIZES={bed:[.75,1.5],sofa:[1.5,.75],tv:[1,.5],dining:[1.5,1.5],table:[1,.75],chair:[.5,.5],kitchen:[1.5,.75],bath:[.75,1.5],toilet:[.5,.5],plant:[.5,.5],car:[1.2,3],misc:[.75,.75],stairs:[.5,3.5],elevator:[1.5,1.5],light_switch:[.40,.28],breaker_panel:[.75,.40],battery_pickup:[.5,.5],light_fixture:[.4,.4],power_outlet:[.25,.25],power_strip:[.6,.25],phone_charger:[.45,.4],water_main:[.35,.4],water_valve:[.25,.25],water_outlet:[.25,.25],water_cistern:[1.2,1],water_tinaco:[.8,.8],drain_outlet:[.3,.3],drain_main:[.3,.3],router:[.55,.4],ethernet_port:[.25,.25],landline_phone:[.35,.3],spawn:[.4,.4],npc_portal:[.4,.4]};
-const SHORT={water_cistern:'Cisterna potable',water_tinaco:'Tinaco potable',generator_ats:window.FH_SERVICES_TEXT.generator.ats,generator_tank:window.FH_SERVICES_TEXT.generator.tank,generator:window.FH_SERVICES_TEXT.labels.generator,red_wall:'Pared roja estructural',property_wall:'Pared amarilla · propiedad',paint_wall:'Pintar cara de pared',wall:'Pared',half_wall:'Pared media',fence:'Reja',door:'Puerta',peephole_door:'Puerta con mirilla',window:'Ventana',opening:'Abertura',room:'Habitación',room_fill:'Auto-habitación',hall:'Pasillo',outside:'Exterior',building:'Edificio',pavement:'Banqueta / piso',parking:'Estacionamiento',asphalt:'Asfalto',alley:'Callejón manchado',sidewalk:'Banqueta',concrete:'Concreto',gravel:'Grava',cobblestone:'Adoquín',tile_floor:'Baldosa',carpet:'Alfombra',wood_floor:'Madera',parking_decal:'Marca de estacionamiento',grass:'Pasto',dirt:'Tierra',stairs:'Escaleras',elevator:'Ascensor',light_switch:'Interruptor de luz',breaker_panel:'Panel de breakers',battery_pickup:'Batería de linterna',light_fixture:'Lámpara',power_outlet:'Enchufe doble',power_strip:'Multiconector',phone_charger:'Cargador de celular',water_main:'Entrada de agua',water_valve:'Válvula',water_outlet:'Toma de agua',drain_outlet:'Desagüe',drain_main:'Salida de drenaje',router:'Router Wi-Fi',ethernet_port:'Toma Ethernet',landline_phone:'Teléfono de pared',zone_assign:'Conectar habitación o lámpara',spawn:'Jugador',npc_portal:'Entrada / salida NPC',bed:'Cama',sofa:'Sofá',tv:'Tele',dining:'Comedor',table:'Mesa',chair:'Silla',kitchen:'Cocina',bath:'Ducha / tina',toilet:'WC',plant:'Planta',car:'Coche',misc:'Mueble libre'};const ORIENTABLE_TYPES=ForestShared.FACING_OBJECT_TYPES;
+const OBJECT_SIZES={bed:[.75,1.5],sofa:[1.5,.75],tv:[1,.5],dining:[1.5,1.5],table:[1,.75],chair:[.5,.5],kitchen:[1.5,.75],bath:[.75,1.5],toilet:[.5,.5],plant:[.5,.5],car:[1.2,3],misc:[.75,.75],stairs:[.5,3.5],elevator:[1.5,1.5],light_switch:[.40,.28],breaker_panel:[.75,.40],battery_pickup:[.5,.5],light_fixture:[.4,.4],power_outlet:[.25,.25],power_strip:[.6,.25],phone_charger:[.45,.4],water_main:[.35,.4],water_valve:[.25,.25],water_outlet:[.25,.25],water_cistern:[1.2,1],water_tinaco:[.8,.8],water_boiler:[.75,.75],water_boiler_aux:[.6,.6],drain_outlet:[.3,.3],drain_main:[.3,.3],router:[.55,.4],ethernet_port:[.25,.25],landline_phone:[.35,.3],spawn:[.4,.4],npc_portal:[.4,.4]};
+const SHORT={water_boiler:'Caldera de agua caliente',water_boiler_aux:'Equipo técnico de caldera',water_cistern:'Cisterna potable',water_tinaco:'Tinaco potable',generator_ats:window.FH_SERVICES_TEXT.generator.ats,generator_tank:window.FH_SERVICES_TEXT.generator.tank,generator:window.FH_SERVICES_TEXT.labels.generator,red_wall:'Pared roja estructural',property_wall:'Pared amarilla · propiedad',paint_wall:'Pintar cara de pared',wall:'Pared',half_wall:'Pared media',fence:'Reja',door:'Puerta',peephole_door:'Puerta con mirilla',window:'Ventana',opening:'Abertura',room:'Habitación',room_fill:'Auto-habitación',hall:'Pasillo',outside:'Exterior',building:'Edificio',pavement:'Banqueta / piso',parking:'Estacionamiento',asphalt:'Asfalto',alley:'Callejón manchado',sidewalk:'Banqueta',concrete:'Concreto',gravel:'Grava',cobblestone:'Adoquín',tile_floor:'Baldosa',carpet:'Alfombra',wood_floor:'Madera',parking_decal:'Marca de estacionamiento',grass:'Pasto',dirt:'Tierra',stairs:'Escaleras',elevator:'Ascensor',light_switch:'Interruptor de luz',breaker_panel:'Panel de breakers',battery_pickup:'Batería de linterna',light_fixture:'Lámpara',power_outlet:'Enchufe doble',power_strip:'Multiconector',phone_charger:'Cargador de celular',water_main:'Entrada de agua',water_valve:'Válvula',water_outlet:'Toma de agua',drain_outlet:'Desagüe',drain_main:'Salida de drenaje',router:'Router Wi-Fi',ethernet_port:'Toma Ethernet',landline_phone:'Teléfono de pared',zone_assign:'Conectar habitación o lámpara',spawn:'Jugador',npc_portal:'Entrada / salida NPC',bed:'Cama',sofa:'Sofá',tv:'Tele',dining:'Comedor',table:'Mesa',chair:'Silla',kitchen:'Cocina',bath:'Ducha / tina',toilet:'WC',plant:'Planta',car:'Coche',misc:'Mueble libre'};const ORIENTABLE_TYPES=ForestShared.FACING_OBJECT_TYPES;
 function normalizeFurnitureFootprints(){const eps=.001,types=Object.keys(OBJECT_SIZES);let changed=0;for(const fl of project.floors||[]){for(const it of fl.items||[]){if(!types.includes(it.type)||!('x' in it)||it.type==='spawn'||it.type==='car')continue;const old=LEGACY_OBJECT_SIZES[it.type],neu=OBJECT_SIZES[it.type];if(!old||!neu)continue;const w=Number(it.w),h=Number(it.h);if(Math.abs(w-old[0])<eps&&Math.abs(h-old[1])<eps){it.w=neu[0];it.h=neu[1];changed++;}}}return changed;}
 const $=s=>document.querySelector(s), $$=s=>Array.from(document.querySelectorAll(s));
 const clone=x=>JSON.parse(JSON.stringify(x));
@@ -2009,8 +2009,61 @@ function drawUtilityNetworkOverlay(c,z){
   for(const item of invalid){const p=toPixel(item);c.beginPath();c.arc(p.x,p.y,3/z,0,2*Math.PI);c.fill()}
   c.restore();
  }
+ if(activeCategory==='water'){
+  // Diagnóstico de cables directos y motivos de desconexión, sin enchufes ficticios.
+  const equipments=items.filter(it=>window.FHBoilersCatalog?.has(it.modelId));
+  c.save();c.font=(11/z)+'px system-ui';c.lineWidth=2/z;
+  for(const it of equipments){
+   const p=toPixel(it),status=runtime.statusFor(floorIndex,it);
+   const cable=runtime.wiringSourceFor(floorIndex,it);
+   if(cable?.route?.points?.length)
+    drawWallPaths(c,z,[cable.route],status.power.powered?'#e4c86f':'#b26b68',true);
+   const water=status.water,boiler=status.hotWater;
+   let why='';
+   if(it.service?.requiresPower){
+    if(!status.power.connected)why='SIN CIRCUITO DE BREAKER';
+    else if(!status.power.powered)why='CIRCUITO SIN CORRIENTE';
+   }
+   if(!why&&it.service?.waterHeating===true){
+    if(!water.water)why='SIN TOMA DE AGUA FRÍA / TUBERÍA';
+    else if(!boiler?.hotWater)why='CALENTANDO O SIN RESERVA CALIENTE';
+   }
+   if(why){
+    c.fillStyle='#f1b1a1';c.fillText(why,p.x+9/z,p.y-9/z);
+    c.beginPath();c.arc(p.x,p.y,5/z,0,2*Math.PI);c.strokeStyle='#de8575';c.stroke();
+   }
+  }
+  if(!project.plumbing?.enabled){
+   c.fillStyle='#edbe88';
+   const origin=toPixel({x:1,y:1});
+   c.fillText('RED POTABLE DESACTIVADA: actívala en Modelos de agua',origin.x,origin.y);
+  }else if(runtime.waterNetwork?.enabled&&!runtime.waterNetwork.diagnostics().routes.length){
+   c.fillStyle='#edbe88';
+   const origin=toPixel({x:1,y:1});
+   c.fillText('SIN TUBERÍAS: coloca entrada pública y tomas sobre paredes conectadas',origin.x,origin.y);
+  }
+  c.restore();
+ }
  if(activeCategory==='water'&&runtime.hotWater?.enabled){
   const hot=runtime.hotWater.diagnostics();
+  const boilers=items.filter(it=>window.FHBoilersCatalog?.has(it.modelId)&&
+   it.service?.waterHeating===true);
+  const hotPorts=items.filter(it=>it.type==='water_outlet'&&
+   (it.hotWaterEnabled===true||it.utilitySkin==='toma_agua_doble'));
+  c.save();c.font=(11/z)+'px system-ui';c.fillStyle='#eab881';
+  if(boilers.length&&!hotPorts.length){
+   const at=toPixel(boilers[0]);
+   c.fillText('SIN TUBERÍA CALIENTE: coloca una toma doble y conéctala por las paredes',
+    at.x+10/z,at.y-22/z);
+  }
+  for(const route of hot.routes.filter(r=>!r.connected&&r.floor===floorIndex)){
+   const it=items.find(x=>x.id===route.itemId);
+   if(it){const at=toPixel(it);
+    c.fillText('SIN RUTA CALIENTE: revisa la red, paredes y montantes',
+     at.x+10/z,at.y+17/z);
+   }
+  }
+  c.restore();
   drawWallPaths(c,z,hot.routes.flatMap(r=>r.sections.filter(s=>!s.vertical&&s.floor===floorIndex).map(s=>({points:s.points}))), '#eaa16c',true);
   c.save();c.fillStyle='#eabb7d';
   for(const route of hot.routes.filter(r=>r.floor===floorIndex&&!r.heated)){
@@ -3250,7 +3303,7 @@ const playCanvas=document.querySelector('#playCanvas');
 const playCtx=playCanvas.getContext('2d',{alpha:false});
 const PLAY_SOLID_SEGMENTS=new Set(['red_wall','wall','property_wall','half_wall','fence','window']);
 const PLAY_DOORS=new Set(['door','peephole_door']);
-const PLAY_SOLID_OBJECTS=new Set(['generator','generator_tank','bed','sofa','tv','dining','table','chair','kitchen','bath','toilet','car','misc']);
+const PLAY_SOLID_OBJECTS=new Set(['generator','generator_tank','water_boiler','water_boiler_aux','bed','sofa','tv','dining','table','chair','kitchen','bath','toilet','car','misc']);
 let playLiftCollision=[];
 const PLAY_FLOORS={outside:'#53614b',building:'#626b79',pavement:'#8a8790',parking:'#48535e',grass:'#427d48',dirt:'#8a6245',hall:'#6d7285',room:'#b2a08b'};
 const playFloor=()=>project.floors[playState.floorIndex];
@@ -5101,7 +5154,6 @@ init();
 <script src="./juego/assets/fh-barriers-editor.js?v=20261111-metal1"></script>
 </body>
 </html>
-
 
 
 

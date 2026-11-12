@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="es">
+<head><meta charset="utf-8"><title>Agua GLB · prueba real Three.js r128</title></head>
+<body>
+<canvas id="aguaCanvas" width="320" height="320"></canvas>
+<script src="../juego/assets/vendor/three.min.js"></script>
+<script src="../juego/assets/vendor/GLTFLoader.js"></script>
+<script src="../juego/assets/fh-water-catalog.js"></script>
+<script src="../juego/assets/fh-water-storage-catalog.js"></script>
+<script src="../juego/assets/fh-boilers-catalog.js"></script>
+<script src="../juego/assets/fh-water-visuals.js"></script>
+<script>
+'use strict';
+window.__aguaSmoke=(async()=>{
+ const models=[...window.FHBoilersCatalog.models,...window.FHWaterStorageCatalog.models];
+ if(models.length!==10)throw Error('Se esperaban diez modelos del autor, hay '+models.length);
+ const canvas=document.getElementById('aguaCanvas');
+ const CELL=1.524,stories=[new THREE.Scene()],renderedByItem=[new Map()],floor=stories[0];
+ floor.background=new THREE.Color(0x15242c);
+ floor.add(new THREE.HemisphereLight(0xffffff,0x454f55,2));
+ const sun=new THREE.DirectionalLight(0xffffff,1.4);sun.position.set(4,12,7);floor.add(sun);
+ const items=models.map((m,i)=>({
+  id:'modelo_'+i,type:m.type,modelId:m.id,
+  x:i*4,y:m.mount==='wall'?0:4,rotation:0,
+  w:m.widthFt/5,h:m.depthFt/5,heightFt:m.heightFt
+ }));
+ // Un objeto antiguo misc con ID original debe mostrar igualmente su caldera GLB.
+ items.push({id:'caldera_legada',type:'misc',modelId:'caldera_residencial_mediana',utilitySkin:'toma_agua_pared',x:46,y:4,
+  rotation:0,w:.65,h:.55,heightFt:5});
+ items.push({id:'muro',type:'wall',a:{x:0,y:0},b:{x:49,y:0}});
+ const initial=JSON.stringify(items);
+ const original=[];
+ for(const it of items.filter(x=>x.modelId)){
+  const box=new THREE.Group();
+  box.name='MUEBLE_LIBRE_ANTIGUO_'+it.id;
+  box.add(new THREE.Mesh(new THREE.BoxGeometry(.5,.5,.5),
+   new THREE.MeshBasicMaterial({color:0xff00ff})));
+  floor.add(box);original.push(box);
+  renderedByItem[0].set(it.id,[{root:box}]);
+ }
+ const fow=[];
+ const installed=window.FHWaterVisuals.install({
+  THREE,DATA:{schema:'forest-horror-map-v1',units:{feetPerCell:5},floors:[{id:'piso',items}]},
+  CELL,stories,renderedByItem,
+  ForestShared:{switchWallMount:(all,p)=>({wallId:'muro',point:p,normal:{x:0,y:1},rotation:0})},
+  applyFOW:obj=>{obj.userData.fhFowApplied=true;fow.push(obj);}
+ });
+ if(installed.length!==11)throw Error('Falló el montaje inicial: '+installed.length+'/11');
+ if(original.some(x=>x.parent))throw Error('Permanece el mueble libre al comenzar a cargar GLB');
+ if(installed.some(x=>x.root.userData.fhModelState!=='loading'))throw Error('Estado inicial GLB incorrecto');
+ const waitUntil=Date.now()+15000;
+ while(Date.now()<waitUntil&&installed.some(x=>x.root.userData.fhModelState==='loading'))
+  await new Promise(resolve=>setTimeout(resolve,65));
+ const failures=[],stats=[];
+ for(const entry of installed){
+  const {root,meta,it}=entry;
+  let meshes=0,textures=0,vertices=0;
+  root.traverse(node=>{if(!node.isMesh)return;meshes++;vertices+=node.geometry?.attributes?.position?.count||0;
+   if(node.material?.map?.image)textures++;});
+  stats.push({id:it.id,model:meta.id,state:root.userData.fhModelState,meshes,textures,vertices});
+  if(root.userData.fhModelState!=='ready')failures.push(it.id+': '+(root.userData.fhModelError||root.userData.fhModelState));
+  if(meshes!==1||textures!==1||vertices===0)failures.push(it.id+': malla/textura ausente');
+  if(!root.children[0]?.userData?.fhFowApplied)failures.push(it.id+': FOW omitida');
+  if(!renderedByItem[0].get(it.id)?.some(entry=>entry.root===root))failures.push(it.id+': objeto no registrado');
+ }
+ if(JSON.stringify(items)!==initial)failures.push('mapa JSON mutado');
+ if(original.some(x=>x.parent))failures.push('mueble libre reinsertado');
+ if(failures.length)throw Error(failures.join('; '));
+ const renderer=new THREE.WebGLRenderer({canvas,antialias:false,preserveDrawingBuffer:true});
+ renderer.setSize(320,320,false);
+ renderer.setPixelRatio(1);
+ const cam=new THREE.PerspectiveCamera(50,1,.1,100);
+ const chosen=installed.find(x=>x.meta.id==='caldera_industrial_grande');
+ const center=chosen.root.position.clone().add(new THREE.Vector3(0,1,0));
+ cam.position.copy(center).add(new THREE.Vector3(3,2,5));cam.lookAt(center);
+ renderer.render(floor,cam);
+ const gl=renderer.getContext();
+ const bytes=new Uint8Array(320*320*4);
+ gl.readPixels(0,0,320,320,gl.RGBA,gl.UNSIGNED_BYTE,bytes);
+ const background=[Math.round(.08235*255),Math.round(.14118*255),Math.round(.17255*255)];
+ let colored=0;
+ for(let i=0;i<bytes.length;i+=4){
+  if(Math.abs(bytes[i]-background[0])+Math.abs(bytes[i+1]-background[1])+
+   Math.abs(bytes[i+2]-background[2])>60)colored++;
+ }
+ if(colored<500)throw Error('WebGL no dibujó la caldera GLB: píxeles de geometría '+colored);
+ return {models:stats.length,meshCount:stats.reduce((n,x)=>n+x.meshes,0),
+  textures:stats.reduce((n,x)=>n+x.textures,0),fow:fow.length,
+  renderer:gl.getParameter(gl.RENDERER),coloredPixels:colored,stats};
+})();
+</script>
+</body>
+</html>

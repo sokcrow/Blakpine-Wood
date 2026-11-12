@@ -15,11 +15,16 @@
  const scriptBase=root.document?.currentScript?.src?new URL('.',root.document.currentScript.src):null;
  const DEFAULT=Object.freeze({water_main:'medidor_agua',water_valve:'llave_paso_principal',water_outlet:'toma_agua_pared',
   water_cistern:'cisterna_principal',water_tinaco:'tinaco_elevado',drain_outlet:'desague_pared'});
- const catalog=()=>[...(root.FHWaterCatalog?.models||[]),...(root.FHWaterStorageCatalog?.models||[])];
+ const catalog=()=>[...(root.FHWaterCatalog?.models||[]),
+  ...(root.FHWaterStorageCatalog?.models||[]),...(root.FHBoilersCatalog?.models||[])];
  const byId=id=>catalog().find(m=>m.id===id)||null;
  const choose=it=>{
+  // Los mapas antiguos pueden guardar utilitySkin de "mueble libre".
+  // Un modelId de caldera auténtica siempre tiene prioridad sobre ese skin.
+  const boiler=root.FHBoilersCatalog?.byId(it?.modelId);
+  if(boiler&&(it?.type==='misc'||it?.type===boiler.type))return boiler;
   const selected=byId(it?.utilitySkin||it?.modelId);
-  if(selected&&selected.type===it.type)return selected;
+  if(selected&&(selected.type===it?.type||it?.type==='misc'&&root.FHBoilersCatalog?.has(selected.id)))return selected;
   return byId(DEFAULT[it?.type])||null;
  };
  const normal=rotation=>{const rad=(Number(rotation)||0)*Math.PI/180;return {x:-Math.sin(rad),y:Math.cos(rad)};};
@@ -80,7 +85,6 @@
   });return loaderPromise;
  }
  function load(meta,THREE){
-  if(meta.glbAvailable===false)return Promise.resolve(storageFallback(THREE,meta));
   if(!loaded.has(meta.id))loaded.set(meta.id,loader(THREE).then(l=>new Promise((resolve,reject)=>{
    if(!base)return reject(Error('Kit Agua 01 sin ruta de instalación'));
    l.load(new URL(meta.glb,base).href,gltf=>{
@@ -112,71 +116,34 @@
   }
   return false;
  }
- // Respaldo 3D para los objetos colocables de Agua 03 hasta publicar GLB del ZIP.
- // No añade colisiones: se conservan w/h y blocksMovement del objeto JSON.
- function storageFallback(THREE,meta){
-  if(!['cisterna_principal','tinaco_elevado'].includes(meta?.id))return null;
-  const group=new THREE.Group();
-  const shell=new THREE.MeshStandardMaterial({color:meta.id==='cisterna_principal'?0x456879:0x354a53,
-   roughness:.88,metalness:.08});
-  const metal=new THREE.MeshStandardMaterial({color:0x819a9b,roughness:.75,metalness:.28});
-  function box(w,h,d,x,y,z,mat=shell){
-   const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);
-   mesh.position.set(x,y,z);group.add(mesh);return mesh;
-  }
-  function cylinder(top,bottom,height,x,y,z,mat=shell,sides=12){
-   const mesh=new THREE.Mesh(new THREE.CylinderGeometry(top,bottom,height,sides),mat);
-   mesh.position.set(x,y,z);group.add(mesh);return mesh;
-  }
-  if(meta.id==='cisterna_principal'){
-   const w=meta.widthFt*FT,d=meta.depthFt*FT,h=meta.heightFt*FT;
-   for(const x of [-w*.34,w*.34])box(.11,.14,d*.85,x,.07,0,metal);
-   box(w*.96,h*.78,d*.95,0,.14+h*.39,0);
-   box(w*.43,.065,.43,w*.16,h*.93,-d*.18,metal);
-   cylinder(.23,.23,.055,w*.16,h*.99,-d*.18,metal);
-   box(w*.44,h*.18,.016,0,h*.55,d*.48,metal);
-  }else{
-   const w=meta.widthFt*FT,h=meta.heightFt*FT;
-   for(const x of [-w*.32,w*.32])for(const z of [-w*.32,w*.32])
-    box(.11,h*.26,.11,x,h*.13,z,metal);
-   box(w*.9,.07,w*.9,0,h*.27,0,metal);
-   cylinder(w*.41,w*.44,h*.58,0,h*.58,0,shell);
-   cylinder(w*.29,w*.35,h*.09,0,h*.92,0,shell);
-   cylinder(w*.15,w*.15,h*.04,0,h*.985,0,metal);
-  }
-  group.name='FH_AGUA_03_RESPALDO';
-  return group;
- }
  function install({THREE,DATA,CELL,stories,renderedByItem,ForestShared,applyFOW}){
   const result=[];
   for(let f=0;f<(DATA?.floors?.length||0);f++){
    const items=DATA.floors[f].items||[];
    for(const it of items){
     const meta=choose(it);if(!meta)continue;
-    for(const entry of renderedByItem[f]?.get?.(it.id)||[])root.FHAssets?.markPlaceholder(entry.root||entry,applyFOW);
     const pose=mountPose(it,meta,items,CELL,ForestShared);if(!pose)continue;
     const originals=(renderedByItem[f]?.get?.(it.id)||[]).map(o=>o.root||o).filter(Boolean);
+    // Los diez equipos técnicos siempre se representan por su GLB real.
+    // Retirar la malla genérica desde el comienzo: nunca aparece "Mueble libre"
+    // mientras el recurso carga o si termina en error. No mutar colisiones/JSON.
+    for(const old of originals)if(old.parent)old.parent.remove(old);
     const root3D=new THREE.Group();root3D.name='FH_AGUA_'+it.id;root3D.userData.fhServiceItem=it.id;
+    root3D.userData.fhModelId=meta.id;root3D.userData.fhModelState='loading';
     root3D.position.set(pose.x,pose.y,pose.z);root3D.rotation.y=pose.rotation;stories[f]?.add(root3D);
     result.push({it,meta,pose,root:root3D});
     load(meta,THREE).then(scene=>{
      if(!root3D.parent)return;
-     const instance=scene.clone(true);
-     if(meta.glbAvailable===false&&root.FHAssets?.markPlaceholder)root.FHAssets.markPlaceholder(instance,applyFOW);
-     else if(typeof applyFOW==='function')applyFOW(instance);
-     root3D.add(instance);root3D.userData.fhModelState=meta.glbAvailable===false?'fallback':'ready';
+     const instance=scene.clone(true);if(typeof applyFOW==='function')applyFOW(instance);
+     root3D.add(instance);root3D.userData.fhModelState='ready';
      for(const old of originals)if(old.parent&&old!==root3D)old.parent.remove(old);
      renderedByItem[f]?.set?.(it.id,[{root:root3D}]);
     }).catch(error=>{
-     const backup=storageFallback(THREE,meta);
-     if(backup&&root3D.parent){
-      if(root.FHAssets?.markPlaceholder)root.FHAssets.markPlaceholder(backup,applyFOW);
-      else if(typeof applyFOW==='function')applyFOW(backup);
-      root3D.add(backup);root3D.userData.fhModelState='fallback';
-      for(const old of originals)if(old.parent&&old!==root3D)old.parent.remove(old);
-      renderedByItem[f]?.set?.(it.id,[{root:root3D}]);
-     }else root3D.userData.fhModelState='error';
-     console.warn('[Agua 03]',root.FH_WATER_TEXT?.loadError||'No se pudo cargar el GLB',meta.id,error);
+     root3D.userData.fhModelState='error';
+     root3D.userData.fhModelError=String(error?.message||error);
+     // No sustituir el GLB por el viejo 'Mueble libre'. Indicar el fallo de asset.
+     for(const old of originals)if(old.parent&&old!==root3D)old.parent.remove(old);
+     console.error('[Agua · GLB original]',meta.id,root3D.userData.fhModelError);
     });
    }
   }
@@ -240,10 +207,9 @@
    '\n  if(window.FHWaterVisuals?.choose(it)?.mount==="wall"&&!window.FHWaterVisuals.frontAllowed(it,user.x/CELL,user.z/CELL)){notice(window.FH_WATER_TEXT?.wrongSide||"Usa el dispositivo desde su frente.");return true;}'+
    '\n  if(window.FHWaterVisuals?.onUse(it,f,service,notice,user.x/CELL,user.z/CELL))return true;');
   const rootURL=new URL('./juego/assets/',root.document?.baseURI||'https://localhost/');
-  const tags=['fh-water-catalog.js','fh-water-storage-catalog.js','fh-water-strings.js','fh-water-visuals.js?v=20261112-purple-pc-power-1'].map(f=>'<script src="'+new URL(f,rootURL).href+'"></scr'+'ipt>').join('');
+  const tags=['fh-water-catalog.js','fh-water-storage-catalog.js','fh-water-strings.js','fh-water-visuals.js?v=20261112-agua-glb-directo-2'].map(f=>'<script src="'+new URL(f,rootURL).href+'"></scr'+'ipt>').join('');
   const head=doc.indexOf('</head>');if(head<0)throw Error('Agua 01: no se encontró la cabecera del motor');
   return doc.slice(0,head)+tags+doc.slice(head);
  }
  return {DEFAULT,byId,choose,normal,frontAllowed,wallMount,floorPlacement,mountPose,onUse,install,patchEngineDoc,load};
 });
-

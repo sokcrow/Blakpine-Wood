@@ -1,0 +1,50 @@
+name: Agua — modelos 3D reales en Chromium
+on:
+  push:
+    branches:
+      - fix/agua-modelos-glb-circuitos-y-tuberias
+    paths:
+      - 'juego/assets/fh-water-visuals.js'
+      - 'juego/assets/fh-boilers-catalog.js'
+      - 'juego/assets/fh-water-storage-catalog.js'
+      - 'forest-horror/biblioteca/agua/calderas/**'
+      - 'forest-horror/biblioteca/agua/almacenamiento/**'
+      - 'tests/agua-glb-browser.*'
+      - 'juego/assets/fh-services-engine-hook.test.js'
+      - '.github/workflows/agua-glb-3d-browser.yml'
+  pull_request:
+    paths:
+      - 'juego/assets/fh-water-visuals.js'
+      - 'juego/assets/fh-boilers-catalog.js'
+      - 'juego/assets/fh-water-storage-catalog.js'
+      - 'forest-horror/biblioteca/agua/calderas/**'
+      - 'forest-horror/biblioteca/agua/almacenamiento/**'
+      - 'tests/agua-glb-browser.*'
+      - 'juego/assets/fh-services-engine-hook.test.js'
+      - '.github/workflows/agua-glb-3d-browser.yml'
+permissions:
+  contents: read
+jobs:
+  browser-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Preparar navegador de pruebas en runner GitHub (sin instalador local)
+        run: |
+          npm install --no-save --no-package-lock --ignore-scripts playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Verificar inyección del cargador en el iframe 3D del mapa
+        run: node --test juego/assets/fh-services-engine-hook.test.js
+      - name: Cargar 10 GLB reales mediante GLTFLoader y renderizar Three.js
+        run: node tests/agua-glb-browser.cjs
+      - name: Captura WebGL si existe
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agua-glb-webgl
+          path: agua-glb-browser.png
+          if-no-files-found: ignore

@@ -72,7 +72,8 @@ test('editor coloca tipos nativos como infraestructura, no misc, y guarda el ID 
  assert.equal(project.plumbing.enabled,true);
 });
 test('selector de calderas no secuestra las dos herramientas de almacenamiento',()=>{
- assert.match(boiler,/if\(type!=='misc'\|\|activeCategory!=='water'/);
+ assert.match(boiler,/\['water_boiler','water_boiler_aux'\]/);
+ assert.doesNotMatch(boiler,/oldCreate\(['"]misc['"]/);
  assert.match(editor,/type==='water_cistern'\|\|type==='water_tinaco'/);
 });
 test('GLB de Agua 03 se gestionan por el cargador hidráulico, no de muebles',()=>{
@@ -80,7 +81,7 @@ test('GLB de Agua 03 se gestionan por el cargador hidráulico, no de muebles',()
  assert.match(visuals,/fh-water-storage-catalog\.js/,'catálogo disponible en documento 3D');
  assert.match(visuals,/cisterna_principal/);
  assert.match(visuals,/tinaco_elevado/);
- assert.match(visuals,/storageFallback\(THREE,meta\)/,'fallback visible si faltan GLB');
+ assert.doesNotMatch(visuals,/storageFallback\(THREE,meta\)/,'no se aceptan muebles sustitutos');
  assert.match(bridge,/FHWaterStorageCatalog\?\.byId\(modelId\)/);
 });
 test('las reservas siguen entrando en el cálculo de agua potable',()=>{
@@ -105,12 +106,12 @@ function visualRuntime(){
  };
  const window={document:{currentScript:{src:'https://example.test/juego/assets/fh-water-visuals.js'}},
   FHWaterStorageCatalog:catalog,FHWaterCatalog:{models:[]}};
- vm.runInNewContext(visuals,{window,URL,console:{warn(...args){warnings.push(args);}}});
+ vm.runInNewContext(visuals,{window,URL,console:{warn(...args){warnings.push(args);},error(...args){warnings.push(args);}}});
  return {THREE,api:window.FHWaterVisuals,requests,warnings,window};
 }
 const settleVisuals=()=>new Promise(resolve=>setImmediate(resolve));
 
-test('depósitos pendientes se muestran sin descargas, avisos ni pérdida de FOW',async()=>{
+test('cisterna y tinaco cargan sus GLB originales, sin mutar mapa ni colisiones',async()=>{
  const {THREE,api,requests,warnings}=visualRuntime();
  const items=catalog.models.map(m=>({id:m.id,type:m.type,modelId:m.id,x:2,y:3}));
  const DATA={floors:[{items}]},story=new THREE.Group(),rendered=new Map(),masked=[];
@@ -120,15 +121,14 @@ test('depósitos pendientes se muestran sin descargas, avisos ni pérdida de FOW
  const result=api.install({THREE,DATA,CELL:1.524,stories:[story],renderedByItem:[rendered],
   applyFOW:object=>masked.push(object)});
  await settleVisuals();
- assert.equal(requests.length,0,'no solicitar GLB inexistentes');
- assert.equal(warnings.length,0,'no provocar un error para activar el respaldo');
- assert.equal(masked.length,2);
+ assert.equal(requests.length,2,'solicitar exactamente los dos GLB originales');
+ assert.equal(warnings.length,0,'no recurrir a un fallback falso');
+ assert.equal(masked.length,2,'conservar en los GLB la máscara de visibilidad');
  for(const {root,meta,pose} of result){
-  assert.equal(meta.glbAvailable,false);
-  assert.equal(root.userData.fhModelState,'fallback');
+  assert.ok(requests.some(url=>url.endsWith(meta.glb)),meta.id);
+  assert.equal(root.userData.fhModelState,'ready');
   assert.equal(root.children.length,1);
-  assert.equal(root.children[0].name,'FH_AGUA_03_RESPALDO');
-  assert.ok(root.children[0].children.some(node=>node.isMesh));
+  assert.ok(root.children[0].isGroup);
   assert.ok(masked.includes(root.children[0]));
   assert.equal(root.parent,story);
   assert.equal(root.position.x,pose.x);
@@ -136,29 +136,22 @@ test('depósitos pendientes se muestran sin descargas, avisos ni pérdida de FOW
   assert.equal(rendered.get(meta.id)[0].root,root);
  }
  assert.ok(originals.every(old=>old.parent===null));
- assert.equal(JSON.stringify(DATA),before,'sin mutar mapas ni colisiones');
+ assert.equal(JSON.stringify(DATA),before,'sin alterar mapa ni colisiones');
 });
 
-test('GLB publicados siguen cargando y el error real conserva el respaldo',async()=>{
- const {THREE,api,requests,warnings}=visualRuntime();
- const published={...catalog.models[0],glbAvailable:true};
- const scene=await api.load(published,THREE);
- assert.ok(scene.isGroup);
- assert.equal(requests.length,1);
- assert.ok(requests[0].endsWith(published.glb));
- await api.load({id:'medidor_agua',glb:'modelos_glb/medidor_agua.glb'},THREE);
- assert.equal(requests.length,2,'catálogos anteriores sin el flag siguen descargando');
- // Una nueva instancia del runtime evita reutilizar la caché del caso anterior.
+test('si falla la descarga del GLB se reporta error, nunca se crea mueble libre',async()=>{
  const failed=visualRuntime();
- failed.window.FHWaterStorageCatalog={models:[{...published,glb:'fallido.glb'}]};
+ const meta={...catalog.models[0],glb:'fallido.glb'};
+ failed.window.FHWaterStorageCatalog={
+  models:[meta],byId:id=>id===meta.id?meta:null
+ };
  const story=new failed.THREE.Group();
- const result=failed.api.install({THREE:failed.THREE,DATA:{floors:[{items:[
-  {id:'tank',type:'water_cistern',x:0,y:0}]}]},CELL:1.524,
+ const results=failed.api.install({THREE:failed.THREE,DATA:{floors:[{items:[
+  {id:'tank',type:'water_cistern',modelId:meta.id,x:0,y:0}]}]},CELL:1.524,
   stories:[story],renderedByItem:[new Map()]});
  await settleVisuals();
  assert.equal(failed.requests.length,1);
- assert.equal(failed.warnings.length,1);
- assert.equal(result[0].root.userData.fhModelState,'fallback');
- assert.ok(result[0].root.children[0].children.some(node=>node.isMesh));
- assert.equal(warnings.length,0);
+ assert.equal(results[0].root.userData.fhModelState,'error');
+ assert.match(results[0].root.userData.fhModelError,/recurso ausente/);
+ assert.equal(results[0].root.children.length,0,'no usar ninguna geometría genérica');
 });
