@@ -82,3 +82,27 @@ test('catálogo sanitario cubierto y sin incluir decoración',()=>{
  'cabina_ducha','regadera_pared'])assert.equal(potable.isFixture({modelId:id}),true,id);
  assert.equal(potable.isFixture({modelId:'espejo_rectangular'}),false);
 });
+
+test('un segundo real recarga un minuto del juego, sin aceleración artificial',()=>{
+ const map=build({withTank:true});const {runtime:r}=runtime(map);
+ const tank=map.floors[0].items.find(x=>x.id==='tank');
+ r.tick(1,1);
+ assert.equal(r.waterStatus(0,tank).liters,20);
+});
+test('la entrada pública indica correctamente cuándo se suspende el contrato',()=>{
+ const map=build();const {runtime:r}=runtime(map);
+ const main=map.floors[0].items.find(x=>x.id==='main');
+ assert.equal(r.waterStatus(0,main).water,true);
+ r.setService('water',false);
+ assert.equal(r.waterStatus(0,main).water,false);
+});
+test('ramales compartidos no duplican pies de tubería instalada',()=>{
+ const map=build({twoFloors:false});
+ const items=map.floors[0].items;
+ items.push({id:'portB',type:'water_outlet',networkId:'main',x:10,y:0,radiusFt:5});
+ const {runtime:r}=runtime(map);
+ const info=r.waterNetwork.diagnostics();
+ const combined=info.routes.filter(x=>x.connected).reduce((sum,x)=>sum+x.feet,0);
+ assert.ok(info.coldFeet<combined,'los tramos comunes solo cuentan una vez');
+ assert.ok(info.coldFeet>0);
+});
