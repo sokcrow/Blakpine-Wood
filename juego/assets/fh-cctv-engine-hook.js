@@ -18,7 +18,11 @@
   const computers='window.FHComputerRuntime=window.FHComputer?.createRuntime({';
   const runtime=String.raw`
 const fhCCTV=window.FHCCTV.createRuntime(DATA.floors);
-let fhCCTVTarget=null,fhCCTVView=null,fhCCTVRead=null,fhCCTVFrameStamp=-1;
+const fhCCTVFormats=Object.freeze({
+ hd:{width:960,height:552,intervalMs:100},
+ normal:{width:640,height:368,intervalMs:84}
+});
+let fhCCTVTarget=null,fhCCTVView=null,fhCCTVRead=null,fhCCTVFrameStamp=-1,fhCCTVFormat=null;
 const fhCCTVWhite=new THREE.DataTexture(new Uint8Array([255,255,255,255]),1,1,THREE.RGBAFormat);
 fhCCTVWhite.needsUpdate=true;
 let fhCCTVModels=[],fhCCTVLastScan=-2000;
@@ -44,48 +48,101 @@ function fhCCTVFrame(now){
  const api=pc.terminalApi?.(),screen=api?.getState?.(),session=pc.session;
  if(!screen?.power||screen?.mode!=='on'||screen?.front!=='cams')return;
  const selected=session?.cameras?.[screen.camera];
- if(!selected?.online||now-fhCCTVFrameStamp<250)return;
+ if(!selected?.online)return;
+ const format=screen.cameraQuality==='normal'?fhCCTVFormats.normal:fhCCTVFormats.hd;
+ if(fhCCTVTarget&&fhCCTVFormat!==format){fhCCTVTarget.dispose();fhCCTVTarget=null;}
+ if(now-fhCCTVFrameStamp<format.intervalMs&&fhCCTVTarget)return;
  const cameraPose=fhCCTV.view(selected.id,now,CELL,floorElev);
  if(!cameraPose)return;
- fhCCTVFrameStamp=now;
  if(!fhCCTVTarget){
-  fhCCTVTarget=new THREE.WebGLRenderTarget(320,184,{minFilter:THREE.NearestFilter,magFilter:THREE.NearestFilter,depthBuffer:true});
-  fhCCTVView=new THREE.PerspectiveCamera(65,320/184,.05,190);
-  fhCCTVRead=new Uint8Array(320*184*4);
+  fhCCTVFormat=format;
+  fhCCTVTarget=new THREE.WebGLRenderTarget(format.width,format.height,{
+   minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,depthBuffer:true
+  });
+  fhCCTVView=new THREE.PerspectiveCamera(65,format.width/format.height,.05,190);
+  fhCCTVRead=new Uint8Array(format.width*format.height*4);
  }
+ fhCCTVFrameStamp=now;
  fhCCTVView.fov=cameraPose.fovDeg;fhCCTVView.updateProjectionMatrix();
  fhCCTVView.position.set(cameraPose.x,cameraPose.y,cameraPose.z);
  fhCCTVView.lookAt(cameraPose.x-Math.sin(cameraPose.bearing),cameraPose.y,cameraPose.z+Math.cos(cameraPose.bearing));
  const oldTarget=renderer.getRenderTarget(),oldMask=sightUniform.value;
  const oldHero=hero.visible,oldShadow=shadow.visible;
+ const oldAmbient=ambient.intensity,oldFlashlight=flashlightSpot.intensity;
+ const oldLights=roomDynamicLights.map(light=>({intensity:light.intensity,position:light.position.clone()}));
  const storyVisibility=stories.map(story=>story.visible);
+ const oldCutaways=occlusionRoots[cameraPose.floor].map(root=>[root,root.visible]);
+ const oldFixtures=roomLampEntries.filter(entry=>entry.floor===cameraPose.floor)
+  .map(entry=>[entry,entry.lit.visible,entry.dark.visible]);
  const objects=[];
  scene.traverse(obj=>{
-  // Solo reponer por un instante la ocultación FOW del jugador.
   if(obj.userData&&Object.prototype.hasOwnProperty.call(obj.userData,'fhSightVisible')){
    objects.push([obj,obj.visible]);obj.visible=true;
   }
  });
+ const oldActors=[];
+ if(typeof fhSightActors!=='undefined')for(const [actor,floorSource] of fhSightActors){
+  const f=typeof floorSource==='function'?floorSource():floorSource;
+  if(f===cameraPose.floor){oldActors.push([actor,actor.visible]);actor.visible=true;}
+ }
  try{
+  // La cámara ve el mundo real, sin la máscara FOW ni los recortes de muros del jugador.
   sightUniform.value=fhCCTVWhite;
   stories.forEach((story,i)=>story.visible=i===cameraPose.floor);
-  if(cameraPose.floor!==currentFloor){hero.visible=false;shadow.visible=false;}
+  for(const [root] of oldCutaways)root.visible=true;
+  if(cameraPose.floor!==currentFloor){hero.visible=false;shadow.visible=false;flashlightSpot.intensity=0;}
+
+  // Las luces de Three.js normalmente siguen al jugador. Reubicarlas solo durante
+  // esta captura en la planta/estancia observada, y restaurarlas antes del frame siguiente.
+  const localRoom=roomAt(cameraPose.floor,cameraPose.x,cameraPose.z);
+  const failing=typeof fhHorrorLightsFail==='function'&&fhHorrorLightsFail(now);
+  ambient.intensity=lighting.roomLit(cameraPose.floor,localRoom)&&!failing?.37:.075;
+  const blocked=sightWalls[cameraPose.floor].slice();
+  for(const door of doorList[cameraPose.floor])if(!door.transparent&&!door.passable)blocked.push(door.block);
+  const available=failing?[]:(window.FHLights?.sourcesNear
+   ?window.FHLights.sourcesNear(roomLampEntries,lighting,cameraPose.floor,cameraPose.x,cameraPose.z,8,10)
+   :lighting.sourcesNear(roomLampEntries,cameraPose.floor,cameraPose.x,cameraPose.z,7.2,7.2,12));
+  const active=available.filter(entry=>window.FHLights?.lightReachesPoint
+   ?window.FHLights.lightReachesPoint(entry,cameraPose.x,cameraPose.z,blocked,ForestShared.pointInSight)
+   :ForestShared.lightReachesPoint(entry,cameraPose.x,cameraPose.z,blocked))
+   .slice(0,roomDynamicLights.length);
+  roomDynamicLights.forEach((light,i)=>{
+   const entry=active[i];
+   light.intensity=entry?(failing?.05:1.58):0;
+   if(entry)light.position.set(entry.x,floorElev[entry.floor]+2.32,entry.z);
+  });
+  for(const [entry] of oldFixtures){
+   const lit=lighting.fixtureLit(entry.floor,entry.room,entry.lamp)&&!failing;
+   entry.lit.visible=lit;entry.dark.visible=!lit;
+  }
+
   renderer.setRenderTarget(fhCCTVTarget);
   renderer.render(scene,fhCCTVView);
-  renderer.readRenderTargetPixels(fhCCTVTarget,0,0,320,184,fhCCTVRead);
+  renderer.readRenderTargetPixels(fhCCTVTarget,0,0,format.width,format.height,fhCCTVRead);
  }catch(error){
   console.warn('[CCTV] Falló un fotograma:',error);
   return;
  }finally{
   renderer.setRenderTarget(oldTarget);
   sightUniform.value=oldMask;hero.visible=oldHero;shadow.visible=oldShadow;
+  ambient.intensity=oldAmbient;flashlightSpot.intensity=oldFlashlight;
+  roomDynamicLights.forEach((light,i)=>{
+   light.intensity=oldLights[i].intensity;light.position.copy(oldLights[i].position);
+  });
   stories.forEach((story,i)=>story.visible=storyVisibility[i]);
   for(const [obj,visible] of objects)obj.visible=visible;
+  for(const [root,visible] of oldCutaways)root.visible=visible;
+  for(const [actor,visible] of oldActors)actor.visible=visible;
+  for(const [entry,lit,dark] of oldFixtures){entry.lit.visible=lit;entry.dark.visible=dark;}
  }
- // WebGL devuelve píxeles desde abajo; Canvas2D los espera desde arriba.
- const pixels=new Uint8ClampedArray(fhCCTVRead.length),row=320*4;
- for(let y=0;y<184;y++)pixels.set(fhCCTVRead.subarray(y*row,(y+1)*row),(183-y)*row);
- api.receiveCameraPixels?.({id:selected.id,width:320,height:184,pixels,angleDeg:cameraPose.angleDeg});
+ // WebGL entrega filas invertidas respecto a Canvas2D.
+ const pixels=new Uint8ClampedArray(fhCCTVRead.length),row=format.width*4;
+ for(let y=0;y<format.height;y++)pixels.set(
+  fhCCTVRead.subarray(y*row,(y+1)*row),(format.height-1-y)*row
+ );
+ api.receiveCameraPixels?.({
+  id:selected.id,width:format.width,height:format.height,pixels,angleDeg:cameraPose.angleDeg
+ });
 }
 `;
   doc=replaceOnce(doc,computers,runtime+'\n'+computers);
