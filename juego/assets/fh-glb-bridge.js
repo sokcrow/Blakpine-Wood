@@ -142,6 +142,10 @@
       if (root.userData.fhModelId !== modelId) return;
       const apply = target => {
         replaceVisual(target, gltf.scene);
+        // Algunos brazos sitúan el tubo lejos del origen del GLB.
+        // Centrar la BASE en la casilla sin reducir ni deformar la geometría.
+        const poleBase = global.FHExteriorGrid?.POLE_COLLISION?.[modelId];
+        if (poleBase?.baseOffsetXFt) target.children[0].position.x -= poleBase.baseOffsetXFt * 0.3048;
         target.userData.fhModelState = 'ready';
         // GLB geometry is already in meters. Only its authored mounting offset
         // is applied here; it is never stretched to fit an unrelated tile size.
