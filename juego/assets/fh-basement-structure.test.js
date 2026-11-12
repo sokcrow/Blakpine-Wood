@@ -64,6 +64,8 @@ test('mapas sin sótanos o sin perímetro estructural siguen igual',()=>{
  assert.deepEqual(B.expandProject(map),map);
  const old=project();old.buildingSlabs.enabled=false;
  B.expandProject(old);assert.ok(!old.floors[0].items.some(it=>it.basementInherited));
+ const incomplete=project();incomplete.floors[2].items=[sourceWalls[0]];incomplete.buildingSlabs={enabled:true,spans:[]};
+ B.expandProject(incomplete);assert.equal(incomplete.floors[0].items.filter(it=>it.basementInherited).length,0,'Muro rojo suelto no se hereda sin huella cerrada');
 });
 test('editor y motor utilizan la misma huella subterránea y paredes nativas',()=>{
  const html=fs.readFileSync(path.join(__dirname,'../../index.html'),'utf8');
