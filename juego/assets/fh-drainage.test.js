@@ -264,6 +264,7 @@ test('shader global: tres máscaras por GPU, desnivel en tiles y lluvia secundar
   constructor(w=2,h=2){this.attributes={position:{count:4,getX:i=>i%2===0?-w/2:w/2,
    getY:i=>i<2?-h/2:h/2}};this.attrs={};}
   setAttribute(name,attribute){this.attrs[name]=attribute;}
+  setIndex(indices){this.indices=indices;}
  }
  class Attribute{constructor(values,components){this.values=values;this.components=components;}}
  class Mesh{
@@ -272,8 +273,8 @@ test('shader global: tres máscaras por GPU, desnivel en tiles y lluvia secundar
    this.rotation={x:0,y:0,z:0};this.visible=true;}
  }
  const THREE={ShaderMaterial,MeshBasicMaterial:Material,MeshLambertMaterial:Material,
-  Mesh,BoxGeometry:Geometry,PlaneGeometry:Geometry,Float32BufferAttribute:Attribute,
-  RingGeometry:Geometry,CircleGeometry:Geometry,DoubleSide:2};
+  Mesh,BoxGeometry:Geometry,PlaneGeometry:Geometry,BufferGeometry:Geometry,Float32BufferAttribute:Attribute,
+  RingGeometry:Geometry,CircleGeometry:Geometry,DoubleSide:2,FrontSide:0};
  const Core=D;
  const small=section('small',20,20,'wet'),out=section('outfall',40,40,'vortex');
  const source=map([[small,out], [section('small',10,10,'other')]]);
@@ -284,19 +285,31 @@ test('shader global: tres máscaras por GPU, desnivel en tiles y lluvia secundar
  assert.equal(new Set(waterMeshes.map(o=>o.material)).size,1,'Un mismo shader, incluso entre plantas');
  const shader=waterMeshes[0].material;
  assert.match(shader.vertexShader,/heightMask=noise/,'Ruido principal regula elevación');
- assert.match(shader.fragmentShader,/maskA=noise/);
- assert.match(shader.fragmentShader,/maskB=noise/);
+ assert.match(shader.vertexShader,/vMaskA=noise/);
+ assert.match(shader.vertexShader,/vMaskB=noise/);
+ assert.doesNotMatch(shader.fragmentShader,/noise\(|hash\(|sin\(/,
+  'Ninguna máscara debe consumir ruido procedural por píxel');
+ assert.equal(shader.transparent,false,'Agua opaca evita sobrepintado transparente');
+ assert.equal(shader.depthWrite,true,'El agua reutiliza el buffer de profundidad');
+ const vortexWater=waterMeshes.filter(m=>m.position.x===(out.x+out.w/2)*1.524&&m.position.z===(out.y+out.h/2)*1.524);
+ assert.equal(vortexWater.length,1,'El desagüe 20x20 ocupa un solo draw call de agua');
+ assert.ok(vortexWater[0].geometry.indices.length>6,'Las piezas forman una malla unificada');
  assert.equal(shader.uniforms.uWave.value,.032*1.524);
  assert.ok(waterMeshes.some(m=>m.position.y===Core.WATER_LEVEL*1.524),'Agua a -0.2 tile');
  const flood=waterMeshes.find(m=>m.visible===false);
  assert.ok(flood,'La lámina de lluvia existe, sin crear otro shader');
  const clock=shader.uniforms.uTime.value;
+ const secondFloorFlood=waterMeshes.filter(m=>m.visible===false).find(m=>m!==flood);
+ assert.ok(secondFloorFlood,'El otro piso tiene inundación independiente');
  Core.updateVisuals(.05,1,0);
  assert.equal(flood.visible,true);
+ assert.equal(secondFloorFlood.visible,false,'No se actualizan mallas ocultas de otra planta');
  assert.ok(shader.uniforms.uTime.value>clock,'Se actualiza un solo reloj');
  assert.equal(shader.uniforms.uRain.value,1);
- Core.updateVisuals(.05,0,1);
+ Core.updateVisuals(.05,0,0);
  assert.equal(flood.visible,false);
+ Core.updateVisuals(.05,1,1);
+ assert.equal(secondFloorFlood.visible,true,'La inundación se activa al visitar ese piso');
 });
 test('geometría: respeta muros y huecos reales sin duplicar colisiones',()=>{
  const main=section('straight',20,20,'sewer');
@@ -322,6 +335,18 @@ test('geometría: el fondo queda por debajo del agua y solo se recortan canales 
  assert.ok(D.CHANNEL_BOTTOM<D.WATER_LEVEL);
  assert.ok(D.depthAt(p,0,{x:5,y:5},0)<D.WATER_LEVEL,'Flotabilidad baja al personaje al canal');
  assert.equal(D.depthAt(p,0,{x:5,y:1},0),0,'Pasillo seco conserva altura');
+});
+
+test('corte de suelos: caché del motor sin impedir cambios del editor',()=>{
+ const a=section('straight',0,0,'a'),p=map([[a]]);
+ const r=[{x:0,y:0,w:10,h:10}];
+ const cached=D.cutFloorRects(p,0,r,true);
+ assert.equal(cached.reduce((n,rect)=>n+rect.w*rect.h,0),60);
+ assert.equal(D.cutFloorRects(p,0,r,true).reduce((n,rect)=>n+rect.w*rect.h,0),60);
+ a.y=50; // El editor necesita ver inmediatamente el cambio, sin caché.
+ assert.deepEqual(D.cutFloorRects(p,0,r),r);
+ const noDrain=map([[{id:'solo',type:'chair',x:0,y:0}]]);
+ assert.deepEqual(D.cutFloorRects(noDrain,0,r,true),r);
 });
 test('corriente T: sigue primero la rama antes de girar; no empuja tramos aislados',()=>{
  const tee=section('tee',10,10,'tee'),east=section('small_dead_end',20,13,'east',180);
