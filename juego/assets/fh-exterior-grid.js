@@ -17,6 +17,36 @@
   transformador_caja_superficie:{role:'transformer',heightFt:4.25,capacityWatts:60000},
   caja_distribucion_exterior:{role:'junction',heightFt:4.75}
  });
+ // Huellas del TUBO a nivel del suelo, no las dimensiones del travesaño, lámparas
+ // ni transformadores elevados. Posición local del tubo medida en los GLB (pies).
+ const POLE_COLLISION=Object.freeze({
+  poste_luz_madera:{originalWidthFt:5.75,originalDepthFt:2,widthFt:1.1,depthFt:1.0,baseOffsetXFt:-0.13},
+  poste_luz_concreto:{originalWidthFt:5.75,originalDepthFt:2.25,widthFt:1.3,depthFt:1.3,baseOffsetXFt:0},
+  poste_luz_con_brazo:{originalWidthFt:7.25,originalDepthFt:2.25,widthFt:1.15,depthFt:1.15,baseOffsetXFt:-2.28},
+  poste_luz_doble_brazo:{originalWidthFt:11,originalDepthFt:2.5,widthFt:1.15,depthFt:1.15,baseOffsetXFt:0},
+  transformador_poste_simple:{originalWidthFt:6.25,originalDepthFt:3.25,widthFt:1.1,depthFt:1.0,baseOffsetXFt:-1.56},
+  transformador_poste_doble:{originalWidthFt:9,originalDepthFt:3.75,widthFt:1.3,depthFt:1.3,baseOffsetXFt:0}
+ });
+ // Reutiliza w/h, que ya alimentan el detector compartido del editor y del motor.
+ // Por defecto solo migra las medidas antiguas exactas: no pisa hitboxes personalizadas.
+ function compactFootprint(item,feetPerCell=5,force=false){
+  const preset=POLE_COLLISION[item?.modelId];
+  if(!preset||!item)return false;
+  const cell=Number(feetPerCell)>0?Number(feetPerCell):5;
+  const width=preset.widthFt/cell,depth=preset.depthFt/cell;
+  const oldSize=Math.abs(Number(item.w)-preset.originalWidthFt/cell)<.001&&
+   Math.abs(Number(item.h)-preset.originalDepthFt/cell)<.001;
+  if(!force&&!oldSize)return false;
+  if(Math.abs(Number(item.w)-width)<1e-8&&Math.abs(Number(item.h)-depth)<1e-8)return false;
+  item.w=width;item.h=depth;return true;
+ }
+ function compactMapFootprints(project){
+  const feet=Number(project?.units?.feetPerCell)||5;
+  let changed=0;
+  for(const floor of project?.floors||[])for(const item of floor.items||[])
+   if(compactFootprint(item,feet))changed++;
+  return changed;
+ }
  const numeric=(x,f=0)=>Number.isFinite(Number(x))?Number(x):f;
  const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
  // La reserva eléctrica es un recurso diferente de los litros de combustible.
@@ -175,5 +205,5 @@
    panelConnection,generatorConnection,rootFor,capacityWatts,consumers,
    electricCapacity,initialElectricCharge,changeElectricCharge});
  }
- return Object.freeze({CONFIG,roleFor,isExternal,createRuntime,electricCapacity,initialElectricCharge,changeElectricCharge});
+ return Object.freeze({CONFIG,POLE_COLLISION,compactFootprint,compactMapFootprints,roleFor,isExternal,createRuntime,electricCapacity,initialElectricCharge,changeElectricCharge});
 });
