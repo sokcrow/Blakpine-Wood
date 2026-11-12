@@ -155,6 +155,10 @@
   }
   function status(f,it){
    if(!it||!floors[f])return {connected:false,water:false,reason:'invalid'};
+   if(it.type==='water_main'){
+    const node=itemNodes.get(f+':'+String(it.id));
+    return {connected:true,water:!!node&&available(node),sourceType:'water_main'};
+   }
    if(isTank(it)){
     const tank=tankState[tankKey(floors[f],it)];
     return {connected:true,water:num(tank?.liters)>0,liters:num(tank?.liters)};
