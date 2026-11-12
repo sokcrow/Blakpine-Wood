@@ -202,8 +202,8 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
 <script src="./juego/assets/fh-roads-strings.js"></script>
 <script src="./juego/assets/fh-roads.js"></script>
 <script src="./juego/assets/fh-roads-editor.js"></script>
-<script src="./juego/assets/fh-drainage-strings.js?v=20261112-drain2"></script>
-<script src="./juego/assets/fh-drainage.js?v=20261112-drain2"></script>
+<script src="./juego/assets/fh-drainage-strings.js?v=20261112-drain3"></script>
+<script src="./juego/assets/fh-drainage.js?v=20261112-drain3"></script>
 <script src="./juego/assets/fh-drainage-editor.js?v=20261112-drain2"></script>
 <link rel="stylesheet" href="./juego/assets/fh-roads-editor.css">
 <script src="./juego/assets/fh-area-merge.js"></script>
@@ -3590,7 +3590,7 @@ function prepareGLBEngineDoc(source){
   return doc.split('floorMaterial,.039)').join('roomMaterial,.039)');
  }
   const roadsScript='<script src="'+new URL('./juego/assets/fh-roads-strings.js',document.baseURI).href+'"></'+'script><script src="'+new URL('./juego/assets/fh-roads.js',document.baseURI).href+'"></'+'script>';
- const drainageScript='<script src="'+new URL('./juego/assets/fh-drainage.js?v=20261112-drain2',document.baseURI).href+'"></'+'script>';
+ const drainageScript='<script src="'+new URL('./juego/assets/fh-drainage-strings.js?v=20261112-drain3',document.baseURI).href+'"></'+'script><script src="'+new URL('./juego/assets/fh-drainage.js?v=20261112-drain3',document.baseURI).href+'"></'+'script>';
  const basementScript='<script src="'+new URL('./juego/assets/fh-basement-structure.js?v=20261112-basement-native-1',document.baseURI).href+'"></'+'script>';
  const parkingScript='<script src="'+new URL('./juego/assets/fh-parking.js',document.baseURI).href+'"></'+'script>';
  const playerMenuCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-player-menu.css?v=20261107-help',document.baseURI).href+'">';
@@ -4512,6 +4512,7 @@ function fhRefreshActorVisibility(){
    "const fhWeatherRenderer=fhWeatherEnabled&&fhWeather?window.FHWeatherRenderer?.createRuntime({THREE,scene,columns:GRID_X,rows:GRID_Z,cell:CELL,actor:()=>({x:user.x,z:user.z}),floorY:()=>floorElev[currentFloor],floorIndex:()=>currentFloor,isOutside:(x,z)=>fhWeatherExposure?.(currentFloor,x,z)===true}):null;",
    "const fhGroundFog=window.FHGroundFog?.createRuntime({THREE,scene,camera:cam,columns:GRID_X,rows:GRID_Z,cell:CELL,actor:()=>({x:user.x,z:user.z}),floorY:()=>floorElev[currentFloor],floorIndex:()=>currentFloor,isOutside:(x,z)=>fhGroundExposure?.(currentFloor,x,z)===true,sightTexture:()=>sightUniform?.value||null,visionDistance:()=>LOOK_RADIUS});",
     "const fhWeatherAudio=fhWeatherEnabled&&fhWeather?window.FHWeatherAudio?.createRuntime({outside:()=>fhWeatherExposure?.(currentFloor,user.x,user.z)===true}):null;",
+    "const fhDrainageRuntime=window.FHDrainage?.createRuntime({project:DATA,\n position:()=>({floorIndex:currentFloor,x:user.x/CELL,y:user.z/CELL}),\n move:(dx,dy)=>walk(dx*CELL,dy*CELL,true),\n teleport:exit=>{\n  if(!DATA.floors[exit.floorIndex]||!isBuilt[exit.floorIndex])return false;\n  if(exit.floorIndex!==currentFloor)changeFloor(exit.floorIndex);\n  user.x=exit.x*CELL;user.z=exit.y*CELL;user.vx=user.vz=0;makeSpawnSafe();\n  GameState.player={floorId:DATA.floors[currentFloor].id,x:user.x,z:user.z};\n  saveProgress();visibilityDirty=true;\n  notice(window.FH_DRAIN_TEXT?.vortexMove||'El remolino te arrastró a otro drenaje.');return true;\n }});\nwindow.FHDrainageRuntime=fhDrainageRuntime;",
    "window.FHWeatherAudioRuntime=fhWeatherAudio;",
    "window.addEventListener('beforeunload',()=>{fhWeatherRenderer?.dispose();fhGroundFog?.dispose();fhWeatherAudio?.dispose();});",
    "const fhNatural=window.FHNaturalLight?.createRuntime({DATA,CELL,",
@@ -4522,7 +4523,13 @@ function fhRefreshActorVisibility(){
    "installVisibility();window.FHAssets?.setSightMaskInstaller(installVisibility);"
   ].join('\n');
   const tickBefore='window.FHDeliveryRuntime?.update(dt);window.FHPhoneRuntime?.update(dt);';
-  const tickAfter='window.FHDeliveryRuntime?.update(dt);window.FHPhoneRuntime?.update(dt);window.FHUnifiedSleep?.before(GameState);if(fhWeather?.update(dt))visibilityDirty=true;window.FHUnifiedSleep?.after(GameState);fhWeatherRenderer?.update(dt,fhWeather?.view());fhGroundFog?.update(dt,fhWeatherEnabled?fhWeather?.view():null);fhWeatherAudio?.update(dt,fhWeather?.view());if(fhNatural?.update())visibilityDirty=true;';
+  const tickAfter='window.FHDeliveryRuntime?.update(dt);window.FHPhoneRuntime?.update(dt);window.FHUnifiedSleep?.before(GameState);if(fhWeather?.update(dt))visibilityDirty=true;window.FHUnifiedSleep?.after(GameState);fhWeatherRenderer?.update(dt,fhWeather?.view());fhGroundFog?.update(dt,fhWeatherEnabled?fhWeather?.view():null);fhWeatherAudio?.update(dt,fhWeather?.view());window.FHDrainageRuntime?.update(dt,fhWeatherEnabled?fhWeather?.view():null);if(fhNatural?.update())visibilityDirty=true;';
+  // MOV del jugador: penalización solo en pasillos secundarios inundados.
+  // Corrientes usan la misma función walk(), con bypass de penalización.
+  const drainWalkBefore='function walk(dx,dz){if(window.FHLiveText?.isDialogOpen()||window.FHPlayerMenu?.isOpen())return 0;const n=';
+  const drainWalkAfter='function walk(dx,dz,fhDrainCurrent=false){if(window.FHLiveText?.isDialogOpen()||window.FHPlayerMenu?.isOpen())return 0;if(!fhDrainCurrent){const weather=fhWeatherEnabled?fhWeather?.view():null;const factor=window.FHDrainage?.walkFactor(DATA,currentFloor,{x:user.x/CELL,y:user.z/CELL},weather?.phase==="lluvia"?weather.intensity:0)??1;dx*=factor;dz*=factor;}const n=';
+  if(doc.split(drainWalkBefore).length!==2)throw Error('Hook de velocidad del drenaje incompatible con el motor');
+  doc=doc.replace(drainWalkBefore,drainWalkAfter);
   const pointBefore='if(dist<=radius&&ForestShared.pointInSight(x,z,at,opaque,radius))return true;';
   const pointAfter=pointBefore+'\n const fhNaturalRange=fhNatural?.visionRadius(LOOK_RADIUS)??LOOK_RADIUS;\n if(fhNatural?.illuminates(x,z)&&dist<=fhNaturalRange+.075&&ForestShared.pointInSight(x,z,at,opaque,fhNaturalRange))return true;';
   const rangeBefore='const range=params.sources?.length?LOOK_RADIUS:Math.max(params.dim||2.4384,params.beam);';

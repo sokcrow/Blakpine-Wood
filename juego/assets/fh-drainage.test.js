@@ -205,3 +205,75 @@ test('cada variante secundaria usa el estado de lluvia del perfil de 4×4',()=>{
   assert.equal(D.weatherState(it,.58).walkingFactor,.5,kind);
  }
 });
+
+test('corriente real: caminar en agua principal, inundación secundaria y puentes seguros',()=>{
+ const main=section('straight',0,0,'main'),small=section('small_tee',20,20,'small'),
+  bridge=D.makeBridge({x:22,y:22},units,'bridge');
+ const p=map([[main,small,bridge]]);
+ assert.equal(D.waterAt(p,0,{x:5,y:1},1),null,'Las banquetas 10x10 no se inundan');
+ assert.equal(D.walkFactor(p,0,{x:5,y:5},1),1,'El agua principal no penaliza MOV universal');
+ assert.equal(D.waterAt(p,0,{x:21,y:21},0),null,'4x4 seco conserva una canaleta');
+ assert.equal(D.walkFactor(p,0,{x:20.5,y:20.5},.58),.5,'Lluvia inunda 4x4');
+ assert.equal(D.walkFactor(p,0,{x:22,y:22},.58),1,'Puente evita ralentización');
+ assert.equal(D.currentAt(p,0,{x:22,y:22},.58),null,'No arrastra sobre puente');
+ const dry=D.currentAt(p,0,{x:5,y:5},0),wet=D.currentAt(p,0,{x:5,y:5},1);
+ assert.ok(dry?.speed>0&&wet.speed>dry.speed,'Corriente aumenta bajo lluvia');
+});
+test('simulación: la corriente delega movimiento al motor y el remolino respeta destino y cooldown',()=>{
+ const source=section('outfall',0,0,'source'),remote=section('small',40,40,'remote');
+ const p=map([[source,remote]]),pos={floorIndex:0,x:10,y:10},moves=[],transfers=[];
+ const runtime=D.createRuntime({project:p,position:()=>pos,
+  move:(x,y)=>moves.push([x,y]),teleport:exit=>{transfers.push(exit);pos.x=exit.x;pos.y=exit.y;return true;}});
+ const result=runtime.update(.05,{phase:'lluvia',intensity:1});
+ assert.equal(result?.type,'whirlpool','Remolino actúa durante gameplay');
+ assert.deepEqual(transfers[0],{floorIndex:0,itemId:'remote',x:41,y:41});
+ assert.equal(runtime.update(.05,{phase:'lluvia',intensity:.58})?.type,'current');
+ assert.equal(transfers.length,1,'Enfriamiento evita teletransportes encadenados');
+ assert.ok(moves.length>0&&moves[0].every(Number.isFinite),'El desplazamiento pasa por move() externo');
+ const noExit=D.createRuntime({project:map([[source]]),position:()=>({floorIndex:0,x:10,y:10}),
+  move:()=>{},teleport:()=>{throw Error('Sin salida no hay teletransporte');}});
+ assert.doesNotThrow(()=>noExit.update(.05,{phase:'lluvia',intensity:.58}));
+});
+test('precipitación nevada no activa inundación; el bucle usa reloj y clima existentes',()=>{
+ const section4=section('small_cross',0,0,'four'),p=map([[section4]]);
+ const position=()=>({floorIndex:0,x:1,y:1}),moves=[];
+ const rt=D.createRuntime({project:p,position,move:(x,y)=>moves.push([x,y])});
+ assert.equal(rt.update(.05,{phase:'nieve',intensity:1}),null,'No hay corriente si la zona está seca');
+ assert.equal(rt.update(.05,{phase:'lluvia',intensity:1})?.type,'current');
+ assert.equal(moves.length,1,'La lluvia activa corriente en banqueta inundada');
+});
+test('renderizador Three: animación UV, reja y lámina inundada visibles solo bajo lluvia',()=>{
+ const textureList=[],scene={children:[],add(obj){this.children.push(obj);}};
+ const doc={createElement:()=>({width:0,height:0,getContext:()=>({fillStyle:'',fillRect(){}})})};
+ class Texture{constructor(){this.offset={x:0,y:0};this.repeat={set(){}};textureList.push(this);}}
+ class Material{constructor(opts){Object.assign(this,opts);}}
+ class Mesh{constructor(geom,material){this.geometry=geom;this.material=material;this.position={set(){}};this.rotation={x:0,y:0,z:0};this.visible=true;}}
+ class Geometry{}
+ const THREE={CanvasTexture:Texture,MeshBasicMaterial:Material,MeshLambertMaterial:Material,
+  Mesh,BoxGeometry:Geometry,RingGeometry:Geometry,CircleGeometry:Geometry,
+  RepeatWrapping:1,NearestFilter:2};
+ const sandbox={document:doc,module:{exports:{}},console};vm.runInNewContext(fs.readFileSync(path.join(__dirname,'fh-drainage.js'),'utf8'),sandbox);
+ const Core=sandbox.module.exports;
+ const small=Core.makeSection('small',{x:22,y:22},units,'wet'),out=Core.makeSection('outfall',{x:60,y:60},units,'vortex');
+ Core.attachFloor(THREE,map([[small,out]]),scene,0,1.524);
+ const flood=scene.children.find(x=>x.visible===false&&x.material?.map);
+ assert.ok(flood,'4x4 debe tener una capa completa de inundación');
+ assert.ok(textureList.length>=2,'Los canales utilizan CanvasTexture dinámica');
+ Core.updateVisuals(.05,1,0);
+ assert.equal(flood.visible,true,'La lámina de lluvia aparece en el conducto');
+ assert.ok(textureList.some(t=>t.offset.x!==0||t.offset.y!==0),'La textura se desplaza');
+ Core.updateVisuals(.05,0,0);
+ assert.equal(flood.visible,false,'Se retira la capa al terminar la precipitación');
+});
+test('integración motor: la corriente usa walk nativo y el cambio de piso conserva juego',()=>{
+ const html=fs.readFileSync(path.join(__dirname,'../../index.html'),'utf8');
+ for(const code of ['FHDrainage?.createRuntime','FHDrainage?.walkFactor','window.FHDrainageRuntime?.update','walk(dx*CELL,dy*CELL,true)',
+   'changeFloor(exit.floorIndex)','makeSpawnSafe();','FH_DRAIN_TEXT?.vortexMove']){
+  assert.ok(html.includes(code),'Falta adaptador de gameplay: '+code);
+ }
+ const core=fs.readFileSync(path.join(__dirname,'fh-drainage.js'),'utf8');
+ assert.match(core,/function updateVisuals\(/);
+ assert.match(core,/function whirlpoolAt\(/);
+ assert.match(core,/function createRuntime\(/);
+ assert.ok(!core.includes('function canWalk('),'No duplicar la física de paredes');
+});

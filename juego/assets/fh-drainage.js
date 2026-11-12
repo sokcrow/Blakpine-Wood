@@ -203,6 +203,90 @@
   }
   return project;
  }
+ // Estado de contacto real con agua. La geometría es de casillas; el motor
+ // conserva la responsabilidad exclusiva de resolver colisiones con muros.
+ const within=(r,p)=>p.x>=r.x&&p.y>=r.y&&p.x<r.x+r.w&&p.y<r.y+r.h;
+ const center=it=>({x:it.x+it.w/2,y:it.y+it.h/2});
+ function sectionAt(project,floorIndex,point){
+  return pieces(project?.floors?.[floorIndex]?.items).find(it=>within(it,point))||null;
+ }
+ function bridgeAt(project,floorIndex,point){
+  return (project?.floors?.[floorIndex]?.items||[]).some(it=>isBridge(it)&&within(it,point));
+ }
+ function waterAt(project,floorIndex,point,rain=0){
+  const item=sectionAt(project,floorIndex,point);
+  if(!item||bridgeAt(project,floorIndex,point))return null;
+  const state=weatherState(item,rain),c=center(item),dx=point.x-c.x,dy=point.y-c.y;
+  const wet=state.flooded||(item.drainage.kind==='outfall'&&Math.hypot(dx,dy)<=7)||
+   rects(item).some(r=>within(r,point));
+  return wet?{item,state}:null;
+ }
+ function walkFactor(project,floorIndex,point,rain=0){
+  const contact=waterAt(project,floorIndex,point,rain);
+  return contact?.state.walkingFactor??1;
+ }
+ function currentAt(project,floorIndex,point,rain=0,target){
+  const contact=waterAt(project,floorIndex,point,rain);
+  if(!contact)return null;
+  const {item,state}=contact;
+  const c=center(item),outfall=item.drainage.kind==='outfall';
+  if(outfall){
+   const dx=c.x-point.x,dy=c.y-point.y,d=Math.hypot(dx,dy);
+   return {itemId:item.id,x:d>.01?dx/d:0,y:d>.01?dy/d:0,
+    speed:(.16+.65*Math.max(0,Math.min(1,safe(rain))))*state.currentFactor};
+  }
+  const downstreamRef=target===undefined?downstream(project,floorIndex,item.id):target;
+  const next=downstreamRef&&(project?.floors?.[downstreamRef.floorIndex]?.items||[])
+   .find(it=>String(it.id)===String(downstreamRef.itemId));
+  const end=next?center(next):null;
+  let dx=end?end.x-c.x:0,dy=end?end.y-c.y:0;
+  if(!end){
+   const port=ports(item).find(s=>s==='e')||ports(item)[0];
+   dx=port==='e'?1:port==='w'?-1:0;
+   dy=port==='s'?1:port==='n'?-1:0;
+  }
+  const mag=Math.hypot(dx,dy)||1;
+  return {itemId:item.id,x:dx/mag,y:dy/mag,
+   speed:(.12+.42*Math.max(0,Math.min(1,safe(rain))))*state.currentFactor};
+ }
+ function whirlpoolAt(project,floorIndex,point){
+  const item=sectionAt(project,floorIndex,point);
+  if(!item||item.drainage.kind!=='outfall'||bridgeAt(project,floorIndex,point))return null;
+  const c=center(item);
+  return Math.hypot(point.x-c.x,point.y-c.y)<=2.4?item:null;
+ }
+ // Su bucle nunca modifica la posición directamente: move() delega en walk()
+ // del motor, que aplica blockers/doors/canWalk y evita atravesar paredes.
+ function createRuntime({project,position,move,teleport}={}){
+  let cooldown=0,elapsed=0;
+  const cachedRoutes=new Map();
+  function route(f,it){
+   const key=f+':'+it.id;
+   if(!cachedRoutes.has(key))cachedRoutes.set(key,downstream(project,f,it.id));
+   return cachedRoutes.get(key);
+  }
+  function update(dt,weather){
+   const delta=Math.max(0,Math.min(.075,safe(dt)));
+   const rain=weather?.phase==='lluvia'?Math.max(0,Math.min(1,safe(weather?.intensity))):0;
+   updateVisuals(delta,rain,position?.()?.floorIndex);
+   cooldown=Math.max(0,cooldown-delta);elapsed+=delta;
+   if(!delta||!position)return null;
+   const p=position(),f=p.floorIndex,point={x:p.x,y:p.y};
+   const hole=whirlpoolAt(project,f,point);
+   if(hole&&!cooldown){
+    const exit=randomExit(project,f,hole.id);
+    if(exit&&typeof teleport==='function'&&teleport(exit)===true){cooldown=4;return {type:'whirlpool',exit};}
+   }
+   const contact=waterAt(project,f,point,rain);
+   if(!contact||typeof move!=='function')return null;
+   const v=currentAt(project,f,point,rain,route(f,contact.item));
+   // Limita el arrastre por tick y usa la colisión del motor.
+   const speed=Math.min(1.65,v.speed),deltaMove=Math.min(speed*delta,.115);
+   move(v.x*deltaMove,v.y*deltaMove);
+   return {type:'current',itemId:v.itemId,speed};
+  }
+  return {update,waterAt:(f,p,rain)=>waterAt(project,f,p,rain)};
+ }
  function draw2D(ctx,items,units,toPixel,gx,gy,selection){
   const drawRect=(r,color)=>{const p=toPixel(r);ctx.fillStyle=color;ctx.fillRect(p.x,p.y,r.w*gx,r.h*gy);};
   for(const it of items||[])if(isSection(it)){
@@ -236,25 +320,79 @@
    ctx.strokeStyle=it.id===selection?'#ffe6a5':'#9fb8a8';ctx.strokeRect(p.x,p.y,it.w*gx,it.h*gy);ctx.restore();
   }
  }
+ // Visuales animados por piso: un registro por sección y un CanvasTexture
+ // repetible. La geometría sólida pertenece al motor nativo.
+ const visuals=[];
+ function makeWaterTexture(THREE){
+  if(typeof document==='undefined'||!THREE.CanvasTexture)return null;
+  const cv=document.createElement('canvas');cv.width=cv.height=64;
+  const ctx=cv.getContext('2d');if(!ctx)return null;
+  ctx.fillStyle='#245568';ctx.fillRect(0,0,64,64);
+  for(let y=0;y<64;y+=4){
+   const seed=(y*67+17)%64;
+   ctx.fillStyle=y%12===0?'#427b89':'#285f71';
+   ctx.fillRect(0,y,64,2);
+   ctx.fillStyle='#85aeb6';
+   ctx.fillRect(seed,y+1,12,1);
+   ctx.fillStyle='#36798e';
+   ctx.fillRect((seed+21)%64,y+3,20,1);
+  }
+  const tex=new THREE.CanvasTexture(cv);
+  tex.wrapS=tex.wrapT=THREE.RepeatWrapping;
+  tex.magFilter=tex.minFilter=THREE.NearestFilter;
+  tex.repeat.set(3,3);
+  return tex;
+ }
+ function updateVisuals(dt,rain=0,floorIndex){
+  const delta=Math.max(0,Math.min(.075,safe(dt))),r=Math.max(0,Math.min(1,safe(rain)));
+  for(const entry of visuals){
+   if(floorIndex!==undefined&&entry.floorIndex!==floorIndex)continue;
+   const flow=entry.direction;
+   if(entry.texture&&delta){
+    entry.texture.offset.x=(entry.texture.offset.x+flow.x*delta*(.16+.36*r))%1;
+    entry.texture.offset.y=(entry.texture.offset.y-flow.y*delta*(.16+.36*r))%1;
+   }
+   if(entry.flood){entry.flood.visible=r>0;entry.flood.material.opacity=.68+.20*r;}
+   if(entry.ring&&delta)entry.ring.rotation.z+=delta*(.15+.9*r);
+  }
+ }
  function attachFloor(THREE,map,story,index,CELL){
   // El suelo, los muros, las colisiones y el FOW vienen de los componentes
   // nativos expandidos por expandProject(), no de geometría paralela.
   const sections=pieces(map.floors[index]?.items),bridges=(map.floors[index]?.items||[]).filter(isBridge);
   if(!sections.length&&!bridges.length)return;
-  const water=new THREE.MeshBasicMaterial({color:0x245b6b,transparent:true,opacity:.92});
   const hole=new THREE.MeshBasicMaterial({color:0x02070b});
   const metal=new THREE.MeshLambertMaterial({color:0x74847f});
   const box=(mat,x,y,z,w,h,d)=>{const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);mesh.position.set(x,y,z);story.add(mesh);return mesh};
   for(const it of sections){
    const x=it.x*CELL,z=it.y*CELL,s=it.w*CELL;
+   const texture=makeWaterTexture(THREE),water=new THREE.MeshBasicMaterial({
+    color:0xb6e8f5,map:texture||null,transparent:true,opacity:.93
+   });
+   const next=downstream(map,index,it.id),target=next&&(map.floors[next.floorIndex]?.items||[])
+    .find(q=>String(q.id)===String(next.itemId));
+   const middle=center(it),end=target?center(target):null;
+   let direction=end?{x:end.x-middle.x,y:end.y-middle.y}:{x:1,y:0};
+   if(it.drainage.kind==='outfall')direction={x:0,y:1};
+   const mag=Math.hypot(direction.x,direction.y)||1;
+   direction={x:direction.x/mag,y:direction.y/mag};
    for(const r of rects(it))box(water,(r.x+r.w/2)*CELL,.082,(r.y+r.h/2)*CELL,r.w*CELL,.018,r.h*CELL);
+   let flood=null,ring=null;
+   if(SIZES[it.drainage.kind]===4){
+    const floodMaterial=new THREE.MeshBasicMaterial({
+     color:0x8ed3e1,map:texture||null,transparent:true,opacity:.78,depthWrite:false
+    });
+    flood=box(floodMaterial,x+s/2,.105,z+s/2,s,.008,s);
+    flood.visible=false;
+   }
    if(it.drainage.kind==='outfall'){
     const cx=x+s/2,cz=z+s/2;
-    const ring=new THREE.Mesh(new THREE.RingGeometry(3*CELL,7*CELL,40),water);
+    ring=new THREE.Mesh(new THREE.RingGeometry(3*CELL,7*CELL,40),water);
     ring.rotation.x=-Math.PI/2;ring.position.set(cx,.085,cz);story.add(ring);
     const abyss=new THREE.Mesh(new THREE.CircleGeometry(3*CELL,40),hole);
     abyss.rotation.x=-Math.PI/2;abyss.position.set(cx,.095,cz);story.add(abyss);
    }
+   visuals.push({floorIndex:index,itemId:it.id,direction,texture,ring,flood});
   }
   for(const it of bridges){
    const cx=(it.x+it.w/2)*CELL,cz=(it.y+it.h/2)*CELL,w=it.w*CELL,d=it.h*CELL;
@@ -268,5 +406,5 @@
   }
  }
  return Object.freeze({SIZES,isSection,isBridge,pieces,ports,rects,touches,makeSection,makeBridge,validate,
-  validateProject,topology,downstream,nearest,weatherState,randomExit,nativeComponents,expandProject,draw2D,attachFloor});
+  validateProject,topology,downstream,nearest,weatherState,randomExit,nativeComponents,expandProject,sectionAt,bridgeAt,waterAt,walkFactor,currentAt,whirlpoolAt,createRuntime,updateVisuals,draw2D,attachFloor});
 });
