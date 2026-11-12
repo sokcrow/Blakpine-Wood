@@ -4904,8 +4904,8 @@ function floorSightThroughOpening(f,at,target,openings){
  // Drenajes 06: recortar las superficies nativas y seguir el desnivel jugable.
  function addDrainGeometryToEngine(doc){
   const patches=[
-   ["function surfaceRectsMinusVoids(f,x,y,w,h){let rects=[{x,y,w,h}];for(const cut of stairVoids[f]||[]){const next=[];for(const r of rects)next.push(...rectSubtract(r,cut));rects=next;}return rects;}",
-    "function surfaceRectsMinusVoids(f,x,y,w,h){let rects=[{x,y,w,h}];for(const cut of stairVoids[f]||[]){const next=[];for(const r of rects)next.push(...rectSubtract(r,cut));rects=next;}return window.FHDrainage?.cutFloorRects(DATA,f,rects)||rects;}"],
+   ["function surfaceRectsMinusVoids(f,x,y,w,h){let rects=[{x,y,w,h}];for(const cut of [...(stairVoids[f]||[]),...(courtyardVoids[f]||[])]){const next=[];for(const r of rects)next.push(...rectSubtract(r,cut));rects=next;}return rects;}",
+    "function surfaceRectsMinusVoids(f,x,y,w,h){let rects=[{x,y,w,h}];for(const cut of [...(stairVoids[f]||[]),...(courtyardVoids[f]||[])]){const next=[];for(const r of rects)next.push(...rectSubtract(r,cut));rects=next;}return window.FHDrainage?.cutFloorRects(DATA,f,rects)||rects;}"],
    ["for(const it of items){if(areaMaterials[it.type])areaSurfaceGrid(",
     "for(const it of items){if(areaMaterials[it.type]&&!window.FHDrainage?.isSection(it))areaSurfaceGrid("],
    [" const target=new THREE.Vector3(user.x,y+.88,user.z);",
@@ -4978,9 +4978,9 @@ function floorSightThroughOpening(f,at,target,openings){
    if(count!==1)throw Error('Hook Drenajes 05 incompatible ('+count+'): '+before.slice(0,70));
    doc=doc.replace(before,after);
   }
-  return doc;
+  return addDrainGeometryToEngine(doc);
  }
- return addDrainAccessToEngine(addDrainGeometryToEngine(addPreviewReturnToSpawnpoint(addPreviewDiagnostics(addCourtyardsToEngine(addMoodFearToEngine(addFloorVisibilityToEngine(addNaturalLightToEngine(addShadowEncountersToEngine(assembled)))))))));
+ return addDrainAccessToEngine(addPreviewReturnToSpawnpoint(addPreviewDiagnostics(addCourtyardsToEngine(addMoodFearToEngine(addFloorVisibilityToEngine(addNaturalLightToEngine(addShadowEncountersToEngine(assembled))))))));
 }
 let fhCharacterLaunchPending=false;
 async function start3DPreview(){
