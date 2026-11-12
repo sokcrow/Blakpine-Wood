@@ -63,8 +63,8 @@
  setCategory=function(cat){oldCategory(cat);launcher();};
  const oldCreate=createObject;
  createObject=function(type,pos){
-  if(!['water_boiler','water_boiler_aux'].includes(type)||activeCategory!=='water'||
-    !selected||selected.type!==type)return oldCreate(type,pos);
+  if(!['water_boiler','water_boiler_aux'].includes(type)||activeCategory!=='water')return oldCreate(type,pos);
+  if(!selected||selected.type!==type){show();toast(T.chooseFirst||'Elige un modelo GLB antes de colocarlo.');return null;}
   const model=selected,cell=Math.max(.1,Number(project.units?.feetPerCell)||5);
   let mount=null;
   if(model.placement==='wall'){
@@ -144,8 +144,14 @@
   const model=root.FHBoilersCatalog?.byId(it.modelId);
   if(!model)return;
   const note=document.createElement('div');note.style.gridColumn='1/-1';
-  note.textContent=model.kind==='heater'?'Caldera de agua caliente (calentamiento eléctrico).':
-   (T.assetPending||'Accesorio visual');fields.append(note);
+  const power=utilityVisual().runtime?.statusFor(project.floors.indexOf(current()),it)?.power;
+  note.textContent=model.kind==='heater'?'Caldera de agua caliente · GLB original.':
+   'Accesorio de caldera · GLB original.';
+  if(it.service?.requiresPower){note.textContent+=' · '+(power?.powered?
+   'Alimentación directa desde breaker '+(power.breakerId||'')+' ('+Number(power.feet||0).toFixed(1)+' pies)':
+   power?.connected?'Cable conectado, pero el circuito no tiene corriente.':
+   'Sin circuito: falta un breaker alcanzable por las paredes.');}
+  fields.append(note);
   if(model.kind!=='heater')return;
   const preset=root.FHWaterHot?.PRESETS[model.id]||{};
   const activate=document.createElement('label');activate.style.gridColumn='1/-1';
