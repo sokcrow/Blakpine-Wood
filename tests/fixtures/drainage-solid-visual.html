@@ -47,7 +47,7 @@ canvas{display:block;touch-action:none}small{color:#b9cfca}code{color:#b0dfd7}
  const head=new THREE.Mesh(new THREE.SphereGeometry(.24,10,8),
    new THREE.MeshLambertMaterial({color:0xe6cda4}));
  head.position.y=1.45;avatar.add(head);scene.add(avatar);
- let x=5,z=2,angle=-.75,radius=20,hideWater=false;
+ let x=5,z=5,angle=-.75,radius=20,hideWater=false;
  const status=document.getElementById('status'),buttons={
   bank:document.getElementById('bank'),channel:document.getElementById('channel'),
   bridge:document.getElementById('bridge'),water:document.getElementById('water')
@@ -60,6 +60,7 @@ canvas{display:block;touch-action:none}small{color:#b9cfca}code{color:#b0dfd7}
   hideWater=!hideWater;for(const mesh of waterMeshes)mesh.visible=!hideWater;
   buttons.water.textContent=hideWater?'Mostrar agua':'Ocultar agua';
  };
+ if(new URLSearchParams(location.search).get('water')==='off')buttons.water.click();
  const keys=new Set();
  window.addEventListener('keydown',e=>{keys.add(e.key.toLowerCase());if(['arrowup','arrowdown','arrowleft','arrowright'].includes(e.key.toLowerCase()))e.preventDefault();});
  window.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
