@@ -51,7 +51,7 @@
  }
  function rects(it){
   const kind=it.drainage.kind,size=SIZES[kind];
-  if(kind==='outfall')return [];
+  if(kind==='outfall')return [{x:it.x+8,y:it.y,w:4,h:20},{x:it.x,y:it.y+8,w:20,h:4}];
   const base=kind==='small'?[{x:0,y:1.5,w:4,h:1}]:
    [{x:0,y:3,w:10,h:4},...(kind==='tee'?[{x:3,y:0,w:4,h:7}]:kind==='cross'?[{x:3,y:0,w:4,h:10}]:[])];
   const steps=degrees(it.rotation)/90;
@@ -59,22 +59,20 @@
    return {x:it.x+q.x,y:it.y+q.y,w:q.w,h:q.h};});
  }
  function touches(a,b){
-  const A=ports(a),B=ports(b),eps=.001,edge=(x,y,side)=>{
-   const axis=(side==='n'||side==='s')?'x':'y';
-   const lo=axis==='x'?x.x:x.y,width=axis==='x'?x.w:x.h;
-   const other=axis==='x'?y.x:y.y,otherWidth=axis==='x'?y.w:y.h;
-   return Math.max(0,Math.min(lo+width,other+otherWidth)-Math.max(lo,other));
-  };
+  const A=ports(a),B=ports(b),eps=.001;
   for(const side of A){
    if(!B.includes(OPPOSITE[side]))continue;
    const adjacent=side==='e'?Math.abs(a.x+a.w-b.x)<eps:
     side==='w'?Math.abs(b.x+b.w-a.x)<eps:
     side==='s'?Math.abs(a.y+a.h-b.y)<eps:Math.abs(b.y+b.h-a.y)<eps;
    if(!adjacent)continue;
-   const length=edge(a,b,side),width=Math.min(a.drainage.kind==='small'?1:4,b.drainage.kind==='small'?1:4);
+   const widthA=a.drainage.kind==='small'?1:4,widthB=b.drainage.kind==='small'?1:4;
    const middleA=(side==='e'||side==='w')?a.y+a.h/2:a.x+a.w/2;
    const middleB=(side==='e'||side==='w')?b.y+b.h/2:b.x+b.w/2;
-   if(length>=width-.001&&Math.abs(middleA-middleB)<=Math.max(a.w,b.w)/2)return true;
+   const shared=Math.max(0,Math.min(middleA+widthA/2,middleB+widthB/2)-
+     Math.max(middleA-widthA/2,middleB-widthB/2));
+   // Una salida geométrica no conecta si los canales de agua no coinciden.
+   if(shared>=Math.min(widthA,widthB)*.95)return true;
   }
   return false;
  }
