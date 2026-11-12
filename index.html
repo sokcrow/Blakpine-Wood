@@ -4901,6 +4901,27 @@ function floorSightThroughOpening(f,at,target,openings){
    '<script '+(file.includes('diagnostics')?'data-fh-runtime ':'')+'src="'+new URL('./juego/assets/'+file+'?v=20261109-diag2',document.baseURI).href+'"></'+'script>').join('');
   return doc.replace('<head>','<head>'+tags);
  }
+ // Drenajes 06: recortar las superficies nativas y seguir el desnivel jugable.
+ function addDrainGeometryToEngine(doc){
+  const patches=[
+   ["function surfaceRectsMinusVoids(f,x,y,w,h){let rects=[{x,y,w,h}];for(const cut of [...(stairVoids[f]||[]),...(courtyardVoids[f]||[])]){const next=[];for(const r of rects)next.push(...rectSubtract(r,cut));rects=next;}return rects;}",
+    "function surfaceRectsMinusVoids(f,x,y,w,h){let rects=[{x,y,w,h}];for(const cut of [...(stairVoids[f]||[]),...(courtyardVoids[f]||[])]){const next=[];for(const r of rects)next.push(...rectSubtract(r,cut));rects=next;}return window.FHDrainage?.cutFloorRects(DATA,f,rects)||rects;}"],
+   ["let groundLayer=0;for(const it of items){if(!it.inheritedCourtyard&&areaMaterials[it.type]){",
+    "let groundLayer=0;for(const it of items){if(!it.inheritedCourtyard&&areaMaterials[it.type]&&!window.FHDrainage?.isSection(it)){"],
+   [" const target=new THREE.Vector3(user.x,y+.88,user.z);",
+    " const fhDrainDrop=shaft?0:(window.FHDrainage?.depthAt(DATA,currentFloor,{x:user.x/CELL,y:user.z/CELL},performance.now()*.001)||0)*CELL;\n const target=new THREE.Vector3(user.x,y+fhDrainDrop+.88,user.z);"],
+   [" const desired=new THREE.Vector3(user.x+behind.x*fhCameraDistance,y+.88+fhCameraDistance*Math.tan(Math.PI/6),user.z+behind.z*fhCameraDistance);",
+    " const desired=new THREE.Vector3(user.x+behind.x*fhCameraDistance,y+fhDrainDrop+.88+fhCameraDistance*Math.tan(Math.PI/6),user.z+behind.z*fhCameraDistance);"],
+   [" const visualBase=passenger?(elevatorCabMeshes.get(passenger.id)?.position.y??floorElev[currentFloor]):floorElev[currentFloor];",
+    " const fhDrainActorDrop=(stairTravel||passenger)?0:(window.FHDrainage?.depthAt(DATA,currentFloor,{x:user.x/CELL,y:user.z/CELL},now*.001)||0)*CELL;\n const visualBase=(passenger?(elevatorCabMeshes.get(passenger.id)?.position.y??floorElev[currentFloor]):floorElev[currentFloor])+fhDrainActorDrop;"]
+  ];
+  for(const [before,after] of patches){
+   const count=doc.split(before).length-1;
+   if(count!==1)throw Error('Hook Drenajes 06 incompatible ('+count+'): '+before.slice(0,70));
+   doc=doc.replace(before,after);
+  }
+  return doc;
+ }
  // Drenajes 05 comparte la física, FOW y transición de piso con el motor.
  function addDrainAccessToEngine(doc){
   const open='function useFurniture(item,selectedSeat=null){';
@@ -4953,7 +4974,7 @@ function floorSightThroughOpening(f,at,target,openings){
    if(count!==1)throw Error('Hook Drenajes 05 incompatible ('+count+'): '+before.slice(0,70));
    doc=doc.replace(before,after);
   }
-  return doc;
+  return addDrainGeometryToEngine(doc);
  }
  return addDrainAccessToEngine(addPreviewReturnToSpawnpoint(addPreviewDiagnostics(addCourtyardsToEngine(addMoodFearToEngine(addFloorVisibilityToEngine(addNaturalLightToEngine(addShadowEncountersToEngine(assembled))))))));
 }
