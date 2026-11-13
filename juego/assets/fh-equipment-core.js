@@ -79,8 +79,28 @@
   }
   return moved;
  }
+ const STARTER_CHARGERS=Object.freeze(['cell_phone_charger','cell_phone_fast_charger']);
+ function grantStarterChargers(state,maxSlots=10){
+  const equipment=ensure(state);
+  const receipt=equipment.starterChargersV1&&typeof equipment.starterChargersV1==='object'
+   ?equipment.starterChargersV1:{};
+  let changed=false,granted=0;
+  if(equipment.starterChargersV1!==receipt){equipment.starterChargersV1=receipt;changed=true;}
+  for(const id of STARTER_CHARGERS){
+   if(receipt[id]===true)continue;
+   if(state.inventory.includes(id)){
+    receipt[id]=true;changed=true;continue;
+   }
+   // No sobrepasar los espacios existentes. La entrega pendiente se realiza
+   // al liberar espacio, pero nunca se repite una vez registrada.
+   if(new Set(state.inventory).size>=maxSlots)continue;
+   state.inventory.push(id);
+   receipt[id]=true;granted++;changed=true;
+  }
+  return {changed,granted,pending:STARTER_CHARGERS.filter(id=>receipt[id]!==true)};
+ }
  function itemDefinitions(existing=[]){
   return [...existing,...DEFS.filter(def=>!existing.some(d=>d.id===def.id)).map(d=>({...d}))];
  }
- return {SLOTS,DEFS,ICONS,ensure,hasEquipped,equip,unequip,walletAvailable,moveToWallet,moveFromWallet,sweepWallet,itemDefinitions};
+ return {SLOTS,DEFS,ICONS,STARTER_CHARGERS,ensure,grantStarterChargers,hasEquipped,equip,unequip,walletAvailable,moveToWallet,moveFromWallet,sweepWallet,itemDefinitions};
 });
