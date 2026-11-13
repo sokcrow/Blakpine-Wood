@@ -24,11 +24,12 @@
  function ensure(state){
   if(!state||typeof state!=='object')throw Error('Estado de partida inválido');
   state.inventory=Array.isArray(state.inventory)?state.inventory:[];
-  const eq=state.equipment&&typeof state.equipment==='object'?state.equipment:{};
+  const legacy=!state.equipment||typeof state.equipment!=='object';
+  const eq=!legacy?state.equipment:{};
   for(const slot of SLOTS)if(!ALLOWED.has(eq[slot]))eq[slot]='';
   // Partidas antiguas: el celular y la cartera iniciales no se pierden.
-  if(!eq.rearLeft&&!eq.rearRight&&!state.inventory.includes('cell_phone'))eq.rearLeft='cell_phone';
-  if(!Object.values(eq).some(v=>v==='wallet')&&!state.inventory.includes('wallet'))eq.rearRight='wallet';
+  if(legacy&&!state.inventory.includes('cell_phone'))eq.rearLeft='cell_phone';
+  if(legacy&&!state.inventory.includes('wallet'))eq.rearRight='wallet';
   eq.wallet=eq.wallet&&typeof eq.wallet==='object'?eq.wallet:{};
   eq.wallet.items=Array.isArray(eq.wallet.items)?eq.wallet.items.filter(x=>typeof x==='string'):[];
   state.equipment=eq;
