@@ -112,7 +112,7 @@ test('Cada estado de Fear aplica su color, incluyendo los rojos de peligro',()=>
  const base=css.slice(css.indexOf('#fhSpatialLayer .fh-sound.fh-fear-comic{'),
   css.indexOf('#fhSpatialLayer .fh-fear-comic--relajado'));
  assert.doesNotMatch(base,/--fear\s*:/);
- assert.match(base,/color:var\(--fear,#25d53a\)/);
+ assert.match(base,/color:var\(--fear\)/);
  assert.match(css,/#fhSpatialLayer \.fh-fear-comic--sin_esperanza\{--fear:#f24238\}/);
  assert.match(css,/#fhSpatialLayer \.fh-fear-comic--abrumado\{--fear:#a50c26\}/);
 });
