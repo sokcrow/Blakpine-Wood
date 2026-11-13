@@ -42,7 +42,7 @@
    // Recuperar la instancia seleccionada por readGameSave ANTES de crear runtime.
    'const fhServicesSaved=(restored||DATA.initialGameState)?.services;',
    'if(fhServicesSaved&&typeof fhServicesSaved==="object"&&!Array.isArray(fhServicesSaved))GameState.services=structuredClone(fhServicesSaved);',
-   'window.FHServicesRuntime=window.FHServices?.createRuntime(DATA,GameState,{phoneDrainPerHour:.5,isPc:(it,f)=>window.FHComputer?.isPc(it,DATA.floors[f]?.items||[],Number(DATA.units.feetPerCell)||5)});',
+   'window.FHServicesRuntime=window.FHServices?.createRuntime(DATA,GameState,{phoneOpen:()=>window.FHPhoneRuntime?.isOpen===true,torchActive:()=>lighting.state.enabled===true,isPc:(it,f)=>window.FHComputer?.isPc(it,DATA.floors[f]?.items||[],Number(DATA.units.feetPerCell)||5)});',
    'let fhServicesSaveAccum=0;',
    'let fhServicesATSRevision=window.FHServicesRuntime?.state.atsRevision;',
    'if(DATA.floors.some(f=>(f.items||[]).some(it=>it.type==="generator_ats")))saveProgress();',
@@ -81,7 +81,7 @@
    '   if(service.phone.placedAt===it.id){service.takePhone();notice(T.phoneTaken||"Celular recuperado.");}',
    '   else if(service.chargePhone(f,it.id)){notice(T.phonePlaced||"Celular conectado al cargador.");}',
    '   else notice(T.chargerMissing||"El cargador no tiene corriente.");',
-   '   window.FHPhoneRuntime?.syncAvailability?.();saveProgress();return true;',
+   '   window.FHPhoneRuntime?.syncAvailability?.();window.FHPhoneRuntime?.close?.();updateFlashlightUI();visibilityDirty=true;saveProgress();return true;',
    '  }',
    '  if(service.requiresPower(it)&&!status.power.powered){notice(T.noPower||"Sin electricidad.");return true;}',
    '  if(it.service?.requiresWater===true&&!status.water.water){notice(T.noWater||"Sin agua.");return true;}',
@@ -105,6 +105,15 @@
    '    if(result.target.kind==="mobile")window.FHPhoneRuntime?.receiveCall?.({from:it.phoneNumber||it.id});',
    '    notice("Llamando a "+number.trim().slice(0,80));saveProgress();}',
    '   return true;',
+   '  }',
+   '  if(it.type==="power_outlet"){',
+   '   const own=service.phone.placedAt===it.id&&service.phone.placedMode==="portable";',
+   '   if(own){service.takePhone();window.FHPhoneRuntime?.syncAvailability?.();notice(T.phoneTaken);saveProgress();return true;}',
+   '   if(!service.phone.placedAt&&GameState.inventory?.includes("cell_phone_charger")){',
+   '    if(service.chargePhone(f,it.id)){window.FHPhoneRuntime?.syncAvailability?.();window.FHPhoneRuntime?.close?.();updateFlashlightUI();visibilityDirty=true;notice(T.phonePlaced);saveProgress();}',
+   '    else notice(T.chargerCannotConnect);',
+   '    return true;',
+   '   }',
    '  }',
    '  if(it.type==="power_outlet"||it.type==="power_strip"){',
    '   notice((status.power.powered?"⚡ ":"⚡ Sin energía · ")+',
@@ -160,8 +169,9 @@
    ' if(typeof watchingTvId!=="undefined"&&watchingTvId&&service){const tv=service.itemAt(currentFloor,watchingTvId);if(!tv||!service.statusFor(currentFloor,tv).power.powered){watchingTvId=null;GameState.flags.tv_on=false;}}',
    ' for(const entry of fhServicesVisuals){',
    '  if(entry.it.type==="generator"){const status=service?.generatorStatus(entry.f,entry.it);entry.mesh.material?.color?.setHex(status?.running?0x7a9d66:status?.enabled?0xb19756:0x555b60);entry.mesh.userData.generatorStatus=status;}',
-   '  if(entry.it.type!=="phone_charger")continue;',
-   '  const hasPhone=window.FHServicesRuntime?.phone.placedAt===entry.it.id;',
+   '  if(!["phone_charger","power_outlet"].includes(entry.it.type))continue;',
+   '  const hasPhone=window.FHServicesRuntime?.phone.placedAt===entry.it.id&&',
+   '   (entry.it.type==="phone_charger"||window.FHServicesRuntime?.phone.placedMode==="portable");',
    '  if(hasPhone&&!entry.phone){',
    '   entry.phone=new THREE.Mesh(new THREE.BoxGeometry(.17,.035,.29),new THREE.MeshStandardMaterial({color:0x242d35}));',
    '   entry.mesh.add(entry.phone);entry.phone.position.set(0,.18,0);',
@@ -193,7 +203,7 @@
   doc=once(doc,phone,start+'\n'+phone+'\n'+phoneOptions,'inicialización');
 
   doc=once(doc,'window.FHPhoneRuntime?.update(dt);',
-   'window.FHServicesRuntime?.tick(dt,1);fhServicesSyncVisuals();if(fhServicesATSRevision!==window.FHServicesRuntime?.state.atsRevision){fhServicesATSRevision=window.FHServicesRuntime?.state.atsRevision;saveProgress();}'+
+   'window.FHServicesRuntime?.tick(dt,Number(GameState.clock?.minutesPerSecond)||1);fhServicesSyncVisuals();if(fhServicesATSRevision!==window.FHServicesRuntime?.state.atsRevision){fhServicesATSRevision=window.FHServicesRuntime?.state.atsRevision;saveProgress();}'+
    'fhServicesSaveAccum+=dt;if(fhServicesSaveAccum>=15){fhServicesSaveAccum=0;saveProgress();}'+
    'window.FHPhoneRuntime?.update(dt);','actualización');
 
@@ -214,6 +224,10 @@
    '  if(it.type==="generator"){const status=window.FHServicesRuntime?.generatorStatus(currentFloor,it);if(status)actions=[{id:"generator",label:window.FH_SERVICES_TEXT.generator.action(status),run:()=>window.FHServicesGame.handle(it,currentFloor)},{id:"generator-status",label:window.FH_SERVICES_TEXT.generator.inspect,run:()=>notice(window.FH_SERVICES_TEXT.generator.status(window.FHServicesRuntime.generatorStatus(currentFloor,it)))}];}',
    '  if(it.type==="generator_ats"){const status=window.FHServicesRuntime.atsStatus(currentFloor,it);const t=window.FH_SERVICES_TEXT.generator;actions=[{id:"ats-status",label:t.atsStatus(status),run:()=>notice(t.atsStatus(window.FHServicesRuntime.atsStatus(currentFloor,it)))},{id:"ats-manual",label:t.manual,disabled:!status.connected||!status.outage||status.damaged,run:()=>window.FHServicesGame.handle(it,currentFloor)}];}',
    '  if(it.type==="generator_tank")actions=[{id:"tank-status",label:window.FH_SERVICES_TEXT.generator.inspect,run:()=>window.FHServicesGame.handle(it,currentFloor)}];',
+   '  if(it.type==="power_outlet"&&(GameState.inventory?.includes("cell_phone_charger")||GameState.phone?.placedAt===it.id&&GameState.phone?.placedMode==="portable")){',
+   '   const take=GameState.phone?.placedAt===it.id&&GameState.phone?.placedMode==="portable";',
+   '   actions=[{id:"phone-charge",label:take?window.FH_SERVICES_TEXT.takePhone:window.FH_SERVICES_TEXT.chargerAction,run:()=>window.FHServicesGame.handle(it,currentFloor)}];',
+   '  }',
    '  if(Number(window.FHServicesRuntime?.state.damage[it.id])>0&&window.FHRepairMiniGames?.supports(it)){',
    '   actions=[{id:"repair",label:window.FH_REPAIR_MINI_TEXT.title,run:()=>window.FHServicesGame.repair(it,currentFloor)}];',
    '  }else if(window.FHServicesRuntime?.requiresPower(it)&&!st?.power.powered||it.service?.requiresWater===true&&!st?.water.water){',
@@ -229,6 +243,43 @@
   if(doc.includes(elevator))doc=once(doc,elevator,'return window.FHServicesRuntime?.statusFor(stop.f,stop.item).power.powered===true;','ascensor');
   else if(doc.includes('const elevatorSystem=ForestShared.createElevatorMachine'))throw Error('No se encontró la consulta de suministro del elevador');
 
+  // El motor original se conserva en Base64. Estos ajustes operan sobre
+  // su documento 3D decodificado, y no alteran ni su esquema ni los bundles.
+  doc=once(doc,"flashlight:initial.flashlight&&typeof initial.flashlight==='object'?{...initial.flashlight}:null,hidden:",
+   "flashlight:initial.flashlight&&typeof initial.flashlight==='object'?{...initial.flashlight}:null,phone:initial.phone&&typeof initial.phone==='object'?{...initial.phone}:null,hidden:",'persistencia del celular');
+  doc=once(doc,"const itemDefs=[...(DATA.itemDefs||[])];",
+   "const itemDefs=[...(DATA.itemDefs||[])];\nif(window.FHPhone?.CHARGER_ITEM&&!itemDefs.some(d=>d.id===window.FHPhone.CHARGER_ITEM.id))itemDefs.push({...window.FHPhone.CHARGER_ITEM});",'ítem cargador');
+  const oldLight=" state.flashlight={enabled:!!f.enabled,charge:clampLight(Number.isFinite(Number(f.charge))?Number(f.charge):100,0,100)};\n const light=state.flashlight;";
+  const newLight=[
+   " const oldCharge=Number.isFinite(Number(f.charge))?Number(f.charge):100;",
+   " const phone=state.phone&&typeof state.phone==='object'?state.phone:{};",
+   " if(!Number.isFinite(Number(phone.battery)))phone.battery=clampLight(oldCharge,0,100);",
+   " state.phone=phone;",
+   " state.flashlight={enabled:!!f.enabled};",
+   " const light=state.flashlight;",
+   " Object.defineProperty(light,'charge',{enumerable:true,configurable:true,",
+   "  get:()=>clampLight(Number(state.phone.battery)||0,0,100),",
+   "  set:value=>{state.phone.battery=clampLight(Number(value)||0,0,100)}});"
+  ].join("\n");
+  doc=once(doc,oldLight,newLight,'batería compartida');
+  doc=once(doc,
+   "function tick(dt){if(!light.enabled)return false;const old=light.charge;light.charge=clampLight(light.charge-clampLight(dt,0,.10)*(Number(config.drainPerSecond)||.30),0,100);if(light.charge===0)light.enabled=false;return old!==light.charge}",
+   "function tick(dt){if(!light.enabled)return false;if(light.charge<=0||state.phone.placedAt){light.enabled=false;return true;}return false}",'descarga duplicada de linterna');
+  doc=once(doc,
+   "function toggleFlashlight(){if(light.charge<=0){light.enabled=false;return {ok:false,reason:'empty'}}light.enabled=!light.enabled;return {ok:true,enabled:light.enabled,charge:light.charge}}",
+   "function toggleFlashlight(){if(light.charge<=0||state.phone.placedAt){light.enabled=false;return {ok:false,reason:'empty'}}light.enabled=!light.enabled;return {ok:true,enabled:light.enabled,charge:light.charge}}",
+   'linterna conectada');
+  const sprite=" if(def?.icon){const label=document.createElement('span');label.className='itemIconText';label.textContent=def.icon;node.append(label);}";
+  const spriteWithImage=[
+   " if(id==='cell_phone_charger'){",
+   "  const img=document.createElement('img');img.className='fh-charger-item-art';",
+   "  img.src=new URL('./juego/assets/items/cargador-celular.png',document.baseURI).href;",
+   "  img.alt=def?.name||'Cargador de celular';",
+   "  img.style.width=large?'82%':'92%';img.style.height='92%';img.style.objectFit='contain';img.style.imageRendering='pixelated';",
+   "  node.append(img);",
+   " }else if(def?.icon){const label=document.createElement('span');label.className='itemIconText';label.textContent=def.icon;node.append(label);}"
+  ].join("\n");
+  doc=once(doc,sprite,spriteWithImage,'ícono en inventario');
   // fixturePowered ya consulta sourceFor; no recalcular los enchufes por cada foco.
   doc=root.FHInternetVisuals?.patchEngineDoc(doc)||doc;
   doc=root.FHElectricVisuals?.patchEngineDoc(doc)||doc;
