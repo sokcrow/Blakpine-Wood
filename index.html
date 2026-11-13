@@ -62,30 +62,8 @@ button,select,input{font:inherit}button{color:var(--text);border:1px solid var(-
 #play3dFullscreen{position:absolute;z-index:4;top:max(8px,env(safe-area-inset-top));left:174px;right:auto;min-height:44px;border:2px solid #d6a55c;background:#151e27;color:#d6cfb5;border-radius:0;font:800 12px ui-monospace,monospace;box-shadow:4px 4px 0 #000;padding:7px 12px;touch-action:manipulation}
 #editorLandscapeBtn{min-height:44px;background:#151e27;color:#e6c27a;border:2px solid #d6a55c;border-radius:0;font:800 11px ui-monospace,monospace}
 @media (orientation:landscape) and (max-height:480px){
- #head{min-height:44px;padding:3px 8px}#brand small{display:none}#headActions{gap:4px}#headActions button{min-height:44px;padding:6px 8px;font-size:11px}
- #subbar{min-height:44px;padding:4px 6px}#subbar button{min-height:36px;padding:6px}
- #palette{padding-bottom:2px}#categories{padding:3px 5px 0;gap:4px}#categories button{padding:3px 7px;font-size:10px;min-height:27px}
- #tools{padding:3px 5px 4px}#tools button{height:46px;min-width:68px;font-size:10px;gap:1px}#tools .sym{font-size:18px}
- #paletteFoot{display:none}#stageHint{top:5px;max-width:35%;font-size:10px;padding:4px 6px}#zoomControls{bottom:5px}#coords{bottom:5px}
  #play3dBack{min-height:44px;border-radius:0;background:#151e27;border:2px solid #75837d;box-shadow:3px 3px 0 #000}
 }
-
-#paletteCategoriesToggle{display:none}
-@media(orientation:landscape) and (max-height:480px){
- #head{height:44px;min-height:44px;flex:none;padding:0 6px}#headActions button{min-height:44px;padding:5px 8px}
- #subbar{height:44px;min-height:44px;max-height:44px;flex:none;overflow-x:auto;align-items:center;padding:3px 5px}
- #quickGrid{height:36px;padding:1px 3px}#quickGrid label{font-size:0;gap:0}#quickGrid input{width:41px;height:30px;font-size:13px}#quickGrid button{height:30px;min-width:30px}
- #palette{height:58px;min-height:58px;max-height:58px;padding:3px 5px;display:flex;align-items:center;gap:5px;position:relative}
- #paletteCategoriesToggle{display:inline-flex;min-height:44px;height:44px;min-width:95px;align-items:center;justify-content:center;padding:4px 6px;border:2px solid #75837d;border-radius:0;background:#151e27;color:#d8cfb5;font:700 11px ui-monospace,monospace}
- #palette #categories{display:none;position:absolute;right:5px;left:5px;bottom:calc(100% + 4px);padding:6px;background:#151e27;border:2px solid #75837d;z-index:10;gap:4px;overflow-x:auto}
- body.showPaletteCategories #palette #categories{display:flex}
- #palette #categories button{min-height:44px;font-size:11px;white-space:nowrap;background:#25333b;color:#f2e5c9;border-radius:0}
- #palette #tools{flex:1;min-width:0;padding:2px 0;height:50px;align-items:center}
- #palette #tools button{height:44px;min-height:44px}
- #palette #paletteFoot{display:none}
- #stage{min-height:0}#stageHint{animation:fhHideHint .1s steps(1,end) 4s forwards}
-}
-@keyframes fhHideHint{to{visibility:hidden}}
 
 /* Prueba 3D: navegación única del CONTENEDOR; el motor oculta sus equivalentes. */
 #play3dBack{left:max(8px,env(safe-area-inset-left));top:max(8px,env(safe-area-inset-top));min-width:96px;min-height:44px;border-radius:0;border:2px solid #75837d;box-shadow:3px 3px 0 #000;font:700 12px monospace}
@@ -95,10 +73,6 @@ button,select,input{font:inherit}button{color:var(--text);border:1px solid var(-
  #play3dFullscreen{left:max(110px,calc(env(safe-area-inset-left) + 110px));top:5px;padding:5px 7px}
 }
 
-@media(orientation:landscape) and (max-height:480px){
- #inspector{top:47px;bottom:0;left:auto;right:0;width:min(315px,46vw);max-height:none;height:calc(100dvh - 47px);border-radius:0;border-left:2px solid #a28c65;overflow-y:auto}
- #inspectorActions{position:sticky;bottom:0;background:#141c2b;padding:8px 0;border-top:1px solid #566a85}
-}
 /* Capas independientes: la arquitectura siempre se ve, pero solo se edita en su capa. */
 #layerSwitch{display:flex;gap:5px;padding:6px 7px 2px;overflow-x:auto;flex:none}
 #layerSwitch button{border-radius:0;min-height:42px;padding:7px 10px;white-space:nowrap;font:700 11px ui-monospace,monospace}
@@ -110,11 +84,6 @@ button,select,input{font:inherit}button{color:var(--text);border:1px solid var(-
 body.layer-lighting #stage{background:#0b1018}
 body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
 #doorPreviewCanvas{width:100%;max-width:290px;height:76px;image-rendering:pixelated;display:block;border:2px solid #6f7c87;background:#08121b}
-@media(orientation:landscape) and (max-height:480px){
- #palette{gap:3px!important}#layerSwitch{gap:3px;padding:0;max-width:min(310px,43vw)}#layerSwitch button{height:44px;min-height:44px;font-size:10px;padding:3px 5px}
- #circuitTools:not([hidden]){padding:0;gap:2px}#circuitTools label{display:none}#circuitTools select{min-height:44px;max-width:82px;font-size:10px}#circuitColor{height:44px;width:36px}
-}
-
 #circuitAudit{font:700 11px ui-monospace,monospace;min-height:38px;padding:5px 9px;background:#273743;border:1px solid #b8a475;color:#f6ddb2;white-space:nowrap}
 #circuitStatus{color:#d3d9d4;font:600 10px ui-monospace,monospace;max-width:245px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #circuitTools .circuit-all{display:flex;align-items:center;gap:4px;white-space:nowrap;color:#d8c9ac}
@@ -134,6 +103,7 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
 <link rel="stylesheet" href="./juego/assets/fh-character-creation.css?v=20261107-help">
 <link rel="stylesheet" href="./juego/assets/fh-game-ui.css?v=20261113-single-item-frame-1">
 <link rel="stylesheet" href="./juego/assets/fh-mobile-menus.css?v=20261107-mobile-ui-75">
+<link rel="stylesheet" href="./juego/assets/fh-editor-layout.css?v=20261113-layout1">
 </head>
 <body>
 <div id="app">
@@ -141,7 +111,7 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
  <div id="subbar"><div id="floorTabs"><button id="floor1Btn" class="selected">Piso 1</button><button id="floor2Btn">Piso 2</button></div><button id="addFloorBtn" title="Crear piso arriba o sótano abajo">+ Nivel</button><button id="editFloorBtn" title="Administrar niveles y planta principal">⚙ Niveles</button><div id="quickGrid" aria-label="Editar cuadrícula"><label for="quickColumns">Columnas<input id="quickColumns" type="number" inputmode="numeric" min="1" max="500" step="1" aria-label="Número de columnas"></label><label for="quickRows">Filas<input id="quickRows" type="number" inputmode="numeric" min="1" max="500" step="1" aria-label="Número de filas"></label><button id="applyQuickGrid" aria-label="Aplicar columnas y filas" title="Aplicar cuadrícula">✓</button></div><span id="floorElevation">Altura: 0 pies</span><button id="undoBtn" title="Deshacer">↶</button><button id="redoBtn" title="Rehacer">↷</button><button id="fitBtn">⛶ Ajustar</button><button id="gridBtn" class="active">▦ Cuadrícula</button><button id="jointsBtn" class="active" title="Mostrar uniones de paredes y extremos abiertos">◎ Uniones</button><button id="roomsBtn" title="Lista para renombrar habitaciones">⌂ Cuartos</button><button id="copyFloorWallsBtn" title="Copiar perímetro rojo, paredes y accesos al piso superior, respetando muros existentes">▥ Copiar muros ↑</button><button id="spawnQuickBtn" title="Poner punto de aparición">📍 Spawn</button><button id="testBtn" title="Probar este mismo mapa con el sprite en 3D">▶ Probar 3D</button><button id="previewDiagnosticToggle" type="button" aria-expanded="false" aria-controls="previewDiagnosticOptions">▾</button><button id="gridDimensionsBtn" title="Ajustes avanzados de cuadrícula">⚙ Cuadrícula</button><button id="parkingConfigBtn" title="Configurar medidas y símbolos de marcas de estacionamiento">▤ Marcas</button><button id="optionsBtn">⚙ Escala</button></div>
  <div id="previewDiagnosticOptions" hidden><label><input id="previewDiagnosticEnabled" type="checkbox"><span id="previewDiagnosticLabel"></span></label><span id="previewDiagnosticHint"></span></div>
  <main id="stage"><canvas id="map" aria-label="Editor de mapa con cuadrícula"></canvas><div id="wifiCoverageLegend" role="status" aria-live="polite" hidden></div><div id="stageHint">Pared: toca inicio y final, o arrastra. Usa Imán en Esquina para colocar exacto. Cierra paredes y coloca una puerta: el cuarto se reconoce solo. Entra a la puerta para marcarla como entrada de apartamento.</div><div id="stageBadge">● Piso 1</div><div id="coords">Casilla —, —</div><div id="zoomControls"><button id="plusBtn" aria-label="Acercar">+</button><div id="zoomLabel">100%</div><button id="minusBtn" aria-label="Alejar">−</button></div></main>
- <section id="palette"><div id="layerSwitch" aria-label="Capas de edición"><button type="button" data-layer="architecture" class="active">▥ Plano</button><button type="button" data-layer="furniture">▣ Muebles</button><button type="button" data-layer="lighting">⚡ Electricidad</button></div><div id="circuitTools" hidden><label for="circuitChooser">Circuito</label><select id="circuitChooser" aria-label="Circuito activo"></select><label for="circuitColor">Color</label><input type="color" id="circuitColor" value="#dc5656" aria-label="Color del circuito"><label class="circuit-all"><input type="checkbox" id="circuitShowAll"> Todos</label><button type="button" id="circuitAudit" title="Verificar habitaciones y dispositivos conectados">▤ Conexiones</button><span id="circuitStatus" role="status" aria-live="polite">Crea un breaker</span></div><button type="button" id="paletteCategoriesToggle" aria-expanded="false">≡ Categorías</button><div id="categories"><button data-cat="structure" class="active">▥ Estructura</button><button data-cat="furniture">▧ Muebles</button><button data-cat="lighting">⚡ Electricidad</button><button data-cat="water">◉ Agua</button><button data-cat="network">⌁ Redes</button><button data-cat="areas">◇ Áreas y accesos</button><button data-cat="roads">⇄</button><button data-cat="parking_marks">▤ Estacionamiento</button><button data-cat="navigate">✋ Editar / mover</button></div><div id="tools"></div><div id="paletteFoot"><label><input id="snapCheck" type="checkbox" checked> Imán</label><div class="snapModes"><button id="snap1Btn" class="active" type="button">Esquina</button><button id="snapHalfBtn" type="button">½</button><button id="snapQuarterBtn" type="button">¼</button></div><label><input id="axisCheck" type="checkbox" checked> Recto H/V</label><span id="autosave">Borrador local</span></div></section>
+ <section id="palette"><div id="layerSwitch" aria-label="Capas de edición"><button type="button" data-layer="architecture" class="active">▥ Plano</button><button type="button" data-layer="furniture">▣ Muebles</button><button type="button" data-layer="lighting">⚡ Electricidad</button></div><div id="circuitTools" hidden><label for="circuitChooser">Circuito</label><select id="circuitChooser" aria-label="Circuito activo"></select><label for="circuitColor">Color</label><input type="color" id="circuitColor" value="#dc5656" aria-label="Color del circuito"><label class="circuit-all"><input type="checkbox" id="circuitShowAll"> Todos</label><button type="button" id="circuitAudit" title="Verificar habitaciones y dispositivos conectados">▤ Conexiones</button><span id="circuitStatus" role="status" aria-live="polite">Crea un breaker</span></div><div id="categories"><button data-cat="structure" class="active">▥ Estructura</button><button data-cat="furniture">▧ Muebles</button><button data-cat="lighting">⚡ Electricidad</button><button data-cat="water">◉ Agua</button><button data-cat="network">⌁ Redes</button><button data-cat="areas">◇ Áreas y accesos</button><button data-cat="roads">⇄</button><button data-cat="parking_marks">▤ Estacionamiento</button><button data-cat="navigate">✋ Editar / mover</button></div><div id="tools"></div><div id="paletteFoot"><label><input id="snapCheck" type="checkbox" checked> Imán</label><div class="snapModes"><button id="snap1Btn" class="active" type="button">Esquina</button><button id="snapHalfBtn" type="button">½</button><button id="snapQuarterBtn" type="button">¼</button></div><label><input id="axisCheck" type="checkbox" checked> Recto H/V</label><span id="autosave">Borrador local</span></div></section>
 </div>
 <div id="inspector"><div id="inspectorHead"><b id="inspTitle">Objeto</b><button id="inspClose" aria-label="Cerrar propiedades">✕</button></div><div id="fields"></div><div id="inspectorActions"><button id="duplicateBtn">⧉ Duplicar</button><button id="rotateBtn">⟳ Girar 90°</button><button id="deleteBtn" class="danger">⌫ Eliminar</button></div></div>
 
@@ -5182,16 +5152,7 @@ async function requestEditorLandscape(element){
   catch{toast('Pantalla completa activada. Gira el teléfono para horizontal.');}
  }catch{toast('Pantalla completa no disponible en este navegador. Prueba abrir el HTML en Chrome.');}
 }
-document.getElementById('paletteCategoriesToggle').addEventListener('click',()=>{
- const open=document.body.classList.toggle('showPaletteCategories');
- document.getElementById('paletteCategoriesToggle').setAttribute('aria-expanded',String(open));
-});
-document.getElementById('categories').addEventListener('click',()=>{
- document.body.classList.remove('showPaletteCategories');
- document.getElementById('paletteCategoriesToggle').setAttribute('aria-expanded','false');
-});
 document.getElementById('play3dFullscreen').addEventListener('click',()=>requestEditorLandscape(play3DLayer));
-document.getElementById('editorLandscapeBtn').addEventListener('click',()=>requestEditorLandscape(document.documentElement));
 document.getElementById('play3dBack').addEventListener('click',close3DPreview);
 
 setupPlayMode();
@@ -5261,6 +5222,8 @@ init();
 <script src="./juego/assets/fh-barriers.js?v=20261111-metal1"></script>
 <script src="./juego/assets/fh-barriers-engine-hook.js?v=20261112-barriers-hook1"></script>
 <script src="./juego/assets/fh-barriers-editor.js?v=20261111-metal1"></script>
+<script src="./juego/assets/fh-editor-layout-strings.js?v=20261113-layout1"></script>
+<script src="./juego/assets/fh-editor-layout.js?v=20261113-layout1"></script>
 </body>
 </html>
 

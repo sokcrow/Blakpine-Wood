@@ -1,0 +1,104 @@
+body.fh-editor{--fh-safe-left:env(safe-area-inset-left,0px);--fh-safe-right:env(safe-area-inset-right,0px);--fh-safe-top:env(safe-area-inset-top,0px);--fh-safe-bottom:env(safe-area-inset-bottom,0px)}
+/* Sólo el editor: no se aplican estas reglas al iframe ni a la interfaz 3D. */
+body.fh-editor #app{inset:auto;bottom:auto;right:auto;display:flex;height:100dvh;min-height:0;overflow:hidden;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+body.fh-editor #head{flex:none;min-height:52px;height:auto;padding:5px max(10px,env(safe-area-inset-right)) 5px max(10px,env(safe-area-inset-left));gap:12px}
+body.fh-editor #headActions{flex:1;justify-content:flex-end;min-width:0;overflow:visible}
+body.fh-editor #brand{flex:none;max-width:40%}
+body.fh-editor #headActions>button{flex:none}
+body.fh-editor #subbar{height:48px;min-height:48px;max-height:48px;padding:3px max(8px,env(safe-area-inset-right)) 3px max(8px,env(safe-area-inset-left));overflow:visible;gap:6px}
+body.fh-editor #subbar>*,body.fh-editor #fhFloorPicker{flex:none}
+body.fh-editor #fhWorkspace{display:grid;grid-template-columns:minmax(0,1fr) 320px;flex:1;min-height:0;min-width:0;position:relative;overflow:hidden}
+body.fh-editor #stage{min-width:0;min-height:0;flex:none;grid-column:1;grid-row:1}
+body.fh-editor #inspector{position:relative;inset:auto;grid-column:2;grid-row:1;z-index:1;width:auto;height:auto;max-height:none;min-height:0;min-width:0;overflow:auto;overscroll-behavior:contain;border:0;border-left:1px solid var(--line);border-radius:0;box-shadow:none;padding:12px;background:var(--panel);display:block;scrollbar-gutter:stable}
+body.fh-editor.fh-sidebar-collapsed #fhWorkspace{grid-template-columns:minmax(0,1fr)}
+body.fh-editor.fh-sidebar-collapsed #inspector{display:none}
+body.fh-editor #inspectorHead{position:sticky;top:-12px;z-index:1;background:var(--panel);padding:6px 0;min-height:44px;align-items:flex-start}
+body.fh-editor #inspTitle{overflow-wrap:anywhere;min-width:0}
+body.fh-editor #inspClose{min-height:36px;min-width:36px;flex:none}
+body.fh-editor #fields>*{min-width:0;max-width:100%;overflow-wrap:anywhere}
+body.fh-editor #fields button{white-space:normal}
+body.fh-editor #fields textarea{max-width:100%}
+body.fh-editor #inspectorActions{position:static;display:flex;padding:8px 0;gap:6px;flex-wrap:wrap;background:var(--panel)}
+body.fh-editor #inspectorActions[hidden]{display:none!important}
+body.fh-editor #fhInspectorEmpty{font-size:13px;line-height:1.6;color:var(--muted)}
+body.fh-editor #palette{height:auto;min-height:0;max-height:none;display:block;position:relative;flex:none;padding:4px max(8px,env(safe-area-inset-right)) 6px max(8px,env(safe-area-inset-left));box-shadow:none}
+body.fh-editor #fhPaletteBar{display:flex;align-items:center;gap:6px;min-width:0}
+body.fh-editor #categories{flex:1;min-width:0;display:flex;position:static;inset:auto;padding:0;gap:5px;overflow:visible;background:transparent;border:0}
+body.fh-editor #categories button{min-height:36px;padding:6px 10px;white-space:nowrap;flex:none}
+body.fh-editor #fhQuickTools{display:flex;gap:4px;flex:none}
+body.fh-editor #fhQuickTools button{min-width:38px;min-height:36px;padding:5px}
+body.fh-editor [data-editor-tool][aria-pressed=true]{background:#6e5a9f;border-color:#ddcbff}
+body.fh-editor #fhPropertiesToggle,body.fh-editor #fhOptionsToggle{flex:none;min-height:36px;font-size:12px;padding:7px 10px}
+body.fh-editor #fhPropertiesToggle[aria-expanded=true]{border-color:#b69cff;background:#302744}
+body.fh-editor #tools{display:flex;align-items:center;min-width:0;height:78px;gap:6px;overflow:visible;padding:6px 0}
+body.fh-editor #tools button[data-tool],body.fh-editor #tools>button:not(.fh-overflow-toggle){height:66px;min-height:66px;min-width:73px;flex:none}
+body.fh-editor .fh-overflow-toggle{height:40px!important;min-height:40px!important;min-width:64px!important;max-width:min(260px,100%);flex:none!important;display:block!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap!important;padding:8px 10px!important;font-size:12px!important;border:1px solid #8c7cab;background:#2e2740}
+body.fh-editor .fh-measuring{flex-wrap:nowrap!important;overflow:visible!important}
+body.fh-editor .fh-measuring>*{flex-shrink:0!important}
+body.fh-editor .fh-editor-panel{position:fixed;inset:auto;margin:0;z-index:15;box-sizing:border-box;padding:10px;overflow:auto;overscroll-behavior:contain;touch-action:pan-y;background:#121b2b;border:1px solid #7183a0;border-radius:10px;box-shadow:0 8px 28px #0009;color:var(--text);max-width:calc(100vw - env(safe-area-inset-left) - env(safe-area-inset-right) - 24px)}
+body.fh-editor .fh-editor-panel::backdrop{background:transparent;pointer-events:none}
+body.fh-editor .fh-panel-head{display:flex;justify-content:space-between;gap:12px;align-items:center;position:sticky;top:-10px;z-index:1;background:#121b2b;padding:3px 0 8px;border-bottom:1px solid var(--line);margin-bottom:8px;font-size:13px}
+body.fh-editor .fh-panel-head button{min-height:40px;min-width:66px;font-size:12px}
+body.fh-editor .fh-panel-items{display:flex;flex-wrap:wrap;align-items:center;gap:8px;min-width:0}
+body.fh-editor .fh-panel-items>button{min-height:44px;white-space:normal!important;max-width:100%;height:auto;overflow-wrap:anywhere}
+body.fh-editor #tools .fh-panel-items>button{display:flex;flex-direction:column;justify-content:center;align-items:center;min-width:90px;flex:1 0 90px;max-width:160px;height:auto;min-height:76px;padding:7px;gap:4px}
+body.fh-editor #tools .fh-panel-items>button>span:not(.sym):not(.swatch){white-space:normal;line-height:1.35}
+body.fh-editor #tools .fh-panel-head button{display:block;height:40px;min-height:40px;min-width:66px;padding:6px;font-size:12px}
+body.fh-editor #categories .fh-panel-items>button{min-height:44px;white-space:normal;flex:1 0 120px}
+body.fh-editor #fhEditOptions .fh-panel-items{display:grid;grid-template-columns:minmax(0,1fr);align-items:start}
+body.fh-editor #layerSwitch{display:flex;flex-wrap:wrap;max-width:none;overflow:visible;padding:0;gap:6px}
+body.fh-editor #layerSwitch button{height:auto;min-height:44px;white-space:normal;flex:1 0 120px;padding:8px}
+body.fh-editor #circuitTools:not([hidden]){display:flex;flex-wrap:wrap;padding:6px 0;gap:6px;max-width:100%}
+body.fh-editor #circuitTools label,body.fh-editor #circuitTools .circuit-all{display:flex;align-items:center;gap:5px;max-width:100%}
+body.fh-editor #circuitTools select{max-width:100%;min-height:44px}
+body.fh-editor #circuitStatus{display:block;max-width:100%;white-space:normal;overflow-wrap:anywhere}
+body.fh-editor #paletteFoot{display:flex;flex-wrap:wrap;padding:6px 0;gap:12px;min-width:0}
+body.fh-editor #paletteFoot .snapModes{gap:6px}
+body.fh-editor #paletteFoot button{min-height:44px}
+body.fh-editor #paletteFoot label{min-height:44px}
+body.fh-editor #autosave{text-align:left;min-width:0;flex-basis:100%}
+body.fh-editor #stageHint{position:static;animation:none;visibility:visible;max-width:100%;margin-top:8px;pointer-events:auto;line-height:1.5}
+body.fh-editor #fhEditOptions summary{cursor:pointer;padding:12px 0;font-size:13px}
+body.fh-editor #floorTabs{display:flex;flex-wrap:wrap;overflow:visible;padding:0;background:transparent;max-width:100%}
+body.fh-editor #floorTabs button{min-height:44px;white-space:normal;max-width:100%}
+body.fh-editor #fhFloorToggle{max-width:180px;overflow:hidden;text-overflow:ellipsis;min-height:40px;white-space:nowrap}
+body.fh-editor #fhOrientationNotice{display:none}
+body.fh-editor #zoomControls{bottom:10px;right:max(10px,env(safe-area-inset-right));gap:5px}
+body.fh-editor #zoomControls button{width:44px;height:44px}
+body.fh-editor #stageBadge{max-width:calc(100% - 24px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.fh-editor #app button:focus-visible,body.fh-editor #app summary:focus-visible,body.fh-editor #inspector:focus-visible{outline:2px solid #ffc171;outline-offset:-3px}
+body.fh-editor.fh-compact #head{height:44px;min-height:44px;padding-top:0;padding-bottom:0;gap:8px}
+body.fh-editor.fh-compact #brand small{display:none}
+body.fh-editor.fh-compact #brand strong{font-size:12px}
+body.fh-editor.fh-compact #headActions{gap:4px}
+body.fh-editor.fh-compact #headActions>button{min-height:40px;padding:5px 8px}
+body.fh-editor.fh-compact #subbar{height:44px;min-height:44px;max-height:44px;padding-top:2px;padding-bottom:2px}
+body.fh-editor.fh-compact #subbar>button{min-height:40px}
+body.fh-editor.fh-compact #fhWorkspace{grid-template-columns:minmax(0,1fr)}
+body.fh-editor.fh-compact #inspector{display:none}
+body.fh-editor.fh-compact.fh-properties-open #fhWorkspace{grid-template-columns:minmax(0,1fr) min(300px,44vw)}
+body.fh-editor.fh-compact.fh-properties-open #inspector{display:block;padding:8px}
+body.fh-editor.fh-compact #fields{grid-template-columns:minmax(0,1fr)}
+body.fh-editor.fh-compact #palette{padding-top:2px;padding-bottom:2px;display:flex;align-items:center;gap:6px;height:48px;min-height:48px;max-height:48px}
+body.fh-editor.fh-compact #fhPaletteBar{display:contents}
+body.fh-editor.fh-compact #fhQuickTools{order:0}
+body.fh-editor.fh-compact #fhQuickTools button{min-height:44px;min-width:40px}
+body.fh-editor.fh-compact #categories{order:1;flex:0 1 150px;min-width:78px}
+body.fh-editor.fh-compact #tools{order:2;flex:1;min-width:90px;height:44px;padding:0}
+body.fh-editor.fh-compact #categories>.fh-overflow-toggle,body.fh-editor.fh-compact #tools>.fh-overflow-toggle{width:100%;min-width:0!important;min-height:44px!important;height:44px!important;max-width:100%}
+body.fh-editor.fh-compact #fhPropertiesToggle{order:3;min-height:44px;max-width:100px;padding:5px 8px}
+body.fh-editor.fh-compact #fhOptionsToggle{order:4;min-height:44px;padding:5px 8px}
+body.fh-editor.fh-compact #stageBadge,body.fh-editor.fh-compact #coords,body.fh-editor.fh-compact #wifiCoverageLegend{display:none}
+body.fh-editor.fh-compact #zoomControls{bottom:6px;right:max(6px,env(safe-area-inset-right));flex-direction:row;align-items:center}
+body.fh-editor.fh-compact #zoomLabel{min-width:42px}
+body.fh-editor.fh-portrait #subbar,body.fh-editor.fh-portrait #palette{display:none}
+body.fh-editor.fh-portrait #fhWorkspace{grid-template-columns:minmax(0,1fr)}
+body.fh-editor.fh-portrait #inspector{display:none}
+body.fh-editor.fh-portrait #stage{pointer-events:none;opacity:.45}
+body.fh-editor.fh-portrait #zoomControls{display:none}
+body.fh-editor.fh-portrait #fhOrientationNotice:not([hidden]){display:flex;flex-direction:column;justify-content:center;position:absolute;inset:20px;max-width:420px;margin:auto;max-height:220px;padding:24px;background:#121b2bf5;border:1px solid #8c7cab;border-radius:10px;pointer-events:none;font-size:18px;line-height:1.5;text-align:center}
+body.fh-editor #fhOrientationNotice p{font-size:13px;color:var(--muted)}
+@media(prefers-reduced-motion:reduce){body.fh-editor #app *{scroll-behavior:auto}}
+
+/* hidden prevalece incluso sobre las reglas de las barras heredadas. */
+body.fh-editor #app [hidden]{display:none!important}
