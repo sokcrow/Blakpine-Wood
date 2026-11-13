@@ -9,6 +9,8 @@
  heaterNoWater:'Calentador sin suministro de agua.',
  note:'Los medidores, válvulas, tomas y drenajes usan FHServices. La coladera utiliza el drenaje existente. El calentador actúa como toma de agua, sin simulación de temperatura.',
  networkToggle:'Red potable automática por paredes y pisos',
+ verticalRiser:'Montante entre plantas (ID compartido; máximo 15 pies de separación)',
+ verticalRiserPlaceholder:'Vacío: usar alineación automática',
  tankCistern:'Cisterna · reserva potable',tankTinaco:'Tinaco · reserva potable',
  modelPending:'Modelo 3D pendiente',networkId:'Identificador de red hidráulica',
  visibility:'Visualización de tuberías',concealed:'Empotradas',visible:'Visibles',
