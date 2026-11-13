@@ -132,6 +132,8 @@
    Object.assign(item,{modelId:tank.id,utilitySkin:tank.id,label:tank.name,
     placement:'floor',w:tank.widthFt/cell,h:tank.depthFt/cell,
     heightFt:tank.heightFt,blocksMovement:true});
+   const adjusted=window.FHWaterVisuals?.floorPlacement(item,tank,current().items,cell*.3048);
+   if(adjusted){item.x=adjusted.x;item.y=adjusted.y;}
    item.interact={id:'utility_'+item.id,verb:'use',label:'Inspeccionar '+tank.name,effects:[]};
    project.plumbing={...project.plumbing,enabled:true};
    return item;
