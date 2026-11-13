@@ -185,7 +185,7 @@
    const toZ=num(floors[target.f]?.elevationFt,target.f*12);
    if(toZ<=fromZ)return null;
    return pumps.find(p=>{
-    if(!pumpReady(p))return false;
+    if(!pumpReady(p)||!openValves(source.it)||!openValves(p.it)||!openValves(target.it))return false;
     if(p.f!==source.f||!compatible(source.it,p.it)||!compatible(p.it,target.it))return false;
     if(p.it.pumpSourceId&&String(p.it.pumpSourceId)!==String(source.it.id))return false;
     if(p.it.pumpTargetId&&String(p.it.pumpTargetId)!==String(target.it.id))return false;
@@ -262,13 +262,14 @@
    // La bomba transfiere litros existentes: no fabrica agua municipal.
    for(const pump of pumps){
     services.usage[pump.it.id]=false;
-    if(!pumpReady(pump))continue;
-    const supply=tanks.filter(s=>s.it.type==='water_cistern'&&s.f===pump.f&&available(s)&&
+    if(!pumpReady(pump)||!openValves(pump.it))continue;
+    const supply=tanks.filter(s=>s.it.type==='water_cistern'&&s.f===pump.f&&available(s)&&openValves(s.it)&&
      (!pump.it.pumpSourceId||String(pump.it.pumpSourceId)===String(s.it.id))&&
      compatible(s.it,pump.it)&&shortest(s,pump)?.feet<=Math.max(0,num(pump.it.pumpInletRangeFt,15)))
      .sort((a,b)=>shortest(a,pump).feet-shortest(b,pump).feet)[0];
     if(!supply)continue;
-    const target=tanks.filter(t=>t.it.type==='water_tinaco'&&
+    const target=tanks.filter(t=>t.it.type==='water_tinaco'&&openValves(t.it)&&
+     num(tankState[tankKey(floors[t.f],t.it)]?.liters)<Math.max(0,num(t.it.capacityLiters,1100))&&
      num(floors[t.f]?.elevationFt,t.f*12)>num(floors[pump.f]?.elevationFt,pump.f*12)&&
      (!pump.it.pumpTargetId||String(pump.it.pumpTargetId)===String(t.it.id))&&
      compatible(pump.it,t.it)&&shortest(pump,t)?.feet<=Math.max(0,num(pump.it.pumpRangeFt,240)))
