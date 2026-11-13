@@ -11,7 +11,7 @@
  const PERCENT=Object.freeze([0,0,10,30,60,100]);
  const DEFAULTS=Object.freeze({
   thresholds:[0,10,25,45,70,95],initialStress:12,holdMinutes:15,
-  recoveryPerMinute:1.25,darknessPerMinute:1.1,cooldownMinutes:3,
+  recoveryPerMinute:1.25,darknessPerMinute:0.15,maxDarknessStress:15,cooldownMinutes:3,
   eventStress:{room:0,corpse:34,paranormal:43,creature:52,eldritch:100}
  });
  const finite=x=>typeof x==='number'&&Number.isFinite(x);
@@ -34,11 +34,14 @@
   if(!Array.isArray(cfg.thresholds)||cfg.thresholds.length!==6||
      cfg.thresholds.some(x=>!finite(x))||cfg.thresholds.some((x,i)=>i&&x<=cfg.thresholds[i-1]))
    throw Error('Umbrales de miedo inválidos.');
+  if(!finite(cfg.maxDarknessStress)||cfg.maxDarknessStress<0)throw Error('Límite de oscuridad inválido.');
   const state=character.mental&&typeof character.mental==='object'&&!Array.isArray(character.mental)?character.mental:{};
-  state.version=1;
+  state.version=2;
   if(!MOODS.includes(state.mood))state.mood='neutral';
   if(!finite(state.stress))state.stress=cfg.initialStress;
   state.stress=bounded(state.stress,0,100);
+  // Aporte pendiente de oscuridad: no se reinicia al alternar las luces.
+  state.darknessStress=bounded(finite(state.darknessStress)?state.darknessStress:0,0,cfg.maxDarknessStress);
   if(!finite(state.lastMinute))state.lastMinute=null;
   if(!finite(state.holdUntil))state.holdUntil=0;
   if(!state.exposures||typeof state.exposures!=='object'||Array.isArray(state.exposures))state.exposures={};
@@ -84,6 +87,11 @@
    state.holdUntil=Math.max(state.holdUntil,minute+cfg.holdMinutes);
    return promote(state.stress+effective,type);
   }
+  function recoverStress(amount,reason){
+   const recovered=Math.min(state.stress,Math.max(0,amount));
+   state.darknessStress=Math.max(0,state.darknessStress-recovered);
+   return promote(state.stress-recovered,reason);
+  }
   function tick(minute,context={}){
    if(!finite(minute))return null;
    if(!finite(state.lastMinute)){state.lastMinute=minute;return null;}
@@ -93,13 +101,17 @@
    if(!elapsed)return null;
    if(context.sleeping){
     state.holdUntil=minute;
-    return promote(state.stress-cfg.recoveryPerMinute*elapsed*2,'reposo');
+    return recoverStress(cfg.recoveryPerMinute*elapsed*2,'reposo');
    }
    if(context.darkness){
     state.holdUntil=Math.max(state.holdUntil,minute+cfg.holdMinutes);
-    return promote(state.stress+cfg.darknessPerMinute*elapsed*willFactor(character.scores?.VOL),'oscuridad');
+    const gain=Math.min(cfg.maxDarknessStress-state.darknessStress,
+     cfg.darknessPerMinute*elapsed*willFactor(character.scores?.VOL));
+    if(gain<=0)return null;
+    state.darknessStress+=gain;
+    return promote(state.stress+gain,'oscuridad');
    }
-   if(minute>=state.holdUntil)return promote(state.stress-cfg.recoveryPerMinute*elapsed,'recuperacion');
+   if(minute>=state.holdUntil)return recoverStress(cfg.recoveryPerMinute*elapsed,'recuperacion');
    return null;
   }
   function read(){return clone({mood:state.mood,stress:state.stress,level:state.level,key:LEVELS[state.level],holdUntil:state.holdUntil});}

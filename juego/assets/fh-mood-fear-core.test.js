@@ -2,6 +2,8 @@
 'use strict';
 const test=require('node:test');
 const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
 const M=require('./fh-mood-fear-core.js');
 const character=(vol=3)=>({id:'a',scores:{VOL:vol},resources:{pg:30,pgMax:30,sp:100,spMax:100,pe:8,peMax:8}});
 test('Niveles y costes',()=>{
@@ -51,4 +53,66 @@ test('Estado mental se conserva en el personaje',()=>{
  const c=character();let f=M.createRuntime(c);f.setMood('bueno');f.stimulus('creature',{minute:1});
  const before=f.state.stress;f=M.createRuntime(c);
  assert.equal(f.read().mood,'bueno');assert.equal(f.read().stress,before);
+});
+
+test('La oscuridad suma como máximo 15 puntos, incluso durante horas',()=>{
+ const c=character(3),f=M.createRuntime(c);
+ f.tick(0,{darkness:true});
+ f.tick(240,{darkness:true});
+ assert.equal(f.state.darknessStress,15);
+ assert.equal(f.state.stress,27);
+ assert.equal(f.read().key,'nervioso');
+ f.tick(600,{darkness:true});
+ assert.equal(f.state.stress,27);
+ assert.equal(c.resources.sp,90,'la oscuridad sola no debe vaciar PS');
+});
+test('El aporte de oscuridad no se reinicia al alternar luces y se libera al recuperar',()=>{
+ const c=character(3),f=M.createRuntime(c);
+ f.tick(0,{darkness:true});
+ f.tick(100,{darkness:true});
+ const before=f.state.stress;
+ f.tick(101,{darkness:false});
+ f.tick(102,{darkness:true});
+ assert.equal(f.state.stress,before,'encender y apagar no vuelve a sumar oscuridad');
+ f.tick(130,{darkness:false});
+ assert.equal(f.state.darknessStress,0);
+ f.tick(131,{darkness:true});
+ assert.ok(f.state.darknessStress>0,'la exposición vuelve a contar tras recuperarse');
+});
+test('Las amenazas siguen sumando sin quedar limitadas por el tope de oscuridad',()=>{
+ const f=M.createRuntime(character(3));
+ f.tick(0,{darkness:true});
+ f.tick(120,{darkness:true});
+ const before=f.state.stress;
+ f.stimulus('creature',{minute:121,intensity:52,sourceId:'sombra-1'});
+ assert.equal(f.state.stress,before+52);
+ assert.equal(f.read().key,'sin_esperanza');
+ f.tick(200,{darkness:true});
+ assert.equal(f.state.darknessStress,15);
+ assert.equal(f.state.stress,before+52);
+});
+test('El presupuesto de oscuridad persiste al reconstruir el runtime',()=>{
+ const c=character(3);
+ let f=M.createRuntime(c);
+ f.tick(0,{darkness:true});
+ f.tick(120,{darkness:true});
+ const before=f.state.stress;
+ f=M.createRuntime(c);
+ f.tick(180,{darkness:true});
+ assert.equal(f.state.stress,before);
+ assert.equal(f.state.darknessStress,15);
+});
+test('El motor no drena PS de supervivencia indefinidamente solo por oscuridad',()=>{
+ const html=fs.readFileSync(path.join(__dirname,'../../index.html'),'utf8');
+ assert.doesNotMatch(html,/stressed:fhDark/);
+ assert.match(html,/tick\(fhNow,\{darkness:fhDark,sleeping:fhSleeping\}\)/);
+});
+test('Cada estado de Fear aplica su color, incluyendo los rojos de peligro',()=>{
+ const css=fs.readFileSync(path.join(__dirname,'fh-mood-fear.css'),'utf8');
+ const base=css.slice(css.indexOf('#fhSpatialLayer .fh-sound.fh-fear-comic{'),
+  css.indexOf('#fhSpatialLayer .fh-fear-comic--relajado'));
+ assert.doesNotMatch(base,/--fear\s*:/);
+ assert.match(base,/color:var\(--fear\)/);
+ assert.match(css,/#fhSpatialLayer \.fh-fear-comic--sin_esperanza\{--fear:#f24238\}/);
+ assert.match(css,/#fhSpatialLayer \.fh-fear-comic--abrumado\{--fear:#a50c26\}/);
 });

@@ -4733,7 +4733,7 @@ function floorSightThroughOpening(f,at,target,openings){
     "  fhDark=!window.FHLights?.sourcesIlluminate(lamps,user.x,user.z,fhLightBlockers(),ForestShared.pointInSight);\n"+
     " }\n"+
     " fhSurvival.update(fhNow,{mode:fhSleeping?'sleeping':fhSitting?'sitting':'awake',\n"+
-    "  stressed:fhDark,relaxing:fhSitting&&!!watchingTvId});\n"+
+    "  relaxing:fhSitting&&!!watchingTvId});\n"+
     " window.FHSleep?.setUnconscious(!!fhSurvival.state.critical);\n"+
     " fhSurvivalUI?.update();\n"+
     " if(fhSurvivalDirty||fhNow-fhSurvivalLastSave>=10){fhSurvivalDirty=false;fhSurvivalLastSave=fhNow;saveProgress();}\n"+
