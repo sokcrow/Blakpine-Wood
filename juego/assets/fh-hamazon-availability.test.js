@@ -13,10 +13,13 @@ const deliveryCode=fs.readFileSync(path.join(__dirname,'fh-delivery.js'),'utf8')
 const index=fs.readFileSync(path.join(root,'index.html'),'utf8');
 const shop=fs.readFileSync(path.join(__dirname,'fh-terminal.html'),'utf8');
 
-test('Los 78 artículos interiores siguen disponibles; ocho modelos exteriores quedan fuera de Hamazon',()=>{
+test('Los 78 muebles interiores originales siguen disponibles; Comercio 02 no aparece en Hamazon',()=>{
  const interiors=main.furniture.filter(entry=>entry.environment!=='exterior');
  const exteriors=main.furniture.filter(entry=>entry.environment==='exterior');
- assert.equal(interiors.length,78);
+ const commerce=interiors.filter(entry=>entry.pack==='comercio_02');
+ assert.equal(interiors.filter(entry=>entry.pack!=='comercio_02').length,78);
+ assert.equal(commerce.length,8);
+ assert.ok(commerce.every(entry=>entry.forSale===false));
  assert.equal(exteriors.length,8);
  for(const entry of interiors){
   assert.equal(entry.environment,'interior',entry.id);
@@ -45,7 +48,7 @@ test('Hamazon tiene categoría Interiores, selector de subcategorías y estado E
  assert.match(index,/validateProduct:async product=>/);
  assert.match(index,/FHAssets\.load\(product\.modelId\)/);
  assert.match(deliveryCode,/if\(p\.shopStatus!=='available'\)/);
- assert.match(deliveryCode,/filter\(p=>!p\.environment\|\|p\.environment==='interior'\)/);
+ assert.match(deliveryCode,/p\.forSale!==false/);
 });
 
 test('El estado de compra se libera solo después de validar el GLB, no si falla o es exterior',async()=>{
@@ -53,7 +56,8 @@ test('El estado de compra se libera solo después de validar el GLB, no si falla
   {id:'silla_madera',name:'Silla de madera',category:'Asientos',environment:'interior',glb:'modelos_glb/silla_madera.glb',widthFt:2,depthFt:2,heightFt:3},
   {id:'silla_rota',name:'Silla rota',environment:'interior',glb:'modelos_glb/silla_rota.glb'},
   {id:'sin_modelo',name:'Sin modelo',environment:'interior'},
-  {id:'farola_exterior',name:'Farola',environment:'exterior',glb:'modelos_glb/farola_exterior.glb'}
+  {id:'farola_exterior',name:'Farola',environment:'exterior',glb:'modelos_glb/farola_exterior.glb'},
+  {id:'gondola_restringida',name:'Góndola',environment:'interior',forSale:false,glb:'modelos_glb/gondola_restringida.glb'}
  ]};
  const delivery={furniture:[]};
  let releaseValidation=null;
@@ -88,6 +92,7 @@ test('El estado de compra se libera solo después de validar el GLB, no si falla
  assert.equal(rt.placeOrder('silla_madera','prepaid'),null,'Nunca se compra mientras se comprueba');
  assert.equal(rt.placeOrder('sin_modelo','prepaid'),null);
  assert.equal(rt.placeOrder('farola_exterior','prepaid'),null);
+ assert.equal(rt.placeOrder('gondola_restringida','prepaid'),null);
  assert.equal(state.delivery.orders.length,0);
  releaseValidation();
  for(let i=0;i<40&&rt.products[0].shopStatus!=='available';i++)await Promise.resolve();

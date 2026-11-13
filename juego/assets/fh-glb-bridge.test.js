@@ -35,10 +35,10 @@ const tick=()=>new Promise(resolve=>setImmediate(resolve));
 let checks=0;
 async function test(name,fn){await fn();checks++;console.log('OK',name)}
 (async()=>{
- await test('Los catálogos reales admiten duplicados idénticos y los 94 GLB',async()=>{
+ await test('Los catálogos reales admiten duplicados idénticos, incluidos los ocho GLB de Comercio 02',async()=>{
   const {assets}=setup();
   const models=await assets.catalog();
-  assert.equal(models.size,94);
+  assert.equal(models.size,main.furniture.length+generators.furniture.length);
   for(const entry of [...main.furniture,...generators.furniture])assert.ok(fs.existsSync(path.join(library,entry.glb)),entry.id);
  });
  await test('Una definición contradictoria sí se rechaza',async()=>{

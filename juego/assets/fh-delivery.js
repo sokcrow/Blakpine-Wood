@@ -123,7 +123,7 @@ function createRuntime(options){
    const f=await fetch(furnitureUrl).then(r=>r.ok?r.json():Promise.reject(Error(r.status)));
    const d=await fetch(deliveryUrl).then(r=>r.ok?r.json():Promise.reject(Error(r.status))).catch(err=>{console.warn('Hamazon: catálogo de paquetería no disponible',err);return {furniture:[]}});
    const catalogBase=new URL('../../forest-horror/biblioteca/',base);
-   products=(f.furniture||[]).filter(p=>!p.environment||p.environment==='interior').map(p=>normalizeProduct({...p,kind:'furniture'},catalogBase));
+   products=(f.furniture||[]).filter(p=>(!p.environment||p.environment==='interior')&&p.forSale!==false).map(p=>normalizeProduct({...p,kind:'furniture'},catalogBase));
    boxes=(d.furniture||[]).map(p=>({...p,modelId:p.id,parcelSize:p.parcelSize||parcelSize(p)}));
    ready=true;syncProductsToTerminal();syncOrdersToTerminal();resume();void verifyCatalogProducts();
   }catch(err){console.warn('Hamazon: catálogo de muebles no disponible',err)}

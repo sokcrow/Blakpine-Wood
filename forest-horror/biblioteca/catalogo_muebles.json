@@ -1947,7 +1947,8 @@
       "triangles": 84,
       "description": "Modelo 3D Pixel Art Low Poly. Funciones de comercio e inventario pendientes.",
       "surfaceOverhangFt": 0.1,
-      "shopRole": "register"
+      "shopRole": "register",
+      "forSale": false
     },
     {
       "id": "mostrador_caja_c02",
@@ -1980,7 +1981,8 @@
           "depthFt": 2.3,
           "heightFt": 3.25
         }
-      ]
+      ],
+      "forSale": false
     },
     {
       "id": "refrigerador_vertical_bebidas_c02",
@@ -2003,7 +2005,8 @@
         "tienda"
       ],
       "triangles": 166,
-      "description": "Modelo 3D Pixel Art Low Poly. Funciones de comercio e inventario pendientes."
+      "description": "Modelo 3D Pixel Art Low Poly. Funciones de comercio e inventario pendientes.",
+      "forSale": false
     },
     {
       "id": "congelador_horizontal_c02",
@@ -2026,7 +2029,8 @@
         "tienda"
       ],
       "triangles": 108,
-      "description": "Modelo 3D Pixel Art Low Poly. Funciones de comercio e inventario pendientes."
+      "description": "Modelo 3D Pixel Art Low Poly. Funciones de comercio e inventario pendientes.",
+      "forSale": false
     },
     {
       "id": "rack_snacks_c02",
@@ -2050,7 +2054,8 @@
       ],
       "triangles": 130,
       "description": "Modelo 3D Pixel Art Low Poly. Funciones de comercio e inventario pendientes.",
-      "shopRole": "display"
+      "shopRole": "display",
+      "forSale": false
     },
     {
       "id": "gondola_simple_c02",
@@ -2074,7 +2079,8 @@
       ],
       "triangles": 132,
       "description": "Modelo 3D Pixel Art Low Poly. Funciones de comercio e inventario pendientes.",
-      "shopRole": "display"
+      "shopRole": "display",
+      "forSale": false
     },
     {
       "id": "exhibidor_frutas_c02",
@@ -2098,7 +2104,8 @@
       ],
       "triangles": 236,
       "description": "Modelo 3D Pixel Art Low Poly. Funciones de comercio e inventario pendientes.",
-      "shopRole": "display"
+      "shopRole": "display",
+      "forSale": false
     },
     {
       "id": "cajero_atm_c02",
@@ -2121,7 +2128,8 @@
         "banco"
       ],
       "triangles": 120,
-      "description": "Modelo 3D Pixel Art Low Poly. Funciones de comercio e inventario pendientes."
+      "description": "Modelo 3D Pixel Art Low Poly. Funciones de comercio e inventario pendientes.",
+      "forSale": false
     }
   ]
 }

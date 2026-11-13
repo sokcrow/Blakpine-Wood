@@ -17,6 +17,7 @@ const shared={
 };
 test('Comercio 02: ocho recursos únicos, rutas legibles por selector y roles de receta',()=>{
  assert.equal(data.length,8);
+ assert.ok(data.every(item=>item.forSale===false),'Los muebles de Comercio 02 no se venden en Hamazon');
  assert.equal(new Set(catalog.furniture.map(x=>x.id)).size,catalog.furniture.length);
  for(const item of data){
   assert.match(item.thumbnail,new RegExp('^miniaturas/'+item.id+'\\.png$'));
