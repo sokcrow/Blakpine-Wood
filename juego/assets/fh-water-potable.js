@@ -223,13 +223,14 @@
     const tank=tankState[tankKey(floors[f],it)];
     return {connected:true,water:num(tank?.liters)>0,liters:num(tank?.liters)};
    }
-   for(const port of portsFor(f,it)){
+   const localPorts=portsFor(f,it);
+   for(const port of localPorts){
     const paths=choices(port).filter(x=>compatible(x.node.it,it)),ready=paths.find(x=>available(x.node));
     if(ready)return {connected:true,water:true,via:port.it.id,sourceId:ready.node.it.id,
      sourceType:ready.node.it.type,feet:ready.route.feet};
     if(paths.length)return {connected:true,water:false,via:port.it.id,reason:'sourceUnavailable'};
    }
-   return {connected:false,water:false,reason:'unconnected'};
+   return {connected:false,water:false,reason:localPorts.length?'noRoute':'noOutlet'};
   }
   function consume(f,it,liters,strict=false){
    const amount=Math.max(0,num(liters));
