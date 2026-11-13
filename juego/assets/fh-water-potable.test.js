@@ -28,6 +28,8 @@ test('modo opcional: mapas antiguos no entran en red automática',()=>{
  const map=build({twoFloors:false,enabled:false,withTank:false});
  const {runtime:r}=runtime(map);assert.equal(r.waterNetwork?.enabled,false);
  assert.equal(r.statusFor(0,map.floors[0].items.find(x=>x.id==='sink')).water.legacy,true);
+ assert.doesNotThrow(()=>r.tick(1,1),'El módulo de agua cargado y desactivado no detiene el frame de servicios');
+ assert.equal(r.state.meters.waterLiters,0);
 });
 test('un lavabo recibe agua fría por pared y montante alineado',()=>{
  const map=build();const {runtime:r}=runtime(map);

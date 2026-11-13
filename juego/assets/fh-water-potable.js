@@ -48,7 +48,7 @@
   const ft=Math.max(.1,num(project?.units?.feetPerCell,5));
   const enabled=project?.plumbing?.enabled===true||
    floors.some(f=>(f.items||[]).some(isTank));
-  if(!enabled)return Object.freeze({enabled:false,isFixture,diagnostics:()=>({routes:[],coldFeet:0})});
+  if(!enabled)return Object.freeze({enabled:false,isFixture,tick:()=>{},diagnostics:()=>({routes:[],coldFeet:0})});
   if(typeof wallGraph!=='function')throw Error('Agua potable: falta wallGraph');
   const graphs=floors.map(f=>wallGraph(f.items||[]));
   const nodes=[],links=[],itemNodes=new Map(),sources=[],ports=[],tanks=[];
