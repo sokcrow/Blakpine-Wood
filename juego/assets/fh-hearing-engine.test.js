@@ -20,8 +20,11 @@ test('el adaptador inserta audición y SFX sin romper el motor 3D embebido', () 
   }
   const motor = Buffer.from(sandbox.window.__FOREST_EMBEDDED_ENGINE__, 'base64').toString('utf8');
   const delivery = vm.runInNewContext('('+find('function addDeliveryToEngine(doc){', 'const engineSuccessBefore=')+')');
-  const live = vm.runInNewContext('('+find('function addLiveTextToEngine(doc){', '\nfunction addPreviewReturnToSpawnpoint')+')',
-    { URL, document: { baseURI: 'https://example.test/' } });
+  const shared = vm.runInNewContext(
+    find('const ForestShared=(()=>{', "\n'use strict';")+'\nForestShared;');
+  const live = vm.runInNewContext(
+    find('function addLiveTextToEngine(doc){', '\nfunction addPreviewReturnToSpawnpoint')+'\naddLiveTextToEngine;',
+    { ForestShared: shared, URL, document: { baseURI: 'https://example.test/' } });
   const patched = live(delivery(motor));
   assert.match(patched, /fh-hearing\.js/);
   assert.match(patched, /hearingRadius:LOOK_RADIUS/);
