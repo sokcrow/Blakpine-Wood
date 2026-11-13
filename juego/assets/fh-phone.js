@@ -728,7 +728,7 @@
    save();return true;
   }
   function syncAvailability(){
-  const available=!p.placedAt;
+  const available=!p.placedAt&&options.phoneEquipped?.()!==false;
   if(!available&&opened)close();
   if(toggle){toggle.hidden=!available;toggle.style.display=available?'':'none';}
   return available;
