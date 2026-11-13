@@ -184,6 +184,15 @@
   const netInput=document.createElement('input');netInput.value=it.networkId||'main';
   netInput.onchange=()=>setItemField(it.id,'networkId',netInput.value.trim()||'main');
   network.append(netInput);fields.append(network);
+  if(it.type==='water_outlet'){
+   const riser=document.createElement('label');
+   riser.textContent=T.verticalRiser||'Montante entre plantas (ID compartido)';
+   const input=document.createElement('input');
+   input.value=it.verticalRiserId||'';
+   input.placeholder=T.verticalRiserPlaceholder||'Vacío: conexión automática por paredes';
+   input.onchange=()=>setItemField(it.id,'verticalRiserId',input.value.trim());
+   riser.append(input);fields.append(riser);
+  }
   const mode=document.createElement('label');mode.textContent=T.visibility||'Visualización de tuberías';
   const selectMode=document.createElement('select');
   for(const [value,label] of [['concealed',T.concealed||'Empotradas'],['visible',T.visible||'Visibles']]){
