@@ -65,8 +65,8 @@
  function mountPose(it,meta,items,CELL,shared){
   if(!it||!meta||!Number.isFinite(Number(it.x))||!Number.isFinite(Number(it.y)))return null;
   if(meta.mount==='floor'){
-   const p=floorPlacement(it,meta,items,CELL);
-   return {x:p.x*CELL,z:p.y*CELL,y:.008,rotation:-(Number(it.rotation)||0)*Math.PI/180,mount:'floor'};
+   return {x:Number(it.x)*CELL,z:Number(it.y)*CELL,y:.008,
+    rotation:-(Number(it.rotation)||0)*Math.PI/180,mount:'floor'};
   }
   const m=wallMount(it,items,shared);if(!m)return null;
   return {x:m.point.x*CELL+m.normal.x*(WALL_HALF+CLEARANCE),z:m.point.y*CELL+m.normal.y*(WALL_HALF+CLEARANCE),
@@ -123,12 +123,18 @@
    for(const it of items){
     const meta=choose(it);if(!meta)continue;
     const pose=mountPose(it,meta,items,CELL,ForestShared);if(!pose)continue;
-    const originals=(renderedByItem[f]?.get?.(it.id)||[]).map(o=>o.root||o).filter(Boolean);
+    const originals=new Set((renderedByItem[f]?.get?.(it.id)||[]).map(o=>o.root||o).filter(Boolean));
+    // El motor puede crear una representación procedural fuera del registro renderizado.
+    // Identificarla por ID, nunca por apariencia ni por proximidad.
+    for(const node of stories[f]?.children||[])
+     if(node?.userData?.fhItemId===it.id||node?.userData?.fhServiceItem===it.id)
+      originals.add(node);
     // Los diez equipos técnicos siempre se representan por su GLB real.
     // Retirar la malla genérica desde el comienzo: nunca aparece "Mueble libre"
     // mientras el recurso carga o si termina en error. No mutar colisiones/JSON.
     for(const old of originals)if(old.parent)old.parent.remove(old);
     const root3D=new THREE.Group();root3D.name='FH_AGUA_'+it.id;root3D.userData.fhServiceItem=it.id;
+    root3D.userData.fhItemId=it.id;
     root3D.userData.fhModelId=meta.id;root3D.userData.fhModelState='loading';
     root3D.position.set(pose.x,pose.y,pose.z);root3D.rotation.y=pose.rotation;stories[f]?.add(root3D);
     result.push({it,meta,pose,root:root3D});
@@ -136,6 +142,10 @@
      if(!root3D.parent)return;
      const instance=scene.clone(true);if(typeof applyFOW==='function')applyFOW(instance);
      root3D.add(instance);root3D.userData.fhModelState='ready';
+     // Quitar también proxies genéricos creados mientras el GLB estaba descargándose.
+     for(const node of stories[f]?.children||[])
+      if(node!==root3D&&(node?.userData?.fhItemId===it.id||
+       node?.userData?.fhServiceItem===it.id))originals.add(node);
      for(const old of originals)if(old.parent&&old!==root3D)old.parent.remove(old);
      renderedByItem[f]?.set?.(it.id,[{root:root3D}]);
     }).catch(error=>{
@@ -205,6 +215,10 @@
  }
  function patchEngineDoc(doc){
   if(typeof doc!=='string')throw new TypeError('Se requiere el HTML del motor Three.js');
+  // No construir el mueble procedural del motor para modelos con GLB original:
+  // de lo contrario sus copias entre plantas sobreviven al reemplazo asíncrono.
+  const furnitureLoop="for(const it of items)if(!['red_wall','wall','half_wall','fence','window','door','peephole_door','room','hall','outside','building','pavement','parking','grass','dirt','opening','spawn'].includes(it.type)){";
+  doc=once(doc,furnitureLoop,furnitureLoop+"\n  if(window.FHWaterVisuals?.choose(it))continue;");
   doc=once(doc,'function fhServicesSyncVisuals(){',
     'const fhWaterVisuals=window.FHWaterVisuals?.install({THREE,DATA,CELL,stories,renderedByItem,ForestShared,applyFOW:installVisibility});\nfunction fhServicesSyncVisuals(){');
   const handle='handle:(it,f)=>{\n  const service=window.FHServicesRuntime,T=window.FH_SERVICES_TEXT||{};';
