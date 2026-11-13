@@ -13,6 +13,7 @@
   const boilerCatalog='<script src="'+base+'fh-boilers-catalog.js?v=20261112-boilers-04"></'+'script>';
   const boilerStrings='<script src="'+base+'fh-boilers-strings.js?v=20261113-sotano-bombeo"></'+'script>';
   const core='<script src="'+base+'fh-services-core.js?v=20261113-portable-phone-2"></'+'script>';
+  const equipment='<script src="'+base+'fh-equipment-core.js?v=20261113-pocket-items-1"></'+'script>';
   const exteriorCore='<script src="'+base+'fh-exterior-grid.js?v=20261111-pole-collision-1"></'+'script>';
    const exteriorVisual='<script src="'+base+'fh-exterior-visuals.js?v=20261111-exterior-03"></'+'script>';
    const strings='<script src="'+base+'fh-services-strings.js?v=20261113-portable-phone-1"></'+'script>';
@@ -25,7 +26,7 @@
   const miniStrings='<script src="'+base+'fh-repair-minigames-strings.js?v=20261111-repair-1"></'+'script>';
   const miniCss='<link rel="stylesheet" href="'+base+'fh-repair-minigames.css?v=20261111-repair-1">';
   const miniHud='<script src="'+base+'fh-repair-minigames.js?v=20261111-repair-1"></'+'script>';
-  doc=doc.slice(0,outerHead)+exteriorCore+exteriorVisual+potable+hot+boilerCatalog+boilerStrings+core+strings+miniCore+miniStrings+miniCss+miniHud+doc.slice(outerHead);
+  doc=doc.slice(0,outerHead)+exteriorCore+exteriorVisual+potable+hot+boilerCatalog+boilerStrings+core+equipment+strings+miniCore+miniStrings+miniCss+miniHud+doc.slice(outerHead);
 
   const pc='window.FHComputerRuntime=window.FHComputer?.createRuntime({';
   const pcOptions=[
@@ -59,7 +60,7 @@
    '  if(!service||!window.FHRepairMiniGames?.supports(it))return false;',
    '  return window.FHRepairMiniGames.open({item:it,floor:f,service,onRepaired:()=>{fhServicesSyncVisuals();saveProgress();}});',
    ' },',
-   ' handle:(it,f)=>{',
+   ' handle:(it,f,chargerChoice)=>{',
    '  const service=window.FHServicesRuntime,T=window.FH_SERVICES_TEXT||{};',
    '  if(!service){notice(T.noPower||"Sin electricidad.");return true;}',
    '  if(Number(service.state.damage[it.id])>0&&window.FHRepairMiniGames?.supports(it))return window.FHServicesGame.repair(it,f);',
@@ -109,8 +110,8 @@
    '  if(it.type==="power_outlet"){',
    '   const own=service.phone.placedAt===it.id&&service.phone.placedMode==="portable";',
    '   if(own){service.takePhone();window.FHPhoneRuntime?.syncAvailability?.();notice(T.phoneTaken);saveProgress();return true;}',
-   '   if(!service.phone.placedAt&&GameState.inventory?.includes("cell_phone_charger")){',
-   '    if(service.chargePhone(f,it.id)){window.FHPhoneRuntime?.syncAvailability?.();window.FHPhoneRuntime?.close?.();updateFlashlightUI();visibilityDirty=true;notice(T.phonePlaced);saveProgress();}',
+   '   if(!service.phone.placedAt&&(GameState.inventory?.includes("cell_phone_charger")||GameState.inventory?.includes("cell_phone_fast_charger"))){',
+   '    if(service.chargePhone(f,it.id,chargerChoice||(GameState.inventory.includes("cell_phone_charger")?"cell_phone_charger":"cell_phone_fast_charger"))){window.FHPhoneRuntime?.syncAvailability?.();window.FHPhoneRuntime?.close?.();updateFlashlightUI();visibilityDirty=true;notice(T.phonePlaced);saveProgress();}',
    '    else notice(T.chargerCannotConnect);',
    '    return true;',
    '   }',
@@ -192,6 +193,7 @@
    '},',
    'connectWifi:(id,password)=>window.FHServicesRuntime?.connectWifi(id,password)===true,',
    'mobileAvailable:()=>window.FHServicesRuntime?.mobileFor()===true,',
+   'phoneEquipped:()=>window.FHEquipmentCore?.hasEquipped(GameState,"cell_phone")!==false,',
    'networkAvailable:()=>window.FHServicesRuntime?.mobileFor()===true||',
    ' (window.FHServicesRuntime?.wifiAt(currentFloor,user.x/CELL,user.z/CELL)||[]).some(n=>n.online),',
    'onCall:c=>{',
@@ -224,9 +226,12 @@
    '  if(it.type==="generator"){const status=window.FHServicesRuntime?.generatorStatus(currentFloor,it);if(status)actions=[{id:"generator",label:window.FH_SERVICES_TEXT.generator.action(status),run:()=>window.FHServicesGame.handle(it,currentFloor)},{id:"generator-status",label:window.FH_SERVICES_TEXT.generator.inspect,run:()=>notice(window.FH_SERVICES_TEXT.generator.status(window.FHServicesRuntime.generatorStatus(currentFloor,it)))}];}',
    '  if(it.type==="generator_ats"){const status=window.FHServicesRuntime.atsStatus(currentFloor,it);const t=window.FH_SERVICES_TEXT.generator;actions=[{id:"ats-status",label:t.atsStatus(status),run:()=>notice(t.atsStatus(window.FHServicesRuntime.atsStatus(currentFloor,it)))},{id:"ats-manual",label:t.manual,disabled:!status.connected||!status.outage||status.damaged,run:()=>window.FHServicesGame.handle(it,currentFloor)}];}',
    '  if(it.type==="generator_tank")actions=[{id:"tank-status",label:window.FH_SERVICES_TEXT.generator.inspect,run:()=>window.FHServicesGame.handle(it,currentFloor)}];',
-   '  if(it.type==="power_outlet"&&(GameState.inventory?.includes("cell_phone_charger")||GameState.phone?.placedAt===it.id&&GameState.phone?.placedMode==="portable")){',
+   '  if(it.type==="power_outlet"&&(GameState.inventory?.includes("cell_phone_charger")||GameState.inventory?.includes("cell_phone_fast_charger")||GameState.phone?.placedAt===it.id&&GameState.phone?.placedMode==="portable")){',
    '   const take=GameState.phone?.placedAt===it.id&&GameState.phone?.placedMode==="portable";',
-   '   actions=[{id:"phone-charge",label:take?window.FH_SERVICES_TEXT.takePhone:window.FH_SERVICES_TEXT.chargerAction,run:()=>window.FHServicesGame.handle(it,currentFloor)}];',
+   '   const t=window.FH_SERVICES_TEXT;',
+   '   actions=take?[{id:"phone-take",label:t.takePhone,run:()=>window.FHServicesGame.handle(it,currentFloor)}]:[];',
+   '   if(!take&&GameState.inventory?.includes("cell_phone_charger"))actions.push({id:"phone-charge",label:t.chargerAction,run:()=>window.FHServicesGame.handle(it,currentFloor,"cell_phone_charger")});',
+   '   if(!take&&GameState.inventory?.includes("cell_phone_fast_charger"))actions.push({id:"phone-fast",label:t.chargerFastAction,run:()=>window.FHServicesGame.handle(it,currentFloor,"cell_phone_fast_charger")});',
    '  }',
    '  if(Number(window.FHServicesRuntime?.state.damage[it.id])>0&&window.FHRepairMiniGames?.supports(it)){',
    '   actions=[{id:"repair",label:window.FH_REPAIR_MINI_TEXT.title,run:()=>window.FHServicesGame.repair(it,currentFloor)}];',
@@ -248,9 +253,11 @@
   // Los fixtures parciales de servicios no contienen el motor completo.
   if(doc.includes('function createGameState(initial={}){')&&doc.includes('function makeInventorySprite(def,id,{large=false}={}){')){
   doc=once(doc,"flashlight:initial.flashlight&&typeof initial.flashlight==='object'?{...initial.flashlight}:null,hidden:",
-   "flashlight:initial.flashlight&&typeof initial.flashlight==='object'?{...initial.flashlight}:null,phone:initial.phone&&typeof initial.phone==='object'?{...initial.phone}:null,hidden:",'persistencia del celular');
+   "flashlight:initial.flashlight&&typeof initial.flashlight==='object'?{...initial.flashlight}:null,phone:initial.phone&&typeof initial.phone==='object'?{...initial.phone}:null,equipment:initial.equipment&&typeof initial.equipment==='object'?structuredClone(initial.equipment):null,hidden:",'persistencia del celular');
   doc=once(doc,"const itemDefs=[...(DATA.itemDefs||[])];",
-   "const itemDefs=[...(DATA.itemDefs||[])];\nif(window.FHPhone?.CHARGER_ITEM&&!itemDefs.some(d=>d.id===window.FHPhone.CHARGER_ITEM.id))itemDefs.push({...window.FHPhone.CHARGER_ITEM});",'ítem cargador');
+   "const itemDefs=window.FHEquipmentCore.itemDefinitions(DATA.itemDefs||[]);",'catálogo de equipamiento');
+  doc=once(doc,"const GameState=createGameState(restored||DATA.initialGameState);",
+   "const GameState=createGameState(restored||DATA.initialGameState);\nwindow.FHEquipmentCore.ensure(GameState);",'equipamiento inicial');
   const oldLight=" state.flashlight={enabled:!!f.enabled,charge:clampLight(Number.isFinite(Number(f.charge))?Number(f.charge):100,0,100)};\n const light=state.flashlight;";
   const newLight=[
    " const oldCharge=Number.isFinite(Number(f.charge))?Number(f.charge):100;",
@@ -273,9 +280,9 @@
    'linterna conectada');
   const sprite=" if(def?.icon){const label=document.createElement('span');label.className='itemIconText';label.textContent=def.icon;node.append(label);}";
   const spriteWithImage=[
-   " if(id==='cell_phone_charger'){",
+   " if(window.FHEquipmentCore?.ICONS[id]){",
    "  const img=document.createElement('img');img.className='fh-charger-item-art';",
-   "  img.src=new URL('./juego/assets/items/cargador-celular.png',document.baseURI).href;",
+   "  img.src=new URL('./juego/assets/'+window.FHEquipmentCore.ICONS[id],document.baseURI).href;",
    "  img.alt=def?.name||'Cargador de celular';",
    "  img.style.width=large?'82%':'92%';img.style.height='92%';img.style.objectFit='contain';img.style.imageRendering='pixelated';",
    "  node.append(img);",
