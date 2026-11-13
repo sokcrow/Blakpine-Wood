@@ -219,6 +219,7 @@ test('captura CCTV restaura luces, muros y visibilidad del jugador',()=>{
   isOpen:true,session:{cameras:[{id:'c',online:true},{id:'c2',online:true}]},
   terminalApi:()=>({getState:()=>screen,receiveCameraPixels:frame=>received.push(frame)})
  }};
+ const GameState={hidden:false};
  const stories=[{visible:true}],sightUniform={value:'sight-mask'};
  const viewport={x:2,y:3,z:400,w:300},scissor={x:4,y:5,z:200,w:100};
  let scissorTest=true;
@@ -233,7 +234,7 @@ test('captura CCTV restaura luces, muros y visibilidad del jugador',()=>{
   render(scene,camera){
    assert.equal(renderer.xr.enabled,false);assert.equal(renderer.shadowMap.autoUpdate,false);
    assert.equal(scissorTest,false);
-   assert.equal(hero.visible,true,'CCTV ve al jugador aunque la vista principal lo haya ocultado');
+   assert.equal(hero.visible,!GameState.hidden,'CCTV respeta esconderse, independientemente de la cámara principal');
    assert.equal(wall.visible,true,'El muro previamente recortado debe tapar la vista');
    assert.equal(ambient.intensity,.37,'La luz ambiente se calcula en la cámara');
    assert.equal(poolLight.intensity,1.58,'La luz de la estancia llega a la cámara');
@@ -270,12 +271,12 @@ test('captura CCTV restaura luces, muros y visibilidad del jugador',()=>{
  const create=new Function('window','THREE','document','sightCanvas','sightTexture','drawSight',
   'MAX_X','MAX_Z','DATA','scene','renderer','hero','shadow','ambient','flashlightSpot',
   'roomDynamicLights','roomLampEntries','stories','occlusionRoots','sightUniform','lighting',
-  'roomAt','sightWalls','doorList','ForestShared','CELL','floorElev','currentFloor','fhCCTVSightRoots',
+  'roomAt','sightWalls','doorList','ForestShared','CELL','floorElev','currentFloor','fhCCTVSightRoots','GameState',
   runtime+'\nreturn fhCCTVFrame;');
  const frame=create(window,THREE,document,sightCanvas,sightTexture,drawSight,
   100,100,DATA,scene,renderer,hero,shadow,ambient,flashlightSpot,
   [poolLight],[fixture],stories,[[wall]],sightUniform,lighting,
-  ()=>fixture.room,[[]],[[]],ForestShared,1.5,[0],0,new Set([wall]));
+  ()=>fixture.room,[[]],[[]],ForestShared,1.5,[0],0,new Set([wall]),GameState);
  frame(1000);
  assert.ok(observed,'La captura usa drawSight desde la cámara');
  assert.equal(observed.floor,0);
@@ -300,6 +301,7 @@ test('captura CCTV restaura luces, muros y visibilidad del jugador',()=>{
  frame(1016);assert.equal(received.length,1,'No capturar a 60Hz');
  frame(1100);assert.equal(received.length,2);
  assert.equal(received[0].pixels,received[1].pixels,'Reutilizar buffer de salida');
+ GameState.hidden=true;
  screen.camera=1;frame(1101);
  assert.equal(received.length,3);assert.equal(received[2].id,'c2','Cambiar cámara sin esperar al intervalo');
  screen.cameraQuality='normal';frame(1102);

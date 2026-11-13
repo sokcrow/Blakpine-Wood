@@ -70,7 +70,12 @@ async function main(){
    });
    document.body.append(iframe);iframe.srcdoc=doc;
   });
-  await page.waitForFunction(()=>window.__cctvMessages.some(m=>m.type==='FOREST_PREVIEW_RUNNING'),{},{timeout:60000});
+  try{
+   await page.waitForFunction(()=>window.__cctvMessages.some(m=>m.type==='FOREST_PREVIEW_RUNNING'),{},{timeout:60000});
+  }catch(error){
+   console.error('Diagnóstico de arranque:',JSON.stringify({errors,messages:await page.evaluate(()=>window.__cctvMessages)}));
+   throw error;
+  }
   const frame=page.frame('cctv-engine');
   assert.ok(frame,'Iframe del motor real');
   const result=await frame.evaluate(async()=>{

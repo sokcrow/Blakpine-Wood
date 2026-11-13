@@ -214,8 +214,8 @@ function fhCCTVCapture(now){
   }
   if(cameraPose.floor!==currentFloor){hero.visible=false;shadow.visible=false;}
   else{
-   hero.visible=fhCCTVMaskVisible(hero.position.x,hero.position.z);
-   shadow.visible=oldShadow&&fhCCTVMaskVisible(shadow.position.x,shadow.position.z);
+   hero.visible=!GameState.hidden&&fhCCTVMaskVisible(hero.position.x,hero.position.z);
+   shadow.visible=!GameState.hidden&&fhCCTVMaskVisible(shadow.position.x,shadow.position.z);
   }
   // Las linternas personales nunca iluminan remotamente una cámara.
   flashlightSpot.intensity=0;
