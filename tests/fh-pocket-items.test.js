@@ -71,3 +71,22 @@ test('el cargador rápido no funciona si no se tiene o no hay celular equipado',
  const unequipped=electrical(['cell_phone_fast_charger'],false);
  assert.equal(unequipped.sys.chargePhone(0,'plug','cell_phone_fast_charger'),false);
 });
+
+test('desequipar la cartera devuelve todo el contenido al inventario general',()=>{
+ const state={inventory:['key'],equipment:{rearLeft:'cell_phone',rearRight:'wallet',wallet:{items:['cash-note','debit-card']}}};
+ assert.equal(EQ.unequip(state,'rearRight').ok,true);
+ assert.deepEqual(state.inventory,['key','wallet','cash-note','debit-card']);
+ assert.deepEqual(state.equipment.wallet.items,[]);
+});
+test('no permite desequipar cartera si sus contenidos exceden el inventario',()=>{
+ const state={inventory:Array.from({length:9},(_,i)=>'item-'+i),equipment:{rearLeft:'cell_phone',rearRight:'wallet',wallet:{items:['cash-note','card']}}};
+ assert.equal(EQ.unequip(state,'rearRight').reason,'full');
+ assert.equal(state.equipment.rearRight,'wallet');
+});
+test('billetes y tarjetas recibidos pasan automáticamente a la cartera equipada',()=>{
+ const state={inventory:['cash-note','card','key'],equipment:{rearLeft:'cell_phone',rearRight:'wallet'}};
+ const defs=[{id:'cash-note',storageCategory:'cash'},{id:'card',storageCategory:'card'},{id:'key',kind:'key'}];
+ assert.equal(EQ.sweepWallet(state,defs),2);
+ assert.deepEqual(state.inventory,['key']);
+ assert.deepEqual(state.equipment.wallet.items,['cash-note','card']);
+});
