@@ -135,3 +135,31 @@ test('bomba asignada a tinaco lleno no cambia su destino explícito',()=>{
  assert.equal(r.cold.status(2,obj(m,2,'tin2')).liters,0);
  assert.equal(r.cold.status(0,obj(m,0,'cis')).liters,90);
 });
+
+test('bomba evita tinacos deshabilitados y suministra al siguiente disponible',()=>{
+ for(const reason of ['elemento','servicio','averia']){
+  const m=map(),tin=obj(m,2,'tin');
+  m.floors[2].items.push({id:'tin2',type:'water_tinaco',x:8,y:2,
+   networkId:'main',buildingId:'casa',capacityLiters:60,initialLiters:0,rangeFt:300});
+  const r=setup(m,'suspended',()=>true);
+  if(reason==='elemento')tin.enabled=false;
+  if(reason==='servicio')r.state.enabled.tin=false;
+  if(reason==='averia')r.state.damage.tin=100;
+  r.cold.tick(1);
+  assert.equal(r.cold.status(2,tin).liters,0,reason+': tinaco no operativo');
+  assert.equal(r.cold.status(2,obj(m,2,'tin2')).liters,10,reason+': siguiente tinaco recibe agua');
+  assert.equal(r.cold.status(0,obj(m,0,'cis')).liters,80,'transferencia conserva litros');
+ }
+});
+test('asignación de bombeo explícita no se desvía de tinaco deshabilitado',()=>{
+ const m=map(),tin=obj(m,2,'tin');tin.enabled=false;
+ m.floors[2].items.push({id:'tin2',type:'water_tinaco',x:8,y:2,
+  networkId:'main',buildingId:'casa',capacityLiters:60,initialLiters:0,rangeFt:300});
+ obj(m,0,'pump').pumpTargetId='tin';
+ const r=setup(m,'suspended',()=>true);
+ r.cold.tick(1);
+ assert.equal(r.cold.status(2,tin).liters,0);
+ assert.equal(r.cold.status(2,obj(m,2,'tin2')).liters,0);
+ assert.equal(r.cold.status(0,obj(m,0,'cis')).liters,90);
+ assert.equal(r.state.usage.pump,false);
+});
