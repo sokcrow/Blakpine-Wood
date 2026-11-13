@@ -96,3 +96,42 @@ test('bomba integrada consume electricidad del breaker y se detiene en un apagó
  r.tick(1,1);
  assert.equal(r.waterStatus(2,obj(m,2,'tin')).liters,20);
 });
+
+test('válvula cerrada bloquea bombeo; abrirla y cerrarla cambia el resultado',()=>{
+ const m=map(),basement=m.floors[0];
+ basement.items.push({id:'llave',type:'water_valve',networkId:'main',
+  buildingId:'casa',opened:false});
+ const r=setup(m,'suspended',()=>true);
+ const tin=obj(m,2,'tin'),cis=obj(m,0,'cis');
+ r.cold.tick(1);
+ assert.equal(r.cold.status(2,tin).liters,0);
+ assert.equal(r.cold.status(0,cis).liters,90);
+ assert.equal(r.state.usage.pump,false);
+ r.state.enabled.llave=true;r.cold.tick(1);
+ assert.equal(r.cold.status(2,tin).liters,10);
+ assert.equal(r.cold.status(0,cis).liters,80);
+ r.state.enabled.llave=false;r.cold.tick(1);
+ assert.equal(r.cold.status(2,tin).liters,10);
+});
+test('tinaco cercano lleno no bloquea llenado de otro tinaco',()=>{
+ const m=map(),upper=m.floors[2],first=obj(m,2,'tin');
+ first.initialLiters=70;
+ upper.items.push({id:'tin2',type:'water_tinaco',x:8,y:2,
+  networkId:'main',buildingId:'casa',capacityLiters:60,initialLiters:0,rangeFt:300});
+ const r=setup(m,'suspended',()=>true);
+ r.cold.tick(2);
+ assert.equal(r.cold.status(2,first).liters,70);
+ assert.equal(r.cold.status(2,obj(m,2,'tin2')).liters,20);
+ assert.equal(r.cold.status(0,obj(m,0,'cis')).liters,70);
+});
+test('bomba asignada a tinaco lleno no cambia su destino explícito',()=>{
+ const m=map(),upper=m.floors[2],first=obj(m,2,'tin');
+ first.initialLiters=70;
+ upper.items.push({id:'tin2',type:'water_tinaco',x:8,y:2,
+  networkId:'main',buildingId:'casa',capacityLiters:60,initialLiters:0,rangeFt:300});
+ obj(m,0,'pump').pumpTargetId='tin';
+ const r=setup(m,'suspended',()=>true);r.cold.tick(1);
+ assert.equal(r.cold.status(2,first).liters,70);
+ assert.equal(r.cold.status(2,obj(m,2,'tin2')).liters,0);
+ assert.equal(r.cold.status(0,obj(m,0,'cis')).liters,90);
+});
