@@ -614,6 +614,13 @@
     const source=direct||snapshot.supplies.get(f+':'+id(it));
     if(source?.feed)loads.set(source.feed.key,(loads.get(source.feed.key)||0)+watts(it,true));
    }
+   if(state.phone.placedMode==='portable'&&state.phone.placedAt&&state.phone.battery<100){
+    const f=Math.floor(number(state.phone.placedFloor,-1)),outlet=itemAt(f,state.phone.placedAt);
+    if(outlet?.type==='power_outlet'){
+     const feed=sourcesFor(f,outlet,zoneFor(f,outlet),true)[0]?.feed;
+     if(feed)loads.set(feed.key,(loads.get(feed.key)||0)+12);
+    }
+   }
    const accepted=new Set(),running=new Set();
    for(const g of generators){
     let capacity=Math.max(0,number(g.it.capacityWatts,2400));
@@ -1078,6 +1085,10 @@
       if(it.service?.drains!==false&&drainStatus(f,it).draining)drainLiters+=delivered;
      }
     }
+   }
+   if(state.phone.placedMode==='portable'&&state.phone.placedAt&&state.phone.battery<100){
+    const f=Math.floor(number(state.phone.placedFloor,-1)),outlet=itemAt(f,state.phone.placedAt);
+    if(outlet?.type==='power_outlet'&&electricalStatus(f,outlet,snap).powered)usedWatts+=12;
    }
    const deltaKwh=usedWatts*seconds/3600000;
    s.meters.kwh+=deltaKwh;
