@@ -525,15 +525,19 @@
    'return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),',
    'mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);}'
   ].join('\n');
+  // Los includes permiten que installVisibility aplique el FOW común
+  // también al ShaderMaterial del agua (incluida la inundación).
   sharedWater=new THREE.ShaderMaterial({
    transparent:false,depthWrite:true,side:THREE.FrontSide,
    uniforms:{uTime:{value:0},uRain:{value:0},uCell:{value:CELL},uWave:{value:.032*CELL}},
    vertexShader:[
+    '#include <common>',
     'attribute vec2 aFlow;',
     'attribute float aWaveScale;',
     'varying float vMaskA,vMaskB;',
     'uniform float uTime,uCell,uWave,uRain;',noise,
     'void main(){',
+    '#include <begin_vertex>',
     ' vec2 p=(modelMatrix*vec4(position,1.0)).xz/uCell;',
     ' float heightMask=noise(p*3.0+vec2(uTime*.04,uTime*.02));',
     ' vMaskA=noise(p*5.0-aFlow*uTime*(.3+.4*uRain));',
@@ -543,6 +547,7 @@
     '}'
    ].join('\n'),
    fragmentShader:[
+    '#include <common>',
     'varying float vMaskA,vMaskB;',
     'void main(){',
     ' float darkness=.16+.23*vMaskA+.08*vMaskB;',
@@ -552,6 +557,7 @@
     ' float foam=smoothstep(.77,.91,vMaskA*.55+vMaskB*.45);',
     ' rgb+=foam*vec3(.07,.12,.13);',
     ' gl_FragColor=vec4(rgb,1.0);',
+    '#include <dithering_fragment>',
     '}'
    ].join('\n')
   });

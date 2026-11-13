@@ -285,6 +285,10 @@ test('shader global: tres máscaras por GPU, desnivel en tiles y lluvia secundar
  assert.equal(new Set(waterMeshes.map(o=>o.material)).size,1,'Un mismo shader, incluso entre plantas');
  const shader=waterMeshes[0].material;
  assert.match(shader.vertexShader,/heightMask=noise/,'Ruido principal regula elevación');
+ assert.match(shader.vertexShader,/#include <common>/,'El shader permite instalar el FOW compartido');
+ assert.match(shader.vertexShader,/#include <begin_vertex>/,'El FOW puede obtener la posición mundial');
+ assert.match(shader.fragmentShader,/#include <common>/,'El fragmento permite las variables FOW');
+ assert.match(shader.fragmentShader,/#include <dithering_fragment>/,'La máscara se aplica después de pintar agua');
  assert.match(shader.vertexShader,/vMaskA=noise/);
  assert.match(shader.vertexShader,/vMaskB=noise/);
  assert.doesNotMatch(shader.fragmentShader,/noise\(|hash\(|sin\(/,
