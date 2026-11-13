@@ -10,7 +10,27 @@
   for(const width of widths){if(used+gap+width>available)break;used+=gap+width;count++;}
   return count;
  }
- if(typeof module==='object'&&module.exports)module.exports={visibleCount};
+ // render() sustituye algunos nodos de texto en cada fotograma. Sólo su contenido
+ // efectivo puede cambiar el ancho; las mutaciones estructurales sí requieren medir.
+ function mutationsAffectLayout(records){
+  return records.some(record=>{
+   if(record.type==='characterData')return record.oldValue!==record.target.data;
+   if(record.type!=='childList')return false;
+   const before=[...record.removedNodes],after=[...record.addedNodes];
+   if([...before,...after].some(node=>node.nodeType!==3))return true;
+   return before.map(node=>node.textContent).join('')!==after.map(node=>node.textContent).join('');
+  });
+ }
+ function handoffToDialog(doc,closePanels){
+  const overlay=doc.getElementById('overlay');
+  if(!overlay?.classList.contains('show'))return false;
+  closePanels();
+  if(!overlay.contains(doc.activeElement)){
+   overlay.querySelector('input:not([type=hidden]):not(:disabled),select:not(:disabled),textarea:not(:disabled),button:not(:disabled)')?.focus();
+  }
+  return true;
+ }
+ if(typeof module==='object'&&module.exports)module.exports={visibleCount,mutationsAffectLayout,handoffToDialog};
  if(!root.document)return;
  const doc=root.document,T=root.FH_EDITOR_LAYOUT_TEXT,$=id=>doc.getElementById(id);
  const body=doc.body,app=$('app'),stage=$('stage'),inspector=$('inspector'),fields=$('fields');
@@ -59,6 +79,10 @@
   const close=button('',T.close);head.append(element('strong','',title),close);
   const contents=element('div');contents.className='fh-panel-items';panel.append(head,contents);
   const entry={trigger,panel,contents,width};
+  // Se ejecuta después del onclick original: cubre también Conexiones en Opciones.
+  contents.addEventListener('click',e=>{
+   if(e.target.closest('button'))handoffToDialog(doc,closePanels);
+  });
   close.onclick=()=>closePanel(entry,true);
   trigger.onclick=()=>entry.panel.hidden?openPanel(entry):closePanel(entry,true);
   trigger.addEventListener('keydown',e=>{
@@ -69,8 +93,8 @@
  function installBar(container,label,forcePanel=()=>false){
   const toggle=button('',label+' ▾');toggle.className='fh-overflow-toggle';
   const entry=makePanel(toggle,'fhMore-'+container.id,label,container.id==='tools'?540:420);
-  const observer=new MutationObserver(schedule);
-  const watch=()=>observer.observe(container,{childList:true,subtree:true,characterData:true});
+  const observer=new MutationObserver(records=>{if(mutationsAffectLayout(records))schedule();});
+  const watch=()=>observer.observe(container,{childList:true,subtree:true,characterData:true,characterDataOldValue:true});
   const bar={container,entry,fit(){
    observer.disconnect();
    try{
@@ -106,10 +130,7 @@
     const restore=entry.panel.contains(doc.activeElement)||doc.activeElement===doc.body;
     closePanels();if(restore)toggle.focus();
    }
-   const overlay=$('overlay');
-   if(overlay.classList.contains('show')&&!overlay.contains(doc.activeElement)){
-    overlay.querySelector('input:not([type=hidden]),select,textarea,button')?.focus();
-   }
+   handoffToDialog(doc,closePanels);
   });
   watch();return bar;
  }

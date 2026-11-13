@@ -81,6 +81,25 @@ async function main(){
     await capture(page,`${width}x${height}`);await context.close();console.log(`PASS ${width}x${height}: aviso vertical`);continue;
    }
    assert.ok(g.map.h>height*.6,`Altura insuficiente: ${g.map.h}/${height}`);
+   // P1: un renderizado en un piso elevado no debe cerrar ni realimentar los menús.
+   await page.evaluate(()=>changeFloor(1));await settle(page);
+   for(const bar of ['categories','tools']){
+    const trigger=page.locator('#'+bar+'>.fh-overflow-toggle');
+    if(await trigger.isVisible()){
+     await trigger.click();
+     for(let frame=0;frame<8;frame++){await page.evaluate(()=>render());await settle(page);}
+     assert.equal(await page.locator('#fhMore-'+bar).isVisible(),true,'Menú estable en piso elevado: '+bar);
+     await page.keyboard.press('Escape');
+    }
+   }
+   // P2: el popover de Opciones no puede quedar por encima del diálogo Conexiones.
+   await category(page,'lighting');await page.keyboard.press('Escape');await settle(page);
+   await page.locator('#fhOptionsToggle').click();await page.locator('#circuitAudit').click();
+   assert.equal(await page.locator('#fhEditOptions').isVisible(),false);
+   assert.equal(await page.locator('#overlay').isVisible(),true);
+   assert.equal(await page.locator('#overlay').evaluate(el=>el.contains(document.activeElement)),true);
+   await page.keyboard.press('Escape');await page.evaluate(()=>changeFloor(0));await settle(page);
+
    for(const cat of ['structure','furniture','lighting','water','network','property','areas','roads','parking_marks','navigate']){
     await category(page,cat);await page.keyboard.press('Escape');await settle(page);assert.equal(await page.evaluate(()=>activeCategory),cat);
     const tools=await page.locator('#tools [data-tool]').count();assert.ok(tools>0);

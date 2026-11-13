@@ -33,7 +33,7 @@ Comando focalizado:
 node --test tests/editor-responsive-layout.test.cjs juego/assets/fh-light-editor-ui.test.js juego/assets/fh-storage-editor.test.js juego/assets/fh-surface-editor.test.js juego/assets/fh-furniture-editor.test.js juego/assets/fh-exterior-editor.test.js juego/assets/fh-wifi-editor-overlay.test.js
 ```
 
-Resultado: **28 casos reportados por node:test, 28 aprobados, 0 fallidos**. Los archivos de iluminación y superficies también ejecutaron sus comprobaciones internas satisfactoriamente.
+Resultado: **34 casos reportados por node:test, 34 aprobados, 0 fallidos**. Los archivos de iluminación y superficies también ejecutaron sus comprobaciones internas satisfactoriamente.
 
 - Casos nuevos: borde exacto de encaje, reserva del botón Más y separaciones, medidas fraccionarias, herramientas agrupadas en modo compacto y anchos de 320 a 1920 px. Son pruebas del cálculo, no del renderizado de esas resoluciones.
 - `node --check` / `vm.Script`: sintaxis válida del módulo de distribución, cadenas, prueba de navegador y script inline del HTML.
@@ -83,3 +83,11 @@ Los nueve criterios de aceptación funcionales siguen pendientes de confirmació
 - Sin capas nuevas, minimapa decorativo ni dependencias de producción nuevas.
 
 El PR entrega código integrado en el flujo del editor, sin instaladores ni scripts para aplicar parches. No se considera fusionado, desplegado ni listo para producción hasta verificar las pruebas pendientes.
+
+## Corrección de los hallazgos de Codex
+
+- **P1 — realimentación del observador:** el observador ahora distingue entre cambios estructurales, cambios efectivos de texto y sustituciones de texto idéntico. Las escrituras reiteradas de `render()` en `floorElevation` no vuelven a solicitar la distribución. Los nuevos controles y los cambios reales de etiqueta siguen solicitando medición.
+- **P2 — Opciones sobre Conexiones:** todos los paneles comparten el cierre al abrir el diálogo principal y la transferencia de foco a un control habilitado. La acción se ejecuta después del manejador original del botón. Los ajustes que no abren diálogos conservan Opciones abierto.
+- Se añadieron seis regresiones ejecutadas en Node: 60 renderizados simulados tras un cambio de altura, cambios reales y estructurales, modificación directa de texto, orden cierre/foco, conservación de Opciones sin diálogo y conservación del foco ya situado en el diálogo.
+- La suite de navegador incluye ahora estabilidad de los menús en un piso elevado y apertura de Conexiones desde Opciones. Estos casos de navegador están **pendientes de ejecución**, igual que la matriz anterior; no se informa una comprobación visual que no ocurrió.
+- Esta corrección sólo modifica el módulo de distribución, las dos pruebas y este informe. No cambia `index.html`, CSS, textos, motor 3D, JSON ni editores especializados respecto de la primera versión del PR.
