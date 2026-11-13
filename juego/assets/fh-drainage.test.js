@@ -123,9 +123,7 @@ test('premades nativos: todos los tamaños y puertos de 10×10 y 4×4',()=>{
   const [kind,size,portCount]=profiles[i],item=section(kind,i*0,0,'test'+i);
   assert.deepEqual([item.w,item.h],[size,size],kind);
   assert.equal(D.ports(item).length,portCount,kind);
-  assert.equal(D.nativeComponents(item).filter(c=>c.type==='wall').length,4-portCount,kind);
-  assert.equal(D.nativeComponents(item).filter(c=>c.type==='opening').length,portCount,kind);
-  assert.equal(D.nativeComponents(item).filter(c=>c.type==='room').length,1,kind);
+  assert.deepEqual(D.nativeComponents(item).map(c=>c.type),['room'],kind+' no genera muros ni huecos');
   assert.equal(D.validate(item,units),true,kind);
   for(const r of D.rects(item)){
    assert.ok(r.x>=item.x&&r.y>=item.y&&r.x+r.w<=item.x+size&&r.y+r.h<=item.y+size,kind);
@@ -143,7 +141,7 @@ test('codos de 90 grados, T y cruces pequeños rotan canales sin inventar conexi
  for(const kind of ['dead_end','small_dead_end']){
   const end=section(kind,50,50,kind);
   assert.deepEqual(D.ports(end),['e']);
-  assert.equal(D.nativeComponents(end).filter(c=>c.type==='wall').length,3);
+  assert.deepEqual(D.nativeComponents(end).map(c=>c.type),['room']);
   end.rotation=180;
   assert.deepEqual(D.ports(end),['w']);
  }
@@ -153,20 +151,19 @@ test('codos de 90 grados, T y cruces pequeños rotan canales sin inventar conexi
  b.rotation=90;
  assert.equal(D.touches(a,b),false);
 });
-test('las habitaciones, aberturas y paredes pasan al motor nativo y no se guardan en el mapa',()=>{
+test('los suelos secos pasan al motor sin muros ni aberturas automáticas y no se guardan en el mapa',()=>{
  const a=section('straight',10,10,'pasillo'),b=section('small_dead_end',20,13,'fin');
  const project=map([[a,b,{id:'mueble',type:'chair',x:18,y:18}],[]]);
  const original=JSON.parse(JSON.stringify(project));
  const expanded=D.expandProject(JSON.parse(JSON.stringify(project)));
- assert.equal(expanded.floors[0].items.filter(it=>it.drainageGenerated).length,10);
+ assert.equal(expanded.floors[0].items.filter(it=>it.drainageGenerated).length,2);
  const generated=expanded.floors[0].items.filter(it=>it.drainageGenerated);
  assert.equal(generated.filter(it=>it.type==='room').length,2);
- assert.equal(generated.filter(it=>it.type==='wall').length,5);
- assert.equal(generated.filter(it=>it.type==='opening').length,3);
+ assert.equal(generated.filter(it=>it.type==='wall'||it.type==='opening').length,0,'El creador define los muros');
  for(const it of generated)assert.ok(it.drainageOwnerId,'Se conserva el identificador del premade');
- assert.equal(expanded.floors[1].items.length,0,'No se copian paredes a otros pisos');
+ assert.equal(expanded.floors[1].items.length,0,'No se copian suelos a otros pisos');
  D.expandProject(expanded);
- assert.equal(expanded.floors[0].items.filter(it=>it.drainageGenerated).length,10,'Expansión idempotente');
+ assert.equal(expanded.floors[0].items.filter(it=>it.drainageGenerated).length,2,'Expansión idempotente');
  assert.equal(JSON.stringify(project),JSON.stringify(original),'El proyecto guardado no muta si se expande una copia');
  assert.equal(original.floors[0].items.filter(it=>it.drainageGenerated).length,0);
 });
@@ -181,22 +178,32 @@ test('el motor 3D expande geometría antes de buildFloor y conserva los material
  const core=fs.readFileSync(path.join(__dirname,'fh-drainage.js'),'utf8');
  const geometry=core.slice(core.indexOf(' function attachFloor('),core.indexOf(' return Object.freeze(',core.indexOf(' function attachFloor(')));
  assert.doesNotMatch(geometry,/wallModel\(|const wall=new THREE\.MeshLambertMaterial/,'Los muros no se duplican como mallas propias');
- assert.match(core,/push\('opening',Math\.max\(last,lo\),hi,k\+\+\)/);
+ const native=core.slice(core.indexOf(' function nativeComponents('),core.indexOf(' function expandProject('));
+ assert.doesNotMatch(native,/type:\s*['"](?:wall|opening)['"]/, 'No se fabrican barreras ni portales al expandir');
 });
 
-test('un 4×4 conectado a un 10×10 abre solo la puerta real y cierra los huecos laterales',()=>{
+test('las banquetas grises de 4×4 y 10×10 se conectan sin generar muros',()=>{
  const main=section('straight',0,0,'mayor'),small=section('small_tee',10,4,'menor');
- assert.equal(D.touches(main,small),true,'El ancho de canal secundario es una casilla');
- const parts=D.nativeComponents(main,[small]);
- const edge=parts.filter(p=>p.id.startsWith('fh_drain_mayor_e_'));
- assert.deepEqual(edge.filter(p=>p.type==='opening').map(p=>[p.a.y,p.b.y]),[[4,8]]);
- assert.deepEqual(edge.filter(p=>p.type==='wall').map(p=>[p.a.y,p.b.y]),[[0,4],[8,10]]);
- const expanded=D.expandProject(map([[main,small]]));
- const walls=expanded.floors[0].items.filter(p=>p.drainageOwnerId==='mayor'&&p.type==='wall');
- assert.equal(walls.length,4,'La unión menor no deja agujeros laterales transitables');
- assert.equal(D.topology(map([[main,small]])).warnings.some(x=>x.code==='isolated'),false);
+ const source=map([[main,small]]);
+ assert.equal(D.touches(main,small),true,'La red hidráulica conserva la conexión');
+ const expanded=D.expandProject(JSON.parse(JSON.stringify(source)));
+ const generated=expanded.floors[0].items.filter(it=>it.drainageGenerated);
+ assert.deepEqual(generated.map(it=>it.type),['room','room'],'No aparecen paredes ni aberturas automáticas');
+ const large=generated.find(it=>it.drainageOwnerId==='mayor');
+ const narrow=generated.find(it=>it.drainageOwnerId==='menor');
+ assert.ok(large.spans.some(r=>r.x+r.w===10&&r.y<=7.5&&r.y+r.h>7.5),'Banqueta grande llega al borde');
+ assert.ok(narrow.spans.some(r=>r.x===10&&r.y<=7.5&&r.y+r.h>7.5),'Banqueta pequeña continúa el mismo paso');
+ assert.equal(D.supportAt(source,0,{x:9.75,y:7.5}),0,'Suelo seco antes de cruzar');
+ assert.equal(D.supportAt(source,0,{x:10.25,y:7.5}),0,'Suelo seco al otro lado');
+ assert.equal(D.topology(source).warnings.some(x=>x.code==='isolated'),false);
 });
-
+test('un muro manual se conserva en la unión sin generar otro paralelo',()=>{
+ const main=section('straight',0,0,'mayor'),small=section('small_tee',10,4,'menor');
+ const wall={id:'cierre_manual',type:'wall',a:{x:10,y:7},b:{x:10,y:8},blocksMovement:true};
+ const expanded=D.expandProject(map([[main,small,wall]]));
+ assert.equal(expanded.floors[0].items.filter(it=>it.id==='cierre_manual').length,1);
+ assert.equal(expanded.floors[0].items.filter(it=>it.drainageGenerated&&(it.type==='wall'||it.type==='opening')).length,0);
+});
 test('cada variante secundaria usa el estado de lluvia del perfil de 4×4',()=>{
  for(const kind of ['small','small_elbow','small_tee','small_cross','small_dead_end']){
   const it=section(kind,0,0,kind);
@@ -315,13 +322,13 @@ test('shader global: tres máscaras por GPU, desnivel en tiles y lluvia secundar
  Core.updateVisuals(.05,1,1);
  assert.equal(secondFloorFlood.visible,true,'La inundación se activa al visitar ese piso');
 });
-test('geometría: respeta muros y huecos reales sin duplicar colisiones',()=>{
+test('geometría: respeta muros y huecos manuales sin fabricar barreras',()=>{
  const main=section('straight',20,20,'sewer');
  const wall={id:'authored',type:'wall',a:{x:20,y:20},b:{x:20,y:30}};
  const door={id:'door',type:'door',a:{x:30,y:24},b:{x:30,y:26}};
  const parts=D.nativeComponents(main,[],[wall,door]);
  assert.equal(parts.filter(p=>p.type==='wall'&&p.a.x===20&&p.b.x===20).length,0,'Respeta muro existente');
- assert.equal(parts.filter(p=>p.type==='opening'&&p.a.x===30&&p.b.x===30).length,2,'No reconstruye el vano de la puerta');
+ assert.equal(parts.filter(p=>p.type==='opening').length,0,'No fabrica portales ni rellena puertas');
  const p=map([[main,wall,door]]);
  const expanded=D.expandProject(p);
  assert.equal(expanded.floors[0].items.filter(x=>x.id==='authored').length,1);

@@ -13,7 +13,7 @@
   small_tee:'T secundaria 4×4',small_cross:'Cruce secundario 4×4',
   small_dead_end:'Inicio / final 4×4',outfall:'Desagüe principal 20×20'},
  directions:{n:'Norte',e:'Este',s:'Sur',w:'Oeste'},
- nativeInfo:(count,ports)=>'Arquitectura nativa: '+count+' muros físicos · Salidas: '+ports+'.',
+ nativeInfo:(_count,ports)=>'Sin muros automáticos. Coloca las paredes manualmente · Puertos hidráulicos: '+ports+'.',
  audit:'Revisar red de drenajes',settings:'Drenaje',place:'Pieza colocada',
  vortexMove:'El remolino te arrastró a otro drenaje.',
  accessPlaced:'Acceso conectado al drenaje del nivel inferior.',
