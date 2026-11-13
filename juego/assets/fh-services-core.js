@@ -1022,6 +1022,7 @@
   function chargePhone(f,chargerId,chargerItemId='cell_phone_charger'){
    const it=itemAt(f,chargerId);
    if(!it||state.phone.placedAt||!['power_outlet','phone_charger'].includes(it.type))return false;
+   if(state.equipment&&state.equipment.rearLeft!=='cell_phone'&&state.equipment.rearRight!=='cell_phone')return false;
    const snap=electrical();
    if(!electricalStatus(f,it,snap).powered)return false;
    if(it.type==='power_outlet'){
