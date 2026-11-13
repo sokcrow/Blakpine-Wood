@@ -255,12 +255,17 @@ for(const [name,factory] of [
   assert.equal(connected.toggleRoom(0,room.roomId).lit,false);
   assert.equal(connected.toggleRoom(0,room.roomId).lit,true);
  });
- test(name+': la linterna conserva encendido, consumo y recarga sin breaker',()=>{
-  const runtime=create([floor([room,lamp])],{flashlight:{enabled:false,charge:50},inventory:['battery']});
+ test(name+': la linterna funciona sin breaker y respeta su fuente de batería',()=>{
+  const state={flashlight:{enabled:false,charge:50},phone:{battery:50},inventory:['battery']};
+  const runtime=create([floor([room,lamp])],state);
   assert.equal(runtime.toggleFlashlight().enabled,true);
   runtime.tick(.1);
-  assert.ok(runtime.state.charge<50);
+  if(name==='motor 3D con servicios'){
+   assert.equal(runtime.state.charge,50,'no descarga una segunda batería fuera del reloj de juego');
+   assert.equal(state.phone.battery,50,'la carga de la linterna refleja el celular');
+  }else assert.ok(runtime.state.charge<50,'la fábrica legacy conserva su comportamiento aislado');
   assert.equal(runtime.recharge('battery',[{id:'battery',kind:'consumable'}]).ok,true);
+  if(name==='motor 3D con servicios')assert.equal(state.phone.battery,100);
   assert.equal(runtime.range(0,room).beam,10.4);
   assert.equal(runtime.fixtureLit(0,room,lamp),false);
  });
