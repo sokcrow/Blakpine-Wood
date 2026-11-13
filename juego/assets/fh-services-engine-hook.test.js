@@ -174,15 +174,19 @@ test('el motor 3D compone el puente de Agua y monta los GLB en la escena del map
 
 test('el editor y el motor reconocen el mismo frente de agua y electricidad',()=>{
  const legacy="const FACING_OBJECT_TYPES=new Set(['bed','sofa','tv','dining','table','chair','kitchen','bath','toilet','car','misc','stairs','elevator','light_switch','breaker_panel']);";
- const fake=exampleEngine().replace('const DATA=',legacy+'\\nconst DATA=');
+ const fake=exampleEngine().replace('const DATA=',legacy+'\nconst DATA=');
  const patched=loadHook().patch(fake);
- const from=patched.match(/const FACING_OBJECT_TYPES=new Set\\(\\[([^\\]]*)\\]\\);/);
- assert.ok(from,'el motor conserva un conjunto de tipos orientables');
- const engineTypes=new Set(vm.runInNewContext('['+from[1]+']'));
+ const marker='const FACING_OBJECT_TYPES=new Set([';
+ function facingTypes(doc){
+  const start=doc.indexOf(marker);
+  assert.ok(start>=0,'se define el conjunto de objetos orientables');
+  const end=doc.indexOf(']);',start);
+  assert.ok(end>start,'la declaración conserva su cierre');
+  return new Set(vm.runInNewContext('['+doc.slice(start+marker.length,end)+']'));
+ }
+ const engineTypes=facingTypes(patched);
  const editor=fs.readFileSync(path.join(__dirname,'../../index.html'),'utf8');
- const declared=editor.match(/const FACING_OBJECT_TYPES=new Set\\(\\[([^\\]]*)\\]\\);/);
- assert.ok(declared,'el editor define los frentes');
- const editorTypes=new Set(vm.runInNewContext('['+declared[1]+']'));
+ const editorTypes=facingTypes(editor);
  for(const type of ['power_outlet','router','landline_phone','water_main','water_valve','water_outlet','drain_outlet']){
   assert.ok(engineTypes.has(type),'el motor detecta el frente de '+type);
   assert.ok(editorTypes.has(type),'el editor muestra el frente de '+type);
