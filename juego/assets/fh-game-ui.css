@@ -824,3 +824,43 @@ body.fh-player-menu-ready #fhPlayerMenu #fhInventoryFilters button[data-category
 body.fh-player-menu-ready #fhPlayerMenu #fhInventoryFilters button[data-category="other"]::before {
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cg fill='none' stroke='%23e9e5de' stroke-width='2.2'%3E%3Cpath d='M4 9h22v15H4zM26 14h3v6h-3'/%3E%3C/g%3E%3Cpath d='M17 10l-7 8h6l-2 6 8-9h-6z' fill='%23e9e5de'/%3E%3C/svg%3E");
 }
+
+
+/* Ítems con PNG propio: la casilla inventorySlot es el único recuadro.
+   El motor heredado dibuja un segundo fondo geométrico en kind-tool,
+   que no debe aparecer detrás de las imágenes originales. */
+.itemSprite.fh-item-art,
+.itemSprite.fh-item-art.large {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:transparent!important;
+  background-image:none!important;
+  border:0!important;
+  border-radius:0!important;
+  outline:0!important;
+  box-shadow:none!important;
+  filter:none!important;
+}
+.inventorySlot .itemSprite.fh-item-art {
+  width:82%;
+  height:82%;
+}
+.itemSprite.fh-item-art::before,
+.itemSprite.fh-item-art::after {
+  content:none!important;
+  display:none!important;
+}
+.itemSprite.fh-item-art > img {
+  display:block;
+  width:100%!important;
+  height:100%!important;
+  max-width:100%;
+  max-height:100%;
+  object-fit:contain!important;
+  image-rendering:pixelated;
+  background:transparent!important;
+  border:0!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+}
