@@ -68,12 +68,12 @@ test('GLB de piso respeta exactamente el centro físico del JSON',()=>{
 });
 test('motor evita Mueble libre antes de construir proxies de pisos adyacentes',()=>{
  const {api}=visualsLoader();
- const loop="for(const it of items)if(!['red_wall','wall','half_wall','fence','window','door','peephole_door','room','hall','outside','building','pavement','parking','grass','dirt','opening','spawn'].includes(it.type)){";
- const fake='<html><head></head><body>'+loop+
+ const furniture='function furniture(f,a){';
+ const fake='<html><head></head><body>'+furniture+
   '\nfunction fhServicesSyncVisuals(){}\nhandle:(it,f)=>{\n  const service=window.FHServicesRuntime,T=window.FH_SERVICES_TEXT||{};'+
   '</body></html>';
  const output=api.patchEngineDoc(fake);
- assert.ok(output.includes(loop+'\n  if(window.FHWaterVisuals?.choose(it))continue;'));
+ assert.ok(output.includes(furniture+'\n if(window.FHWaterVisuals?.choose(a))return;'));
  assert.match(index,/PLAY_SOLID_OBJECTS=new Set\(\[[^\n]*'water_cistern','water_tinaco'/,
   'las reservas deben tener hitbox en la simulación 2D');
 });
