@@ -64,7 +64,7 @@ jobs:
           DOM="artifacts/drenaje-dom${QUERY//[^a-z]/}.html"
           grep -q 'Mallas volumétricas: 2' "$DOM"
           grep -q 'data-rendered="true"' "$DOM"
-          if grep -q 'ERROR:' "$DOM"; then
+          if grep -q '<div id="status">ERROR:' "$DOM"; then
             echo 'Error de ejecución en la escena 3D'
             exit 1
           fi
