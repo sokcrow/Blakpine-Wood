@@ -156,7 +156,7 @@
    case 'router':return {wifiRadiusFt:120,ethernetLengthFt:60,wifiPassword:'',rayos:1,watts:18,assignedRoomIds:[],propertyId:''};
    case 'ethernet_port':return {cableLengthFt:30};
    case 'landline_phone':return {routerId:''};
-   case 'phone_charger':return {chargePerHour:25,rayos:1,watts:12};
+   case 'phone_charger':return {chargePerHour:20,rayos:1,watts:12};
    default:return {};
   }
  }
@@ -183,6 +183,8 @@
   state.phone=state.phone&&typeof state.phone==='object'?state.phone:{};
   state.phone.battery=clamp(number(state.phone.battery,100),0,100);
   if(typeof state.phone.placedAt!=='string')state.phone.placedAt='';
+  state.phone.placedMode=state.phone.placedMode==='portable'?'portable':state.phone.placedMode==='legacy'?'legacy':'';
+  state.phone.chargeElapsedMinutes=clamp(number(state.phone.chargeElapsedMinutes),0,3);
   return s;
  }
  function createRuntime(project,state={},options={}){
@@ -699,11 +701,19 @@
   }
   function electrical(uncapped=false){
    const bindings=new Map(),used=new Map(),loads=new Map(),supplies=new Map(),supplyOptions=new Map();
+   const portableFloor=Math.floor(number(state.phone.placedFloor,-1));
+   const portableOutlet=state.phone.placedMode==='portable'?itemAt(portableFloor,state.phone.placedAt):null;
+   const portableKey=portableOutlet?.type==='power_outlet'?portableFloor+':'+id(portableOutlet):'';
+   const reservePortable=()=>{
+    if(!portableKey)return;
+    used.set(portableKey,(used.get(portableKey)||0)+1);
+    if(state.phone.battery<100)loads.set(portableKey,(loads.get(portableKey)||0)+1);
+   };
    for(let f=0;f<floors.length;f++){
     const outlets=values(f,'power_outlet'),strips=values(f,'power_strip');
     const claim=(it,sources)=>{
      for(const source of candidates(f,it,sources)){
-      const k=f+':'+id(source),count=used.get(k)||0;
+      const k=f+':'+id(source),count=(used.get(k)||0)+(k===portableKey?1:0);
       // Dos conexiones por enchufe; una regleta enchufada ocupa una de ellas.
       const limit=source.type==='power_outlet'?2:Math.max(1,Math.floor(number(source.slots,4)));
       if(count>=limit)continue;
@@ -740,6 +750,7 @@
      }
     }
    }
+   reservePortable();
    if(!uncapped&&generators.length){
     const accepted=generatorAllocation().accepted;
     for(const [key,supply] of supplies)if(supply.feed&&!accepted.has(supply.feed.key)){bindings.delete(key);supplies.delete(key);}
@@ -759,6 +770,7 @@
      if(parent&&active(strip)){const key=f+':'+id(parent);loads.set(key,(loads.get(key)||0)+(loads.get(f+':'+id(strip))||0));}
     }
    }
+   if(!uncapped&&generators.length)reservePortable();
    return {bindings,used,loads,supplies};
   }
   function electricalStatus(f,it,snapshot){
@@ -1001,12 +1013,24 @@
   }
   function chargePhone(f,chargerId){
    const it=itemAt(f,chargerId);
-   if(it?.type!=='phone_charger'||state.phone.placedAt||!electricalStatus(f,it,electrical()).powered)return false;
-   state.phone.placedAt=chargerId;state.phone.placedFloor=f;return true;
+   if(!it||state.phone.placedAt||!['power_outlet','phone_charger'].includes(it.type))return false;
+   const snap=electrical();
+   if(!electricalStatus(f,it,snap).powered)return false;
+   if(it.type==='power_outlet'){
+    if(!Array.isArray(state.inventory)||!state.inventory.includes('cell_phone_charger'))return false;
+    if((snap.used.get(f+':'+id(it))||0)>=2)return false;
+   }
+   state.phone.placedAt=id(it);
+   state.phone.placedFloor=f;
+   state.phone.placedMode=it.type==='power_outlet'?'portable':'legacy';
+   state.phone.chargeElapsedMinutes=0;
+   if(state.flashlight)state.flashlight.enabled=false;
+   return true;
   }
   function takePhone(){
    if(!state.phone.placedAt)return false;
-   state.phone.placedAt='';delete state.phone.placedFloor;return true;
+   state.phone.placedAt='';delete state.phone.placedFloor;
+   state.phone.placedMode='';state.phone.chargeElapsedMinutes=0;return true;
   }
   function useWaterFixture(f,it){
    if(!it||!requiresWater(it)||!waterStatus(f,it).water)return {ok:false,reason:'noWater'};
@@ -1076,11 +1100,19 @@
    if(state.phone.placedAt){
     const f=Math.floor(number(state.phone.placedFloor,-1));
     const charger=itemAt(f,state.phone.placedAt);
-    if(!charger){takePhone();}
-    else if(charger.type==='phone_charger'&&electricalStatus(f,charger,snap).powered)
-     state.phone.battery=clamp(state.phone.battery+Math.max(0,number(charger.chargePerHour,25))*seconds/3600,0,100);
+    if(!charger||!['power_outlet','phone_charger'].includes(charger.type)){takePhone();}
+    else if(electricalStatus(f,charger,snap).powered&&state.phone.battery<100){
+     const minutes=seconds/60;
+     const total=state.phone.chargeElapsedMinutes+minutes;
+     const gained=Math.floor((total+1e-9)/3);
+     state.phone.chargeElapsedMinutes=Math.max(0,total-gained*3);
+     if(gained)state.phone.battery=clamp(state.phone.battery+gained,0,100);
+     if(state.phone.battery>=100)state.phone.chargeElapsedMinutes=0;
+    }
    }else{
-    state.phone.battery=clamp(state.phone.battery-Math.max(0,number(options.phoneDrainPerHour,0.5))*seconds/3600,0,100);
+    const multiplier=options.torchActive?.()===true?1.5:options.phoneOpen?.()===true?1.25:1;
+    state.phone.battery=clamp(state.phone.battery-5*multiplier*seconds/3600,0,100);
+    if(state.phone.battery<=0&&state.flashlight)state.flashlight.enabled=false;
    }
    // Consume game hours only while supplying selected destinations.
    for(const g of generators){
