@@ -118,7 +118,7 @@ async function main(){
    const recreated=t.target()!==null&&t.target()!==first;
    // DPR != 1 reproducía frames recortados por setViewport escalado sobre un render target.
    const dpiChecks=[];
-   for(const [ratio,time] of [[1.5,1000030],[0.75,1000050]]){
+   for(const [ratio,time] of [[1.5,1000130],[0.75,1000260]]){
     r.setPixelRatio(ratio);
     const ownViewport=r.getViewport(vector()).toArray();
     const start=targetViewports.length;
