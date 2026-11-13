@@ -1,0 +1,42 @@
+name: CCTV — integración y WebGL
+on:
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'juego/assets/fh-cctv*'
+      - 'juego/assets/fh-terminal.html'
+      - 'juego/assets/fh-water-potable*'
+      - 'juego/assets/fh-preview-boot.test.js'
+      - 'juego/assets/engine-*.js'
+      - 'tests/cctv-browser.cjs'
+      - '.github/workflows/cctv.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'index.html'
+      - 'juego/assets/fh-cctv*'
+      - 'juego/assets/fh-terminal.html'
+      - 'juego/assets/fh-water-potable*'
+      - 'juego/assets/fh-preview-boot.test.js'
+      - 'juego/assets/engine-*.js'
+      - 'tests/cctv-browser.cjs'
+      - '.github/workflows/cctv.yml'
+permissions:
+  contents: read
+jobs:
+  cctv:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Visión, barrido, aislamiento y composición real
+        run: node --test juego/assets/fh-cctv*.test.js juego/assets/fh-preview-boot.test.js
+      - name: Preparar navegador de pruebas
+        run: |
+          npm install --no-save --no-package-lock --ignore-scripts playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Arranque y captura en WebGL real
+        run: node tests/cctv-browser.cjs

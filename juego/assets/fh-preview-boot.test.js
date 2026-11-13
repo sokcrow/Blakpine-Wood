@@ -19,7 +19,8 @@ function integrationEnvironment(){
  }
  for(const file of ['fh-roof-engine-hook.js','fh-architecture-skins.js','fh-comic-action-engine-hook.js','fh-context-engine-hook.js','fh-structure-engine-hook.js',
   'fh-internet-catalog.js','fh-internet-visuals.js','fh-electric-catalog.js','fh-electric-visuals.js',
-  'fh-water-catalog.js','fh-water-visuals.js','fh-services-engine-hook.js']){
+  'fh-water-catalog.js','fh-water-visuals.js','fh-services-engine-hook.js',
+  'fh-barriers-engine-hook.js','fh-cctv-engine-hook.js']){
   document.currentScript={src:new URL('juego/assets/'+file,document.baseURI).href};
   vm.runInContext(fs.readFileSync(path.join(__dirname,file),'utf8'),context);
  }
@@ -373,4 +374,55 @@ test('el motor ensamblado exige apertura y losa libre al mirar abajo y no dibuja
  assert.equal(env.exteriorGroundVisible(0,{},[],false,[]),false,'el sótano no entra ni en el muestreo exterior');
  assert.match(html,/if\(inside&&!floorSightThroughOpening\(f,at,/);
  assert.match(html,/slab.spans\|\|\[\]\).flatMap\(sp=>surfaceRectsMinusVoids\(index,/);
+});
+
+
+test('CCTV compone tras prepareGLB, servicios, arquitectura, PG y barreras reales',()=>{
+ const {context,window,motor}=integrationEnvironment();
+ const prepared=context.prepareGLBEngineDoc(motor);
+ const services=window.FHServicesEngine.patch(prepared);
+ const architecture=window.FHArchitectureSkins.patchEngineDoc(services);
+ const structure=window.FHStructureHealthEngine.patch(architecture);
+ const barriers=window.FHBarriersEngine.patch(structure);
+ const html=window.FHCCTVEngine.patch(barriers);
+ const body=html.slice(html.lastIndexOf('<script>')+8,html.lastIndexOf('</script>'));
+ assert.doesNotThrow(()=>new vm.Script(body));
+ const start=html.indexOf('function drawSight(observer=null){');
+ const end=html.indexOf('\nfunction installVisibility(',start);
+ assert.ok(start>0&&end>start);
+ const sight=html.slice(start,end);
+ assert.match(sight,/if\(!observer\)\{\n const minute=/,'Aislar caché de drenajes');
+ assert.match(sight,/observer\?observer.natural:fhNatural/,'Atlas natural por observador');
+ assert.match(sight,/paintSight\(visionCtx,visionCanvas.width,visionCanvas.height\)/);
+ assert.match(sight,/cab\?\.floor===sightFloor/,'Ascensor compara contra la planta observada');
+ assert.match(sight,/if\(observer\)return;\n fhActorSightSnapshot=/,'No contaminar snapshot de actores');
+ assert.match(sight,/params.beam=0/,'No heredar linterna ni parpadeo del jugador');
+ assert.match(html,/fhCCTVFrame\(now\);/);
+ // Ejecutar el drawSight preparado: no limitarse a verificar cadenas.
+ const playerContext=new Proxy({},{get(){throw Error('Canvas del jugador alterado')}});
+ const calls=[];
+ const cameraContext={fillRect(){},save(){},restore(){},beginPath(){},moveTo(){},lineTo(){},
+  closePath(){},clip(){},translate(){},scale(){},createRadialGradient(){return {addColorStop(){}}}};
+ const observer={floor:1,at:{x:4,z:5},yaw:0,canvas:{width:32,height:32},ctx:cameraContext,
+  texture:{needsUpdate:false},natural:{visionRadius:r=>r,paintSight(ctx){
+   assert.equal(ctx,cameraContext);calls.push('natural');
+  }}};
+ const env=vm.createContext({performance:{now:()=>1000},visibilityDirty:false,lastSightTime:123,
+  visibilityLast:{f:0},fhActorSightSnapshot:'player-snapshot',fhDrainAccessLights:'player-drains',
+  currentFloor:0,peeking:true,yaw:2,flashDir:{x:0,z:-1},q:playerContext,
+  sightCanvas:{width:16,height:16},sightTexture:{needsUpdate:false},
+  eyeLocation(){throw Error('Posición del jugador usada')},
+  lighting:{range(f,r,flash){assert.equal(f,1);assert.equal(flash,false);return {base:50,beam:99,angle:1}},
+   },roomAt:()=>null,sightWalls:[[],[]],doorList:[[],[]],elevatorStops:[],
+  fhHorrorLightsFail:()=>false,MAX_X:20,MAX_Z:20,LOOK_RADIUS:19,STEPS:4,
+  dirs:[{x:1,z:0},{x:0,z:1},{x:-1,z:0},{x:0,z:-1}],roomLampEntries:[],
+  ForestShared:{sightRayDistance:(x,z,d,blocks,r)=>r},
+  window:{FHLights:{sourcesNear:()=>[]}},observer});
+ vm.runInContext(sight+'\ndrawSight(observer);',env);
+ assert.equal(observer.texture.needsUpdate,true);assert.deepEqual(calls,['natural']);
+ assert.equal(env.visibilityDirty,false);assert.equal(env.lastSightTime,123);
+ assert.equal(env.fhActorSightSnapshot,'player-snapshot');assert.equal(env.fhDrainAccessLights,'player-drains');
+ assert.equal(env.sightTexture.needsUpdate,false);
+ for(const name of ['FHServicesRuntime','FHStructureHealthRuntime','FHArchitectureSkins','FHBarriers','FHActorVisibility'])
+  assert.ok(html.includes(name),name+' conservado');
 });

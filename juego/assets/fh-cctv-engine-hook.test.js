@@ -35,6 +35,7 @@ const sightEnd=baseEngine.indexOf('\nfunction installVisibility(){',sightStart);
 assert.ok(sightStart>0&&sightEnd>sightStart,'Fuente real de drawSight');
 const sightFragment=baseEngine.slice(sightStart,sightEnd);
 const source=`<html><head></head><body><script>
+function setSightRootVisibility(root,visible){}
 ${sightFragment}
 function installVisibility(){}
 function startGame(){
@@ -56,6 +57,29 @@ test('adaptador añade módulo CCTV y conserva motor, sin sustituir a RAVEN/OS',
  const runtime=patched.slice(patched.indexOf('const fhCCTV='),patched.indexOf('window.FHComputerRuntime='));
  assert.doesNotThrow(()=>new Function(runtime));
 });
+
+test('CCTV inicia antes de sightCanvas sin leer el canvas del jugador',()=>{
+ const patched=sandboxWindow.FHCCTVEngine.patch(preparedEngine());
+ const from=patched.indexOf('const fhCCTV=');
+ const to=patched.indexOf('window.FHComputerRuntime=',from);
+ const playerMask=patched.indexOf("const sightCanvas=document.createElement('canvas');",to);
+ assert.ok(from>=0&&to>from&&playerMask>to,'La computadora se conecta antes de crear sightCanvas');
+ let canvases=0;
+ const env={
+  window:{FHCCTV:require('./fh-cctv.js'),addEventListener(){}},
+  THREE:{Vector3:class{},Vector4:class{}},DATA:{floors:[{items:[]}]},
+  document:{createElement(){canvases++;return {getContext(){return {};}};}}
+ };
+ assert.doesNotThrow(()=>vm.runInNewContext(patched.slice(from,to)+
+  '\nconst sightCanvas={width:384,height:480};const sightTexture={};',env));
+ assert.equal(canvases,0,'No se reserva el canvas remoto hasta su primera captura');
+});
+test('CCTV conserva el viewport del render target en todos los pixel ratios',()=>{
+ const patched=sandboxWindow.FHCCTVEngine.patch(preparedEngine());
+ assert.doesNotMatch(patched,/renderer\.setViewport\(0,0,format\.width,format\.height\)/);
+ assert.match(patched,/renderer\.setRenderTarget\(fhCCTVTarget\);\s*(?:\/\/[^\n]*\n\s*)?renderer\.setScissorTest\(false\)/);
+});
+
 test('adaptador rechaza fuentes sin los puntos de integración necesarios',()=>{
  assert.throws(()=>sandboxWindow.FHCCTVEngine.patch('<html><head></head></html>'),/Hook CCTV incompatible/);
 });
@@ -71,24 +95,6 @@ test('P1: CCTV admite prepareGLBEngineDoc real y conserva iluminación y diagnó
  for(const script of patched.matchAll(/<script>([\s\S]*?)<\/script>/g)){
   if(script[1].trim())assert.doesNotThrow(()=>new vm.Script(script[1]));
  }
-});
-
-test('arranque CCTV no lee la máscara del jugador antes de su inicialización',()=>{
- const patched=sandboxWindow.FHCCTVEngine.patch(preparedEngine());
- const from=patched.indexOf('const fhCCTV=');
- const to=patched.indexOf('window.FHComputerRuntime=',from);
- const playerMask=patched.indexOf("const sightCanvas=document.createElement('canvas');",to);
- assert.ok(from>=0&&to>from&&playerMask>to,'Orden real: computadoras antes de la máscara del jugador');
- let canvases=0;
- const env={window:{FHCCTV:require('./fh-cctv.js')},DATA:{floors:[{items:[]}]},
-  document:{createElement(){canvases++;return {getContext(){return {};}};}}};
- // Mismo ámbito léxico que startGame: estas const existen, pero todavía están
- // en la zona temporal muerta cuando se inicializa el runtime de computadoras.
- assert.doesNotThrow(()=>vm.runInNewContext(patched.slice(from,to)+`
-  const sightCanvas={width:384,height:480};
-  const sightTexture={minFilter:'nearest',magFilter:'nearest'};
- `,env));
- assert.equal(canvases,0);
 });
 
 test('CCTV compone arquitectura, PG y barreras tras el fallback actual de servicios',()=>{
@@ -220,7 +226,7 @@ test('captura CCTV restaura luces, muros y visibilidad del jugador',()=>{
  assert.doesNotThrow(()=>new Function(runtime));
  const CCTV=require('./fh-cctv.js');
  const wall={visible:false,userData:{fhSightVisible:false}};
- const hero={visible:true,position:{x:9,z:9}},shadow={visible:true,position:{x:9,z:9}};
+ const hero={visible:false,position:{x:9,z:9}},shadow={visible:true,position:{x:9,z:9}};
  const ambient={intensity:.2},flashlightSpot={intensity:1.65};
  const poolLight={intensity:0.4,position:{
   x:1,y:2,z:3,clone(){return {x:this.x,y:this.y,z:this.z};},
@@ -229,18 +235,29 @@ test('captura CCTV restaura luces, muros y visibilidad del jugador',()=>{
  }};
  const fixture={floor:0,x:9,z:10,room:{id:'R'},lamp:null,lit:{visible:false},dark:{visible:true}};
  const active={id:'c',modelId:'camara_seguridad',cameraMode:'fixed',x:6,y:6,rotation:0};
- const DATA={floors:[{items:[active]}]};
+ const DATA={floors:[{items:[active,{...active,id:'c2'}]}]};
  const received=[];
  const screen={power:true,mode:'on',front:'cams',camera:0,cameraQuality:'hd'};
- const window={FHCCTV:CCTV,FHComputerRuntime:{
-  isOpen:true,session:{cameras:[{id:'c',online:true}]},
+ const window={addEventListener(){},FHCCTV:CCTV,FHComputerRuntime:{
+  isOpen:true,session:{cameras:[{id:'c',online:true},{id:'c2',online:true}]},
   terminalApi:()=>({getState:()=>screen,receiveCameraPixels:frame=>received.push(frame)})
  }};
+ const GameState={hidden:false};
  const stories=[{visible:true}],sightUniform={value:'sight-mask'};
+ const viewport={x:2,y:3,z:400,w:300},scissor={x:4,y:5,z:200,w:100};
+ let scissorTest=true;
  const events=[],renderer={
+  xr:{enabled:true},shadowMap:{autoUpdate:true},
+  getViewport:v=>Object.assign(v,viewport),getScissor:v=>Object.assign(v,scissor),
+  getScissorTest:()=>scissorTest,
+  setViewport(...args){events.push(['viewport',args]);},setScissor:v=>events.push(['scissor',{...v}]),
+  setScissorTest:value=>{scissorTest=value;},
   getRenderTarget:()=> 'player-target',
   setRenderTarget:target=>events.push(['target',target]),
   render(scene,camera){
+   assert.equal(renderer.xr.enabled,false);assert.equal(renderer.shadowMap.autoUpdate,false);
+   assert.equal(scissorTest,false);
+   assert.equal(hero.visible,!GameState.hidden,'CCTV respeta esconderse, independientemente de la cámara principal');
    assert.equal(wall.visible,true,'El muro previamente recortado debe tapar la vista');
    assert.equal(ambient.intensity,.37,'La luz ambiente se calcula en la cámara');
    assert.equal(poolLight.intensity,1.58,'La luz de la estancia llega a la cámara');
@@ -249,13 +266,15 @@ test('captura CCTV restaura luces, muros y visibilidad del jugador',()=>{
    assert.equal(sightUniform.value.needsUpdate,true,'La máscara CCTV se actualiza antes del render');
   },
   readRenderTargetPixels(target,x,y,width,height,buffer){
-   assert.equal(width,960);assert.equal(height,552);buffer.fill(127);
+   assert.equal(width,screen.cameraQuality==='normal'?640:960);
+   assert.equal(height,screen.cameraQuality==='normal'?368:552);
+   buffer.fill(127);buffer.fill(10,0,width*4);buffer.fill(20,(height-1)*width*4);
   }
  };
  const scene={traverse(cb){cb(wall)}};
  class WebGLRenderTarget{
-  constructor(w,h){this.width=w;this.height=h;}
-  dispose(){}
+  constructor(w,h){this.width=w;this.height=h;this.texture={};}
+  dispose(){events.push(['dispose']);}
  }
  class CanvasTexture{constructor(canvas){this.canvas=canvas;this.needsUpdate=false;}}
  class PerspectiveCamera{
@@ -263,10 +282,9 @@ test('captura CCTV restaura luces, muros y visibilidad del jugador',()=>{
   updateProjectionMatrix(){}
   lookAt(){}
  }
- const THREE={WebGLRenderTarget,CanvasTexture,PerspectiveCamera,LinearFilter:'linear',NearestFilter:'nearest',RGBAFormat:'rgba'};
- const mockContext={getImageData(){return {data:[255,255,255,255]};}};
- let canvases=0;
- const document={createElement(){canvases++;return {getContext(){return mockContext;}};}};
+ const THREE={Vector3:class{},Vector4:class{},WebGLRenderTarget,CanvasTexture,PerspectiveCamera,LinearFilter:'linear',NearestFilter:'nearest',RGBAFormat:'rgba'};
+ const mockContext={getImageData(){return {data:[127,127,127,255]};}};
+ const document={createElement(){return {getContext(){return mockContext;}};}};
  const sightCanvas={width:20,height:32},sightTexture={minFilter:'near',magFilter:'near'};
  let observed=null;
  const drawSight=observer=>{observed=observer;observer.texture.needsUpdate=true;};
@@ -276,15 +294,16 @@ test('captura CCTV restaura luces, muros y visibilidad del jugador',()=>{
  const create=new Function('window','THREE','document','sightCanvas','sightTexture','drawSight',
   'MAX_X','MAX_Z','DATA','scene','renderer','hero','shadow','ambient','flashlightSpot',
   'roomDynamicLights','roomLampEntries','stories','occlusionRoots','sightUniform','lighting',
-  'roomAt','sightWalls','doorList','ForestShared','CELL','floorElev','currentFloor',
+  'roomAt','sightWalls','doorList','ForestShared','CELL','floorElev','currentFloor','fhCCTVSightRoots','GameState',
   runtime+'\nreturn fhCCTVFrame;');
+ const initialize=new Function('window','THREE','DATA',runtime+
+  '\nconst sightCanvas={width:20,height:32},sightTexture={};return fhCCTVSightTexture;');
+ assert.equal(initialize(window,THREE,DATA),null,'Inicializar CCTV antes del canvas del jugador sin leerlo ni asignar GPU');
  const frame=create(window,THREE,document,sightCanvas,sightTexture,drawSight,
   100,100,DATA,scene,renderer,hero,shadow,ambient,flashlightSpot,
   [poolLight],[fixture],stories,[[wall]],sightUniform,lighting,
-  ()=>fixture.room,[[]],[[]],ForestShared,1.5,[0],0);
- assert.equal(canvases,0,'No reservar la máscara CCTV durante el arranque');
+  ()=>fixture.room,[[]],[[]],ForestShared,1.5,[0],0,new Set([wall]),GameState);
  frame(1000);
- assert.equal(canvases,1,'La primera captura crea su máscara');
  assert.ok(observed,'La captura usa drawSight desde la cámara');
  assert.equal(observed.floor,0);
  assert.notEqual(observed.canvas,sightCanvas,'El jugador mantiene su canvas');
@@ -292,6 +311,8 @@ test('captura CCTV restaura luces, muros y visibilidad del jugador',()=>{
  assert.equal(observed.texture.needsUpdate,true);
  assert.equal(received.length,1);
  assert.equal(received[0].pixels.length,960*552*4);
+ assert.equal(received[0].pixels[0],20);assert.equal(received[0].pixels.at(-4),10,'Filas WebGL invertidas');
+ assert.equal(hero.visible,false,'Restaurar jugador oculto');
  assert.equal(wall.visible,false);
  assert.equal(ambient.intensity,.2);
  assert.equal(poolLight.intensity,.4);
@@ -300,12 +321,25 @@ test('captura CCTV restaura luces, muros y visibilidad del jugador',()=>{
  assert.equal(fixture.dark.visible,true);
  assert.equal(sightUniform.value,'sight-mask');
  assert.ok(events.some(e=>e[0]==='target'&&e[1]==='player-target'));
- const cameraCanvas=observed.canvas,cameraTexture=observed.texture;
- frame(1200);
- assert.equal(received.length,2,'La captura siguiente también entrega vídeo');
- assert.equal(canvases,1,'Reutilizar la máscara entre capturas');
- assert.equal(observed.canvas,cameraCanvas);
- assert.equal(observed.texture,cameraTexture);
+ assert.equal(renderer.xr.enabled,true);assert.equal(renderer.shadowMap.autoUpdate,true);
+ assert.equal(scissorTest,true);
+ assert.deepEqual(events.find(e=>e[0]==='scissor')[1],scissor);
+ frame(1016);assert.equal(received.length,1,'No capturar a 60Hz');
+ frame(1100);assert.equal(received.length,2);
+ assert.equal(received[0].pixels,received[1].pixels,'Reutilizar buffer de salida');
+ GameState.hidden=true;
+ screen.camera=1;frame(1101);
+ assert.equal(received.length,3);assert.equal(received[2].id,'c2','Cambiar cámara sin esperar al intervalo');
+ screen.cameraQuality='normal';frame(1102);
+ assert.equal(received.length,4);assert.equal(received[3].pixels.length,640*368*4);
+ renderer.render=()=>{throw Error('WebGL perdido')};
+ const warn=console.warn;console.warn=()=>{};
+ try{frame(1200);}finally{console.warn=warn;}
+ assert.equal(wall.visible,false);assert.equal(sightUniform.value,'sight-mask');
+ assert.equal(renderer.xr.enabled,true);assert.equal(renderer.shadowMap.autoUpdate,true);
+ assert.equal(scissorTest,true);assert.equal(received.length,4);
+ window.FHComputerRuntime.isOpen=false;frame(1216);
+ assert.ok(events.some(e=>e[0]==='dispose'),'Liberar GPU al cerrar la terminal');
 });
 
 test('drawSight acepta cámara observadora con la misma oclusión y luz sin tocar caché jugador',()=>{
