@@ -73,6 +73,24 @@ test('P1: CCTV admite prepareGLBEngineDoc real y conserva iluminación y diagnó
  }
 });
 
+test('arranque CCTV no lee la máscara del jugador antes de su inicialización',()=>{
+ const patched=sandboxWindow.FHCCTVEngine.patch(preparedEngine());
+ const from=patched.indexOf('const fhCCTV=');
+ const to=patched.indexOf('window.FHComputerRuntime=',from);
+ const playerMask=patched.indexOf("const sightCanvas=document.createElement('canvas');",to);
+ assert.ok(from>=0&&to>from&&playerMask>to,'Orden real: computadoras antes de la máscara del jugador');
+ let canvases=0;
+ const env={window:{FHCCTV:require('./fh-cctv.js')},DATA:{floors:[{items:[]}]},
+  document:{createElement(){canvases++;return {getContext(){return {};}};}}};
+ // Mismo ámbito léxico que startGame: estas const existen, pero todavía están
+ // en la zona temporal muerta cuando se inicializa el runtime de computadoras.
+ assert.doesNotThrow(()=>vm.runInNewContext(patched.slice(from,to)+`
+  const sightCanvas={width:384,height:480};
+  const sightTexture={minFilter:'nearest',magFilter:'nearest'};
+ `,env));
+ assert.equal(canvases,0);
+});
+
 test('CCTV compone arquitectura, PG y barreras tras el fallback actual de servicios',()=>{
  const window={document:{baseURI:'https://example.test/index.html'}};
  const document={baseURI:window.document.baseURI};
@@ -247,7 +265,8 @@ test('captura CCTV restaura luces, muros y visibilidad del jugador',()=>{
  }
  const THREE={WebGLRenderTarget,CanvasTexture,PerspectiveCamera,LinearFilter:'linear',NearestFilter:'nearest',RGBAFormat:'rgba'};
  const mockContext={getImageData(){return {data:[255,255,255,255]};}};
- const document={createElement(){return {getContext(){return mockContext;}};}};
+ let canvases=0;
+ const document={createElement(){canvases++;return {getContext(){return mockContext;}};}};
  const sightCanvas={width:20,height:32},sightTexture={minFilter:'near',magFilter:'near'};
  let observed=null;
  const drawSight=observer=>{observed=observer;observer.texture.needsUpdate=true;};
@@ -263,7 +282,9 @@ test('captura CCTV restaura luces, muros y visibilidad del jugador',()=>{
   100,100,DATA,scene,renderer,hero,shadow,ambient,flashlightSpot,
   [poolLight],[fixture],stories,[[wall]],sightUniform,lighting,
   ()=>fixture.room,[[]],[[]],ForestShared,1.5,[0],0);
+ assert.equal(canvases,0,'No reservar la máscara CCTV durante el arranque');
  frame(1000);
+ assert.equal(canvases,1,'La primera captura crea su máscara');
  assert.ok(observed,'La captura usa drawSight desde la cámara');
  assert.equal(observed.floor,0);
  assert.notEqual(observed.canvas,sightCanvas,'El jugador mantiene su canvas');
@@ -279,6 +300,12 @@ test('captura CCTV restaura luces, muros y visibilidad del jugador',()=>{
  assert.equal(fixture.dark.visible,true);
  assert.equal(sightUniform.value,'sight-mask');
  assert.ok(events.some(e=>e[0]==='target'&&e[1]==='player-target'));
+ const cameraCanvas=observed.canvas,cameraTexture=observed.texture;
+ frame(1200);
+ assert.equal(received.length,2,'La captura siguiente también entrega vídeo');
+ assert.equal(canvases,1,'Reutilizar la máscara entre capturas');
+ assert.equal(observed.canvas,cameraCanvas);
+ assert.equal(observed.texture,cameraTexture);
 });
 
 test('drawSight acepta cámara observadora con la misma oclusión y luz sin tocar caché jugador',()=>{

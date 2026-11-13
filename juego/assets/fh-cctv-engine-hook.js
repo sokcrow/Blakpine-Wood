@@ -78,14 +78,19 @@ const fhCCTVFormats=Object.freeze({
  normal:{width:640,height:368,intervalMs:84}
 });
 let fhCCTVTarget=null,fhCCTVView=null,fhCCTVRead=null,fhCCTVFrameStamp=-1,fhCCTVFormat=null;
-// Mismo algoritmo drawSight del jugador, pero textura y canvas independientes.
-const fhCCTVSightCanvas=document.createElement('canvas');
-fhCCTVSightCanvas.width=sightCanvas.width;fhCCTVSightCanvas.height=sightCanvas.height;
-const fhCCTVSightCtx=fhCCTVSightCanvas.getContext('2d',{alpha:false});
-const fhCCTVSightTexture=new THREE.CanvasTexture(fhCCTVSightCanvas);
-fhCCTVSightTexture.minFilter=sightTexture.minFilter;
-fhCCTVSightTexture.magFilter=sightTexture.magFilter;
-fhCCTVSightTexture.generateMipmaps=false;
+// El runtime de computadoras se conecta antes de inicializar sightCanvas.
+// Crear la máscara independiente sólo al solicitar la primera captura.
+let fhCCTVSightCanvas=null,fhCCTVSightCtx=null,fhCCTVSightTexture=null;
+function fhCCTVInitSight(){
+ if(fhCCTVSightCanvas)return;
+ fhCCTVSightCanvas=document.createElement('canvas');
+ fhCCTVSightCanvas.width=sightCanvas.width;fhCCTVSightCanvas.height=sightCanvas.height;
+ fhCCTVSightCtx=fhCCTVSightCanvas.getContext('2d',{alpha:false});
+ fhCCTVSightTexture=new THREE.CanvasTexture(fhCCTVSightCanvas);
+ fhCCTVSightTexture.minFilter=sightTexture.minFilter;
+ fhCCTVSightTexture.magFilter=sightTexture.magFilter;
+ fhCCTVSightTexture.generateMipmaps=false;
+}
 function fhCCTVMaskVisible(x,z){
  if(!Number.isFinite(x)||!Number.isFinite(z)||x<0||z<0||x>=MAX_X||z>=MAX_Z)return false;
  const px=Math.floor(x/MAX_X*fhCCTVSightCanvas.width);
@@ -121,6 +126,7 @@ function fhCCTVFrame(now){
  if(now-fhCCTVFrameStamp<format.intervalMs&&fhCCTVTarget)return;
  const cameraPose=fhCCTV.view(selected.id,now,CELL,floorElev);
  if(!cameraPose)return;
+ fhCCTVInitSight();
  if(!fhCCTVTarget){
   fhCCTVFormat=format;
   fhCCTVTarget=new THREE.WebGLRenderTarget(format.width,format.height,{
