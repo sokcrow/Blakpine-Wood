@@ -4,6 +4,11 @@ on:
   pull_request:
     paths:
       - 'juego/assets/fh-services-core.js'
+      - 'juego/assets/fh-equipment-core.js'
+      - 'tests/fh-pocket-items.test.js'
+      - 'juego/assets/items/cargador-rapido.png'
+      - 'juego/assets/items/celular.png'
+      - 'juego/assets/items/cartera.png'
       - 'juego/assets/fh-services-engine-hook.js'
       - 'juego/assets/fh-phone.js'
       - 'juego/assets/fh-phone.test.js'
@@ -30,5 +35,6 @@ jobs:
           node --check juego/assets/fh-services-core.js
           node --check juego/assets/fh-services-engine-hook.js
           node --check juego/assets/fh-phone.js
+          node --check juego/assets/fh-equipment-core.js
       - name: Probar batería, electricidad e interfaz
-        run: node --test tests/fh-portable-charger.test.js tests/fh-services-core.test.js juego/assets/fh-phone.test.js juego/assets/fh-strict-breaker.test.js
+        run: node --test tests/fh-pocket-items.test.js tests/fh-portable-charger.test.js tests/fh-services-core.test.js juego/assets/fh-phone.test.js juego/assets/fh-strict-breaker.test.js
