@@ -7,12 +7,19 @@
   return doc.replace(before,after);
  };
  function patch(doc){
+  // El motor embebido conserva una lista de frentes anterior al editor.
+  // Sincronizarla antes del selector: evita que éste apunte hacia la pared
+  // mientras Agua/Electricidad exigen interactuar desde el frente del GLB.
+  const facing='const FACING_OBJECT_TYPES=new Set([';
+  if(doc.includes(facing))doc=once(doc,facing,facing+
+   "'power_outlet','router','landline_phone','water_main','water_valve','water_outlet','drain_outlet',",
+   'frentes de instalaciones');
   const base=new URL('./juego/assets/',root.document.baseURI).href;
   const potable='<script src="'+base+'fh-water-potable.js?v=20261113-sotano-bombeo"></'+'script>';
   const hot='<script src="'+base+'fh-water-hot.js?v=20261113-sotano-bombeo"></'+'script>';
   const boilerCatalog='<script src="'+base+'fh-boilers-catalog.js?v=20261112-boilers-04"></'+'script>';
   const boilerStrings='<script src="'+base+'fh-boilers-strings.js?v=20261113-sotano-bombeo"></'+'script>';
-  const core='<script src="'+base+'fh-services-core.js?v=20261113-pocket-items-1"></'+'script>';
+  const core='<script src="'+base+'fh-services-core.js?v=20261113-utility-front-1"></'+'script>';
   const equipment='<script src="'+base+'fh-equipment-core.js?v=20261113-pocket-items-1"></'+'script>';
   const exteriorCore='<script src="'+base+'fh-exterior-grid.js?v=20261111-pole-collision-1"></'+'script>';
    const exteriorVisual='<script src="'+base+'fh-exterior-visuals.js?v=20261111-exterior-03"></'+'script>';
