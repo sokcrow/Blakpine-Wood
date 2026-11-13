@@ -364,3 +364,18 @@ test('Cuentas muestra el saldo del personaje, rechazos y permite refrescar sin c
   ['$2.25','$50.00']);
  assert.equal(writes,0);
 });
+
+test('bloquea el menú del celular durante la carga y lo recupera al desconectar',()=>{
+ const doc=fakePhoneDocument();
+ const state={phone:{battery:55}};
+ const runtime=Phone.createRuntime({state,document:doc,strings:globalThis.FH_PHONE_TEXT||{}});
+ assert.equal(runtime.open(),true);
+ assert.equal(runtime.isOpen,true);
+ state.phone.placedAt='outlet-1';
+ assert.equal(runtime.syncAvailability(),false);
+ assert.equal(runtime.isOpen,false);
+ assert.equal(runtime.open(),false);
+ state.phone.placedAt='';
+ assert.equal(runtime.syncAvailability(),true);
+ assert.equal(runtime.open(),true);
+});

@@ -217,7 +217,7 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
 <script src="./juego/assets/fh-exterior-strings.js?v=20261111-exterior-03-fix1"></script>
 <script src="./juego/assets/fh-water-potable.js?v=20261113-sotano-bombeo"></script>
 <script src="./juego/assets/fh-water-hot.js?v=20261113-sotano-bombeo"></script>
-<script src="./juego/assets/fh-services-core.js?v=20261113-agua-glb-electricidad-1"></script>
+<script src="./juego/assets/fh-services-core.js?v=20261113-pocket-items-1"></script>
 <script src="./juego/assets/fh-floor-levels.js?v=20261109-basements1"></script>
 <script src="./juego/assets/fh-basement-structure.js?v=20261112-basement-native-1"></script>
 <script src="./juego/assets/fh-wifi-editor-overlay.js?v=20261109-wifi-editor-1"></script>
@@ -1659,7 +1659,7 @@ const COLORS={generator:'#bc8b68',generator_ats:'#7f9392',generator_tank:'#b69b6
 const TOOL_GROUPS={
  structure:[['select','Seleccionar','☞'],['pan','Mover mapa','✋'],['wall','Pared','▰'],['red_wall','Pared roja · losa','▰'],['paint_wall','Pintar cara','▨'],['half_wall','Pared media','▱'],['fence','Reja','⛶'],['door','Puerta','🚪'],['elevator','Ascensor ⇅','⇅'],['peephole_door','Con mirilla','◉'],['window','Ventana','▤'],['opening','Hueco libre','⟷'],['erase','Borrar','⌫']],
  furniture:[['select','Seleccionar','☞'],['bed','Cama compacta','🛏'],['sofa','Sofá compacto','▰'],['tv','Tele compacta','▭'],['dining','Comedor','◫'],['table','Mesa','▦'],['chair','Silla','▣'],['kitchen','Cocina','▤'],['bath','Ducha / tina','▥'],['toilet','Baño / WC','◉'],['plant','Planta','♧'],['car','Coche','▰'],['misc','Mueble libre','□'],['battery_pickup','Batería de linterna','▰']],
- lighting:[['select','Seleccionar circuito','☞'],['pan','Mover mapa','✋'],['zone_assign','Conectar zona','◈'],['light_fixture','Foco de techo','✦'],['light_strip','Tubo largo','▰'],['light_panel','Panel de techo','▤'],['light_wall','Aplique de pared','◖'],['light_flood','Reflector de pared','◁'],['light_switch','Interruptor','◉'],['breaker_panel','Breaker','▤'],['generator',window.FH_SERVICES_TEXT.generator.normal,'⚙'],['generator_emergency',window.FH_SERVICES_TEXT.generator.emergency,'⚙'],['power_outlet','Enchufe doble','⚡'],['phone_charger','Cargador de celular','▣']],
+ lighting:[['select','Seleccionar circuito','☞'],['pan','Mover mapa','✋'],['zone_assign','Conectar zona','◈'],['light_fixture','Foco de techo','✦'],['light_strip','Tubo largo','▰'],['light_panel','Panel de techo','▤'],['light_wall','Aplique de pared','◖'],['light_flood','Reflector de pared','◁'],['light_switch','Interruptor','◉'],['breaker_panel','Breaker','▤'],['generator',window.FH_SERVICES_TEXT.generator.normal,'⚙'],['generator_emergency',window.FH_SERVICES_TEXT.generator.emergency,'⚙'],['power_outlet','Enchufe doble','⚡']],
   water:[['select','Seleccionar','☞'],['pan','Mover mapa','✋'],['water_main','Entrada de agua','◉'],['water_valve','Válvula','◈'],['water_outlet','Toma de agua','◉'],['water_cistern','Cisterna potable','▰'],['water_tinaco','Tinaco elevado','◉'],['water_boiler','Caldera / calentador GLB','♨'],['water_boiler_aux','Equipos de caldera GLB','⚙'],['drain_outlet','Drenaje','◌'],['drain_main','Salida de drenaje','◉'],['drain_straight',window.FH_DRAIN_TEXT.straight,'═'],['drain_elbow',window.FH_DRAIN_TEXT.elbow,'┐'],['drain_tee',window.FH_DRAIN_TEXT.tee,'┬'],['drain_cross',window.FH_DRAIN_TEXT.cross,'┼'],['drain_dead_end',window.FH_DRAIN_TEXT.dead_end,'⊣'],['drain_small',window.FH_DRAIN_TEXT.small,'─'],['drain_small_elbow',window.FH_DRAIN_TEXT.small_elbow,'└'],['drain_small_tee',window.FH_DRAIN_TEXT.small_tee,'┬'],['drain_small_cross',window.FH_DRAIN_TEXT.small_cross,'┼'],['drain_small_dead_end',window.FH_DRAIN_TEXT.small_dead_end,'⊣'],['drain_outfall',window.FH_DRAIN_TEXT.outfall,'◎'],['drain_bridge',window.FH_DRAIN_TEXT.bridge,'▦'],['drain_street_access',window.FH_DRAIN_TEXT.streetAccess,'▤'],['drain_building_access',window.FH_DRAIN_TEXT.buildingAccess,'⌂'],['drain_audit',window.FH_DRAIN_TEXT.audit,'✓']],
   network:[['select','Seleccionar','☞'],['pan','Mover mapa','✋'],['router','Router Wi-Fi','⌁'],['ethernet_port','Toma Ethernet','▣'],['landline_phone','Teléfono de pared','☎']],
  areas:[['courtyard',window.FH_COURTYARD_TEXT.tool,'☀'],['room_fill','Revisar recinto','⌂'],['room','Zona manual','▣'],['hall','Pasillo','═'],['outside','Exterior','♧'],['building','Edificio','▥'],['pavement','Banqueta / piso','▦'],['parking','Estacionamiento','▤'],['asphalt','Asfalto','▦'],['alley','Callejón manchado','▦'],['sidewalk','Banqueta','▤'],['concrete','Concreto','▦'],['gravel','Grava','░'],['cobblestone','Adoquín','▣'],['tile_floor','Baldosa','▦'],['carpet','Alfombra','▧'],['wood_floor','Madera','▤'],['grass','Pasto','❋'],['dirt','Tierra','░'],['elevator','Ascensor ⇅','⇅'],['stairs','Escaleras ½ cuadro','≋'],['spawn','Jugador','✦'],['npc_portal','Entrada / salida NPC','⇥'],['select','Seleccionar','☞'],['pan','Mover mapa','✋']],
@@ -1679,7 +1679,7 @@ function normalizeFurnitureFootprints(){const eps=.001,types=Object.keys(OBJECT_
 const $=s=>document.querySelector(s), $$=s=>Array.from(document.querySelectorAll(s));
 const clone=x=>JSON.parse(JSON.stringify(x));
 const floorDefault=(id,name,elev,index)=>({id,name,elevationFt:elev,ceilingHeightFt:11.5,roof:window.FHRoof.settings(),lightingManual:true,reference:{name:window.FH_MAP_GRID_TEXT.noReference,data:'',width:1,height:1,opacity:.73},items:[]});
-const newProject=()=>({schema:SCHEMA,version:ForestShared.CURRENT_VERSION,title:'Forest Horror · Edificio de apartamentos',createdAt:new Date().toISOString(),styleSystem:1,initialGameState:{clock:{year:2016,month:6,day:1,minutes:480}},weather:{enabled:true,season:'calendar',minHours:3,maxHours:8,clockSpeed:1},buildingOwnerId:'',buildingOwners:{},properties:[],patterns:[],itemDefs:[{id:'flashlight_battery',kind:'consumable',name:'Batería de linterna',description:'Recarga el 50 % de la linterna.',stackable:true,icon:'▤'}],units:{gridPx:70,columns:40,rows:40,fitGridToImage:false,feetPerCell:5,metersPerCell:1.524,snapCell:1,originPx:{x:0,y:0}},mainFloorId:'floor1',floors:[floorDefault('floor1','Piso 1',0,0),floorDefault('floor2','Piso 2',10,1)],notes:'Coordenadas x/y en casillas; cada casilla equivale a 5 pies. El eje Y crece hacia abajo en la referencia. Cada mirilla tiene dirección peekTo. Los muebles guardan su rotación y el frente visual. También se exportan bardas medias, rejas y rellenos exteriores.'});
+const newProject=()=>({schema:SCHEMA,version:ForestShared.CURRENT_VERSION,title:'Forest Horror · Edificio de apartamentos',createdAt:new Date().toISOString(),styleSystem:1,initialGameState:{clock:{year:2016,month:6,day:1,minutes:480},inventory:['cell_phone_charger','cell_phone_fast_charger'],equipment:{rearLeft:'cell_phone',rearRight:'wallet',wallet:{items:[]}}},weather:{enabled:true,season:'calendar',minHours:3,maxHours:8,clockSpeed:1},buildingOwnerId:'',buildingOwners:{},properties:[],patterns:[],itemDefs:[{id:'flashlight_battery',kind:'consumable',name:'Batería de linterna',description:'Recarga el 50 % de la linterna.',stackable:true,icon:'▤'},{id:'cell_phone_charger',kind:'tool',name:'Cargador de celular',description:'Conecta el celular a un enchufe libre con electricidad.',stackable:false,icon:'🔌'},{id:'cell_phone_fast_charger',kind:'tool',name:'Cargador de carga rápida',description:'Recarga 1 % cada 2 minutos.',stackable:false,icon:'⚡'},{id:'cell_phone',kind:'tool',name:'Celular',description:'Objeto del bolsillo trasero.',stackable:false,icon:'▣'},{id:'wallet',kind:'tool',name:'Cartera',description:'Almacena tarjetas y efectivo físico.',stackable:false,icon:'▤'}],units:{gridPx:70,columns:40,rows:40,fitGridToImage:false,feetPerCell:5,metersPerCell:1.524,snapCell:1,originPx:{x:0,y:0}},mainFloorId:'floor1',floors:[floorDefault('floor1','Piso 1',0,0),floorDefault('floor2','Piso 2',10,1)],notes:'Coordenadas x/y en casillas; cada casilla equivale a 5 pies. El eje Y crece hacia abajo en la referencia. Cada mirilla tiene dirección peekTo. Los muebles guardan su rotación y el frente visual. También se exportan bardas medias, rejas y rellenos exteriores.'});
 let project=newProject(),floorIndex=0,selection=null,activeTool='wall',activeCategory='structure',activeLayer='architecture',gridVisible=true,jointsVisible=true,axisLock=true,snapEnabled=true,preview=null,anchor=null,cursorGridPoint=null,view={scale:1,tx:0,ty:0},canvas=$('#map'),ctx=canvas.getContext('2d',{alpha:false}),loadedImgs=project.floors.map(()=>null),pointerStates=new Map(),gesture=null,action=null,middlePan=null,dirty=false,history=[],historyIndex=-1,saveTimer=null,toastTimer=null;
 const current=()=>project.floors[floorIndex];
 const floorRefArchive=new Map();
@@ -3039,7 +3039,7 @@ function attachServiceInspector(it,fields){
  const names={
   breaker_panel:['breakerType','rangeFt'],power_outlet:['slots','capacityRayos','radiusFt','zoneId'],
   power_strip:['slots','capacityRayos','radiusFt','outletId'],
-  phone_charger:['outletId','chargePerHour','rayos','watts'],
+  phone_charger:['outletId','rayos','watts'],
   water_main:['rangeFt','flowLpm','valveId','networkId'],
   water_valve:['opened','networkId'],water_outlet:['radiusFt','flowLpm','valveId','networkId'],drain_outlet:['radiusFt','networkId'],drain_main:['rangeFt','networkId'],
   router:['outletId','roomId','propertyId','wifiRadiusFt','ethernetLengthFt','ethernetLeadFt','wifiPassword','rayos','watts'],
@@ -3649,13 +3649,13 @@ function prepareGLBEngineDoc(source){
  const basementScript='<script src="'+new URL('./juego/assets/fh-basement-structure.js?v=20261112-basement-native-1',document.baseURI).href+'"></'+'script>';
  const parkingScript='<script src="'+new URL('./juego/assets/fh-parking.js',document.baseURI).href+'"></'+'script>';
  const playerMenuCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-player-menu.css?v=20261107-help',document.baseURI).href+'">';
- const playerMenuStrings='<script src="'+new URL('./juego/assets/fh-player-menu-strings.js?v=20261110-spawn-return',document.baseURI).href+'"></'+'script>';
+ const playerMenuStrings='<script src="'+new URL('./juego/assets/fh-player-menu-strings.js?v=20261113-pocket-items-1',document.baseURI).href+'"></'+'script>';
  const skillsModule='<script src="'+new URL('./juego/assets/fh-skills.js?v=20261106-skills',document.baseURI).href+'"></'+'script>';
  const skillsStrings='<script src="'+new URL('./juego/assets/fh-skill-strings.js?v=20261106-skills',document.baseURI).href+'"></'+'script>';
  const helpCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-character-help.css?v=20261107-help',document.baseURI).href+'">';
  const helpStrings='<script src="'+new URL('./juego/assets/fh-character-help-strings.js?v=20261107-help',document.baseURI).href+'"></'+'script>';
  const helpScript='<script src="'+new URL('./juego/assets/fh-character-help.js?v=20261107-help',document.baseURI).href+'"></'+'script>';
- const playerMenuScript='<script src="'+new URL('./juego/assets/fh-player-menu.js?v=20261110-spawn-return',document.baseURI).href+'"></'+'script>';
+ const playerMenuScript='<script src="'+new URL('./juego/assets/fh-player-menu.js?v=20261113-pocket-items-1',document.baseURI).href+'"></'+'script>';
  const locationCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-location-hud.css?v=20261111-location-divider-1',document.baseURI).href+'">';
  const locationStrings='<script src="'+new URL('./juego/assets/fh-location-strings.js?v=20261111-roof-outside1',document.baseURI).href+'"></'+'script>';
  const locationScript='<script src="'+new URL('./juego/assets/fh-location-hud.js?v=20261111-roof-outside1',document.baseURI).href+'"></'+'script>';
@@ -3664,8 +3664,8 @@ function prepareGLBEngineDoc(source){
  const mobileMenusCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-mobile-menus.css?v=20261107-mobile-ui-75',document.baseURI).href+'">';
  const hudFrameScript='<script src="'+new URL('./juego/assets/fh-hud-frame.js?v=20261106-hud-redesign',document.baseURI).href+'"></'+'script>';
  const phoneCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-phone.css?v=20261109-wifi-compact-status-3',document.baseURI).href+'">';
- const phoneStrings='<script src="'+new URL('./juego/assets/fh-phone-strings.js?v=20261109-wifi-compact-status-3',document.baseURI).href+'"></'+'script>';
- const phoneScript='<script src="'+new URL('./juego/assets/fh-phone.js?v=20261109-wifi-compact-status-3',document.baseURI).href+'"></'+'script>';
+ const phoneStrings='<script src="'+new URL('./juego/assets/fh-phone-strings.js?v=20261113-portable-phone-1',document.baseURI).href+'"></'+'script>';
+ const phoneScript='<script src="'+new URL('./juego/assets/fh-phone.js?v=20261113-portable-phone-1',document.baseURI).href+'"></'+'script>';
  const mobileCameraScript='<script src="'+new URL('./juego/assets/fh-mobile-camera.js?v=20261108-landscape20',document.baseURI).href+'"></'+'script>';
  const locationHudHook='if(now-lastHud>90){lastHud=now;hudUpdate()}';
  const locationHudAfter='if(now-lastHud>90){lastHud=now;hudUpdate();window.FHLocationHUD?.update(DATA,currentFloor,{x:user.x/CELL,y:user.z/CELL},FH_ROOF_PLANS[currentFloor])}';
@@ -5228,7 +5228,7 @@ init();
 <script src="./juego/assets/fh-structure-engine-hook.js?v=20261108-architecture-load"></script>
 <script src="./juego/assets/fh-comic-action-engine-hook.js?v=20261107-comic-actions-1"></script>
 <script src="./juego/assets/fh-context-engine-hook.js?v=20261112-hud-foot-hold-1"></script>
-<script src="./juego/assets/fh-services-engine-hook.js?v=20261113-agua-glb-electricidad-1"></script>
+<script src="./juego/assets/fh-services-engine-hook.js?v=20261113-pocket-items-1"></script>
 <script src="./juego/assets/fh-electric-catalog.js?v=20261112-duplex-uv-1"></script>
 <script src="./juego/assets/fh-electric-strings.js?v=20261109-servicios-24"></script>
 <script src="./juego/assets/fh-electric-visuals.js?v=20261112-no-overlay-1"></script>

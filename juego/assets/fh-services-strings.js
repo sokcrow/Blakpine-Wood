@@ -65,9 +65,9 @@
    damage:'Estado de desgaste',serviceNote:'Solo se configurarán tarifas en una etapa posterior.'
   }),
   tips:Object.freeze({
-   power_outlet:'Admite dos conexiones. Cada aparato puede conectarse si su cable alcanza hasta 5 pies, salvo configuración específica.',
+   power_outlet:'Admite dos conexiones. El cargador portátil ocupa una toma libre mientras el celular está conectado.',
    power_strip:'El multiconector amplía tomas. Su cable y el de cada aparato cuentan dentro del alcance del breaker.',
-   phone_charger:'El celular se retira del inventario y su menú desaparece durante la carga.',
+   phone_charger:'Los cargadores fijos de mapas anteriores recargan al mismo ritmo que el cargador portátil.',
    water_main:'Distribuye suministro por los tramos conectados de pared.',
    water_valve:'Cierra o abre el flujo de la tubería asociada.',
    water_outlet:'Permite conectar muebles que requieren agua.',
@@ -80,8 +80,8 @@
   noPower:'Sin electricidad.',noWater:'Sin agua.',noInternet:'Sin acceso a internet.',
   noCellular:'Sin señal o servicio móvil.',phoneCharging:'Celular cargando.',
   phoneTaken:'Celular recuperado.',phoneFull:'Batería completa.',phoneBatteryEmpty:'Sin batería.',
-  chargerMissing:'El cargador no tiene corriente.',phonePlaced:'Celular conectado al cargador.',
-  chargerAction:'Poner celular a cargar',takePhone:'Recoger celular',
+  chargerMissing:'El cargador no tiene corriente.',chargerCannotConnect:'No se puede conectar: revisa la corriente y las conexiones libres.',phonePlaced:'Celular conectado al cargador.',
+  chargerAction:'Conectar cargador normal',chargerFastAction:'Conectar cargador rápido (×1.5)',takePhone:'Desconectar y recoger celular',
   useOutlet:'Ver conexiones',useRouter:'Estado de red',useLandline:'Usar teléfono',
   usedSlots:'Conexiones utilizadas',overload:'Sobrecarga eléctrica',
   invalidLink:'Sin conexión válida.',broken:'Conector dañado.',

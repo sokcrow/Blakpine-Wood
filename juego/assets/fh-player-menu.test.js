@@ -93,7 +93,7 @@ function scene(profile){
   }
   const body=new Element('body');
   const document={
-    body,readyState:'complete',
+    body,readyState:'complete',baseURI:'https://example.test/',
     createElement:tag=>new Element(tag),
     getElementById:id=>body.querySelector('#'+id),
     get activeElement(){return focus??body;},
@@ -147,8 +147,8 @@ const example={
 test('Estado lee nombre, origen, siete atributos y PG/SP/PE actuales de la partida',()=>{
   const profile={current:structuredClone(example)};
   const {tabs,detail}=scene(profile);
-  assert.equal(tabs.children.length,5);
-  tabs.children[2].click();
+  assert.equal(tabs.children.length,6);
+  tabs.children[3].click();
   assert.match(detail.textContent,/Elena Flores/);
   assert.match(detail.textContent,/Residente/);
   assert.equal(detail.querySelectorAll('.fh-stat-row').length,7);
@@ -166,14 +166,14 @@ test('Estado lee nombre, origen, siete atributos y PG/SP/PE actuales de la parti
     assert.ok(bar.getAttribute('aria-valuenow')!==undefined);
   }
   profile.current.resources.pg=4;
-  tabs.children[4].click();
-  tabs.children[2].click();
+  tabs.children[5].click();
+  tabs.children[3].click();
   assert.match(detail.textContent,/4 \/ 36/);
 });
 
 test('Estado no genera estadísticas cuando falta el personaje',()=>{
   const {tabs,detail}=scene({current:null});
-  tabs.children[2].click();
+  tabs.children[3].click();
   assert.match(detail.textContent,/No hay datos de un personaje activo/);
   assert.equal(detail.querySelectorAll('.fh-stat-row').length,7);
   for(const value of detail.querySelectorAll('.fh-resource-number'))
@@ -182,7 +182,7 @@ test('Estado no genera estadísticas cuando falta el personaje',()=>{
 
 test('Opciones ofrece Decorar en lugar de Pixel y separa la salida al editor',()=>{
   const {tabs,detail,global,clicks}=scene({current:structuredClone(example)});
-  tabs.children[4].click();
+  tabs.children[5].click();
   const controls=detail.querySelectorAll('[data-fh-setting]');
   assert.equal(controls.length,2);
   assert.doesNotMatch(detail.textContent,/Cuadrícula/);
@@ -220,7 +220,7 @@ test('Dinero consulta saldos e intentos rechazados sin cambiar el libro',()=>{
  let writes=0;const storage={getItem:()=>Economy.serialize(world),setItem(){writes++}};
  const profile={current:structuredClone(example),storage};
  const {tabs,detail}=scene(profile);
- tabs.children[3].click();
+ tabs.children[4].click();
  assert.match(detail.textContent,/Dinero total/);
  assert.deepEqual(detail.querySelectorAll('.fh-money-amount').map(x=>x.textContent),['$50.50','$80.00']);
  assert.match(detail.textContent,/\$130\.50/);
@@ -241,4 +241,18 @@ test('el radial puede abrir directamente la pestaña Inventario existente',()=>{
  assert.equal(document.getElementById('fhPlayerMenu').dataset.fhSection,'inventory');
  playerMenu.close();
  assert.equal(playerMenu.isOpen(),false);
+});
+
+test('Equipamiento muestra dos bolsillos traseros y la cartera con iconos',()=>{
+ const Equipment=require('./fh-equipment-core.js');
+ const {tabs,detail,global}=scene({current:structuredClone(example)});
+ let saves=0;
+ global.FHEquipmentCore=Equipment;
+ global.FHEquipmentGame={state:{inventory:['cell_phone_charger','cell_phone_fast_charger'],equipment:{rearLeft:'cell_phone',rearRight:'wallet',wallet:{items:[]}}},itemDefs:Equipment.itemDefinitions([]),refresh(){},save(){saves++}};
+ tabs.children[2].click();
+ assert.match(detail.textContent,/Bolsillo trasero izquierdo/);
+ assert.match(detail.textContent,/Bolsillo trasero derecho/);
+ assert.match(detail.textContent,/Cartera/);
+ assert.equal(detail.querySelectorAll('.fh-equipped-icon').length,2);
+ assert.equal(detail.querySelectorAll('.fh-equipment-slot').length,2);
 });
