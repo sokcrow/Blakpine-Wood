@@ -1,5 +1,11 @@
 name: Drenajes — render WebGL verificable
 on:
+  push:
+    paths:
+      - 'juego/assets/fh-drainage.js'
+      - 'juego/assets/fh-drainage.test.js'
+      - 'tests/fixtures/drainage-solid-visual.html'
+      - '.github/workflows/drainage-visual.yml'
   pull_request:
     paths:
       - 'juego/assets/fh-drainage.js'
