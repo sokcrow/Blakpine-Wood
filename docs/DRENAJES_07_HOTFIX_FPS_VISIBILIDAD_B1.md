@@ -48,3 +48,16 @@ Abrir `tests/fixtures/drainage-solid-visual.html` desde el sitio estático del r
 6. Medir FPS sobre móvil real en mapa con varios tramos; la CI no sustituye esta medición.
 
 **Nota:** La prueba visual es un escenario del módulo real con iluminación auxiliar, no una captura de la partida completa. La aceptación visual de gameplay aún requiere revisión en el motor integrado.
+
+## Revisión del PR 162
+
+- Integrada la rama `main` con sus correcciones de CCTV y sombras, conservando ambos sistemas.
+- La inundación secundaria queda a `0.005` tiles y su onda máxima añade `0.008`: la cresta de `0.013` queda por debajo de la reja a `0.025`. El canal conserva sus ondas anteriores y ambos usan el mismo material GPU.
+- El contacto con agua del desagüe usa los mismos rectángulos que su fondo y superficie, evitando que el actor reciba corriente sobre una banqueta seca o pierda contacto en un borde mojado.
+- Las paredes continuas se construyen por intervalos exactos. Un tramo recto aislado pasa de 1.368 a 120 vértices sólidos; las conexiones parciales conservan el hueco exacto sin muestreo cada medio tile. Es una reducción de geometría, no una medición de FPS.
+- Tres regresiones con Three.js real comprueban cresta de inundación, rayos contra fondo/reja, contorno y conexiones parciales. Las tres fallan sobre la implementación anterior y pasan con la corrección.
+- Una regresión ejecuta `updateAdjacentVisibility()` extraída del motor ensamblado: B1 oculta fachadas y terreno antes del recorrido de visibilidad; PB vuelve al camino nativo.
+- Suite local: `node --test juego/assets/*.test.js tests/*.test.* server-sleep-clock.test.mjs`: **1.080 pruebas aprobadas, cero fallos**.
+- La CI visual incluye `?small&rain`, conserva las capturas con/sin agua y exige un fotograma renderizado sin error de compilación de shaders. La prueba local de Chromium quedó bloqueada por la restricción de sockets del entorno; no se presenta como validación WebGL completada.
+
+No se cambian el JSON v1, `walk()`/`canWalk()`, reglas de corriente o teletransporte, HUD, assets, dependencias ni fragmentos Base64 del motor. Continúan pendientes la partida completa y la medición en móvil real; mantener el borrador hasta esa aceptación.

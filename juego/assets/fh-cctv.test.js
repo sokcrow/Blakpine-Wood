@@ -15,24 +15,41 @@ test('tres tipos separados y compatibilidad con el modelo antiguo',()=>{
  const rt=CCTV.createRuntime(floors);
  assert.deepEqual(rt.list().map(x=>x.mode),['manual','automatic','fixed','automatic','manual']);
 });
-test('la cámara manual gira solo dentro de 90 grados y conserva su posición',()=>{
+test('la cámara manual se mueve progresivamente hasta ±45 grados y no salta al destino',()=>{
  const rt=CCTV.createRuntime(floors);
- assert.equal(rt.setManualAngle('manual',120),true);
- assert.equal(rt.angleFor('manual'),45);
- assert.equal(rt.setManualAngle('manual',-120),true);
- assert.equal(rt.angleFor('manual'),-45);
- assert.equal(rt.angleFor('manual',100000),-45);
- assert.equal(rt.setManualAngle('manual','incorrecto'),false);
+ assert.equal(rt.setManualAngle('manual',120,1000),true);
+ assert.equal(rt.angleFor('manual',1000),0);
+ assert.equal(rt.angleFor('manual',1500),15);
+ assert.equal(rt.angleFor('manual',2500),45);
+ assert.equal(rt.setManualAngle('manual',-120,2500),true);
+ assert.equal(rt.angleFor('manual',2500),45);
+ assert.equal(rt.angleFor('manual',3000),30);
+ assert.equal(rt.angleFor('manual',5500),-45);
+ assert.equal(rt.setManualAngle('manual','incorrecto',5500),false);
  assert.equal(rt.setManualAngle('automatic',15),false);
  assert.equal(rt.setManualAngle('fixed',15),false);
 });
-test('la cámara automática barre 90 grados y depende del reloj mundial',()=>{
+test('la cámara manual retoma el ángulo visible cuando cambia el objetivo durante el giro',()=>{
  const rt=CCTV.createRuntime(floors);
- assert.equal(rt.angleFor('automatic',0),0);
- assert.equal(rt.angleFor('automatic',1800),45);
- assert.ok(Math.abs(rt.angleFor('automatic',3600))<1e-8);
- assert.equal(rt.angleFor('automatic',5400),-45);
- assert.equal(rt.angleFor('automatic',9000),45);
+ rt.setManualAngle('manual',45,1000);
+ assert.equal(rt.angleFor('manual',1500),15);
+ rt.setManualAngle('manual',-45,1500);
+ assert.equal(rt.angleFor('manual',1500),15);
+ assert.equal(rt.angleFor('manual',2000),0);
+});
+test('barrido automático 9 s ida + 1 s espera + 9 s vuelta + 1 s espera',()=>{
+ const rt=CCTV.createRuntime(floors),angle=t=>rt.angleFor('automatic',t);
+ const near=(a,b)=>assert.ok(Math.abs(a-b)<1e-8,a+' != '+b);
+ near(angle(0),-45);
+ near(angle(4500),0);
+ near(angle(9000),45);
+ near(angle(9500),45);
+ near(angle(10000),45);
+ near(angle(14500),0);
+ near(angle(19000),-45);
+ near(angle(19500),-45);
+ near(angle(20000),-45);
+ near(angle(24500),0);
 });
 test('la cámara fija conserva su orientación al pasar tiempo',()=>{
  const rt=CCTV.createRuntime(floors);
@@ -62,9 +79,10 @@ test('la lente montada se coloca delante del muro sin alterar el giro manual',()
  const pose=rt.view('mounted',0,1.5,[0]);
  assert.ok(Math.abs(pose.x-(4*1.5-.2))<1e-8);
  assert.ok(Math.abs(pose.z-(6*1.5))<1e-8);
- rt.setManualAngle('mounted',45);
- const angled=rt.view('mounted',0,1.5,[0]);
+ rt.setManualAngle('mounted',45,0);
+ const angled=rt.view('mounted',1500,1.5,[0]);
  assert.equal(angled.x,pose.x,'El giro no atraviesa el muro moviendo la lente');
  assert.equal(angled.z,pose.z);
  assert.equal(angled.bearing,135*Math.PI/180);
+ assert.equal(angled.fovDeg,48,'Por defecto, campo óptico de 48° como la cámara principal del juego');
 });

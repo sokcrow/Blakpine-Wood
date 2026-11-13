@@ -7,6 +7,9 @@
  'use strict';
  const LIMIT=45;
  const MODES=Object.freeze(['manual','automatic','fixed']);
+ const SWEEP_MOVE_MS=9000,SWEEP_PAUSE_MS=1000;
+ const SWEEP_CYCLE_MS=2*(SWEEP_MOVE_MS+SWEEP_PAUSE_MS);
+ const MANUAL_SPEED_DEG_PER_SEC=30;
  const clamp=value=>Math.max(-LIMIT,Math.min(LIMIT,value));
  const finite=(value,fallback=0)=>Number.isFinite(Number(value))?Number(value):fallback;
  function isCamera(item){
@@ -16,9 +19,18 @@
   const mode=item?.cameraMode;
   return MODES.includes(mode)?mode:(item?.modelId==='camara_seguridad'?'automatic':'fixed');
  }
- function sweepAngle(ms,periodMs=7200){
-  const period=Math.max(1000,finite(periodMs,7200));
-  return LIMIT*Math.sin(2*Math.PI*((finite(ms,0)%period+period)%period)/period);
+ function sweepAngle(ms,periodMs=SWEEP_CYCLE_MS){
+  // Cada ida dura 9 s, cada extremo espera 1 s (ciclo 20 s).
+  // Un periodo opcional ajusta el ciclo completo conservando las proporciones.
+  const period=Math.max(4000,finite(periodMs,SWEEP_CYCLE_MS));
+  const phase=((finite(ms,0)%period)+period)%period/period;
+  const move=SWEEP_MOVE_MS/SWEEP_CYCLE_MS;
+  const pause=SWEEP_PAUSE_MS/SWEEP_CYCLE_MS;
+  const eased=t=>(1-Math.cos(Math.PI*t))/2;
+  if(phase<move)return -LIMIT+2*LIMIT*eased(phase/move);
+  if(phase<move+pause)return LIMIT;
+  if(phase<2*move+pause)return LIMIT-2*LIMIT*eased((phase-move-pause)/move);
+  return -LIMIT;
  }
  function createRuntime(floors=[]){
   const entries=new Map();
@@ -27,7 +39,8 @@
     if(!isCamera(item)||typeof item.id!=='string'||!item.id||entries.has(item.id))continue;
     entries.set(item.id,{
      item,floor:index,mode:modeFor(item),
-     manualDeg:clamp(finite(item.cameraManualDeg,0))
+     manualDeg:clamp(finite(item.cameraManualDeg,0)),
+     targetDeg:clamp(finite(item.cameraManualDeg,0)),manualAtMs:0
     });
    }
   });
@@ -36,13 +49,22 @@
    const cam=entry(id);
    if(!cam)return null;
    if(cam.mode==='fixed')return 0;
-   if(cam.mode==='manual')return cam.manualDeg;
-   return sweepAngle(nowMs,finite(cam.item.cameraSweepMs,7200));
+   if(cam.mode==='manual'){
+    const delta=cam.targetDeg-cam.manualDeg;
+    const elapsed=Math.max(0,finite(nowMs,0)-cam.manualAtMs);
+    const step=MANUAL_SPEED_DEG_PER_SEC*elapsed/1000;
+    return cam.manualDeg+Math.sign(delta)*Math.min(Math.abs(delta),step);
+   }
+   return sweepAngle(nowMs,finite(cam.item.cameraSweepMs,SWEEP_CYCLE_MS));
   }
-  function setManualAngle(id,angle){
+  function setManualAngle(id,angle,nowMs=0){
    const cam=entry(id);
    if(!cam||cam.mode!=='manual'||!Number.isFinite(Number(angle)))return false;
-   cam.manualDeg=clamp(Number(angle));return true;
+   const time=Math.max(0,finite(nowMs,0));
+   cam.manualDeg=angleFor(id,time);
+   cam.targetDeg=clamp(Number(angle));
+   cam.manualAtMs=time;
+   return true;
   }
   function list(nowMs=0){
    return [...entries].map(([id,cam])=>({
@@ -66,7 +88,7 @@
    const z=finite(item.y)*cell+Math.cos(baseBearing)*forward;
    return {id:item.id,floor:cam.floor,x,y:base+mount,z,
     bearing,angleDeg:angleFor(id,nowMs),mode:cam.mode,
-    fovDeg:Math.max(25,Math.min(100,finite(item.cameraFovDeg,65)))};
+    fovDeg:Math.max(25,Math.min(100,finite(item.cameraFovDeg,48)))};
   }
   return Object.freeze({list,view,angleFor,setManualAngle,has:id=>!!entry(id)});
  }

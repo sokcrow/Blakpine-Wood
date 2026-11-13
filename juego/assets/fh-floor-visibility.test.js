@@ -88,6 +88,33 @@ test('desde B1 nunca se renderiza PB ni pisos superiores, incluso con cámara y 
  assert.match(html,/for\(const g of lowerGroundLayers\)g.visible=false;/);
 });
 
+test('motor ensamblado: B1 apaga fachadas y terreno antes de evaluar visibilidad',()=>{
+ const vm=require('node:vm');
+ const editor=fs.readFileSync(path.resolve(__dirname,'../../index.html'),'utf8');
+ const start=editor.indexOf('function addFloorVisibilityToEngine(doc){');
+ const end=editor.indexOf('// Recursos y estados de personaje:',start);
+ const patch=new Function('document','URL','addBuildingLevelsToEngine','addSurvivalToEngine',
+  editor.slice(start,end)+';return addFloorVisibilityToEngine;')(
+   {baseURI:'https://example.test/'},URL,doc=>doc,doc=>doc);
+ const chunks=Array.from({length:13},(_,i)=>{
+  const file=fs.readFileSync(path.join(__dirname,'engine-'+String(i).padStart(2,'0')+'.js'),'utf8');
+  return file.match(/\+"([A-Za-z0-9+/=]+)";/)[1];
+ });
+ const prepared=patch(Buffer.from(chunks.join(''),'base64').toString('utf8'));
+ const from=prepared.indexOf('function updateAdjacentVisibility(');
+ const source=prepared.slice(from,prepared.indexOf('function displayFloorLayers()',from));
+ const exteriorLayers=[{visible:true},{visible:true}],lowerGroundLayers=[{visible:true},{visible:true}];
+ let checks=0;
+ const env={window:{FHFloorVisibility:{undergroundMask}},currentFloor:0,mainFloorIndex:1,
+  exteriorLayers,lowerGroundLayers,performance:{now:()=>0},occupiedShaft:()=>{checks++;return true;}};
+ vm.runInNewContext(source+';updateAdjacentVisibility(0,true);',env);
+ assert.ok([...exteriorLayers,...lowerGroundLayers].every(g=>g.visible===false));
+ assert.equal(checks,0,'B1 no recorre proxies, rayos ni frustum');
+ env.currentFloor=1;
+ vm.runInNewContext('updateAdjacentVisibility(0,true);',env);
+ assert.equal(checks,1,'Al volver a PB se retoma el camino nativo de visibilidad');
+});
+
 test('los sótanos no se habilitan como fachadas exteriores desde PB ni desde pisos altos',()=>{
  assert.equal(facadeCandidate(1,0,false,true,true,1),false);
  assert.equal(facadeCandidate(2,1,true,true,true,2),false);

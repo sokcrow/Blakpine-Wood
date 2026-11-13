@@ -432,3 +432,52 @@ test('integración motor: la corriente usa walk nativo y el cambio de piso conse
  assert.match(core,/function createRuntime\(/);
  assert.ok(!core.includes('function canWalk('),'No duplicar la física de paredes');
 });
+
+test('THREE real: la cresta de inundación no cubre las barras del puente',()=>{
+ const THREE=require('./vendor/three.min.js'),scene=new THREE.Group();
+ const small=section('small',20,20,'rain'),bridge=D.makeBridge({x:22,y:22},units,'grate');
+ const p=map([[small,bridge]]),CELL=1.524;
+ D.attachFloor(THREE,p,scene,0,CELL);D.updateVisuals(.05,1,0);
+ const flood=scene.children.find(m=>m.material.isShaderMaterial&&m.position.y>0);
+ assert.ok(flood?.visible,'La lluvia sigue inundando la banqueta');
+ const scales=flood.geometry.getAttribute('aWaveScale')?.array||[1];
+ const crest=flood.position.y+flood.material.uniforms.uWave.value*Math.max(...scales);
+ assert.ok(crest<D.BRIDGE_TOP*CELL,'La cresta máxima debe quedar debajo de los pies y la reja');
+ assert.match(flood.material.vertexShader,/uWave\*aWaveScale\*heightMask/);
+ scene.updateMatrixWorld(true);
+ const ray=new THREE.Raycaster(new THREE.Vector3(22*CELL,2*CELL,22*CELL),new THREE.Vector3(0,-1,0));
+ const grate=scene.children.find(m=>m.name==='fh_drain_grate_grate');
+ assert.ok(Math.abs(ray.intersectObject(grate)[0].point.y-D.supportAt(p,0,{x:22,y:22})*CELL)<1e-6);
+});
+
+test('desagüe: contacto, apoyo, recorte y superficie comparten el mismo contorno',()=>{
+ const out=section('outfall',0,0,'edge'),p=map([[out]]);
+ const channels=D.channelRects(out);
+ let wet=0,dry=0;
+ for(let yi=0;yi<80;yi++)for(let xi=0;xi<80;xi++){
+  const point={x:(xi+.37)/4,y:(yi+.61)/4};
+  const inChannel=channels.some(r=>point.x>=r.x&&point.x<r.x+r.w&&point.y>=r.y&&point.y<r.y+r.h);
+  assert.equal(!!D.waterAt(p,0,point),inChannel,JSON.stringify(point));
+  assert.equal(D.supportAt(p,0,point),inChannel?D.CHANNEL_BOTTOM:0);
+  if(inChannel)wet++;else dry++;
+ }
+ assert.ok(wet>0&&dry>0);
+});
+
+test('THREE real: bordes continuos compactos y conexiones parciales sin tabiques',()=>{
+ const THREE=require('./vendor/three.min.js');
+ const main=section('straight',0,0,'main'),small=section('small',10,3.75,'partial');
+ const single=new THREE.Group();D.attachFloor(THREE,map([[main]]),single,0,1);
+ const solid=single.children.find(m=>m.name==='fh_drain_solid_main');
+ assert.ok(solid.geometry.getAttribute('position').count<=120,
+  'El tramo recto usa un fondo y cuatro bordes, sin cajas cada medio tile');
+ const connected=new THREE.Group();D.attachFloor(THREE,map([[main,small]]),connected,0,1);
+ connected.updateMatrixWorld(true);
+ const left=connected.children.find(m=>m.name==='fh_drain_solid_main');
+ const cast=y=>new THREE.Raycaster(new THREE.Vector3(9.8,-.2,y),new THREE.Vector3(1,0,0),0,.4).intersectObject(left);
+ assert.equal(cast(5.3).length,0,'La parte abierta no se cierra aunque su borde no coincida con medio tile');
+ assert.ok(cast(5.6).length>0,'La pared se conserva justo fuera de la conexión');
+ const bottomRay=new THREE.Raycaster(new THREE.Vector3(8,1,5),new THREE.Vector3(0,-1,0));
+ assert.ok(Math.abs(bottomRay.intersectObject(left)[0].point.y-D.CHANNEL_BOTTOM)<1e-6,
+  'El fondo físico coincide con el apoyo usado por el actor');
+});

@@ -20,7 +20,8 @@ canvas{display:block;touch-action:none}small{color:#b9cfca}code{color:#b0dfd7}
 (function(){
  'use strict';
  const CELL=1.524,D=window.FHDrainage,units={columns:60,rows:40,feetPerCell:5};
- const section=D.makeSection('straight',{x:5,y:5},units,'canal_prueba');
+ const query=new URLSearchParams(location.search),small=query.has('small'),rain=query.has('rain')?1:0;
+ const section=D.makeSection(small?'small':'straight',{x:5,y:5},units,'canal_prueba');
  const bridge=D.makeBridge({x:5,y:5},units,'rejilla_prueba');
  const project={schema:'forest-horror-map-v1',units,floors:[{id:'b1',elevationFt:-10,items:[section,bridge]}]};
  const scene=new THREE.Scene();scene.background=new THREE.Color(0x111a1d);
@@ -53,14 +54,14 @@ canvas{display:block;touch-action:none}small{color:#b9cfca}code{color:#b0dfd7}
   bridge:document.getElementById('bridge'),water:document.getElementById('water')
  };
  buttons.bank.onclick=()=>{x=8;z=1};
- buttons.channel.onclick=()=>{x=8;z=5};
+ buttons.channel.onclick=()=>{x=small?6.6:8;z=5};
  buttons.bridge.onclick=()=>{x=5;z=5};
  const waterMeshes=story.children.filter(m=>m.material?.isShaderMaterial);
  buttons.water.onclick=()=>{
   hideWater=!hideWater;for(const mesh of waterMeshes)mesh.visible=!hideWater;
   buttons.water.textContent=hideWater?'Mostrar agua':'Ocultar agua';
  };
- if(new URLSearchParams(location.search).get('water')==='off')buttons.water.click();
+ if(query.get('water')==='off')buttons.water.click();
  const keys=new Set();
  window.addEventListener('keydown',e=>{keys.add(e.key.toLowerCase());if(['arrowup','arrowdown','arrowleft','arrowright'].includes(e.key.toLowerCase()))e.preventDefault();});
  window.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
@@ -90,10 +91,16 @@ canvas{display:block;touch-action:none}small{color:#b9cfca}code{color:#b0dfd7}
    ' · Altura: '+h.toFixed(3)+' tiles · Agua: '+(hideWater?'oculta':'visible')+
    ' · Mallas volumétricas: '+story.children.filter(mesh=>mesh.name?.startsWith('fh_drain_solid_')||mesh.name?.startsWith('fh_drain_grate_')).length+
    ' · Controles: camina hacia la reja y el agua';
-  D.updateVisuals(dt,0,0);
+  D.updateVisuals(dt,rain,0);
+  if(hideWater)for(const mesh of waterMeshes)mesh.visible=false;
   camera.position.set(center.x+Math.sin(angle)*radius,radius*.70,center.z+Math.cos(angle)*radius);
   camera.lookAt(center.x,0,center.z);
-  renderer.render(scene,camera);requestAnimationFrame(frame);
+  renderer.render(scene,camera);
+  if(renderer.info.programs.some(program=>program.diagnostics?.runnable===false)){
+   status.textContent='ERROR: no se pudo compilar el shader del drenaje';return;
+  }
+  document.body.dataset.rendered='true';
+  requestAnimationFrame(frame);
  }
  requestAnimationFrame(frame);
 })()

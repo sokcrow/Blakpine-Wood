@@ -9,8 +9,9 @@
  const TYPES=Object.freeze(['el_alto','la_nina']);
  const FT=.3048;
  const DEFAULTS=Object.freeze({
-  firstMin:12,firstMax:24,intervalMin:28,intervalMax:56,
-  durationMin:40,durationMax:80,maxActors:2,
+  baseChancePercent:3,dailyIncreasePercent:3,lowResourceBonusPercent:3,
+  cooldownDays:3,huntStartMinute:22*60,huntEndMinute:5*60,
+  spawnDelayMin:0,spawnDelayMax:7*60,maxActors:2,
   spawnMinDistance:3,spawnMaxDistance:11,
   attackCooldown:9,routeInterval:2.5,flickerCooldown:15,
   detectFt:5,touchFt:2,interestMin:5,altoSpawnFt:50,altoNoticeFt:20,altoWanderFt:30,
@@ -27,7 +28,10 @@
   const state=options.state&&typeof options.state==='object'?options.state:{};
   state.seed=(Number(state.seed)>>>0)||0x97e2c01a;
   state.seq=Number.isSafeInteger(state.seq)&&state.seq>=0?state.seq:0;
-  let nextAt=finite(state.nextAt)?state.nextAt:null;
+  // Guardado por criatura: impide nuevas tiradas al cargar partida.
+  const nightSpawns=state.nightSpawns&&typeof state.nightSpawns==='object'
+   ?state.nightSpawns:(state.nightSpawns={});
+  if(!nightSpawns.byKind||typeof nightSpawns.byKind!=='object')nightSpawns.byKind={};
   const active=new Map();
   let previousPlayer=null,movementRemainder=0;
   function event(name,payload){
@@ -41,9 +45,71 @@
   }
   const between=(min,max)=>min+(Math.max(min,max)-min)*random();
   const meters=feet=>feet*FT;
-  function schedule(minute,first=false){
-   nextAt=minute+Math.max(1,between(first?cfg.firstMin:cfg.intervalMin,first?cfg.firstMax:cfg.intervalMax));
-   state.nextAt=nextAt;
+  const DAY=1440;
+  function currentNight(minute){
+   const day=Math.floor(minute/DAY),clockMinute=minute-day*DAY;
+   return clockMinute>=cfg.huntStartMinute?day
+    :clockMinute<cfg.huntEndMinute?day-1:null;
+  }
+  function huntEnd(night){return (night+1)*DAY+cfg.huntEndMinute;}
+  function record(kind){
+   const entries=nightSpawns.byKind;
+   if(!entries[kind]||typeof entries[kind]!=='object')entries[kind]={};
+   return entries[kind];
+  }
+  function chanceFor(kind,night,player){
+   const entry=record(kind),last=entry.lastSpawnNight;
+   if(finite(last)&&night>=last&&night-last<=cfg.cooldownDays)return 0;
+   const missed=finite(last)?Math.max(0,night-last-1)
+    :Math.max(0,night-nightSpawns.firstNight);
+   let chance=cfg.baseChancePercent+cfg.dailyIncreasePercent*missed;
+   const current=kind==='la_nina'?player.sp:player.pg;
+   const maximum=kind==='la_nina'?player.spMax:player.pgMax;
+   if(finite(current)&&finite(maximum)&&maximum>0){
+    const ratio=clamp(current/maximum,0,1);
+    if(ratio<.75)chance+=cfg.lowResourceBonusPercent;
+    if(ratio<.5)chance+=cfg.lowResourceBonusPercent;
+   }
+   return clamp(chance,0,100);
+  }
+  function prepareNight(night,minute,player){
+   if(!finite(nightSpawns.firstNight)){
+    const day=Math.floor(minute/DAY);
+    const clockMinute=minute-day*DAY;
+    nightSpawns.firstNight=clockMinute<cfg.huntEndMinute?day-1:day;
+   }
+   for(const kind of TYPES){
+    const entry=record(kind);
+    if(finite(entry.lastCheckedNight)&&entry.lastCheckedNight>=night)continue;
+    entry.lastCheckedNight=night;
+    entry.pendingNight=null;entry.pendingAt=null;entry.retryAt=null;
+    const percent=chanceFor(kind,night,player);
+    const succeeded=percent>0&&random()*100<percent;
+    if(succeeded){
+     const left=Math.max(0,huntEnd(night)-minute-.0001);
+     if(left>0){
+      const lo=Math.min(left,Math.max(0,cfg.spawnDelayMin));
+      const hi=Math.max(lo,Math.min(left,Math.max(lo,cfg.spawnDelayMax)));
+      entry.pendingNight=night;
+      entry.pendingAt=minute+between(lo,hi);
+     }
+    }
+    event('night_roll',{kind,night,percent,success:succeeded,pendingAt:entry.pendingAt});
+   }
+  }
+  function tryPending(kind,night,minute,player){
+   const entry=record(kind);
+   if(entry.pendingNight!==night||!finite(entry.pendingAt)||
+    minute<entry.pendingAt||minute<(entry.retryAt||0)||
+    active.size>=Math.max(1,Math.min(2,cfg.maxActors))||
+    [...active.values()].some(actor=>actor.kind===kind))return;
+   if(!summon(kind,minute,player,night)){
+    entry.retryAt=minute+5;
+    return;
+   }
+   entry.lastSpawnNight=night;
+   entry.pendingNight=null;entry.pendingAt=null;entry.retryAt=null;
+   event('night_appear',{kind,night,minute});
   }
   function inside(f,x,z){
    return options.insideAt?options.insideAt(f,x,z)===true:true;
@@ -74,9 +140,8 @@
    }
    return null;
   }
-  function summon(minute,player){
+  function summon(kind,minute,player,night){
    state.lastAttempt=minute;
-   const kind=TYPES[state.seq%TYPES.length];
    const pos=findPosition(kind,player);
    if(!pos){event('blocked',{reason:'sin_ruta',minute});return false;}
    const id='fh-shadow-'+(state.seq+1);
@@ -85,7 +150,7 @@
    }
    state.seq++;
    const actor={id,kind,...pos,pe:Math.max(0,Math.floor(cfg.pe)),mode:'approach',
-    appearedAt:minute,expiresAt:minute+between(cfg.durationMin,cfg.durationMax),
+    appearedAt:minute,expiresAt:huntEnd(night),
     lastHit:-Infinity,lastFlicker:-Infinity,routeAt:-Infinity,routeNodes:[],
     target:null,noticed:false,nearSince:null,phaseActive:false,nightmareDone:false};
    active.set(id,actor);state.spawnCount=(state.spawnCount||0)+1;state.lastSpawn=minute;state.lastBlocked=null;
@@ -203,7 +268,6 @@
   }
   function tick(minute,dt,player){
    if(!finite(minute)||!player||!Number.isInteger(player.floor)||!finite(player.x)||!finite(player.z))return;
-   if(nextAt===null)schedule(minute,true);
    // Accumulate sub-frame steps: movement detection must work equally at 30, 60 or 240 FPS.
    const sameFloor=previousPlayer!==null&&previousPlayer.floor===player.floor;
    if(!sameFloor||player.sleeping||player.inElevator||player.outside||player.inactive)movementRemainder=0;
@@ -211,19 +275,23 @@
    const moved=movementRemainder>.015;
    if(moved)movementRemainder=0;
    previousPlayer={floor:player.floor,x:player.x,z:player.z};
-   const escape=player.inElevator===true||player.outside===true||!inside(player.floor,player.x,player.z);
-   if(escape||player.inactive){
-    for(const actor of [...active.values()])remove(actor,player.inElevator?'elevador':player.inactive?'pausa':'exterior');
-    if(minute>=nextAt)schedule(minute,true);
+   const night=currentNight(minute);
+   if(night===null){
+    for(const actor of [...active.values()])remove(actor,'amanecer');
     return;
    }
-   if(minute>=nextAt){
-    if(active.size<Math.max(1,Math.min(2,cfg.maxActors))){
-     const ok=summon(minute,player);
-     schedule(minute,!ok);
-     if(!ok){nextAt=minute+5;state.nextAt=nextAt;}
-    }else schedule(minute);
+   for(const actor of [...active.values()]){
+    if(minute>=actor.expiresAt)remove(actor,'amanecer');
    }
+   if(player.inactive)return;
+   // Each Shadow rolls once per night; successful rolls wait for their own hour.
+   prepareNight(night,minute,player);
+   const escape=player.inElevator===true||player.outside===true||!inside(player.floor,player.x,player.z);
+   if(escape){
+    for(const actor of [...active.values()])remove(actor,player.inElevator?'elevador':'exterior');
+    return;
+   }
+   for(const kind of TYPES)tryPending(kind,night,minute,player);
    for(const actor of [...active.values()]){
     actor.lastMinute=minute;
     if(minute>=actor.expiresAt){remove(actor,'tiempo');continue;}
@@ -240,7 +308,8 @@
    }
   }
   function dispose(){for(const actor of [...active.values()])remove(actor,'cierre');}
-  function read(){return {enabled:true,nextAt,lastAttempt:state.lastAttempt??null,lastSpawn:state.lastSpawn??null,
+  function read(){return {enabled:true,nextAt:null,nightSpawns:JSON.parse(JSON.stringify(nightSpawns)),
+   lastAttempt:state.lastAttempt??null,lastSpawn:state.lastSpawn??null,
    lastBlocked:state.lastBlocked??null,spawnCount:state.spawnCount||0,blockedCount:state.blockedCount||0,
    active:[...active.values()].map(a=>({id:a.id,category:'Sombras',kind:a.kind,
     floor:a.floor,x:a.x,z:a.z,pe:a.pe,mode:a.mode,expiresAt:a.expiresAt}))};}

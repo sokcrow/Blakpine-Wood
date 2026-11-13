@@ -6,10 +6,14 @@ const Shadows=require('./fh-shadow-ai.js');
 const PLAYER={floor:0,x:20,z:20};
 function scene(kind='el_alto',config={},overrides={}){
  const events=[],actors=new Map();
- const runtime=Shadows.createRuntime({
-  state:{seq:kind==='la_nina'?1:0,...(overrides.state||{})},
-  config:{firstMin:1,firstMax:1,intervalMin:100,intervalMax:100,
-   durationMin:90,durationMax:90,maxActors:1,
+ // Legacy combat tests use a guaranteed roll at 22:00 and a fixed 1-minute delay.
+ const inactive=kind==='la_nina'?'el_alto':'la_nina';
+ const data={seq:kind==='la_nina'?1:0,
+  nightSpawns:{firstNight:0,byKind:{[inactive]:{lastSpawnNight:0}}},
+  ...(overrides.state||{})};
+ const realRuntime=Shadows.createRuntime({
+  state:data,
+  config:{baseChancePercent:100,dailyIncreasePercent:0,spawnDelayMin:1,spawnDelayMax:1,maxActors:1,
    spawnMinDistance:.35,spawnMaxDistance:.35,...config},
   random:overrides.random||(()=>0),
   spawn:(type,f,x,z,id)=>{actors.set(id,{type,f,x,z});return id;},
@@ -24,6 +28,7 @@ function scene(kind='el_alto',config={},overrides={}){
   chooseAttack:overrides.chooseAttack,
   onEvent:(type,payload)=>events.push({type,payload})
  });
+ const runtime={...realRuntime,tick:(minute,dt,player)=>realRuntime.tick(1320+minute,dt,player)};
  runtime.tick(0,0,PLAYER);
  runtime.tick(1,0,PLAYER);
  return {runtime,events,actors};
