@@ -1,0 +1,32 @@
+name: Cargador portátil y batería compartida
+
+on:
+  pull_request:
+    paths:
+      - 'juego/assets/fh-services-core.js'
+      - 'juego/assets/fh-services-engine-hook.js'
+      - 'juego/assets/fh-phone.js'
+      - 'juego/assets/fh-services-strings.js'
+      - 'juego/assets/items/cargador-celular.png'
+      - 'tests/fh-portable-charger.test.js'
+      - 'index.html'
+      - '.github/workflows/phone-charger.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validar sintaxis de los adaptadores
+        run: |
+          node --check juego/assets/fh-services-core.js
+          node --check juego/assets/fh-services-engine-hook.js
+          node --check juego/assets/fh-phone.js
+      - name: Probar batería, electricidad e interfaz
+        run: node --test tests/fh-portable-charger.test.js tests/fh-services-core.test.js juego/assets/fh-phone.test.js
