@@ -607,8 +607,9 @@
    const snapshot=electrical(true),loads=new Map();
    for(let f=0;f<floors.length;f++)for(const it of elements[f]){
     if(!requiresPower(it)||!socketConsumer(f,it)||!drawingPower(it)||number(s.damage[id(it)])>=100)continue;
-    const source=['light_fixture','elevator'].includes(it.type)||directPower(it)?
-     sourcesFor(f,it,'',true)[0]:snapshot.supplies.get(f+':'+id(it));
+    const direct=['light_fixture','elevator'].includes(it.type)||directPower(it)?
+     sourcesFor(f,it,'',true)[0]:null;
+    const source=direct||snapshot.supplies.get(f+':'+id(it));
     if(source?.feed)loads.set(source.feed.key,(loads.get(source.feed.key)||0)+watts(it,true));
    }
    const accepted=new Set(),running=new Set();
@@ -726,7 +727,8 @@
     };
     for(const strip of strips.slice().sort((a,b)=>id(a).localeCompare(id(b))))claim(strip,['power_outlet']);
     for(const it of (elements[f]||[]).filter(x=>requiresPower(x)&&socketConsumer(f,x)&&
-     !['power_strip','light_fixture','elevator'].includes(x.type)&&!directPower(x))
+     !['power_strip','light_fixture','elevator'].includes(x.type)&&
+     (!directPower(x)||!sourcesFor(f,x,'',true).length))
      .sort((a,b)=>id(a).localeCompare(id(b))))
      claim(it,['power_strip','power_outlet']);
     // La regleta no crea potencia: propagar la suma de sus aparatos al enchufe.
@@ -773,10 +775,18 @@
    if(directPower(it)){
     const wired=wiringSourceFor(f,it),source=active(it)&&number(s.damage[id(it)])<100?
      sourceFor(f,it):null;
-    return {connected:!!wired,powered:!!source,via:source?.panel.id||wired?.panel.id||'',
-     breakerId:source?.panel.id||wired?.panel.id||'',generated:!!source?.feed,
-     feet:source?.feet??wired?.feet??null,reason:!wired?'sinCircuito':
-      !source?'sinElectricidad':null,direct:true};
+    // La ruta directa tiene prioridad; si no llega un cable válido al equipo,
+    // puede alimentarse por un enchufe cercano como cualquier mueble eléctrico.
+    const outlet=source?null:snapshot?.bindings.get(key)||null;
+    const outletFeed=outlet?snapshot?.supplies.get(key):null;
+    const socketPowered=!!outletFeed&&active(it)&&number(s.damage[id(it)])<100;
+    return {connected:!!wired||!!outlet,powered:!!source||socketPowered,
+     via:source?.panel.id||outlet?.id||wired?.panel.id||'',
+     breakerId:source?.panel.id||outletFeed?.panel.id||wired?.panel.id||'',
+     generated:!!source?.feed||!!outletFeed?.feed,
+     feet:source?.feet??outletFeed?.feet??wired?.feet??null,
+     reason:source||socketPowered?null:!wired&&!outlet?'sinCircuito':'sinElectricidad',
+     direct:!!source||!outlet,socket:socketPowered};
    }
    if(['light_fixture','elevator'].includes(it.type)){
     const source=it.type==='elevator'&&(!active(it)||number(s.damage[id(it)])>=100)?null:sourceFor(f,it);
