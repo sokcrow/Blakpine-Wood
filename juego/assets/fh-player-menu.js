@@ -5,6 +5,7 @@
   const sections = Object.freeze([
     ['objectives','objectives','◇'],
     ['inventory','inventory','▧'],
+    ['equipment','equipment','◈'],
     ['status','status','◈'],
     ['money','money','＄'],
     ['settings','settings','⚙']
@@ -409,6 +410,66 @@
     else inventoryHome.append(ui.native);
     ui.right.dataset.empty='false';
   }
+  function renderEquipment(host){
+    const game=global.FHEquipmentGame,core=global.FHEquipmentCore;
+    if(!game||!core){host.append(node('p','',label('missingControl')));return;}
+    const eq=core.ensure(game.state),defs=game.itemDefs||[];
+    const name=id=>defs.find(x=>x.id===id)?.name||id;
+    const art=(id,parent)=>{
+      const path=core.ICONS[id];if(!path)return;
+      const img=node('img','fh-equipped-icon');
+      img.src=new URL('./juego/assets/'+path,global.document.baseURI).href;
+      img.alt='';img.style.cssText='width:46px;height:46px;object-fit:contain;image-rendering:pixelated;vertical-align:middle;margin-right:12px';
+      parent.append(img);
+    };
+    const changed=()=>{
+      core.sweepWallet(game.state,defs);
+      game.refresh?.();game.save?.();
+      renderDetail('equipment');
+    };
+    for(const slot of core.SLOTS){
+      const row=node('section','fh-equipment-slot');
+      row.style.cssText='padding:12px;border:1px solid #53616f;margin:8px 0';
+      row.append(node('h4','',label(slot,slot)));
+      const id=eq[slot];
+      if(id){
+        const current=node('div','fh-equipped-item');art(id,current);
+        current.append(node('strong','',name(id)));row.append(current);
+        row.append(action(label('unequip','Quitar'),()=>{
+          const result=core.unequip(game.state,slot);
+          if(!result.ok){row.append(node('p','',label('equipmentFull','Inventario lleno.')));return;}
+          changed();
+        }));
+      }else{
+        row.append(node('p','',label('emptyPocket','Bolsillo vacío.')));
+        for(const available of ['cell_phone','wallet'].filter(x=>game.state.inventory.includes(x))){
+          const b=action(label('equip','Equipar')+' '+name(available),()=>{
+            const result=core.equip(game.state,available,slot);
+            if(result.ok)changed();
+          });
+          art(available,b);row.append(b);
+        }
+      }
+      host.append(row);
+    }
+    if(!core.walletAvailable(game.state))return;
+    host.append(node('h4','',label('walletContents','Cartera · inventario interno')));
+    if(!eq.wallet.items.length)host.append(node('p','',label('walletEmpty','Cartera vacía.')));
+    for(const id of eq.wallet.items){
+      host.append(action(name(id)+' · '+label('takeFromWallet','Sacar'),()=>{
+        if(core.moveFromWallet(game.state,id).ok)changed();
+      }));
+    }
+    const eligible=game.state.inventory.filter(id=>{
+      const def=defs.find(x=>x.id===id);
+      return ['card','cash','physical_card','physical_cash'].includes(def?.storageCategory||def?.walletCategory);
+    });
+    for(const id of [...new Set(eligible)]){
+      host.append(action(name(id)+' · '+label('putInWallet','Guardar'),()=>{
+        if(core.moveToWallet(game.state,id,defs).ok)changed();
+      }));
+    }
+  }
   function renderDetail(key){
     global.FHCharacterHelp?.close?.();
     if(!sections.some(s=>s[0]===key))return;
@@ -433,6 +494,9 @@
         case 'objectives':
           detail.append(node('p','',label('noObjective')),node('h4','fh-kicker',label('location')));
           appendLocation(detail);
+          break;
+        case 'equipment':
+          renderEquipment(detail);
           break;
         case 'status':
           renderStatus(detail);
