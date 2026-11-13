@@ -79,7 +79,7 @@
    const ready=active&&saved.liters>0&&saved.temperatureC>=minHot(b);
    return {floor:b.f,itemId:b.it.id,modelId:b.it.modelId,liters:saved.liters,
     capacityLiters:size(b),temperatureC:saved.temperatureC,
-    targetTemperatureC:target(b),coldConnected:!!coldStatus.water,
+    targetTemperatureC:target(b),coldConnected:!!coldStatus.water,coldReason:coldStatus.reason||'',
     powered:hasPower,heating:hasPower&&!!coldStatus.water&&saved.liters>0&&
      saved.temperatureC<target(b)-.001,ready};
   }
@@ -94,7 +94,8 @@
    const matches=routesTo(f,it);
    const available=matches.find(x=>info(x.boiler).ready);
    const first=available||matches[0];
-   if(!first)return {connected:false,hotWater:false,reason:'unconnected'};
+   if(!first)return {connected:false,hotWater:false,reason:
+    (it.type==='water_outlet'||cold.portsFor?.(f,it,'hot')?.some(p=>wantsHot(p.it)))?'noRoute':'noHotOutlet'};
    const i=info(first.boiler);
    return {connected:true,hotWater:!!available,sourceId:first.boiler.it.id,
     sourceFloor:first.boiler.f,via:first.port.it.id,feet:first.route.feet,
