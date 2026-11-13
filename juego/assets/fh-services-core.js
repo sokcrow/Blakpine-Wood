@@ -713,7 +713,7 @@
     const outlets=values(f,'power_outlet'),strips=values(f,'power_strip');
     const claim=(it,sources)=>{
      for(const source of candidates(f,it,sources)){
-      const k=f+':'+id(source),count=(used.get(k)||0)+(k===portableKey?1:0);
+      const k=f+':'+id(source),taken=used.get(k)||0,count=taken+(k===portableKey?1:0);
       // Dos conexiones por enchufe; una regleta enchufada ocupa una de ellas.
       const limit=source.type==='power_outlet'?2:Math.max(1,Math.floor(number(source.slots,4)));
       if(count>=limit)continue;
@@ -729,7 +729,7 @@
       if(number(s.damage[id(source)])>=100)continue;
       bindings.set(f+':'+id(it),source);
       supplies.set(f+':'+id(it),supply);supplyOptions.set(f+':'+id(it),eligible);
-      used.set(k,count+1);
+      used.set(k,taken+1);
       if(drawingPower(it))loads.set(k,(loads.get(k)||0)+rayos(it));
       return source;
      }
