@@ -2,9 +2,8 @@
 /* Avisos de miedo: la misma capa espacial que ZZZ y abrir puertas.
    Solo se muestra el nombre del estado, nunca puntos internos ni pérdida de PS. */
 #fhSpatialLayer .fh-sound.fh-fear-comic{
- --fear:#25d53a;
  position:absolute;display:block;max-width:min(72vw,310px);
- padding:0;margin:0;color:var(--fear);
+ padding:0;margin:0;color:var(--fear,#25d53a);
  background:transparent;border:0;outline:0;box-shadow:none;
  text-align:center;white-space:normal;
  text-transform:uppercase;letter-spacing:.05em;
@@ -19,9 +18,9 @@
 #fhSpatialLayer .fh-fear-comic--relajado{--fear:#25d53a}
 #fhSpatialLayer .fh-fear-comic--calmado{--fear:#a9e9a7}
 #fhSpatialLayer .fh-fear-comic--nervioso{--fear:#fff0a0}
-#fhSpatialLayer .fh-fear-comic--atemorizado{--fear:#f4dd36}
-#fhSpatialLayer .fh-fear-comic--sin_esperanza{--fear:#f39331}
-#fhSpatialLayer .fh-fear-comic--abrumado{--fear:#f24238}
+#fhSpatialLayer .fh-fear-comic--atemorizado{--fear:#ff9d30}
+#fhSpatialLayer .fh-fear-comic--sin_esperanza{--fear:#f24238}
+#fhSpatialLayer .fh-fear-comic--abrumado{--fear:#a50c26}
 @keyframes fh-fear-spatial{
  0%{opacity:0;translate:0 6px;scale:.82}
  16%{opacity:1;translate:0 -4px;scale:1.04}
