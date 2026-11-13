@@ -1170,7 +1170,7 @@ class MapValidationError extends Error{
 
 // shared/interactions.js
 /** Objetos con flecha «Frente» en el editor: su interacción usa esa misma cara. */
-const FACING_OBJECT_TYPES=new Set(['power_outlet','router','landline_phone','bed','sofa','tv','dining','table','chair','kitchen','bath','toilet','car','misc','stairs','elevator','light_switch','breaker_panel']);
+const FACING_OBJECT_TYPES=new Set(['power_outlet','router','landline_phone','water_main','water_valve','water_outlet','drain_outlet','bed','sofa','tv','dining','table','chair','kitchen','bath','toilet','car','misc','stairs','elevator','light_switch','breaker_panel']);
 /** Contrato opcional de interacciones. No añade comportamiento a objetos sin `interact`. */
 const INTERACTION_VERBS=['examine','open','search','use','take','read','hide','sit','lie','watch'];
 const INTERACTION_EFFECTS=['say','giveItem','setFlag','toggleFlag','toggleDoor','playSound'];
@@ -5228,7 +5228,7 @@ init();
 <script src="./juego/assets/fh-structure-engine-hook.js?v=20261108-architecture-load"></script>
 <script src="./juego/assets/fh-comic-action-engine-hook.js?v=20261107-comic-actions-1"></script>
 <script src="./juego/assets/fh-context-engine-hook.js?v=20261112-hud-foot-hold-1"></script>
-<script src="./juego/assets/fh-services-engine-hook.js?v=20261113-pocket-items-1"></script>
+<script src="./juego/assets/fh-services-engine-hook.js?v=20261113-utility-front-1"></script>
 <script src="./juego/assets/fh-electric-catalog.js?v=20261112-duplex-uv-1"></script>
 <script src="./juego/assets/fh-electric-strings.js?v=20261109-servicios-24"></script>
 <script src="./juego/assets/fh-electric-visuals.js?v=20261112-no-overlay-1"></script>
