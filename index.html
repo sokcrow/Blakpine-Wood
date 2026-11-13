@@ -4989,7 +4989,7 @@ function floorSightThroughOpening(f,at,target,openings){
    ['installVisibility();\nconst tex={}',
     'window.FHConstructionVisualRuntime=window.FHConstructionVisuals?.install({THREE,DATA,CELL,stories,runtime:fhConstruction});\ninstallVisibility();\nconst tex={}'],
    ['window.FHDeliveryRuntime?.update(dt);',
-    'fhConstruction.tick(window.FHConstruction.absoluteMinute(GameState.clock));window.FHConstructionVisualRuntime?.update();window.FHDeliveryRuntime?.update(dt);']
+    'if(fhConstruction.tick(window.FHConstruction.absoluteMinute(GameState.clock)))window.FHConstructionVisualRuntime?.update();window.FHDeliveryRuntime?.update(dt);']
   ];
   for(const [before,after] of changes){
    const count=doc.split(before).length-1;
