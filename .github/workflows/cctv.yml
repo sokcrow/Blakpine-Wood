@@ -10,7 +10,7 @@ on:
       - 'tests/cctv-browser.cjs'
       - '.github/workflows/cctv.yml'
   push:
-    branches: [main, fix/cctv-production-capture]
+    branches: [main]
     paths:
       - 'index.html'
       - 'juego/assets/fh-cctv*'

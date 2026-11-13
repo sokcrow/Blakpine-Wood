@@ -95,16 +95,20 @@ function fhCCTVRelease(){
  fhCCTVView=null;fhCCTVFormat=null;fhCCTVSelected=null;fhCCTVFrameStamp=-Infinity;
 }
 window.addEventListener('beforeunload',()=>{
- fhCCTVRelease();fhCCTVSightTexture.dispose();fhCCTVNatural?.dispose();
+ fhCCTVRelease();fhCCTVSightTexture?.dispose();fhCCTVNatural?.dispose();
 });
-// Mismo algoritmo drawSight del jugador, pero textura y canvas independientes.
-const fhCCTVSightCanvas=document.createElement('canvas');
-fhCCTVSightCanvas.width=sightCanvas.width;fhCCTVSightCanvas.height=sightCanvas.height;
-const fhCCTVSightCtx=fhCCTVSightCanvas.getContext('2d',{alpha:false,willReadFrequently:true});
-const fhCCTVSightTexture=new THREE.CanvasTexture(fhCCTVSightCanvas);
-fhCCTVSightTexture.minFilter=sightTexture.minFilter;
-fhCCTVSightTexture.magFilter=sightTexture.magFilter;
-fhCCTVSightTexture.generateMipmaps=false;
+// Se instala antes de sightCanvas/hero; crear recursos sólo al abrir vídeo.
+let fhCCTVSightCanvas=null,fhCCTVSightCtx=null,fhCCTVSightTexture=null;
+function fhCCTVInitSight(){
+ if(fhCCTVSightTexture)return;
+ fhCCTVSightCanvas=document.createElement('canvas');
+ fhCCTVSightCanvas.width=sightCanvas.width;fhCCTVSightCanvas.height=sightCanvas.height;
+ fhCCTVSightCtx=fhCCTVSightCanvas.getContext('2d',{alpha:false,willReadFrequently:true});
+ fhCCTVSightTexture=new THREE.CanvasTexture(fhCCTVSightCanvas);
+ fhCCTVSightTexture.minFilter=sightTexture.minFilter;
+ fhCCTVSightTexture.magFilter=sightTexture.magFilter;
+ fhCCTVSightTexture.generateMipmaps=false;
+}
 function fhCCTVMaskVisible(x,z){
  if(!Number.isFinite(x)||!Number.isFinite(z)||x<0||z<0||x>=MAX_X||z>=MAX_Z)return false;
  const px=Math.floor(x/MAX_X*fhCCTVSightCanvas.width);
@@ -147,6 +151,7 @@ function fhCCTVCapture(now){
  if(selected.id===fhCCTVSelected&&now-fhCCTVFrameStamp<format.intervalMs&&fhCCTVTarget)return;
  const cameraPose=fhCCTV.view(selected.id,now,CELL,floorElev);
  if(!cameraPose){fhCCTVRelease();return;}
+ fhCCTVInitSight();
  if(!fhCCTVTarget){
   fhCCTVFormat=format;
   fhCCTVTarget=new THREE.WebGLRenderTarget(format.width,format.height,{

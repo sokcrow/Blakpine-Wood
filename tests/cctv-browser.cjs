@@ -55,7 +55,7 @@ async function main(){
    // Instrumentación sólo de prueba: observar el renderer real sin API de debug en producción.
    const anchor='function fhCCTVFrame(now){';
    if(doc.split(anchor).length!==2)throw Error('No se encontró captura CCTV');
-   doc=doc.replace(anchor,`window.__cctv={capture:fhCCTVFrame,renderer,scene,hero,shadow,
+   doc=doc.replace(anchor,`window.__cctv={capture:fhCCTVFrame,renderer,scene,get hero(){return hero},get shadow(){return shadow},
     mask:()=>sightUniform.value,natural:()=>fhCCTVNatural,
     cache:()=>JSON.stringify({visibilityDirty,visibilityLast,lastSightTime}),
     release:fhCCTVRelease,target:()=>fhCCTVTarget};\n`+anchor);

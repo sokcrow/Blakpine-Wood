@@ -273,6 +273,9 @@ test('captura CCTV restaura luces, muros y visibilidad del jugador',()=>{
   'roomDynamicLights','roomLampEntries','stories','occlusionRoots','sightUniform','lighting',
   'roomAt','sightWalls','doorList','ForestShared','CELL','floorElev','currentFloor','fhCCTVSightRoots','GameState',
   runtime+'\nreturn fhCCTVFrame;');
+ const initialize=new Function('window','THREE','DATA',runtime+
+  '\nconst sightCanvas={width:20,height:32},sightTexture={};return fhCCTVSightTexture;');
+ assert.equal(initialize(window,THREE,DATA),null,'Inicializar CCTV antes del canvas del jugador sin leerlo ni asignar GPU');
  const frame=create(window,THREE,document,sightCanvas,sightTexture,drawSight,
   100,100,DATA,scene,renderer,hero,shadow,ambient,flashlightSpot,
   [poolLight],[fixture],stories,[[wall]],sightUniform,lighting,
