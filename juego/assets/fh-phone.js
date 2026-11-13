@@ -9,6 +9,7 @@
  const BASE_APPS=Object.freeze(['directory','messages','notes','accounts','calendar','weather','flashlight','store','network','calls']);
  const AVAILABLE_APPS=Object.freeze([...BASE_APPS,'hamazon']);
  const CATEGORIES=Object.freeze(['person','business','service','player']);
+ const CHARGER_ITEM=Object.freeze({id:'cell_phone_charger',kind:'tool',name:'Cargador de celular',description:'Permite cargar el celular en un enchufe doble libre con electricidad.',stackable:false,icon:'🔌'});
  const EXTRA_APPS=new Map();
  function registerApp(def){
   if(!def||!(/^[a-z][a-z0-9_-]{1,31}$/).test(def.id)||AVAILABLE_APPS.includes(def.id)||
@@ -31,6 +32,8 @@
   p.messages=Array.isArray(p.messages)?p.messages.filter(m=>m&&typeof m==='object').slice(-500):[];
   p.calls=Array.isArray(p.calls)?p.calls.slice(-100):[];
   p.battery=Number.isFinite(Number(p.battery))?Math.max(0,Math.min(100,Number(p.battery))):100;
+  p.chargeElapsedMinutes=Number.isFinite(Number(p.chargeElapsedMinutes))?Math.max(0,Math.min(3,Number(p.chargeElapsedMinutes))):0;
+  p.placedMode=p.placedMode==='portable'?'portable':p.placedMode==='legacy'?'legacy':'';
   p.placedAt=typeof p.placedAt==='string'?p.placedAt:'';
   if(!p.contacts.some(c=>c.id==='hamazon'))p.contacts.unshift({id:'hamazon',name:'Hamazon',kind:'business'});
   if(!p.contacts.some(c=>c.id==='hamazon-delivery'))p.contacts.push({id:'hamazon-delivery',name:'Entregas Hamazon',kind:'service'});
@@ -845,5 +848,5 @@
    get cart(){return copy(commerce())}
   });
  }
- return {BASE_APPS,AVAILABLE_APPS,registerApp,ensureState,formatClock,calendarModel,formatCalendarDate,formatCalendarMonth,installApp,uninstallApp,createRuntime};
+ return {BASE_APPS,AVAILABLE_APPS,CHARGER_ITEM,registerApp,ensureState,formatClock,calendarModel,formatCalendarDate,formatCalendarMonth,installApp,uninstallApp,createRuntime};
 });
