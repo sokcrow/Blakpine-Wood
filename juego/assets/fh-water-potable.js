@@ -268,7 +268,8 @@
      compatible(s.it,pump.it)&&shortest(s,pump)?.feet<=Math.max(0,num(pump.it.pumpInletRangeFt,15)))
      .sort((a,b)=>shortest(a,pump).feet-shortest(b,pump).feet)[0];
     if(!supply)continue;
-    const target=tanks.filter(t=>t.it.type==='water_tinaco'&&openValves(t.it)&&
+    const target=tanks.filter(t=>t.it.type==='water_tinaco'&&t.it.enabled!==false&&
+     services.enabled?.[t.it.id]!==false&&num(services.damage?.[t.it.id])<100&&openValves(t.it)&&
      num(tankState[tankKey(floors[t.f],t.it)]?.liters)<Math.max(0,num(t.it.capacityLiters,1100))&&
      num(floors[t.f]?.elevationFt,t.f*12)>num(floors[pump.f]?.elevationFt,pump.f*12)&&
      (!pump.it.pumpTargetId||String(pump.it.pumpTargetId)===String(t.it.id))&&
