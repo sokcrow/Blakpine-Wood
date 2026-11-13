@@ -17,8 +17,9 @@
   small_cross:['n','e','s','w'],small_dead_end:['e'],outfall:['n','e','s','w']
  });
  const SIDE=['n','e','s','w'],OPPOSITE={n:'s',e:'w',s:'n',w:'e'};
- // Alturas relativas al tile: superficie -0.2, fondo -0.42, flotación ligera.
- const WATER_LEVEL=-.2,CHANNEL_BOTTOM=-.42;
+ // Alturas relativas al tile; la cresta de inundación queda bajo la reja.
+ const WATER_LEVEL=-.2,CHANNEL_BOTTOM=-.42,BRIDGE_TOP=.025;
+ const FLOOD_LEVEL=.005,FLOOD_WAVE_SCALE=.25;
  const safe=n=>Number.isFinite(Number(n))?Number(n):0;
  const round=n=>Math.round(n*10000)/10000;
  const isSection=it=>!!it&&it.type==='hall'&&!!it.drainage&&Object.hasOwn(SIZES,it.drainage.kind);
@@ -102,9 +103,24 @@
   for(const cut of cuts)remaining=remaining.flatMap(rect=>subtractRect(rect,cut));
   return remaining;
  }
- function cutFloorRects(project,floorIndex,rectangles){
-  const channels=pieces(project?.floors?.[floorIndex]?.items).flatMap(channelRects);
-  return channels.length?carve(rectangles,channels):rectangles;
+ // El motor carga un mapa inmutable por partida: cachear cortes evita recalcular
+ // cientos de rectángulos al construir suelos, habitaciones y losas por planta.
+ // El editor mantiene la ruta sin caché para reflejar modificaciones en vivo.
+ const cachedFloorCuts=new WeakMap();
+ function cutFloorRects(project,floorIndex,rectangles,useRuntimeCache=false){
+  const floor=project?.floors?.[floorIndex];
+  if(!floor||!Array.isArray(rectangles)||!rectangles.length)return rectangles||[];
+  let channels;
+  const cached=useRuntimeCache?cachedFloorCuts.get(floor):null;
+  if(cached&&cached.items===floor.items)channels=cached.channels;
+  else {
+   channels=pieces(floor.items).flatMap(channelRects);
+   if(useRuntimeCache)cachedFloorCuts.set(floor,{items:floor.items,channels});
+  }
+  if(!channels.length)return rectangles;
+  const relevant=channels.filter(cut=>rectangles.some(r=>
+   cut.x<r.x+r.w&&cut.x+cut.w>r.x&&cut.y<r.y+r.h&&cut.y+cut.h>r.y));
+  return relevant.length?carve(rectangles,relevant):rectangles;
  }
  function touches(a,b){
   const A=ports(a),B=ports(b),eps=.001;
@@ -144,8 +160,8 @@
   }
   return {nodes,links,warnings};
  }
- function downstream(project,floorIndex,itemId){
-  const graph=topology(project),source=graph.nodes.find(n=>n.floorIndex===floorIndex&&String(n.item.id)===String(itemId));
+ function downstream(project,floorIndex,itemId,graph=topology(project)){
+  const source=graph.nodes.find(n=>n.floorIndex===floorIndex&&String(n.item.id)===String(itemId));
   if(!source)return null;
   const direct=source.item.drainage.flowTo;
   if(direct!=null&&direct!==''){
@@ -262,7 +278,7 @@
  const within=(r,p)=>p.x>=r.x&&p.y>=r.y&&p.x<r.x+r.w&&p.y<r.y+r.h;
  const center=it=>({x:it.x+it.w/2,y:it.y+it.h/2});
  function sectionAt(project,floorIndex,point){
-  return pieces(project?.floors?.[floorIndex]?.items).find(it=>within(it,point))||null;
+  return (project?.floors?.[floorIndex]?.items||[]).find(it=>isSection(it)&&within(it,point))||null;
  }
  function bridgeAt(project,floorIndex,point){
   return (project?.floors?.[floorIndex]?.items||[]).some(it=>isBridge(it)&&within(it,point));
@@ -270,9 +286,9 @@
  function waterAt(project,floorIndex,point,rain=0){
   const item=sectionAt(project,floorIndex,point);
   if(!item||bridgeAt(project,floorIndex,point))return null;
-  const state=weatherState(item,rain),c=center(item),dx=point.x-c.x,dy=point.y-c.y;
-  const wet=state.flooded||(item.drainage.kind==='outfall'&&Math.hypot(dx,dy)<=7)||
-   rects(item).some(r=>within(r,point));
+  const state=weatherState(item,rain);
+  // Mismo contorno que el fondo, el recorte del suelo y la malla de agua.
+  const wet=state.flooded||supportRects(item).some(r=>within(r,point));
   return wet?{item,state}:null;
  }
  function walkFactor(project,floorIndex,point,rain=0){
@@ -313,9 +329,24 @@
   return {itemId:item.id,x:vector.x,y:vector.y,
    speed:next?(.12+.42*Math.max(0,Math.min(1,safe(rain))))*state.currentFactor:0};
  }
- function depthAt(project,floorIndex,point,seconds=0){
-  // Desnivel jugable ligero: el agua sostiene al personaje sin usar fluidos reales.
-  return waterAt(project,floorIndex,point,0)?WATER_LEVEL-.045+.012*Math.sin(safe(seconds)*1.8):0;
+ // El motor mueve X/Z con canWalk(); esta función proporciona la altura
+ // sólida de apoyo para el mismo ancla. El agua es visual, nunca una plataforma.
+ const supportRectsCache=new WeakMap();
+ function supportRects(it){
+  const key=it.x+':'+it.y+':'+it.rotation+':'+it.drainage.kind;
+  const old=supportRectsCache.get(it);
+  if(old?.key===key)return old.rects;
+  const result=channelRects(it);supportRectsCache.set(it,{key,rects:result});return result;
+ }
+ function supportAt(project,floorIndex,point){
+  if(!point||!Number.isFinite(point.x)||!Number.isFinite(point.y))return 0;
+  if(bridgeAt(project,floorIndex,point))return BRIDGE_TOP;
+  const section=sectionAt(project,floorIndex,point);
+  return section&&supportRects(section).some(r=>within(r,point))?CHANNEL_BOTTOM:0;
+ }
+ function depthAt(project,floorIndex,point){
+  // Alias histórico de la altura de pies, para no alterar las otras APIs.
+  return supportAt(project,floorIndex,point);
  }
  function whirlpoolAt(project,floorIndex,point){
   const item=sectionAt(project,floorIndex,point);
@@ -389,9 +420,103 @@
    ctx.strokeStyle=it.id===selection?'#ffe6a5':'#9fb8a8';ctx.strokeRect(p.x,p.y,it.w*gx,it.h*gy);ctx.restore();
   }
  }
- // Un único shader y reloj para todos los pisos; 3 ruidos GPU, cero texturas por pieza.
+ // Geometría de volumen de drenaje: fondo grueso, pared del canal y
+ // reja abierta; todo agrupado en una sola malla por construcción.
+ function solidBuilder(THREE){
+  const vertices=[],normals=[],indices=[];
+  const face=(corners,normal)=>{
+   const start=vertices.length/3;
+   for(const p of corners){vertices.push(...p);normals.push(...normal);}
+   indices.push(start,start+1,start+2,start,start+2,start+3);
+  };
+  const cube=(cx,cy,cz,w,h,d)=>{
+   if(w<=0||h<=0||d<=0)return;
+   const x0=cx-w/2,x1=cx+w/2,y0=cy-h/2,y1=cy+h/2,z0=cz-d/2,z1=cz+d/2;
+   face([[x0,y1,z0],[x0,y1,z1],[x1,y1,z1],[x1,y1,z0]],[0,1,0]);
+   face([[x0,y0,z1],[x0,y0,z0],[x1,y0,z0],[x1,y0,z1]],[0,-1,0]);
+   face([[x0,y0,z0],[x0,y0,z1],[x0,y1,z1],[x0,y1,z0]],[-1,0,0]);
+   face([[x1,y0,z1],[x1,y0,z0],[x1,y1,z0],[x1,y1,z1]],[1,0,0]);
+   face([[x0,y0,z0],[x0,y1,z0],[x1,y1,z0],[x1,y0,z0]],[0,0,-1]);
+   face([[x1,y0,z1],[x1,y1,z1],[x0,y1,z1],[x0,y0,z1]],[0,0,1]);
+  };
+  const build=()=>{
+   const geo=new THREE.BufferGeometry();
+   geo.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
+   geo.setAttribute('normal',new THREE.Float32BufferAttribute(normals,3));
+   geo.setIndex(indices);return geo;
+  };
+  return {cube,build};
+ }
+ function channelSolid(THREE,story,it,CELL,allWet,stone){
+  const shape=solidBuilder(THREE),rectangles=channelRects(it);
+  const bottomThickness=.07*CELL;
+  const bottomY=(CHANNEL_BOTTOM-.035)*CELL,wallHeight=-CHANNEL_BOTTOM*CELL;
+  for(const r of rectangles){
+   shape.cube((r.x+r.w/2)*CELL,bottomY,(r.y+r.h/2)*CELL,
+    r.w*CELL,bottomThickness,r.h*CELL);
+   // Solo las caras entre agua y banqueta; jamás tabicar dos canales conectados.
+   const edges=[
+    {side:'n',length:r.w,x:t=>r.x+t,y:t=>r.y-.005},
+    {side:'s',length:r.w,x:t=>r.x+t,y:t=>r.y+r.h+.005},
+    {side:'w',length:r.h,x:t=>r.x-.005,y:t=>r.y+t},
+    {side:'e',length:r.h,x:t=>r.x+r.w+.005,y:t=>r.y+t}
+   ];
+   for(const edge of edges){
+    const ns=edge.side==='n'||edge.side==='s',origin=ns?r.x:r.y;
+    const normal=ns?edge.y(0):edge.x(0);
+    let free=[[0,edge.length]];
+    for(const cut of allWet){
+     const low=ns?cut.y:cut.x,high=low+(ns?cut.h:cut.w);
+     if(normal<low||normal>=high)continue;
+     const lo=(ns?cut.x:cut.y)-origin,hi=lo+(ns?cut.w:cut.h);
+     free=free.flatMap(([a,b])=>hi<=a||lo>=b?[[a,b]]:
+      [[a,Math.max(a,lo)],[Math.min(b,hi),b]].filter(([a,b])=>b-a>1e-8));
+    }
+    // Una caja por borde continuo, sin muestreo que cierre conexiones parciales.
+    for(const [lo,hi] of free){
+     const t=(lo+hi)/2,step=hi-lo;
+     const x=ns?r.x+t:edge.side==='w'?r.x:r.x+r.w;
+     const y=ns?(edge.side==='n'?r.y:r.y+r.h):r.y+t;
+     shape.cube(x*CELL,(CHANNEL_BOTTOM/2)*CELL,y*CELL,
+      (ns?step:.055)*CELL,wallHeight,(ns?.055:step)*CELL);
+    }
+   }
+  }
+  const mesh=new THREE.Mesh(shape.build(),stone);mesh.name='fh_drain_solid_'+it.id;
+  mesh.receiveShadow=true;story.add(mesh);return mesh;
+ }
+ function bridgeSolid(THREE,story,it,CELL,metal){
+  // Sin losa decorativa: hay huecos entre barras. La altura de apoyo del
+  // actor viene de supportAt(), no de usar el Mesh como collider independiente.
+  const builder=solidBuilder(THREE),cx=(it.x+it.w/2)*CELL,cz=(it.y+it.h/2)*CELL;
+  const longX=it.w>it.h,span=Math.max(it.w,it.h)*CELL,width=Math.min(it.w,it.h)*CELL;
+  const rail=.07*CELL,bar=.065*CELL,top=BRIDGE_TOP*CELL;
+  const y=top-rail*.5;
+  for(const edge of [-1,1]){
+   const offset=edge*(width*.5-rail*.7);
+   builder.cube(cx+(longX?0:offset),y,cz+(longX?offset:0),
+    longX?span:rail,rail,longX?rail:span);
+  }
+  const across=Math.max(2,Math.ceil(span/(.28*CELL)));
+  for(let n=0;n<=across;n++){
+   const offset=(n/across-.5)*(span-.11*CELL);
+   builder.cube(cx+(longX?offset:0),y,cz+(longX?0:offset),
+    longX?bar:width-.12*CELL,rail,longX?width-.12*CELL:bar);
+  }
+  const lines=4;
+  for(let n=1;n<lines;n++){
+   const offset=(n/lines-.5)*(width-.12*CELL);
+   builder.cube(cx+(longX?0:offset),y,cz+(longX?offset:0),
+    longX?span:bar,rail,longX?bar:span);
+  }
+  const mesh=new THREE.Mesh(builder.build(),metal);mesh.name='fh_drain_grate_'+it.id;
+  mesh.receiveShadow=true;story.add(mesh);return mesh;
+ }
+ // Una malla por tramo: las máscaras se calculan en vértices, no por píxel.
+ // La superficie es opaca para evitar transparencia, sobrepintado y fragmentos
+ // caros en equipos móviles. No hay simulación de fluidos ni texturas en CPU.
  const visuals=[];
- let sharedWater=null,visualProject=null;
+ let sharedWater=null,visualProject=null,visualGraph=null;
  function waterMaterial(THREE,CELL){
   if(sharedWater)return sharedWater;
   const noise=[
@@ -401,35 +526,32 @@
    'mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);}'
   ].join('\n');
   sharedWater=new THREE.ShaderMaterial({
-   transparent:true,depthWrite:false,side:THREE.DoubleSide,
-   uniforms:{uTime:{value:0},uRain:{value:0},uCell:{value:CELL},
-    uWave:{value:.032*CELL}},
+   transparent:false,depthWrite:true,side:THREE.FrontSide,
+   uniforms:{uTime:{value:0},uRain:{value:0},uCell:{value:CELL},uWave:{value:.032*CELL}},
    vertexShader:[
-    'attribute vec2 aFlow; varying vec2 vWorld;varying vec2 vFlow;',
-    'uniform float uTime,uCell,uWave;',noise,
+    'attribute vec2 aFlow;',
+    'attribute float aWaveScale;',
+    'varying float vMaskA,vMaskB;',
+    'uniform float uTime,uCell,uWave,uRain;',noise,
     'void main(){',
-    ' vFlow=aFlow;',
-    ' vec4 world=modelMatrix*vec4(position,1.0);vWorld=world.xz;',
-    ' float heightMask=noise(vWorld/uCell*3.0+vec2(uTime*.04,uTime*.02));',
-    ' vec3 p=position;p.z+=uWave*heightMask;',
-    ' gl_Position=projectionMatrix*viewMatrix*modelMatrix*vec4(p,1.0);',
+    ' vec2 p=(modelMatrix*vec4(position,1.0)).xz/uCell;',
+    ' float heightMask=noise(p*3.0+vec2(uTime*.04,uTime*.02));',
+    ' vMaskA=noise(p*5.0-aFlow*uTime*(.3+.4*uRain));',
+    ' vMaskB=noise(p*12.0-aFlow.yx*uTime*.21+vec2(uTime*.07,-uTime*.05));',
+    ' vec3 vertex=position;vertex.z+=uWave*aWaveScale*heightMask;',
+    ' gl_Position=projectionMatrix*viewMatrix*modelMatrix*vec4(vertex,1.0);',
     '}'
    ].join('\n'),
    fragmentShader:[
-    'varying vec2 vWorld,vFlow;',
-    'uniform float uTime,uCell,uRain;',noise,
+    'varying float vMaskA,vMaskB;',
     'void main(){',
-    ' vec2 p=vWorld/uCell;',
-    ' vec2 dir=vFlow;',
-    ' float maskA=noise(p*5.0-dir*uTime*(.3+.4*uRain));',
-    ' float maskB=noise(p*12.0-dir.yx*uTime*.21+vec2(uTime*.07,-uTime*.05));',
-    ' float darkness=.16+.23*maskA+.08*maskB;',
+    ' float darkness=.16+.23*vMaskA+.08*vMaskB;',
     ' vec3 deep=vec3(.009,.031,.043);',
     ' vec3 lit=vec3(.045,.15,.17);',
     ' vec3 rgb=mix(deep,lit,darkness*1.8);',
-    ' float foam=smoothstep(.77,.91,maskA*.55+maskB*.45);',
+    ' float foam=smoothstep(.77,.91,vMaskA*.55+vMaskB*.45);',
     ' rgb+=foam*vec3(.07,.12,.13);',
-    ' gl_FragColor=vec4(rgb,.95);',
+    ' gl_FragColor=vec4(rgb,1.0);',
     '}'
    ].join('\n')
   });
@@ -439,6 +561,7 @@
   const delta=Math.max(0,Math.min(.075,safe(dt))),r=Math.max(0,Math.min(1,safe(rain)));
   if(sharedWater){sharedWater.uniforms.uTime.value+=delta;sharedWater.uniforms.uRain.value=r;}
   for(const entry of visuals){
+   if(floorIndex!==undefined&&entry.floorIndex!==floorIndex)continue;
    if(entry.flood)entry.flood.visible=r>0;
    if(entry.ring&&delta)entry.ring.rotation.z+=delta*(.15+.9*r);
   }
@@ -446,39 +569,56 @@
  function attachFloor(THREE,map,story,index,CELL){
   const sections=pieces(map.floors[index]?.items),bridges=(map.floors[index]?.items||[]).filter(isBridge);
   if(!sections.length&&!bridges.length)return;
-  if(visualProject!==map){visualProject=map;visuals.length=0;if(sharedWater){sharedWater.dispose?.();sharedWater=null;}}
+  if(visualProject!==map){
+   visualProject=map;visuals.length=0;visualGraph=topology(map);
+   if(sharedWater){sharedWater.dispose?.();sharedWater=null;}
+  }
   const hole=new THREE.MeshBasicMaterial({color:0x02070b});
-  const bottom=new THREE.MeshLambertMaterial({color:0x18282c});
-  const metal=new THREE.MeshLambertMaterial({color:0x74847f});
+  const metal=new THREE.MeshLambertMaterial({color:0x74847f,side:THREE.DoubleSide});
+  const stone=new THREE.MeshLambertMaterial({color:0x263034,side:THREE.DoubleSide});
+  const allWet=sections.flatMap(channelRects);
   const water=sections.length?waterMaterial(THREE,CELL):null;
   const box=(mat,x,y,z,w,h,d)=>{const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);mesh.position.set(x,y,z);story.add(mesh);return mesh;};
-  function sheet(r,projected,flood=false){
-   const cx=(r.x+r.w/2)*CELL,cz=(r.y+r.h/2)*CELL,w=r.w*CELL,h=r.h*CELL;
-   const geometry=new THREE.PlaneGeometry(w,h,Math.max(1,Math.ceil(r.w/2)),Math.max(1,Math.ceil(r.h/2)));
-   const positions=geometry.attributes.position,flows=[];
-   const next=downstream(map,index,projected.id);
-   const target=next&&(map.floors[next.floorIndex]?.items||[]).find(q=>String(q.id)===String(next.itemId));
-   for(let j=0;j<positions.count;j++){
-    const p={x:cx/CELL+positions.getX(j)/CELL,y:cz/CELL-positions.getY(j)/CELL};
-    const d=projected.drainage.kind==='outfall'?{x:0,y:0}:flowDirection(projected,p,target);
-    flows.push(d.x,d.y);
+  // Se combinan todos los polígonos de un mismo tramo en un BufferGeometry.
+  // El desagüe 20×20 ya no crea decenas de draw calls por sus rectángulos.
+  function sheet(rectangles,it,flood=false,next=null){
+   const centerX=it.x+it.w/2,centerY=it.y+it.h/2;
+   const vertices=[],flows=[],waveScales=[],indices=[];
+   const target=next&&(map.floors[next.floorIndex]?.items||[])
+    .find(q=>String(q.id)===String(next.itemId));
+   for(const r of rectangles){
+    const nx=Math.max(1,Math.ceil(r.w)),ny=Math.max(1,Math.ceil(r.h));
+    const start=vertices.length/3,stride=nx+1;
+    for(let y=0;y<=ny;y++)for(let x=0;x<=nx;x++){
+     const px=r.x+r.w*x/nx,py=r.y+r.h*y/ny;
+     vertices.push((px-centerX)*CELL,(centerY-py)*CELL,0);
+     waveScales.push(flood?FLOOD_WAVE_SCALE:1);
+     const d=it.drainage.kind==='outfall'?{x:0,y:0}:flowDirection(it,{x:px,y:py},target);
+     flows.push(d.x,d.y);
+    }
+    for(let y=0;y<ny;y++)for(let x=0;x<nx;x++){
+     const a=start+y*stride+x,b=a+1,c=a+stride,d=c+1;
+     indices.push(a,c,b,b,c,d);
+    }
    }
-   geometry.setAttribute('aFlow',new THREE.Float32BufferAttribute(flows,2));
-   const surface=new THREE.Mesh(geometry,water);surface.rotation.x=-Math.PI/2;
-   surface.position.set(cx,(flood ? .025 : WATER_LEVEL)*CELL,cz);story.add(surface);
-   return surface;
+   const geo=new THREE.BufferGeometry();
+   geo.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
+   geo.setAttribute('aFlow',new THREE.Float32BufferAttribute(flows,2));
+   geo.setAttribute('aWaveScale',new THREE.Float32BufferAttribute(waveScales,1));
+   geo.setIndex(indices);
+   const mesh=new THREE.Mesh(geo,water);
+   mesh.rotation.x=-Math.PI/2;
+   mesh.position.set(centerX*CELL,(flood ? FLOOD_LEVEL : WATER_LEVEL)*CELL,centerY*CELL);
+   mesh.visible=!flood;
+   story.add(mesh);return mesh;
   }
   for(const it of sections){
-   const channel=channelRects(it);
-   for(const r of channel){
-    box(bottom,(r.x+r.w/2)*CELL,CHANNEL_BOTTOM*CELL-.008,(r.y+r.h/2)*CELL,r.w*CELL,.016,r.h*CELL);
-    sheet(r,it);
-   }
+   channelSolid(THREE,story,it,CELL,allWet,stone);
+   const next=downstream(map,index,it.id,visualGraph);
+   const surface=sheet(channelRects(it),it,false,next);
    let flood=null,ring=null;
-   if(SIZES[it.drainage.kind]===4){
-    flood=sheet({x:it.x,y:it.y,w:it.w,h:it.h},it,true);
-    flood.visible=false;
-   }
+   if(SIZES[it.drainage.kind]===4)
+    flood=sheet([{x:it.x,y:it.y,w:it.w,h:it.h}],it,true,next);
    if(it.drainage.kind==='outfall'){
     const cx=(it.x+it.w/2)*CELL,cz=(it.y+it.h/2)*CELL;
     const ringMat=new THREE.MeshBasicMaterial({color:0x1b4b57,transparent:true,opacity:.55,depthWrite:false,side:THREE.DoubleSide});
@@ -487,19 +627,10 @@
     const abyss=new THREE.Mesh(new THREE.CircleGeometry(3*CELL,40),hole);
     abyss.rotation.x=-Math.PI/2;abyss.position.set(cx,WATER_LEVEL*CELL+.02,cz);story.add(abyss);
    }
-   visuals.push({floorIndex:index,itemId:it.id,ring,flood});
+   visuals.push({floorIndex:index,itemId:it.id,surface,ring,flood});
   }
-  for(const it of bridges){
-   const cx=(it.x+it.w/2)*CELL,cz=(it.y+it.h/2)*CELL,w=it.w*CELL,d=it.h*CELL;
-   box(metal,cx,.23,cz,w,.13,d);
-   const across=it.w<it.h;
-   for(let n=1;n<7;n++){
-    const t=n/7-.5;
-    if(across)box(hole,cx,.305,cz+t*d,w*.95,.024,.055*CELL);
-    else box(hole,cx+t*w,.305,cz,.055*CELL,.024,d*.95);
-   }
-  }
+  for(const it of bridges)bridgeSolid(THREE,story,it,CELL,metal);
  }
- return Object.freeze({SIZES,WATER_LEVEL,CHANNEL_BOTTOM,isSection,isBridge,pieces,ports,rects,channelRects,cutFloorRects,touches,makeSection,makeBridge,validate,
-  validateProject,topology,downstream,nearest,weatherState,randomExit,nativeComponents,expandProject,sectionAt,bridgeAt,waterAt,walkFactor,currentAt,depthAt,whirlpoolAt,createRuntime,updateVisuals,draw2D,attachFloor});
+ return Object.freeze({SIZES,WATER_LEVEL,CHANNEL_BOTTOM,BRIDGE_TOP,isSection,isBridge,pieces,ports,rects,channelRects,cutFloorRects,touches,makeSection,makeBridge,validate,
+  validateProject,topology,downstream,nearest,weatherState,randomExit,nativeComponents,expandProject,sectionAt,bridgeAt,waterAt,walkFactor,currentAt,supportAt,depthAt,whirlpoolAt,createRuntime,updateVisuals,draw2D,attachFloor});
 });

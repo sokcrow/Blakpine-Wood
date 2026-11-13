@@ -264,6 +264,7 @@ test('shader global: tres máscaras por GPU, desnivel en tiles y lluvia secundar
   constructor(w=2,h=2){this.attributes={position:{count:4,getX:i=>i%2===0?-w/2:w/2,
    getY:i=>i<2?-h/2:h/2}};this.attrs={};}
   setAttribute(name,attribute){this.attrs[name]=attribute;}
+  setIndex(indices){this.indices=indices;}
  }
  class Attribute{constructor(values,components){this.values=values;this.components=components;}}
  class Mesh{
@@ -272,8 +273,8 @@ test('shader global: tres máscaras por GPU, desnivel en tiles y lluvia secundar
    this.rotation={x:0,y:0,z:0};this.visible=true;}
  }
  const THREE={ShaderMaterial,MeshBasicMaterial:Material,MeshLambertMaterial:Material,
-  Mesh,BoxGeometry:Geometry,PlaneGeometry:Geometry,Float32BufferAttribute:Attribute,
-  RingGeometry:Geometry,CircleGeometry:Geometry,DoubleSide:2};
+  Mesh,BoxGeometry:Geometry,PlaneGeometry:Geometry,BufferGeometry:Geometry,Float32BufferAttribute:Attribute,
+  RingGeometry:Geometry,CircleGeometry:Geometry,DoubleSide:2,FrontSide:0};
  const Core=D;
  const small=section('small',20,20,'wet'),out=section('outfall',40,40,'vortex');
  const source=map([[small,out], [section('small',10,10,'other')]]);
@@ -284,19 +285,31 @@ test('shader global: tres máscaras por GPU, desnivel en tiles y lluvia secundar
  assert.equal(new Set(waterMeshes.map(o=>o.material)).size,1,'Un mismo shader, incluso entre plantas');
  const shader=waterMeshes[0].material;
  assert.match(shader.vertexShader,/heightMask=noise/,'Ruido principal regula elevación');
- assert.match(shader.fragmentShader,/maskA=noise/);
- assert.match(shader.fragmentShader,/maskB=noise/);
+ assert.match(shader.vertexShader,/vMaskA=noise/);
+ assert.match(shader.vertexShader,/vMaskB=noise/);
+ assert.doesNotMatch(shader.fragmentShader,/noise\(|hash\(|sin\(/,
+  'Ninguna máscara debe consumir ruido procedural por píxel');
+ assert.equal(shader.transparent,false,'Agua opaca evita sobrepintado transparente');
+ assert.equal(shader.depthWrite,true,'El agua reutiliza el buffer de profundidad');
+ const vortexWater=waterMeshes.filter(m=>m.position.x===(out.x+out.w/2)*1.524&&m.position.z===(out.y+out.h/2)*1.524);
+ assert.equal(vortexWater.length,1,'El desagüe 20x20 ocupa un solo draw call de agua');
+ assert.ok(vortexWater[0].geometry.indices.length>6,'Las piezas forman una malla unificada');
  assert.equal(shader.uniforms.uWave.value,.032*1.524);
  assert.ok(waterMeshes.some(m=>m.position.y===Core.WATER_LEVEL*1.524),'Agua a -0.2 tile');
  const flood=waterMeshes.find(m=>m.visible===false);
  assert.ok(flood,'La lámina de lluvia existe, sin crear otro shader');
  const clock=shader.uniforms.uTime.value;
+ const secondFloorFlood=waterMeshes.filter(m=>m.visible===false).find(m=>m!==flood);
+ assert.ok(secondFloorFlood,'El otro piso tiene inundación independiente');
  Core.updateVisuals(.05,1,0);
  assert.equal(flood.visible,true);
+ assert.equal(secondFloorFlood.visible,false,'No se actualizan mallas ocultas de otra planta');
  assert.ok(shader.uniforms.uTime.value>clock,'Se actualiza un solo reloj');
  assert.equal(shader.uniforms.uRain.value,1);
- Core.updateVisuals(.05,0,1);
+ Core.updateVisuals(.05,0,0);
  assert.equal(flood.visible,false);
+ Core.updateVisuals(.05,1,1);
+ assert.equal(secondFloorFlood.visible,true,'La inundación se activa al visitar ese piso');
 });
 test('geometría: respeta muros y huecos reales sin duplicar colisiones',()=>{
  const main=section('straight',20,20,'sewer');
@@ -323,6 +336,74 @@ test('geometría: el fondo queda por debajo del agua y solo se recortan canales 
  assert.ok(D.depthAt(p,0,{x:5,y:5},0)<D.WATER_LEVEL,'Flotabilidad baja al personaje al canal');
  assert.equal(D.depthAt(p,0,{x:5,y:1},0),0,'Pasillo seco conserva altura');
 });
+
+test('render 3D real: fondo sólido del canal y reja abierta con altura de apoyo',()=>{
+ const sectionMain=section('straight',0,0,'canal_solid');
+ const bridge=D.makeBridge({x:5,y:5},units,'puente_reja');
+ const project=map([[sectionMain,bridge]]);
+ assert.equal(D.supportAt(project,0,{x:5,y:5}),D.BRIDGE_TOP,
+  'Los pies reposan sobre las barras, no atraviesan el puente');
+ assert.equal(D.depthAt(project,0,{x:5,y:5}),D.BRIDGE_TOP,
+  'El adaptador de cámara también recibe altura de reja');
+ assert.equal(D.waterAt(project,0,{x:5,y:5}),null,'La corriente no arrastra al cruzar la reja');
+ assert.equal(D.supportAt(project,0,{x:5,y:4}),D.BRIDGE_TOP);
+ assert.equal(D.supportAt(project,0,{x:8,y:5}),D.CHANNEL_BOTTOM,
+  'Los pies descansan sobre el fondo sólido, no sobre el shader de agua');
+ assert.equal(D.supportAt(project,0,{x:8,y:1}),0,'La banqueta es el nivel 0');
+ const html=fs.readFileSync(path.join(__dirname,'../../index.html'),'utf8');
+ assert.ok(html.includes('!window.FHDrainage?.isBridge(it)'),
+  'El motor no puede pintar una losa opaca debajo de una reja real');
+ const scene={children:[],add(mesh){this.children.push(mesh);}};
+ class Material{constructor(opts){Object.assign(this,opts);}}
+ class Geometry{
+  constructor(){this.attributes={};}
+  setAttribute(name,attribute){this.attributes[name]=attribute;}
+  setIndex(indices){this.indices=indices;}
+ }
+ class Attribute{constructor(values,size){this.values=values;this.itemSize=size;}}
+ class Mesh{
+  constructor(geometry,material){this.geometry=geometry;this.material=material;
+   this.position={set(x,y,z){this.x=x;this.y=y;this.z=z;}};
+   this.rotation={x:0,y:0,z:0};this.visible=true;}
+ }
+ const THREE={Mesh,BufferGeometry:Geometry,BoxGeometry:Geometry,RingGeometry:Geometry,
+  CircleGeometry:Geometry,ShaderMaterial:Material,MeshLambertMaterial:Material,
+  MeshBasicMaterial:Material,Float32BufferAttribute:Attribute,DoubleSide:2,FrontSide:0};
+ D.attachFloor(THREE,project,scene,0,1);
+ const floor=scene.children.find(m=>m.name==='fh_drain_solid_canal_solid');
+ const grate=scene.children.find(m=>m.name==='fh_drain_grate_puente_reja');
+ assert.ok(floor&&grate,'El piso y el puente deben existir como mallas 3D con volumen');
+ assert.ok(floor.geometry.attributes.normal,'Paredes y suelo tienen normales y reciben luz');
+ assert.ok(grate.geometry.attributes.normal,'La reja tiene barras de volumen');
+ const coords=floor.geometry.attributes.position.values;
+ const heightValues=Array.from({length:coords.length/3},(_,i)=>coords[i*3+1]);
+ assert.ok(heightValues.some(y=>Math.abs(y-D.CHANNEL_BOTTOM)<1e-5),
+  'La cara superior del fondo coincide con la altura que pisa el jugador');
+ assert.ok(heightValues.some(y=>Math.abs(y)<1e-5),'Hay paredes laterales hasta la banqueta');
+ const grateCoords=grate.geometry.attributes.position.values;
+ const grateY=Array.from({length:grateCoords.length/3},(_,i)=>grateCoords[i*3+1]);
+ assert.ok(grateY.some(y=>Math.abs(y-D.BRIDGE_TOP)<1e-5),
+  'La reja visible y el soporte del jugador están a la misma altura');
+ let totalTopArea=0;
+ for(let i=0;i<grateCoords.length;i+=24*3){
+  const xs=[],zs=[];
+  for(let k=0;k<4;k++){xs.push(grateCoords[i+k*3]);zs.push(grateCoords[i+k*3+2]);}
+  totalTopArea+=(Math.max(...xs)-Math.min(...xs))*(Math.max(...zs)-Math.min(...zs));
+ }
+ assert.ok(totalTopArea<bridge.w*bridge.h*.7,
+  'Más del 30% del puente es hueco: no es una placa con franjas pintadas');
+});
+test('corte de suelos: caché del motor sin impedir cambios del editor',()=>{
+ const a=section('straight',0,0,'a'),p=map([[a]]);
+ const r=[{x:0,y:0,w:10,h:10}];
+ const cached=D.cutFloorRects(p,0,r,true);
+ assert.equal(cached.reduce((n,rect)=>n+rect.w*rect.h,0),60);
+ assert.equal(D.cutFloorRects(p,0,r,true).reduce((n,rect)=>n+rect.w*rect.h,0),60);
+ a.y=50; // El editor necesita ver inmediatamente el cambio, sin caché.
+ assert.deepEqual(D.cutFloorRects(p,0,r),r);
+ const noDrain=map([[{id:'solo',type:'chair',x:0,y:0}]]);
+ assert.deepEqual(D.cutFloorRects(noDrain,0,r,true),r);
+});
 test('corriente T: sigue primero la rama antes de girar; no empuja tramos aislados',()=>{
  const tee=section('tee',10,10,'tee'),east=section('small_dead_end',20,13,'east',180);
  tee.drainage.flowTo='east';
@@ -334,7 +415,7 @@ test('corriente T: sigue primero la rama antes de girar; no empuja tramos aislad
 });
 test('integración de desnivel: el motor empaquetado recibe el recorte y altura del jugador',()=>{
  const html=fs.readFileSync(path.join(__dirname,'../../index.html'),'utf8');
- for(const marker of ['function addDrainGeometryToEngine(','cutFloorRects(DATA,f,rects)',
+ for(const marker of ['function addDrainGeometryToEngine(','cutFloorRects(DATA,f,rects,true)',
    'fhDrainActorDrop','fhDrainDrop','return addDrainGeometryToEngine(doc);']){
   assert.ok(html.includes(marker),'Motor sin integración: '+marker);
  }
@@ -350,4 +431,53 @@ test('integración motor: la corriente usa walk nativo y el cambio de piso conse
  assert.match(core,/function whirlpoolAt\(/);
  assert.match(core,/function createRuntime\(/);
  assert.ok(!core.includes('function canWalk('),'No duplicar la física de paredes');
+});
+
+test('THREE real: la cresta de inundación no cubre las barras del puente',()=>{
+ const THREE=require('./vendor/three.min.js'),scene=new THREE.Group();
+ const small=section('small',20,20,'rain'),bridge=D.makeBridge({x:22,y:22},units,'grate');
+ const p=map([[small,bridge]]),CELL=1.524;
+ D.attachFloor(THREE,p,scene,0,CELL);D.updateVisuals(.05,1,0);
+ const flood=scene.children.find(m=>m.material.isShaderMaterial&&m.position.y>0);
+ assert.ok(flood?.visible,'La lluvia sigue inundando la banqueta');
+ const scales=flood.geometry.getAttribute('aWaveScale')?.array||[1];
+ const crest=flood.position.y+flood.material.uniforms.uWave.value*Math.max(...scales);
+ assert.ok(crest<D.BRIDGE_TOP*CELL,'La cresta máxima debe quedar debajo de los pies y la reja');
+ assert.match(flood.material.vertexShader,/uWave\*aWaveScale\*heightMask/);
+ scene.updateMatrixWorld(true);
+ const ray=new THREE.Raycaster(new THREE.Vector3(22*CELL,2*CELL,22*CELL),new THREE.Vector3(0,-1,0));
+ const grate=scene.children.find(m=>m.name==='fh_drain_grate_grate');
+ assert.ok(Math.abs(ray.intersectObject(grate)[0].point.y-D.supportAt(p,0,{x:22,y:22})*CELL)<1e-6);
+});
+
+test('desagüe: contacto, apoyo, recorte y superficie comparten el mismo contorno',()=>{
+ const out=section('outfall',0,0,'edge'),p=map([[out]]);
+ const channels=D.channelRects(out);
+ let wet=0,dry=0;
+ for(let yi=0;yi<80;yi++)for(let xi=0;xi<80;xi++){
+  const point={x:(xi+.37)/4,y:(yi+.61)/4};
+  const inChannel=channels.some(r=>point.x>=r.x&&point.x<r.x+r.w&&point.y>=r.y&&point.y<r.y+r.h);
+  assert.equal(!!D.waterAt(p,0,point),inChannel,JSON.stringify(point));
+  assert.equal(D.supportAt(p,0,point),inChannel?D.CHANNEL_BOTTOM:0);
+  if(inChannel)wet++;else dry++;
+ }
+ assert.ok(wet>0&&dry>0);
+});
+
+test('THREE real: bordes continuos compactos y conexiones parciales sin tabiques',()=>{
+ const THREE=require('./vendor/three.min.js');
+ const main=section('straight',0,0,'main'),small=section('small',10,3.75,'partial');
+ const single=new THREE.Group();D.attachFloor(THREE,map([[main]]),single,0,1);
+ const solid=single.children.find(m=>m.name==='fh_drain_solid_main');
+ assert.ok(solid.geometry.getAttribute('position').count<=120,
+  'El tramo recto usa un fondo y cuatro bordes, sin cajas cada medio tile');
+ const connected=new THREE.Group();D.attachFloor(THREE,map([[main,small]]),connected,0,1);
+ connected.updateMatrixWorld(true);
+ const left=connected.children.find(m=>m.name==='fh_drain_solid_main');
+ const cast=y=>new THREE.Raycaster(new THREE.Vector3(9.8,-.2,y),new THREE.Vector3(1,0,0),0,.4).intersectObject(left);
+ assert.equal(cast(5.3).length,0,'La parte abierta no se cierra aunque su borde no coincida con medio tile');
+ assert.ok(cast(5.6).length>0,'La pared se conserva justo fuera de la conexión');
+ const bottomRay=new THREE.Raycaster(new THREE.Vector3(8,1,5),new THREE.Vector3(0,-1,0));
+ assert.ok(Math.abs(bottomRay.intersectObject(left)[0].point.y-D.CHANNEL_BOTTOM)<1e-6,
+  'El fondo físico coincide con el apoyo usado por el actor');
 });
