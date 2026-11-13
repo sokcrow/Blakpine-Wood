@@ -204,8 +204,8 @@
   const item=choice.item;
   return {floorIndex:choice.floorIndex,itemId:item.id,x:round(item.x+1),y:round(item.y+1)};
  }
- // Componentes de arquitectura nativos: los mismos 'room', 'wall' y 'opening'
- // que procesa buildFloor(). Solo se expanden en el motor, no en el JSON guardado.
+ // Solo genera los suelos secos como 'room' nativo para buildFloor().
+ // Paredes y puertas quedan exclusivamente a cargo del creador del mapa.
  function nativeComponents(it,neighbors=[],surroundings=[]){
   if(!isSection(it))return [];
   const {x,y,w,h,id}=it;
