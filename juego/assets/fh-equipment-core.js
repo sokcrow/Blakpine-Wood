@@ -45,9 +45,11 @@
  function unequip(state,slot,maxSlots=10){
   const eq=ensure(state);
   if(!SLOTS.includes(slot)||!eq[slot])return {ok:false,reason:'empty'};
-  const id=eq[slot];
-  if(new Set(state.inventory).size>=maxSlots&&!state.inventory.includes(id))return {ok:false,reason:'full'};
-  eq[slot]='';state.inventory.push(id);return {ok:true,id};
+  const id=eq[slot],contents=id==='wallet'?[...eq.wallet.items]:[];
+  if(new Set([...state.inventory,id,...contents]).size>maxSlots)return {ok:false,reason:'full'};
+  eq[slot]='';state.inventory.push(id,...contents);
+  if(id==='wallet')eq.wallet.items=[];
+  return {ok:true,id};
  }
  function walletAvailable(state){return hasEquipped(state,'wallet')}
  function category(def){return def?.storageCategory||def?.walletCategory||''}
@@ -68,8 +70,17 @@
   if(new Set(state.inventory).size>=maxSlots&&!state.inventory.includes(id))return {ok:false,reason:'full'};
   eq.wallet.items.splice(at,1);state.inventory.push(id);return {ok:true};
  }
+ function sweepWallet(state,defs=[]){
+  let moved=0;
+  if(!walletAvailable(state))return moved;
+  for(const id of [...state.inventory]){
+   if(!CARD_CATEGORIES.has(category(defs.find(d=>d.id===id))))continue;
+   if(moveToWallet(state,id,defs).ok)moved++;
+  }
+  return moved;
+ }
  function itemDefinitions(existing=[]){
   return [...existing,...DEFS.filter(def=>!existing.some(d=>d.id===def.id)).map(d=>({...d}))];
  }
- return {SLOTS,DEFS,ICONS,ensure,hasEquipped,equip,unequip,walletAvailable,moveToWallet,moveFromWallet,itemDefinitions};
+ return {SLOTS,DEFS,ICONS,ensure,hasEquipped,equip,unequip,walletAvailable,moveToWallet,moveFromWallet,sweepWallet,itemDefinitions};
 });
