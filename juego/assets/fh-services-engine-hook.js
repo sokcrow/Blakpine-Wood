@@ -294,10 +294,11 @@
   const sprite=" if(def?.icon){const label=document.createElement('span');label.className='itemIconText';label.textContent=def.icon;node.append(label);}";
   const spriteWithImage=[
    " if(window.FHEquipmentCore?.ICONS[id]){",
+   "  node.classList.add('fh-item-art');",
    "  const img=document.createElement('img');img.className='fh-charger-item-art';",
    "  img.src=new URL('./juego/assets/'+window.FHEquipmentCore.ICONS[id],document.baseURI).href;",
    "  img.alt=def?.name||'Cargador de celular';",
-   "  img.style.width=large?'82%':'92%';img.style.height='92%';img.style.objectFit='contain';img.style.imageRendering='pixelated';",
+   "  img.style.width='100%';img.style.height='100%';img.style.objectFit='contain';img.style.imageRendering='pixelated';",
    "  node.append(img);",
    " }else if(def?.icon){const label=document.createElement('span');label.className='itemIconText';label.textContent=def.icon;node.append(label);}"
   ].join("\n");
