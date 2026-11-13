@@ -33,7 +33,13 @@
  potableToggle.style.cssText='margin:4px 0;text-align:left';
  const refreshPotable=()=>{potableToggle.textContent=(project.plumbing?.enabled?'☑ ':'☐ ')+(T.networkToggle||'Red potable automática por paredes y pisos');};
  potableToggle.onclick=()=>{project.plumbing={...project.plumbing,enabled:!project.plumbing?.enabled};record();render();refreshPotable();};
- pane.append(header,potableToggle,list,note);modal.append(pane);document.body.append(modal);
+ const liftToggle=document.createElement('button');liftToggle.type='button';
+ liftToggle.style.cssText='margin:4px 0;text-align:left';
+ const refreshLift=()=>{liftToggle.textContent=(project.plumbing?.requireLiftPump?'☑ ':'☐ ')+
+  (T.requireLiftPump||'Exigir bomba para elevar reservas de agua');};
+ liftToggle.onclick=()=>{project.plumbing={...project.plumbing,requireLiftPump:!project.plumbing?.requireLiftPump};
+  record();render();refreshLift();};
+ pane.append(header,potableToggle,liftToggle,list,note);modal.append(pane);document.body.append(modal);
  function hide(){modal.hidden=true;opener?.focus?.();}close.onclick=hide;
  modal.addEventListener('click',e=>{if(e.target===modal)hide();});
  modal.addEventListener('keydown',e=>{if(e.key==='Escape'){e.stopPropagation();hide();}});
@@ -77,7 +83,7 @@
   toast((T.selected||'Seleccionado: ')+m.name);
  }
  function show(){
-  opener=document.activeElement;modal.hidden=false;list.replaceChildren();refreshPotable();
+  opener=document.activeElement;modal.hidden=false;list.replaceChildren();refreshPotable();refreshLift();
   for(const m of models){
    const card=document.createElement('button');card.type='button';card.setAttribute('aria-pressed',String(active[m.type]?.id===m.id));
    const pic=document.createElement('img');pic.alt='';pic.loading='lazy';pic.src=new URL(m.thumbnail,base).href;
