@@ -303,7 +303,8 @@
    "  const b=document.createElement('button');b.type='button';b.style.cssText='min-height:44px;margin:4px;padding:8px;border:1px solid #677784;background:#18222c;color:#eee';",
    "  b.textContent=(slot==='rearLeft'?'Bolsillo trasero izquierdo: ':'Bolsillo trasero derecho: ')+(id?(itemDefs.find(x=>x.id===id)?.name||id):'Vacío')+(id?' · Quitar':selected?' · Equipar '+(itemDefs.find(x=>x.id===selected)?.name||selected):'');",
    "  b.onclick=()=>{const result=id?core.unequip(GameState,slot):core.equip(GameState,selected,slot);",
-   "   if(!result.ok){notice(result.reason==='full'?'Inventario lleno.':'No se puede cambiar el equipamiento.');return;}renderInventory();window.FHPhoneRuntime?.syncAvailability?.();saveProgress();};",
+   "   if(!result.ok){notice(result.reason==='full'?'Inventario lleno.':'No se puede cambiar el equipamiento.');return;}core.sweepWallet(GameState,itemDefs);renderInventory();window.FHPhoneRuntime?.syncAvailability?.();saveProgress();};",
+   "  if(id&&core.ICONS[id]){const img=document.createElement('img');img.src=new URL('./juego/assets/'+core.ICONS[id],document.baseURI).href;img.alt='';img.style.cssText='width:28px;height:28px;object-fit:contain;image-rendering:pixelated;vertical-align:middle;margin-right:8px';b.prepend(img)}",
    "  section.append(b);",
    " }",
    " if(!core.walletAvailable(GameState))return;",
@@ -322,6 +323,11 @@
    " }",
    " if(def.kind==='note'){",'acción de cartera');
 
+  }
+  // Recoger dinero y tarjetas con cartera equipada no consume espacios generales.
+  if(doc.includes("GameEvents.on('item:given',({id})=>{notice(INTERACTION_TEXT.itemFound")){
+  doc=once(doc,"GameEvents.on('item:given',({id})=>{notice(INTERACTION_TEXT.itemFound(ForestShared.itemDefById(itemDefs,id)?.name||id));renderInventory();});",
+   "GameEvents.on('item:given',({id})=>{window.FHEquipmentCore?.sweepWallet(GameState,itemDefs);notice(INTERACTION_TEXT.itemFound(ForestShared.itemDefById(itemDefs,id)?.name||id));renderInventory();});",'recogida de tarjeta o efectivo');
   }
   // fixturePowered ya consulta sourceFor; no recalcular los enchufes por cada foco.
   doc=root.FHInternetVisuals?.patchEngineDoc(doc)||doc;
