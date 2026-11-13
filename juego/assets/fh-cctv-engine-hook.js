@@ -44,44 +44,63 @@
    'const opaque=sightWalls[sightFloor].slice();for(const d of doorList[sightFloor])if(!d.transparent&&!d.passable&&(observer||!peeking||d!==peekDoor))opaque.push(d.block);');
   sightOnce('elevatorStops.filter(stop=>stop.f===currentFloor)',
    'elevatorStops.filter(stop=>stop.f===sightFloor)');
-  sightOnce("if(cab?.floor===currentFloor&&cab.phase==='open')continue;",
-   "if(cab?.floor===sightFloor&&cab.phase==='open')continue;");
-  // El preparado actualiza las luces de acceso y la caché del jugador al
-  // cambiar de minuto. Una captura remota no debe escribir esos registros.
-  if(sight.includes(' const minute=Math.floor(Number(GameState.clock?.minutes)||0);')){
-   sightOnce(' const minute=Math.floor(Number(GameState.clock?.minutes)||0);',
-    ' if(!observer){\n const minute=Math.floor(Number(GameState.clock?.minutes)||0);');
-   sightOnce('  (f,x,y)=>fhGroundExposure?.(f,x*CELL,y*CELL)===true)||[];',
-    '  (f,x,y)=>fhGroundExposure?.(f,x*CELL,y*CELL)===true)||[];\n }');
-  }
   sightOnce('const nx=x=>x/MAX_X*sightCanvas.width,nz=z=>z/MAX_Z*sightCanvas.height;',
    'const nx=x=>x/MAX_X*visionCanvas.width,nz=z=>z/MAX_Z*visionCanvas.height;');
   if(sight.split('currentFloor,at.x,at.z').length!==2)throw Error('Hook CCTV incompatible: fuentes de luz');
   sight=sight.replace('currentFloor,at.x,at.z','sightFloor,at.x,at.z');
   sight=sight.split('q.').join('visionCtx.');
   sight=sight.split('sightCanvas.').join('visionCanvas.');
-  // prepareGLBEngineDoc orienta la linterna por el sprite, no por la cámara.
-  // Conservar flashDir para el jugador al adaptar también el motor preparado.
-  const beamHead=sight.includes('const beamDir=flashDir;')
-   ?'const beamDir=flashDir;':'const beamDir={x:-Math.sin(yaw),z:-Math.cos(yaw)};';
-  sightOnce(beamHead,beamHead==='const beamDir=flashDir;'
-   ?'const beamDir=observer?{x:-Math.sin(sightYaw),z:-Math.cos(sightYaw)}:flashDir;'
-   :'const beamDir={x:-Math.sin(sightYaw),z:-Math.cos(sightYaw)};');
+  const beam=sight.includes('const beamDir=flashDir;')?'const beamDir=flashDir;':
+   'const beamDir={x:-Math.sin(yaw),z:-Math.cos(yaw)};';
+  sightOnce(beam,'const beamDir=observer?{x:-Math.sin(sightYaw),z:Math.cos(sightYaw)}:'+
+   beam.slice('const beamDir='.length));
+  sightOnce('cab?.floor===currentFloor', 'cab?.floor===sightFloor');
+  // El motor preparado añade luz natural y una caché de drenajes del jugador.
+  // La captura remota no debe actualizar ninguna de esas cachés.
+  if(sight.includes('fhDrainAccessLights=')){
+   sightOnce(' const minute=Math.floor(Number(GameState.clock?.minutes)||0);',
+    ' if(!observer){\n const minute=Math.floor(Number(GameState.clock?.minutes)||0);');
+   sightOnce('fhGroundExposure?.(f,x*CELL,y*CELL)===true)||[];',
+    'fhGroundExposure?.(f,x*CELL,y*CELL)===true)||[];\n }');
+  }
+  if(sight.includes('fhNatural?.')){
+   sight=sight.split('fhNatural?.').join('visionNatural?.');
+   sightOnce('paintSight(q,','paintSight(visionCtx,');
+   sightOnce(' const params=', ' const visionNatural=observer?observer.natural:fhNatural;\n const params=');
+   sightOnce('false):sightParameters();',
+    'false):sightParameters();\n if(observer){params.base=1.524;params.dim=2.4384;params.beam=0;params.angle=0;}');
+  }
   sightOnce('sightTexture.needsUpdate=true;',
    'visionTexture.needsUpdate=true;\n if(observer)return;');
   doc=doc.slice(0,sightStart)+sight+doc.slice(sightEnd);
+  // Registro incremental: evita recorrer toda la escena cada 84–100 ms.
+  const rootSetter='function setSightRootVisibility(root,visible){';
+  doc=replaceOnce(doc,rootSetter,
+   'const fhCCTVSightRoots=new Set();\n'+rootSetter+'\n fhCCTVSightRoots.add(root);');
   const computers='window.FHComputerRuntime=window.FHComputer?.createRuntime({';
   const runtime=String.raw`
 const fhCCTV=window.FHCCTV.createRuntime(DATA.floors);
+const fhCCTVCount=fhCCTV.list().length;
+let fhCCTVLastError=-Infinity;
 const fhCCTVFormats=Object.freeze({
  hd:{width:960,height:552,intervalMs:100},
  normal:{width:640,height:368,intervalMs:84}
 });
-let fhCCTVTarget=null,fhCCTVView=null,fhCCTVRead=null,fhCCTVFrameStamp=-1,fhCCTVFormat=null;
+let fhCCTVTarget=null,fhCCTVView=null,fhCCTVRead=null,fhCCTVPixels=null;
+let fhCCTVFrameStamp=-Infinity,fhCCTVFormat=null,fhCCTVSelected=null,fhCCTVNatural=null,fhCCTVFloor=0;
+const fhCCTVPosition=new THREE.Vector3();
+const fhCCTVViewport=new THREE.Vector4(),fhCCTVScissor=new THREE.Vector4();
+function fhCCTVRelease(){
+ fhCCTVTarget?.dispose();fhCCTVTarget=null;fhCCTVRead=null;fhCCTVPixels=null;
+ fhCCTVView=null;fhCCTVFormat=null;fhCCTVSelected=null;fhCCTVFrameStamp=-Infinity;
+}
+window.addEventListener('beforeunload',()=>{
+ fhCCTVRelease();fhCCTVSightTexture.dispose();fhCCTVNatural?.dispose();
+});
 // Mismo algoritmo drawSight del jugador, pero textura y canvas independientes.
 const fhCCTVSightCanvas=document.createElement('canvas');
 fhCCTVSightCanvas.width=sightCanvas.width;fhCCTVSightCanvas.height=sightCanvas.height;
-const fhCCTVSightCtx=fhCCTVSightCanvas.getContext('2d',{alpha:false});
+const fhCCTVSightCtx=fhCCTVSightCanvas.getContext('2d',{alpha:false,willReadFrequently:true});
 const fhCCTVSightTexture=new THREE.CanvasTexture(fhCCTVSightCanvas);
 fhCCTVSightTexture.minFilter=sightTexture.minFilter;
 fhCCTVSightTexture.magFilter=sightTexture.magFilter;
@@ -90,9 +109,10 @@ function fhCCTVMaskVisible(x,z){
  if(!Number.isFinite(x)||!Number.isFinite(z)||x<0||z<0||x>=MAX_X||z>=MAX_Z)return false;
  const px=Math.floor(x/MAX_X*fhCCTVSightCanvas.width);
  const py=Math.floor(z/MAX_Z*fhCCTVSightCanvas.height);
- return fhCCTVSightCtx.getImageData(px,py,1,1).data[0]>=128;
+ // El motor preparado pinta la visión cercana a media intensidad (128).
+ return fhCCTVSightCtx.getImageData(px,py,1,1).data[0]>=16;
 }
-let fhCCTVModels=[],fhCCTVLastScan=-2000;
+let fhCCTVModels=[],fhCCTVLastScan=-Infinity;
 function fhCCTVVisuals(now){
  // Reindexar al cargar modelos GLB asíncronos; actualizar giros aun sin terminal abierta.
  if(now-fhCCTVLastScan>1200){
@@ -100,7 +120,7 @@ function fhCCTVVisuals(now){
   scene.traverse(root=>{
    if(root.userData?.fhModelId!=='camara_seguridad'||!root.userData?.fhItemId)return;
    const pivot=root.getObjectByName('CAM_YAW');
-   if(pivot)fhCCTVModels.push({id:root.userData.fhItemId,pivot});
+   if(pivot)fhCCTVModels.push({id:root.userData.fhItemId,pivot,root});
   });
  }
  for(const cam of fhCCTVModels){
@@ -109,31 +129,51 @@ function fhCCTVVisuals(now){
  }
 }
 function fhCCTVFrame(now){
+ if(!fhCCTVCount)return;
+ try{fhCCTVCapture(now);}catch(error){
+  if(now-fhCCTVLastError>=5000){fhCCTVLastError=now;console.warn('[CCTV] Falló un fotograma:',error);}
+ }
+}
+function fhCCTVCapture(now){
  fhCCTVVisuals(now);
  const pc=window.FHComputerRuntime;
- if(!pc?.isOpen)return;
+ if(!pc?.isOpen){fhCCTVRelease();return;}
  const api=pc.terminalApi?.(),screen=api?.getState?.(),session=pc.session;
- if(!screen?.power||screen?.mode!=='on'||screen?.front!=='cams')return;
+ if(!screen?.power||screen?.mode!=='on'||screen?.front!=='cams'){fhCCTVRelease();return;}
  const selected=session?.cameras?.[screen.camera];
- if(!selected?.online)return;
+ if(!selected?.online){fhCCTVRelease();return;}
  const format=screen.cameraQuality==='normal'?fhCCTVFormats.normal:fhCCTVFormats.hd;
- if(fhCCTVTarget&&fhCCTVFormat!==format){fhCCTVTarget.dispose();fhCCTVTarget=null;}
- if(now-fhCCTVFrameStamp<format.intervalMs&&fhCCTVTarget)return;
+ if(fhCCTVTarget&&fhCCTVFormat!==format)fhCCTVRelease();
+ if(selected.id===fhCCTVSelected&&now-fhCCTVFrameStamp<format.intervalMs&&fhCCTVTarget)return;
  const cameraPose=fhCCTV.view(selected.id,now,CELL,floorElev);
- if(!cameraPose)return;
+ if(!cameraPose){fhCCTVRelease();return;}
  if(!fhCCTVTarget){
   fhCCTVFormat=format;
   fhCCTVTarget=new THREE.WebGLRenderTarget(format.width,format.height,{
    minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,depthBuffer:true
   });
-  fhCCTVView=new THREE.PerspectiveCamera(65,format.width/format.height,.05,190);
+  fhCCTVTarget.texture.generateMipmaps=false;
+  fhCCTVView=new THREE.PerspectiveCamera(cameraPose.fovDeg,format.width/format.height,.05,190);
   fhCCTVRead=new Uint8Array(format.width*format.height*4);
+  fhCCTVPixels=new Uint8ClampedArray(fhCCTVRead.length);
  }
- fhCCTVFrameStamp=now;
- fhCCTVView.fov=cameraPose.fovDeg;fhCCTVView.updateProjectionMatrix();
+ fhCCTVFrameStamp=now;fhCCTVSelected=selected.id;
+ if(fhCCTVView.fov!==cameraPose.fovDeg){fhCCTVView.fov=cameraPose.fovDeg;fhCCTVView.updateProjectionMatrix();}
  fhCCTVView.position.set(cameraPose.x,cameraPose.y,cameraPose.z);
  fhCCTVView.lookAt(cameraPose.x-Math.sin(cameraPose.bearing),cameraPose.y,cameraPose.z+Math.cos(cameraPose.bearing));
+ // La luz exterior tiene su propio atlas por planta; nunca reutilizar el del jugador.
+ fhCCTVFloor=cameraPose.floor;
+ if(!fhCCTVNatural&&window.FHNaturalLight?.createRuntime)fhCCTVNatural=window.FHNaturalLight.createRuntime({
+  DATA,CELL,clock:()=>GameState.clock?.minutes,floor:()=>fhCCTVFloor,
+  doorOpen:(f,id,it)=>doorList[f]?.find(d=>d.id===id)?.open??it?.open,
+  doorTransparent:it=>ForestShared.doorSpec(it)?.transparent===true,
+  weather:()=>typeof fhWeatherEnabled!=='undefined'&&fhWeatherEnabled?fhWeather?.view():null
+ });
+ fhCCTVNatural?.update();
  const oldTarget=renderer.getRenderTarget(),oldMask=sightUniform.value;
+ renderer.getViewport(fhCCTVViewport);renderer.getScissor(fhCCTVScissor);
+ const oldScissorTest=renderer.getScissorTest(),oldXr=renderer.xr.enabled;
+ const oldShadowUpdate=renderer.shadowMap.autoUpdate;
  const oldHero=hero.visible,oldShadow=shadow.visible;
  const oldAmbient=ambient.intensity,oldFlashlight=flashlightSpot.intensity;
  const oldLights=roomDynamicLights.map(light=>({intensity:light.intensity,position:light.position.clone()}));
@@ -142,34 +182,39 @@ function fhCCTVFrame(now){
  const oldFixtures=roomLampEntries.filter(entry=>entry.floor===cameraPose.floor)
   .map(entry=>[entry,entry.lit.visible,entry.dark.visible]);
  const objects=[];
- scene.traverse(obj=>{
-  if(obj.userData&&Object.prototype.hasOwnProperty.call(obj.userData,'fhSightVisible')){
-   objects.push([obj,obj.visible]);obj.visible=true;
-  }
- });
+ for(const obj of fhCCTVSightRoots)objects.push([obj,obj.visible]);
+ const ownModel=fhCCTVModels.find(model=>model.id===selected.id)?.root;
+ if(ownModel&&!fhCCTVSightRoots.has(ownModel))objects.push([ownModel,ownModel.visible]);
  const oldActors=[];
  if(typeof fhSightActors!=='undefined')for(const [actor,floorSource] of fhSightActors){
   const f=typeof floorSource==='function'?floorSource():floorSource;
   oldActors.push([actor,actor.visible,f]);
  }
  try{
+  renderer.xr.enabled=false;renderer.shadowMap.autoUpdate=false;
+  for(const [obj] of objects)obj.visible=true;
+  if(ownModel)ownModel.visible=false;
+  // Recoger una batería es estado de juego, no un recorte visual del jugador.
+  if(typeof furnitureSightRoots!=='undefined')for(const {item,root} of furnitureSightRoots[cameraPose.floor]){
+   if(item.type==='battery_pickup'&&GameState.used[item.interact?.id])root.visible=false;
+  }
   // drawSight genera la visibilidad desde el lente, no desde el jugador.
   // El shader del mundo sigue usando la misma máscara de oscuridad y oclusión.
   drawSight({
    floor:cameraPose.floor,at:{x:cameraPose.x,z:cameraPose.z},
    yaw:cameraPose.bearing,canvas:fhCCTVSightCanvas,
-   ctx:fhCCTVSightCtx,texture:fhCCTVSightTexture
+   ctx:fhCCTVSightCtx,texture:fhCCTVSightTexture,natural:fhCCTVNatural
   });
   sightUniform.value=fhCCTVSightTexture;
   stories.forEach((story,i)=>story.visible=i===cameraPose.floor);
   for(const [root] of oldCutaways)root.visible=true;
   for(const [actor,,floor] of oldActors){
-   const position=actor.getWorldPosition?actor.getWorldPosition(new THREE.Vector3()):actor.position;
+   const position=actor.getWorldPosition?actor.getWorldPosition(fhCCTVPosition):actor.position;
    actor.visible=floor===cameraPose.floor&&!!position&&fhCCTVMaskVisible(position.x,position.z);
   }
   if(cameraPose.floor!==currentFloor){hero.visible=false;shadow.visible=false;}
   else{
-   hero.visible=oldHero&&fhCCTVMaskVisible(hero.position.x,hero.position.z);
+   hero.visible=fhCCTVMaskVisible(hero.position.x,hero.position.z);
    shadow.visible=oldShadow&&fhCCTVMaskVisible(shadow.position.x,shadow.position.z);
   }
   // Las linternas personales nunca iluminan remotamente una cámara.
@@ -177,9 +222,8 @@ function fhCCTVFrame(now){
 
   // Las luces de Three.js normalmente siguen al jugador. Reubicarlas solo durante
   // esta captura en la planta/estancia observada, y restaurarlas antes del frame siguiente.
-  const localRoom=roomAt(cameraPose.floor,cameraPose.x,cameraPose.z);
   const failing=typeof fhHorrorLightsFail==='function'&&fhHorrorLightsFail(now);
-  ambient.intensity=lighting.roomLit(cameraPose.floor,localRoom)&&!failing?.37:.075;
+  ambient.intensity=.37;
   const blocked=sightWalls[cameraPose.floor].slice();
   for(const door of doorList[cameraPose.floor])if(!door.transparent&&!door.passable)blocked.push(door.block);
   const available=failing?[]:(window.FHLights?.sourcesNear
@@ -200,13 +244,13 @@ function fhCCTVFrame(now){
   }
 
   renderer.setRenderTarget(fhCCTVTarget);
+  renderer.setViewport(0,0,format.width,format.height);renderer.setScissorTest(false);
   renderer.render(scene,fhCCTVView);
   renderer.readRenderTargetPixels(fhCCTVTarget,0,0,format.width,format.height,fhCCTVRead);
- }catch(error){
-  console.warn('[CCTV] Falló un fotograma:',error);
-  return;
  }finally{
   renderer.setRenderTarget(oldTarget);
+  renderer.setViewport(fhCCTVViewport);renderer.setScissor(fhCCTVScissor);renderer.setScissorTest(oldScissorTest);
+  renderer.xr.enabled=oldXr;renderer.shadowMap.autoUpdate=oldShadowUpdate;
   sightUniform.value=oldMask;hero.visible=oldHero;shadow.visible=oldShadow;
   ambient.intensity=oldAmbient;flashlightSpot.intensity=oldFlashlight;
   roomDynamicLights.forEach((light,i)=>{
@@ -219,7 +263,7 @@ function fhCCTVFrame(now){
   for(const [entry,lit,dark] of oldFixtures){entry.lit.visible=lit;entry.dark.visible=dark;}
  }
  // WebGL entrega filas invertidas respecto a Canvas2D.
- const pixels=new Uint8ClampedArray(fhCCTVRead.length),row=format.width*4;
+ const pixels=fhCCTVPixels,row=format.width*4;
  for(let y=0;y<format.height;y++)pixels.set(
   fhCCTVRead.subarray(y*row,(y+1)*row),(format.height-1-y)*row
  );
