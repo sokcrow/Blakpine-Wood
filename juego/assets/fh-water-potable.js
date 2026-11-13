@@ -260,6 +260,7 @@
    }
    // La bomba transfiere litros existentes: no fabrica agua municipal.
    for(const pump of pumps){
+    services.usage[pump.it.id]=false;
     if(!pumpReady(pump))continue;
     const supply=tanks.filter(s=>s.it.type==='water_cistern'&&s.f===pump.f&&available(s)&&
      (!pump.it.pumpSourceId||String(pump.it.pumpSourceId)===String(s.it.id))&&
@@ -278,6 +279,7 @@
     const liters=Math.max(0,Math.min(num(pump.it.pumpFlowLpm,30)*gameMinutes,
      src.liters,capacity-dst.liters));
     src.liters-=liters;dst.liters+=liters;
+    services.usage[pump.it.id]=liters>0;
    }
   }
   function routeBetween(fa,ia,fb,ib,kind='cold'){
