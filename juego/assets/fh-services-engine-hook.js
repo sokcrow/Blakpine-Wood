@@ -128,7 +128,7 @@
    ' for(const it of DATA.floors[f].items||[]){',
    '  if(!window.FHServices?.INFRA.has(it.type))continue;',
    '  // Los equipos Agua 02/03 usan sus GLB, no crear cajas de infraestructura.',
-   '  if(["water_boiler","water_boiler_aux","water_cistern","water_tinaco"].includes(it.type))continue;',
+   '  if(window.FHWaterVisuals?.choose(it))continue;',
    '  if(["generator","generator_ats","generator_tank"].includes(it.type)){',
    '   const entry=renderedByItem[f]?.get?.(it.id)?.[0],mesh=entry?.root||entry;',
    '   if(mesh){mesh.userData.fhServiceItem=it.id;fhServicesVisuals.push({mesh,it,f});}continue;',
