@@ -352,12 +352,7 @@
     ctx.beginPath();ctx.arc(p.x,p.y,3*radius,0,Math.PI*2);ctx.fillStyle='#07131c';ctx.fill();
     ctx.beginPath();ctx.arc(p.x,p.y,5*radius,0,Math.PI*1.6);ctx.strokeStyle='#85b9c2';ctx.lineWidth=radius*.25;ctx.stroke();
    }
-   // Vista 2D de las mismas barreras que el motor genera con wallModel.
-   ctx.strokeStyle='#bdc5be';ctx.lineWidth=Math.max(1,gx*.10);
-   for(const wall of nativeComponents(it,(items||[]).filter(peer=>peer!==it&&isSection(peer)&&touches(it,peer)),items))if(wall.type==='wall'){
-    const a=toPixel(wall.a),b=toPixel(wall.b);
-    ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
-   }
+   // Las paredes colocadas por el creador se dibujan en la capa de arquitectura del editor.
    ctx.strokeStyle=it.id===selection?'#ffe6a5':'#647477';ctx.lineWidth=it.id===selection?2:1;
    const p=toPixel(it);ctx.strokeRect(p.x,p.y,it.w*gx,it.h*gy);
    ctx.restore();
