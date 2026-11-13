@@ -217,8 +217,9 @@
   if(typeof doc!=='string')throw new TypeError('Se requiere el HTML del motor Three.js');
   // No construir el mueble procedural del motor para modelos con GLB original:
   // de lo contrario sus copias entre plantas sobreviven al reemplazo asíncrono.
-  const furnitureLoop="for(const it of items)if(!['red_wall','wall','half_wall','fence','window','door','peephole_door','room','hall','outside','building','pavement','parking','grass','dirt','opening','spawn'].includes(it.type)){";
-  if(doc.includes(furnitureLoop))doc=once(doc,furnitureLoop,furnitureLoop+"\n  if(window.FHWaterVisuals?.choose(it))continue;");
+  const furnitureEntry='function furniture(f,a){';
+  if(doc.includes(furnitureEntry))doc=once(doc,furnitureEntry,
+   furnitureEntry+"\n if(window.FHWaterVisuals?.choose(a))return;");
   doc=once(doc,'function fhServicesSyncVisuals(){',
     'const fhWaterVisuals=window.FHWaterVisuals?.install({THREE,DATA,CELL,stories,renderedByItem,ForestShared,applyFOW:installVisibility});\nfunction fhServicesSyncVisuals(){');
   const handle='handle:(it,f)=>{\n  const service=window.FHServicesRuntime,T=window.FH_SERVICES_TEXT||{};';
