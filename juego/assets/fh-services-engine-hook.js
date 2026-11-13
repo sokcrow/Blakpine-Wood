@@ -263,7 +263,7 @@
   doc=once(doc,"const GameState=createGameState(restored||DATA.initialGameState);",
    "const GameState=createGameState(restored||DATA.initialGameState);\nwindow.FHEquipmentCore.ensure(GameState);",'equipamiento inicial');
   doc=once(doc,"const GameEvents=createEventBus();",
-   "window.FHEquipmentGame={state:GameState,itemDefs,save:saveProgress,refresh:()=>{renderInventory();window.FHPhoneRuntime?.syncAvailability?.()}};\nconst GameEvents=createEventBus();",'API de equipamiento');
+   "if(window.FHEquipmentCore.grantStarterChargers(GameState).changed)saveProgress();\nwindow.FHEquipmentGame={state:GameState,itemDefs,save:saveProgress,refresh:()=>{renderInventory();window.FHPhoneRuntime?.syncAvailability?.()}};\nconst GameEvents=createEventBus();",'API de equipamiento');
   const oldLight=" state.flashlight={enabled:!!f.enabled,charge:clampLight(Number.isFinite(Number(f.charge))?Number(f.charge):100,0,100)};\n const light=state.flashlight;";
   const newLight=[
    " const oldCharge=Number.isFinite(Number(f.charge))?Number(f.charge):100;",
@@ -320,7 +320,7 @@
    "  b.onclick=()=>{const result=core.moveFromWallet(GameState,id);if(!result.ok){notice('Inventario lleno.');return;}renderInventory();saveProgress()};section.append(b)}",
    "}"
   ].join("\n");
-  doc=once(doc,"function renderInventory(){",equipmentUI+"\nfunction renderInventory(){",'interfaz de bolsillos');
+  doc=once(doc,"function renderInventory(){",equipmentUI+"\nfunction renderInventory(){\nif(window.FHEquipmentCore.grantStarterChargers(GameState).changed)saveProgress();",'interfaz de bolsillos');
   doc=once(doc," updateInventoryActions(def,selectedInventoryId);\n}",
    " updateInventoryActions(def,selectedInventoryId);\n fhRearPockets();\n}",'render de equipamiento');
   doc=once(doc," if(def.kind==='note'){",
