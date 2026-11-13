@@ -218,7 +218,7 @@
   // No construir el mueble procedural del motor para modelos con GLB original:
   // de lo contrario sus copias entre plantas sobreviven al reemplazo asíncrono.
   const furnitureLoop="for(const it of items)if(!['red_wall','wall','half_wall','fence','window','door','peephole_door','room','hall','outside','building','pavement','parking','grass','dirt','opening','spawn'].includes(it.type)){";
-  doc=once(doc,furnitureLoop,furnitureLoop+"\n  if(window.FHWaterVisuals?.choose(it))continue;");
+  if(doc.includes(furnitureLoop))doc=once(doc,furnitureLoop,furnitureLoop+"\n  if(window.FHWaterVisuals?.choose(it))continue;");
   doc=once(doc,'function fhServicesSyncVisuals(){',
     'const fhWaterVisuals=window.FHWaterVisuals?.install({THREE,DATA,CELL,stories,renderedByItem,ForestShared,applyFOW:installVisibility});\nfunction fhServicesSyncVisuals(){');
   const handle='handle:(it,f)=>{\n  const service=window.FHServicesRuntime,T=window.FH_SERVICES_TEXT||{};';
