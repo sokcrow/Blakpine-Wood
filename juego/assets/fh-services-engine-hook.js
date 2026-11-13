@@ -289,6 +289,39 @@
    " }else if(def?.icon){const label=document.createElement('span');label.className='itemIconText';label.textContent=def.icon;node.append(label);}"
   ].join("\n");
   doc=once(doc,sprite,spriteWithImage,'ícono en inventario');
+
+  const equipmentUI=[
+   "function fhRearPockets(){",
+   " const core=window.FHEquipmentCore,eq=core?.ensure(GameState);if(!eq)return;",
+   " const host=$('inventoryPanel');if(!host)return;",
+   " let section=host.querySelector('#fhRearPockets');",
+   " if(!section){section=document.createElement('section');section.id='fhRearPockets';host.append(section)}",
+   " section.replaceChildren();",
+   " const title=document.createElement('h3');title.textContent='Equipamiento · bolsillos traseros';section.append(title);",
+   " for(const slot of core.SLOTS){",
+   "  const id=eq[slot],selected=selectedInventoryId&&['cell_phone','wallet'].includes(selectedInventoryId)?selectedInventoryId:(GameState.inventory.includes('cell_phone')?'cell_phone':GameState.inventory.includes('wallet')?'wallet':'');",
+   "  const b=document.createElement('button');b.type='button';b.style.cssText='min-height:44px;margin:4px;padding:8px;border:1px solid #677784;background:#18222c;color:#eee';",
+   "  b.textContent=(slot==='rearLeft'?'Bolsillo trasero izquierdo: ':'Bolsillo trasero derecho: ')+(id?(itemDefs.find(x=>x.id===id)?.name||id):'Vacío')+(id?' · Quitar':selected?' · Equipar '+(itemDefs.find(x=>x.id===selected)?.name||selected):'');",
+   "  b.onclick=()=>{const result=id?core.unequip(GameState,slot):core.equip(GameState,selected,slot);",
+   "   if(!result.ok){notice(result.reason==='full'?'Inventario lleno.':'No se puede cambiar el equipamiento.');return;}renderInventory();window.FHPhoneRuntime?.syncAvailability?.();saveProgress();};",
+   "  section.append(b);",
+   " }",
+   " if(!core.walletAvailable(GameState))return;",
+   " const heading=document.createElement('h4');heading.textContent='Cartera · efectivo y tarjetas';section.append(heading);",
+   " if(!eq.wallet.items.length){const empty=document.createElement('p');empty.textContent='Cartera vacía.';section.append(empty)}",
+   " for(const id of eq.wallet.items){const b=document.createElement('button');b.type='button';b.style.cssText='min-height:44px;margin:4px;padding:8px';b.textContent=(itemDefs.find(x=>x.id===id)?.name||id)+' · Sacar';",
+   "  b.onclick=()=>{const result=core.moveFromWallet(GameState,id);if(!result.ok){notice('Inventario lleno.');return;}renderInventory();saveProgress()};section.append(b)}",
+   "}"
+  ].join("\n");
+  doc=once(doc,"function renderInventory(){",equipmentUI+"\nfunction renderInventory(){",'interfaz de bolsillos');
+  doc=once(doc," updateInventoryActions(def,selectedInventoryId);\n}",
+   " updateInventoryActions(def,selectedInventoryId);\n fhRearPockets();\n}",'render de equipamiento');
+  doc=once(doc," if(def.kind==='note'){",
+   " if(window.FHEquipmentCore?.walletAvailable(GameState)&&['cash','card','physical_cash','physical_card'].includes(def.storageCategory||def.walletCategory)){",
+   "  secondary.hidden=false;secondary.textContent='Guardar en cartera';secondary.onclick=()=>{const result=window.FHEquipmentCore.moveToWallet(GameState,id,itemDefs);if(result.ok){renderInventory();saveProgress()}};",
+   " }",
+   " if(def.kind==='note'){",'acción de cartera');
+
   }
   // fixturePowered ya consulta sourceFor; no recalcular los enchufes por cada foco.
   doc=root.FHInternetVisuals?.patchEngineDoc(doc)||doc;
