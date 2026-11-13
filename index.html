@@ -141,7 +141,7 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
   </div>
  </div>
 </div>
-<script src="./juego/assets/fh-preview-strings.js?v=20261109-diag2"></script>
+<script src="./juego/assets/fh-preview-strings.js?v=20261113-door-safety"></script>
 <script src="./juego/assets/fh-preview-diagnostics.js?v=20261109-diag2"></script>
 <script src="./juego/assets/fh-mobile-camera.js?v=20261108-landscape20"></script>
 <script src="./juego/assets/images.js"></script>
@@ -258,6 +258,10 @@ function doorErrors(item){
  * Todos los valores del contexto usan las MISMAS unidades que x/y.
  * Los dos perfiles conservan los umbrales históricos; no rediseñan colisiones.
  */
+// Misma distancia para el cierre seguro y la colisión de puertas.
+function doorOccupiesPoint(x,y,door,radius,pad=0){
+ return distanceToSegment(x,y,door.block||door)<radius+pad;
+}
 function solidAt(x,y,ctx){
  const radius=ctx.radius;
  if(x<radius||y<radius||x>ctx.width-radius||y>ctx.height-radius)return true;
@@ -268,8 +272,7 @@ function solidAt(x,y,ctx){
  }
  for(const d of ctx.doors||[]){
   if(d.destroyed===true||d.open===true&&d.passable!==false)continue;
-  const s=d.block||d;
-  if(distanceToSegment(x,y,s)<radius+(ctx.doorPad??ctx.wallPad??0))return true;
+  if(doorOccupiesPoint(x,y,d,radius,ctx.doorPad??ctx.wallPad??0))return true;
  }
  for(const o of ctx.objects||[]){
   if(o.blocksMovement===false)continue;
@@ -1618,7 +1621,7 @@ function migrate(raw){
 }
 function loadProject(raw){const doc=migrate(raw),v=validate(doc);if(!v.ok)throw new MapValidationError(v.errors);return doc}
 
-return {DOOR_VARIANTS,DOOR_LENGTH_TOLERANCE,doorSpan,doorWidthClass,doorSpec,doorErrors,distanceToSegment,rectangleLocal,distanceToRectangle,solidAt,elevatorCollision,stairMetrics,stairFrame,stairPointAt,stairDownMarker,stairOnRun,stairTriggerAt,stairAutoTriggerAt,stairDescendTriggerAt,stairRails,stairAccessBlocked,ELEVATOR_PHASES,DEFAULT_ELEVATOR_EVENTS,elevatorConfig,elevatorShaftId,elevatorEntrancePoint,elevatorEntranceDistance,createElevatorMachine,MAX_DYNAMIC_LIGHTS,DEFAULT_BATTERY_DEF,createLightingSystem,circuitsForPanel,circuitHUDState,CIRCUIT_PALETTE,editorCircuits,nextCircuit,roomCircuitAssignments,circuitCounts,circuitRoomOutline,switchNormal,roomAtSwitchSide,switchWallMount,redBoundaryLoops,createExteriorClassifier,sightRayDistance,pointInSight,lightReachesPoint,segmentInSight,furnitureInSight,crossFloorSight,rayThroughExteriorOpening,MAP_SCHEMA,CURRENT_VERSION,MapValidationError,INTERACTION_VERBS,INTERACTION_EFFECTS,BUILTIN_SOUNDS,FACING_OBJECT_TYPES,interactionPreset,validateInteraction,interactionReferenceWarnings,PROP_ACTIONS,defaultPropAnchors,propAnchors,validatePropAnchors,propAnchorWorld,nearestPropAnchor,nearestReachablePropAnchor,seatedSpriteView,spritePosturePlacement,createPoseMachine,poseRouteClear,findSafePoseExit,findFacingTVCombo,ITEM_KINDS,MAX_INVENTORY_SLOTS,itemDefById,inventorySlots,grantItem,removeItem,markNoteRead,doorKeyResult,unlockDoor,validateItemDefs,progressionReferenceWarnings,gameSaveKey,validate,migrate,loadProject};
+return {DOOR_VARIANTS,DOOR_LENGTH_TOLERANCE,doorSpan,doorWidthClass,doorSpec,doorErrors,doorOccupiesPoint,distanceToSegment,rectangleLocal,distanceToRectangle,solidAt,elevatorCollision,stairMetrics,stairFrame,stairPointAt,stairDownMarker,stairOnRun,stairTriggerAt,stairAutoTriggerAt,stairDescendTriggerAt,stairRails,stairAccessBlocked,ELEVATOR_PHASES,DEFAULT_ELEVATOR_EVENTS,elevatorConfig,elevatorShaftId,elevatorEntrancePoint,elevatorEntranceDistance,createElevatorMachine,MAX_DYNAMIC_LIGHTS,DEFAULT_BATTERY_DEF,createLightingSystem,circuitsForPanel,circuitHUDState,CIRCUIT_PALETTE,editorCircuits,nextCircuit,roomCircuitAssignments,circuitCounts,circuitRoomOutline,switchNormal,roomAtSwitchSide,switchWallMount,redBoundaryLoops,createExteriorClassifier,sightRayDistance,pointInSight,lightReachesPoint,segmentInSight,furnitureInSight,crossFloorSight,rayThroughExteriorOpening,MAP_SCHEMA,CURRENT_VERSION,MapValidationError,INTERACTION_VERBS,INTERACTION_EFFECTS,BUILTIN_SOUNDS,FACING_OBJECT_TYPES,interactionPreset,validateInteraction,interactionReferenceWarnings,PROP_ACTIONS,defaultPropAnchors,propAnchors,validatePropAnchors,propAnchorWorld,nearestPropAnchor,nearestReachablePropAnchor,seatedSpriteView,spritePosturePlacement,createPoseMachine,poseRouteClear,findSafePoseExit,findFacingTVCombo,ITEM_KINDS,MAX_INVENTORY_SLOTS,itemDefById,inventorySlots,grantItem,removeItem,markNoteRead,doorKeyResult,unlockDoor,validateItemDefs,progressionReferenceWarnings,gameSaveKey,validate,migrate,loadProject};
 })();
 
 
@@ -3314,7 +3317,7 @@ function stopPlay(){playState.running=false;cancelAnimationFrame(playState.raf);
 function playResize(){if(!playState.running)return;const r=playCanvas.getBoundingClientRect(),d=Math.min(window.devicePixelRatio||1,2);playCanvas.width=Math.max(1,Math.round(r.width*d));playCanvas.height=Math.max(1,Math.round(r.height*d));}
 function playUpdateNearby(){let closest=null,dist=Infinity;for(const it of playFloor().items){if(PLAY_DOORS.has(it.type)){const d=playDistToSegment(playState,it.a,it.b);if(d<.98&&d<dist){closest=it;dist=d}}else if(it.type==='stairs'||it.type==='elevator'&&it.enabled){const d=Math.hypot(it.x-playState.x,it.y-playState.y);if(d<1.25&&d<dist){closest=it;dist=d}}}
  playState.near=closest;const b=document.querySelector('#playAction');if(!closest){b.disabled=true;b.textContent='Sin acción';return}b.disabled=false;if(PLAY_DOORS.has(closest.type)){b.textContent=closest.locked&&!playDoorOpen(closest)?'🔒 Cerrada':playDoorOpen(closest)?'Cerrar puerta':'Abrir puerta'}else if(closest.type==='stairs'){b.textContent=project.floors.findIndex(f=>f.id===closest.targetFloorId)>playState.floorIndex?'Subir escaleras':'Bajar escaleras'}else b.textContent='Usar ascensor';}
-function playAction(){if(!playState.running||!playState.near)return;const it=playState.near;if(PLAY_DOORS.has(it.type)){if(it.locked&&!playDoorOpen(it)){document.querySelector('#playTip').textContent='La puerta está cerrada con llave.';return}playState.doors.set(it.id,!playDoorOpen(it));document.querySelector('#playTip').textContent=playDoorOpen(it)?'Puerta abierta.':'Puerta cerrada.'}
+function playAction(){if(!playState.running||!playState.near)return;const it=playState.near;if(PLAY_DOORS.has(it.type)){if(it.locked&&!playDoorOpen(it)){document.querySelector('#playTip').textContent='La puerta está cerrada con llave.';return}if(playDoorOpen(it)&&ForestShared.doorOccupiesPoint(playState.x,playState.y,it,.19,.06)){document.querySelector('#playTip').textContent=window.FH_PREVIEW_TEXT.doorOccupied;return}playState.doors.set(it.id,!playDoorOpen(it));document.querySelector('#playTip').textContent=playDoorOpen(it)?'Puerta abierta.':'Puerta cerrada.'}
  else if(it.type==='stairs'||it.type==='elevator'){
   const targetId=it.targetFloorId||project.floors[Math.min(playState.floorIndex+1,project.floors.length-1)]?.id;let target=project.floors.findIndex(f=>f.id===targetId);if(target<0||target===playState.floorIndex)target=playState.floorIndex>0?playState.floorIndex-1:Math.min(1,project.floors.length-1);if(target===playState.floorIndex)return;
   const matching=project.floors[target].items.filter(o=>o.type===it.type);const near=matching.reduce((a,b)=>Math.hypot(b.x-it.x,b.y-it.y)<Math.hypot(a.x-it.x,a.y-it.y)?b:a,matching[0]||{x:it.x,y:it.y});playSetFloor(target,{x:near.x+.6,y:near.y});document.querySelector('#playTip').textContent='Cambio de piso: '+project.floors[target].name+'.';
@@ -3449,9 +3452,30 @@ function addLiveTextToEngine(doc){
  const hearing='<script src="'+new URL('./juego/assets/fh-hearing.js?v=20261107-hearing-1',document.baseURI).href+'"></'+'script>';
  const str='<script src="'+new URL('./juego/assets/fh-live-text-strings.js?v=20261106-live-courier',document.baseURI).href+'"></'+'script>';
  const ui='<script src="'+new URL('./juego/assets/fh-live-text.js?v=20261107-sleep-visible-2',document.baseURI).href+'"></'+'script>';
- const withLiveText = doc.replace('</head>',hearing+str+ui+'</head>');
+ const withLiveText = addDoorSafetyToEngine(doc).replace('</head>',hearing+str+ui+'</head>');
  return typeof window !== 'undefined' && window.FHComicActionEngine?.patch
    ? window.FHComicActionEngine.patch(withLiveText) : withLiveText;
+}
+
+function addDoorSafetyToEngine(doc){
+ const changes=[
+  ['function solidAt(x,y,ctx){',ForestShared.doorOccupiesPoint.toString()+'\nfunction solidAt(x,y,ctx){'],
+  ['return {DOOR_VARIANTS,','return {doorOccupiesPoint,DOOR_VARIANTS,'],
+  ['  const s=d.block||d;\n  if(distanceToSegment(x,y,s)<radius+(ctx.doorPad??ctx.wallPad??0))return true;',
+   '  if(doorOccupiesPoint(x,y,d,radius,ctx.doorPad??ctx.wallPad??0))return true;'],
+  ['function doorTarget(d){',
+   "function doorCloseOccupied(d){return d.f===currentFloor&&ForestShared.doorOccupiesPoint(user.x,user.z,d,PLAYER_RADIUS,.053);}\nfunction doorTarget(d){"],
+  [' d.open=!d.open;d.target=doorTarget(d);',
+   ' if(d.open&&doorCloseOccupied(d))return notice(window.FH_PREVIEW_TEXT.doorOccupied,1800);\n d.open=!d.open;d.target=doorTarget(d);'],
+  [' door.locked=false;door.open=!door.open;',
+   ' if(door.open&&doorCloseOccupied(door))return notice(window.FH_PREVIEW_TEXT.doorOccupied,1800);\n door.locked=false;door.open=!door.open;']
+ ];
+ for(const [before,after] of changes){
+  const count=doc.split(before).length-1;
+  if(count!==1)throw Error('Hook cierre seguro incompatible ('+count+'): '+before.slice(0,75));
+  doc=doc.replace(before,after);
+ }
+ return doc;
 }
 
 function addPreviewReturnToSpawnpoint(doc){
@@ -4876,7 +4900,7 @@ function floorSightThroughOpening(f,at,target,openings){
   }
   // Instalar el lector ANTES de scripts, GLB y código de arranque del iframe.
   const tags=['fh-preview-strings.js','fh-preview-diagnostics.js'].map(file=>
-   '<script '+(file.includes('diagnostics')?'data-fh-runtime ':'')+'src="'+new URL('./juego/assets/'+file+'?v=20261109-diag2',document.baseURI).href+'"></'+'script>').join('');
+   '<script '+(file.includes('diagnostics')?'data-fh-runtime ':'')+'src="'+new URL('./juego/assets/'+file+'?v=20261113-door-safety',document.baseURI).href+'"></'+'script>').join('');
   return doc.replace('<head>','<head>'+tags);
  }
  // Drenajes 06: recortar las superficies nativas y seguir el desnivel jugable.
