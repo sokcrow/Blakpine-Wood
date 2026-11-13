@@ -4,6 +4,7 @@ on:
     paths:
       - "juego/assets/fh-water-hot.js"
       - "juego/assets/fh-water-hot.test.js"
+      - "juego/assets/fh-water-glb-electric.test.js"
       - "juego/assets/fh-water-lift.test.js"
       - "juego/assets/fh-water-storage-catalog.test.js"
       - "juego/assets/fh-water-editor.js"
@@ -17,6 +18,7 @@ on:
     paths:
       - "juego/assets/fh-water-hot.js"
       - "juego/assets/fh-water-hot.test.js"
+      - "juego/assets/fh-water-glb-electric.test.js"
       - "juego/assets/fh-water-lift.test.js"
       - "juego/assets/fh-water-storage-catalog.test.js"
       - "juego/assets/fh-water-editor.js"
@@ -35,6 +37,7 @@ jobs:
         with:
           node-version: "22"
       - run: node --test juego/assets/fh-water-hot.test.js
+      - run: node --test juego/assets/fh-water-glb-electric.test.js
       - run: node --test juego/assets/fh-water-lift.test.js
       - run: node --test juego/assets/fh-water-storage-catalog.test.js
       - run: node --test juego/assets/fh-water-potable.test.js

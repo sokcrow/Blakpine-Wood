@@ -79,6 +79,12 @@
   item.type=type;item.modelId=model.id;item.label=model.name;
   item.placement=model.placement;item.w=model.widthFt/cell;item.h=model.depthFt/cell;
   item.heightFt=model.heightFt;item.blocksMovement=model.placement==='floor';
+  // Separar el cuerpo del muro una sola vez, antes de persistir el JSON.
+  // Así 3D, hitbox, interacción y editor comparten el mismo centro.
+  if(model.placement==='floor'){
+   const adjusted=root.FHWaterVisuals?.floorPlacement?.(item,model,current().items,cell*.3048);
+   if(adjusted){item.x=adjusted.x;item.y=adjusted.y;}
+  }
   item.zoneId=''; // El motor elige automáticamente el breaker alcanzable por la pared.
   if(mount){
    Object.assign(item,{x:mount.point.x,y:mount.point.y,wallId:mount.wallId,
@@ -153,7 +159,7 @@
   note.textContent=model.kind==='heater'?'Caldera de agua caliente · GLB original.':
    'Accesorio de caldera · GLB original.';
   if(it.service?.requiresPower){note.textContent+=' · '+(power?.powered?
-   'Alimentación directa desde breaker '+(power.breakerId||'')+' ('+Number(power.feet||0).toFixed(1)+' pies)':
+   (power.socket?'Alimentación desde enchufe '+(power.via||''):'Alimentación directa desde breaker '+(power.breakerId||''))+' ('+Number(power.feet||0).toFixed(1)+' pies)':
    power?.connected?'Cable conectado, pero el circuito no tiene corriente.':
    'Sin circuito: falta un breaker alcanzable por las paredes.');}
   fields.append(note);

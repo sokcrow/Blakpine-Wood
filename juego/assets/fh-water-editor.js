@@ -58,7 +58,7 @@
    Object.assign(item,{x:m.point.x,y:m.point.y,rotation:m.rotation,wallId:m.wallId,roomId:m.room?.roomId||item.roomId||''});
   }else{
    // Para equipo de piso, desplazar hacia delante del muro antes de grabar.
-   const p=window.FHWaterVisuals?.floorPlacement(item,meta,current().items,feet*0.3048);
+   const p=window.FHWaterVisuals?.floorPlacement?.(item,meta,current().items,feet*0.3048);
    if(p){item.x=p.x;item.y=p.y;}
    delete item.wallId;
   }
@@ -132,6 +132,8 @@
    Object.assign(item,{modelId:tank.id,utilitySkin:tank.id,label:tank.name,
     placement:'floor',w:tank.widthFt/cell,h:tank.depthFt/cell,
     heightFt:tank.heightFt,blocksMovement:true});
+   const adjusted=window.FHWaterVisuals?.floorPlacement?.(item,tank,current().items,cell*.3048);
+   if(adjusted){item.x=adjusted.x;item.y=adjusted.y;}
    item.interact={id:'utility_'+item.id,verb:'use',label:'Inspeccionar '+tank.name,effects:[]};
    project.plumbing={...project.plumbing,enabled:true};
    return item;
