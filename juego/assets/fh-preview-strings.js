@@ -1,5 +1,6 @@
 /* Forest Horror — textos del arranque de la prueba 3D. */
 window.FH_PREVIEW_TEXT=Object.freeze({
+ doorOccupied:'Apártate del umbral para cerrar la puerta.',
  preparing:'Preparando tu mapa actual en 3D…',
  loading:'Cargando el motor 3D y tu mapa…',
  missing:'Faltan archivos del motor 3D. Recarga la página.',
