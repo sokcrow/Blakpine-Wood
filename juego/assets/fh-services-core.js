@@ -185,6 +185,7 @@
   if(typeof state.phone.placedAt!=='string')state.phone.placedAt='';
   state.phone.placedMode=state.phone.placedMode==='portable'?'portable':state.phone.placedMode==='legacy'?'legacy':'';
   state.phone.chargeElapsedMinutes=clamp(number(state.phone.chargeElapsedMinutes),0,3);
+  state.phone.chargerItemId=state.phone.chargerItemId==='cell_phone_fast_charger'?'cell_phone_fast_charger':state.phone.chargerItemId==='cell_phone_charger'?'cell_phone_charger':'';
   return s;
  }
  function createRuntime(project,state={},options={}){
@@ -1018,18 +1019,19 @@
    if(s.calls.length>200)s.calls.splice(0,s.calls.length-200);
    return {ok:true,event,target:found};
   }
-  function chargePhone(f,chargerId){
+  function chargePhone(f,chargerId,chargerItemId='cell_phone_charger'){
    const it=itemAt(f,chargerId);
    if(!it||state.phone.placedAt||!['power_outlet','phone_charger'].includes(it.type))return false;
    const snap=electrical();
    if(!electricalStatus(f,it,snap).powered)return false;
    if(it.type==='power_outlet'){
-    if(!Array.isArray(state.inventory)||!state.inventory.includes('cell_phone_charger'))return false;
+    if(!['cell_phone_charger','cell_phone_fast_charger'].includes(chargerItemId)||!Array.isArray(state.inventory)||!state.inventory.includes(chargerItemId))return false;
     if((snap.used.get(f+':'+id(it))||0)>=2)return false;
    }
    state.phone.placedAt=id(it);
    state.phone.placedFloor=f;
    state.phone.placedMode=it.type==='power_outlet'?'portable':'legacy';
+   state.phone.chargerItemId=it.type==='power_outlet'?chargerItemId:'';
    state.phone.chargeElapsedMinutes=0;
    if(state.flashlight)state.flashlight.enabled=false;
    return true;
@@ -1037,7 +1039,7 @@
   function takePhone(){
    if(!state.phone.placedAt)return false;
    state.phone.placedAt='';delete state.phone.placedFloor;
-   state.phone.placedMode='';state.phone.chargeElapsedMinutes=0;return true;
+   state.phone.placedMode='';state.phone.chargerItemId='';state.phone.chargeElapsedMinutes=0;return true;
   }
   function useWaterFixture(f,it){
    if(!it||!requiresWater(it)||!waterStatus(f,it).water)return {ok:false,reason:'noWater'};
@@ -1115,8 +1117,9 @@
     else if(electricalStatus(f,charger,snap).powered&&state.phone.battery<100){
      const minutes=seconds/60;
      const total=state.phone.chargeElapsedMinutes+minutes;
-     const gained=Math.floor((total+1e-9)/3);
-     state.phone.chargeElapsedMinutes=Math.max(0,total-gained*3);
+     const interval=state.phone.placedMode==='portable'&&state.phone.chargerItemId==='cell_phone_fast_charger'?2:3;
+     const gained=Math.floor((total+1e-9)/interval);
+     state.phone.chargeElapsedMinutes=Math.max(0,total-gained*interval);
      if(gained)state.phone.battery=clamp(state.phone.battery+gained,0,100);
      if(state.phone.battery>=100)state.phone.chargeElapsedMinutes=0;
     }
