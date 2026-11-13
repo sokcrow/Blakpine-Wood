@@ -81,7 +81,7 @@
   noCellular:'Sin señal o servicio móvil.',phoneCharging:'Celular cargando.',
   phoneTaken:'Celular recuperado.',phoneFull:'Batería completa.',phoneBatteryEmpty:'Sin batería.',
   chargerMissing:'El cargador no tiene corriente.',chargerCannotConnect:'No se puede conectar: revisa la corriente y las conexiones libres.',phonePlaced:'Celular conectado al cargador.',
-  chargerAction:'Conectar cargador y celular',takePhone:'Desconectar y recoger celular',
+  chargerAction:'Conectar cargador normal',chargerFastAction:'Conectar cargador rápido (×1.5)',takePhone:'Desconectar y recoger celular',
   useOutlet:'Ver conexiones',useRouter:'Estado de red',useLandline:'Usar teléfono',
   usedSlots:'Conexiones utilizadas',overload:'Sobrecarga eléctrica',
   invalidLink:'Sin conexión válida.',broken:'Conector dañado.',
