@@ -262,6 +262,8 @@
    "const itemDefs=window.FHEquipmentCore.itemDefinitions(DATA.itemDefs||[]);",'catálogo de equipamiento');
   doc=once(doc,"const GameState=createGameState(restored||DATA.initialGameState);",
    "const GameState=createGameState(restored||DATA.initialGameState);\nwindow.FHEquipmentCore.ensure(GameState);",'equipamiento inicial');
+  doc=once(doc,"const GameEvents=createEventBus();",
+   "window.FHEquipmentGame={state:GameState,itemDefs,save:saveProgress,refresh:()=>{renderInventory();window.FHPhoneRuntime?.syncAvailability?.()}};\\nconst GameEvents=createEventBus();",'API de equipamiento');
   const oldLight=" state.flashlight={enabled:!!f.enabled,charge:clampLight(Number.isFinite(Number(f.charge))?Number(f.charge):100,0,100)};\n const light=state.flashlight;";
   const newLight=[
    " const oldCharge=Number.isFinite(Number(f.charge))?Number(f.charge):100;",
