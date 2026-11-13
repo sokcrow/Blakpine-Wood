@@ -31,7 +31,6 @@
   if(!Object.values(eq).some(v=>v==='wallet')&&!state.inventory.includes('wallet'))eq.rearRight='wallet';
   eq.wallet=eq.wallet&&typeof eq.wallet==='object'?eq.wallet:{};
   eq.wallet.items=Array.isArray(eq.wallet.items)?eq.wallet.items.filter(x=>typeof x==='string'):[];
-  eq.wallet.cashCents=Number.isSafeInteger(eq.wallet.cashCents)&&eq.wallet.cashCents>=0?eq.wallet.cashCents:0;
   state.equipment=eq;
   return eq;
  }
