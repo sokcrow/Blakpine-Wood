@@ -59,13 +59,13 @@
   }
   function routesTo(f,it){
    if(!floors[f]||!wantsHot(it))return [];
-   const ports=it.type==='water_outlet'?[{f,it}]:cold.portsFor?.(f,it)||[];
+   const ports=it.type==='water_outlet'?[{f,it}]:cold.portsFor?.(f,it,'hot')||[];
    const matches=[];
    for(const port of ports){
     if(!wantsHot(port.it))continue;
     for(const b of boilers){
      if(!related(b.it,port.it)||!related(b.it,it))continue;
-     const route=cold.routeBetween?.(b.f,b.it,port.f,port.it);
+     const route=cold.routeBetween?.(b.f,b.it,port.f,port.it,'hot');
      if(!route||route.feet>Math.max(0,num(b.it.hotRangeFt,240)))continue;
      matches.push({boiler:b,port,route});
     }
