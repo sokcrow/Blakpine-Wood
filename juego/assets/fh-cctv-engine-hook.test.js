@@ -57,6 +57,29 @@ test('adaptador añade módulo CCTV y conserva motor, sin sustituir a RAVEN/OS',
  const runtime=patched.slice(patched.indexOf('const fhCCTV='),patched.indexOf('window.FHComputerRuntime='));
  assert.doesNotThrow(()=>new Function(runtime));
 });
+
+test('CCTV inicia antes de sightCanvas sin leer el canvas del jugador',()=>{
+ const patched=sandboxWindow.FHCCTVEngine.patch(preparedEngine());
+ const from=patched.indexOf('const fhCCTV=');
+ const to=patched.indexOf('window.FHComputerRuntime=',from);
+ const playerMask=patched.indexOf("const sightCanvas=document.createElement('canvas');",to);
+ assert.ok(from>=0&&to>from&&playerMask>to,'La computadora se conecta antes de crear sightCanvas');
+ let canvases=0;
+ const env={
+  window:{FHCCTV:require('./fh-cctv.js'),addEventListener(){}},
+  THREE:{Vector3:class{},Vector4:class{}},DATA:{floors:[{items:[]}]},
+  document:{createElement(){canvases++;return {getContext(){return {};}};}}
+ };
+ assert.doesNotThrow(()=>vm.runInNewContext(patched.slice(from,to)+
+  '\nconst sightCanvas={width:384,height:480};const sightTexture={};',env));
+ assert.equal(canvases,0,'No se reserva el canvas remoto hasta su primera captura');
+});
+test('CCTV conserva el viewport del render target en todos los pixel ratios',()=>{
+ const patched=sandboxWindow.FHCCTVEngine.patch(preparedEngine());
+ assert.doesNotMatch(patched,/renderer\.setViewport\(0,0,format\.width,format\.height\)/);
+ assert.match(patched,/renderer\.setRenderTarget\(fhCCTVTarget\);\s*(?:\/\/[^\n]*\n\s*)?renderer\.setScissorTest\(false\)/);
+});
+
 test('adaptador rechaza fuentes sin los puntos de integración necesarios',()=>{
  assert.throws(()=>sandboxWindow.FHCCTVEngine.patch('<html><head></head></html>'),/Hook CCTV incompatible/);
 });

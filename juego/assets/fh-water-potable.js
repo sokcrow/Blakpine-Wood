@@ -23,8 +23,11 @@
  const pos=x=>({x:num(x?.x),y:num(x?.y)});
  const distance=(a,b)=>Math.hypot(num(a.x)-num(b.x),num(a.y)-num(b.y));
  const name=it=>String(it?.networkId||'');
+ const hotName=it=>String(it?.hotNetworkId||it?.networkId||'main');
  const owner=it=>String(it?.buildingId||it?.propertyId||'');
  const compatible=(a,b)=>(name(a)===name(b)||!name(a)||!name(b)||name(a)==='*'||name(b)==='*')&&
+  (!owner(a)||!owner(b)||owner(a)===owner(b));
+ const compatibleHot=(a,b)=>(hotName(a)===hotName(b)||hotName(a)==='*'||hotName(b)==='*')&&
   (!owner(a)||!owner(b)||owner(a)===owner(b));
  const isFixture=it=>!!it&&it.service?.requiresWater!==false&&
   (FIXTURES.has(it.modelId)||it.service?.requiresWater===true);
@@ -43,7 +46,7 @@
   if(end-start<.1)return null;
   return {x:a.x+(vx/len)*(start+end)/2,y:a.y+(vy/len)*(start+end)/2};
  }
- function createRuntime(project,services,wallGraph){
+ function createRuntime(project,services,wallGraph,powered=()=>false){
   const floors=Array.isArray(project?.floors)?project.floors:[];
   const ft=Math.max(.1,num(project?.units?.feetPerCell,5));
   const enabled=project?.plumbing?.enabled===true||
@@ -51,10 +54,11 @@
   if(!enabled)return Object.freeze({enabled:false,isFixture,tick:()=>{},diagnostics:()=>({routes:[],coldFeet:0})});
   if(typeof wallGraph!=='function')throw Error('Agua potable: falta wallGraph');
   const graphs=floors.map(f=>wallGraph(f.items||[]));
-  const nodes=[],links=[],itemNodes=new Map(),sources=[],ports=[],tanks=[];
+  const nodes=[],links=[],hotLinks=[],itemNodes=new Map(),sources=[],ports=[],tanks=[],pumps=[];
+  const requireLiftPump=project?.plumbing?.requireLiftPump===true;
   const add=(f,it,kind,p=pos(it))=>{
    const node={f,it,kind,p,index:nodes.length};
-   nodes.push(node);links.push([]);
+   nodes.push(node);links.push([]);hotLinks.push([]);
    if(it?.id)itemNodes.set(f+':'+String(it.id),node);
    return node;
   };
@@ -63,6 +67,8 @@
     const node=add(f,it,'source');sources.push(node);
     if(isTank(it))tanks.push(node);
    }else if(it.type==='water_outlet')ports.push(add(f,it,'port'));
+   else if(it.type==='water_boiler_aux'&&it.modelId==='bomba_recirculacion'&&it.service?.waterLiftPump===true)
+    pumps.push(add(f,it,'pump'));
    else if(it.service?.waterHeating===true&&BOILERS.has(it.modelId))add(f,it,'boiler');
   }
   const joins=[];
@@ -84,25 +90,54 @@
     joins.push([ia,ib,Math.abs(b.z-a.z)]);
    }
   }
-  function edge(a,b,feet,sections){
-   links[a.index].push({to:b.index,feet,sections});
-   links[b.index].push({to:a.index,feet,sections:sections.map(x=>({
-    ...x,points:x.points?.slice().reverse()
-   })).reverse()});
+  // Montante manual: mismo ID en tomas de plantas consecutivas del mismo edificio.
+  for(let n=1;n<order.length;n++){
+   const a=order[n-1],b=order[n];
+   for(const lo of ports.filter(p=>p.f===a.f)){
+    const id=String(lo.it.verticalRiserId||'').trim();
+    if(!id)continue;
+    for(const hi of ports.filter(p=>p.f===b.f)){
+     if(String(hi.it.verticalRiserId||'').trim()!==id||owner(lo.it)!==owner(hi.it))continue;
+     const offset=distance(lo.p,hi.p)*ft;
+     if(offset>Math.min(Math.max(0,num(lo.it.riserMaxOffsetFt,15)),
+       Math.max(0,num(hi.it.riserMaxOffsetFt,15))))continue;
+     joins.push([lo,hi,Math.hypot(offset,Math.abs(b.z-a.z)),hi.p]);
+    }
+   }
+  }
+  function edge(a,b,feet,sections,kind='both'){
+   const reverse=sections.slice().reverse().map(x=>x.vertical?{
+    ...x,floor:x.toFloor,toFloor:x.floor,point:x.toPoint||x.point,toPoint:x.point
+   }:{...x,points:x.points?.slice().reverse()});
+   if(kind!=='hot'){
+    links[a.index].push({to:b.index,feet,sections});
+    links[b.index].push({to:a.index,feet,sections:reverse});
+   }
+   if(kind!=='cold'){
+    hotLinks[a.index].push({to:b.index,feet,sections});
+    hotLinks[b.index].push({to:a.index,feet,sections:reverse});
+   }
   }
   for(let i=0;i<nodes.length;i++)for(let j=i+1;j<nodes.length;j++){
    const a=nodes[i],b=nodes[j];
-   if(a.f!==b.f||!compatible(a.it,b.it))continue;
+   if(a.f!==b.f||(!compatible(a.it,b.it)&&!compatibleHot(a.it,b.it)))continue;
    const path=graphs[a.f].routeDetailed(a.p,b.p,Math.max(leadFt(a.it),leadFt(b.it))/ft);
    if(!path||path.fromGap*ft>leadFt(a.it)+.001||path.toGap*ft>leadFt(b.it)+.001)continue;
    const feet=(path.length+path.fromGap+path.toGap)*ft;
-   edge(a,b,feet,[{floor:a.f,points:[a.p,...path.points,b.p]}]);
+   const sections=[{floor:a.f,points:[a.p,...path.points,b.p]}];
+   if(compatible(a.it,b.it))edge(a,b,feet,sections,'cold');
+   if(compatibleHot(a.it,b.it))edge(a,b,feet,sections,'hot');
   }
-  for(const [a,b,feet] of joins)edge(a,b,feet,[{vertical:true,floor:a.f,toFloor:b.f,point:a.p,feet}]);
+  for(const [a,b,feet,toPoint] of joins){
+   const sections=[{vertical:true,floor:a.f,toFloor:b.f,point:a.p,toPoint:toPoint||b.p,feet}];
+   if(compatible(a.it,b.it))edge(a,b,feet,sections,'cold');
+   if(compatibleHot(a.it,b.it))edge(a,b,feet,sections,'hot');
+  }
   const paths=new Map();
-  function shortest(from,to){
+  function shortest(from,to,kind='cold'){
+   const adjacency=kind==='hot'?hotLinks:links;
    if(!from||!to)return null;
-   const key=from.index+':'+to.index;
+   const key=kind+':'+from.index+':'+to.index;
    if(paths.has(key))return paths.get(key);
    const cost=nodes.map(()=>Infinity),prev=new Array(nodes.length),used=new Set();
    cost[from.index]=0;
@@ -111,7 +146,7 @@
     for(let i=0;i<nodes.length;i++)if(!used.has(i)&&cost[i]<best){best=cost[i];u=i;}
     if(u<0||u===to.index)break;
     used.add(u);
-    for(const e of links[u])if(best+e.feet<cost[e.to]-1e-8){
+    for(const e of adjacency[u])if(best+e.feet<cost[e.to]-1e-8){
      cost[e.to]=best+e.feet;prev[e.to]={u,edge:e};
     }
    }
@@ -141,17 +176,39 @@
    return floors.every(f=>(f.items||[]).filter(x=>x.type==='water_valve'&&compatible(x,it))
     .every(v=>(services.enabled?.[v.id]??v.opened)!==false));
   }
+  function pumpReady(p){
+   return p.it.enabled!==false&&services.enabled?.[p.it.id]!==false&&
+    num(services.damage?.[p.it.id])<100&&powered(p.f,p.it)===true;
+  }
+  function pumpFor(source,target){
+   const fromZ=num(floors[source.f]?.elevationFt,source.f*12);
+   const toZ=num(floors[target.f]?.elevationFt,target.f*12);
+   if(toZ<=fromZ)return null;
+   return pumps.find(p=>{
+    if(!pumpReady(p)||!openValves(source.it)||!openValves(p.it)||!openValves(target.it))return false;
+    if(p.f!==source.f||!compatible(source.it,p.it)||!compatible(p.it,target.it))return false;
+    if(p.it.pumpSourceId&&String(p.it.pumpSourceId)!==String(source.it.id))return false;
+    if(p.it.pumpTargetId&&String(p.it.pumpTargetId)!==String(target.it.id))return false;
+    const inlet=shortest(source,p),outlet=shortest(p,target);
+    return inlet&&outlet&&inlet.feet<=Math.max(0,num(p.it.pumpInletRangeFt,15))&&
+     outlet.feet<=Math.max(0,num(p.it.pumpRangeFt,240));
+   })||null;
+  }
   function choices(node,onlyMains=false){
    if(!node||!openValves(node.it))return [];
    return sources.filter(s=>compatible(s.it,node.it)&&(!onlyMains||s.it.type==='water_main'))
     .map(s=>({node:s,route:shortest(s,node)}))
-    .filter(x=>x.route&&x.route.feet<=Math.max(0,num(x.node.it.rangeFt,isTank(x.node.it)?240:120))+.001)
+    .filter(x=>x.route&&x.route.feet<=Math.max(0,num(x.node.it.rangeFt,isTank(x.node.it)?240:120))+.001&&
+     (!requireLiftPump||!isTank(x.node.it)||
+      num(floors[x.node.f]?.elevationFt,x.node.f*12)>=num(floors[node.f]?.elevationFt,node.f*12)||
+      !!pumpFor(x.node,node)))
     .sort((a,b)=>Number(isTank(a.node.it))-Number(isTank(b.node.it))||a.route.feet-b.route.feet);
   }
-  function portsFor(f,it){
+  function portsFor(f,it,kind='cold'){
+   const accepts=kind==='hot'?compatibleHot:compatible;
    if(it.type==='water_outlet')return [itemNodes.get(f+':'+String(it.id))].filter(Boolean);
    const p=pos(it);
-   return ports.filter(port=>port.f===f&&compatible(port.it,it)&&
+   return ports.filter(port=>port.f===f&&accepts(port.it,it)&&
     distance(port.p,p)*ft<=Math.max(0,num(port.it.radiusFt,5))&&
     graphs[f].wallsBetween(p,port.p)===0)
     .sort((a,b)=>distance(a.p,p)-distance(b.p,p));
@@ -166,13 +223,14 @@
     const tank=tankState[tankKey(floors[f],it)];
     return {connected:true,water:num(tank?.liters)>0,liters:num(tank?.liters)};
    }
-   for(const port of portsFor(f,it)){
+   const localPorts=portsFor(f,it);
+   for(const port of localPorts){
     const paths=choices(port).filter(x=>compatible(x.node.it,it)),ready=paths.find(x=>available(x.node));
     if(ready)return {connected:true,water:true,via:port.it.id,sourceId:ready.node.it.id,
      sourceType:ready.node.it.type,feet:ready.route.feet};
     if(paths.length)return {connected:true,water:false,via:port.it.id,reason:'sourceUnavailable'};
    }
-   return {connected:false,water:false,reason:'unconnected'};
+   return {connected:false,water:false,reason:localPorts.length?'noRoute':'noOutlet'};
   }
   function consume(f,it,liters,strict=false){
    const amount=Math.max(0,num(liters));
@@ -188,20 +246,48 @@
    return taken;
   }
   function tick(gameMinutes){
-   if(!(gameMinutes>0)||services.contracts?.water!=='active')return;
+   if(!(gameMinutes>0))return;
    for(const tank of tanks){
     if(tank.it.enabled===false)continue;
-    const feed=choices(tank,true).find(x=>available(x.node));
+    if(services.contracts?.water!=='active')continue;
+    const feed=choices(tank,true).find(x=>available(x.node)&&
+     (!requireLiftPump||tank.it.type!=='water_tinaco'||
+      num(floors[x.node.f]?.elevationFt,x.node.f*12)>=num(floors[tank.f]?.elevationFt,tank.f*12)));
     if(!feed)continue;
     const key=tankKey(floors[tank.f],tank.it);
     const capacity=Math.max(0,num(tank.it.capacityLiters,tank.it.type==='water_cistern'?2500:1100));
     const flow=Math.max(0,num(tank.it.fillLpm,30));
     tankState[key].liters=clamp(num(tankState[key].liters)+flow*gameMinutes,0,capacity);
    }
+   // La bomba transfiere litros existentes: no fabrica agua municipal.
+   for(const pump of pumps){
+    services.usage[pump.it.id]=false;
+    if(!pumpReady(pump)||!openValves(pump.it))continue;
+    const supply=tanks.filter(s=>s.it.type==='water_cistern'&&s.f===pump.f&&available(s)&&openValves(s.it)&&
+     (!pump.it.pumpSourceId||String(pump.it.pumpSourceId)===String(s.it.id))&&
+     compatible(s.it,pump.it)&&shortest(s,pump)?.feet<=Math.max(0,num(pump.it.pumpInletRangeFt,15)))
+     .sort((a,b)=>shortest(a,pump).feet-shortest(b,pump).feet)[0];
+    if(!supply)continue;
+    const target=tanks.filter(t=>t.it.type==='water_tinaco'&&t.it.enabled!==false&&
+     services.enabled?.[t.it.id]!==false&&num(services.damage?.[t.it.id])<100&&openValves(t.it)&&
+     num(tankState[tankKey(floors[t.f],t.it)]?.liters)<Math.max(0,num(t.it.capacityLiters,1100))&&
+     num(floors[t.f]?.elevationFt,t.f*12)>num(floors[pump.f]?.elevationFt,pump.f*12)&&
+     (!pump.it.pumpTargetId||String(pump.it.pumpTargetId)===String(t.it.id))&&
+     compatible(pump.it,t.it)&&shortest(pump,t)?.feet<=Math.max(0,num(pump.it.pumpRangeFt,240)))
+     .sort((a,b)=>shortest(pump,a).feet-shortest(pump,b).feet)[0];
+    if(!target)continue;
+    const src=tankState[tankKey(floors[supply.f],supply.it)];
+    const dst=tankState[tankKey(floors[target.f],target.it)];
+    const capacity=Math.max(0,num(target.it.capacityLiters,1100));
+    const liters=Math.max(0,Math.min(num(pump.it.pumpFlowLpm,30)*gameMinutes,
+     src.liters,capacity-dst.liters));
+    src.liters-=liters;dst.liters+=liters;
+    services.usage[pump.it.id]=liters>0;
+   }
   }
-  function routeBetween(fa,ia,fb,ib){
-   if(!ia||!ib||!compatible(ia,ib))return null;
-   return shortest(itemNodes.get(fa+':'+String(ia.id)),itemNodes.get(fb+':'+String(ib.id)));
+  function routeBetween(fa,ia,fb,ib,kind='cold'){
+   if(!ia||!ib||!(kind==='hot'?compatibleHot:compatible)(ia,ib))return null;
+   return shortest(itemNodes.get(fa+':'+String(ia.id)),itemNodes.get(fb+':'+String(ib.id)),kind);
   }
   function measureInstalledFeet(routes){
    // Unión de intervalos colineales; varias tomas no duplican el mismo tramo.
@@ -209,7 +295,8 @@
    for(const r of routes)for(const section of r.sections){
     if(section.vertical){const p=section.point;
      vertical.add([Math.min(section.floor,section.toFloor),Math.max(section.floor,section.toFloor),
-      Math.round(p.x*100),Math.round(p.y*100),section.feet].join(':'));continue;}
+      Math.round(p.x*100),Math.round(p.y*100),
+      Math.round((section.toPoint||p).x*100),Math.round((section.toPoint||p).y*100),section.feet].join(':'));continue;}
     const pts=section.points||[];
     for(let i=1;i<pts.length;i++){
      const a=pts[i-1],b=pts[i],len=distance(a,b);if(len<1e-6)continue;
@@ -228,7 +315,7 @@
     for(const [a,b] of values){if(start===null){start=a;end=b;}else if(a<=end+.00001)end=Math.max(end,b);else{coldFeet+=(end-start)*ft;start=a;end=b;}}
     if(start!==null)coldFeet+=(end-start)*ft;
    }
-   for(const key of vertical){const parts=key.split(':');coldFeet+=num(parts[4]);}
+   for(const key of vertical){const parts=key.split(':');coldFeet+=num(parts[6]);}
    return Math.round(coldFeet*100)/100;
   }
   function diagnostics(){
@@ -240,13 +327,14 @@
      feet:best?.route.feet??null,sections:best?.route.sections||[]});
    }
    const coldFeet=measureInstalledFeet(routes);
-   return {routes,coldFeet,tanks:tanks.map(n=>{
+   return {routes,coldFeet,pumps:pumps.map(p=>({floor:p.f,itemId:p.it.id,powered:pumpReady(p),
+    sourceId:p.it.pumpSourceId||'',targetId:p.it.pumpTargetId||''})),tanks:tanks.map(n=>{
     const entry=tankState[tankKey(floors[n.f],n.it)];
     return {floor:n.f,itemId:n.it.id,liters:entry.liters,capacityLiters:num(n.it.capacityLiters,n.it.type==='water_cistern'?2500:1100)};
    })};
   }
   return Object.freeze({enabled:true,isFixture,status,consume,tick,diagnostics,tankState,
-   routeBetween,measureInstalledFeet,portsFor:(f,it)=>portsFor(f,it).map(p=>({f:p.f,it:p.it}))});
+   routeBetween,measureInstalledFeet,portsFor:(f,it,kind)=>portsFor(f,it,kind).map(p=>({f:p.f,it:p.it}))});
  }
  return Object.freeze({FIXTURES,isFixture,isTank,createRuntime});
 });

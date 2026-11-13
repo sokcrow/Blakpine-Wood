@@ -249,7 +249,8 @@ function fhCCTVCapture(now){
   }
 
   renderer.setRenderTarget(fhCCTVTarget);
-  renderer.setViewport(0,0,format.width,format.height);renderer.setScissorTest(false);
+  // setRenderTarget establece el viewport nativo: setViewport lo multiplicaría por pixelRatio.
+  renderer.setScissorTest(false);
   renderer.render(scene,fhCCTVView);
   renderer.readRenderTargetPixels(fhCCTVTarget,0,0,format.width,format.height,fhCCTVRead);
  }finally{

@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blakpine-Wood — Prueba visual 3D de drenajes</title>
+<style>
+html,body{margin:0;min-height:100%;background:#0b1115;color:#e1e8e6;font:14px system-ui}
+header{padding:12px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+h1{font-size:17px;margin:0}button{background:#24383b;color:#e1e8e6;border:1px solid #537479;
+padding:9px 12px;border-radius:4px;cursor:pointer}#status{padding:0 16px 12px;color:#b9cfca}
+canvas{display:block;touch-action:none}small{color:#b9cfca}code{color:#b0dfd7}
+</style></head><body>
+<header><h1>Drenajes · prueba 3D física</h1>
+<button id="bank">Banqueta</button><button id="channel">Fondo del canal</button>
+<button id="bridge">Puente de reja</button><button id="water">Ocultar agua</button>
+<small>WASD o flechas: caminar · Arrastrar: girar cámara · Rueda: zoom</small></header>
+<div id="status">Preparando el módulo 3D real…</div>
+<script src="../../juego/assets/vendor/three.min.js"></script>
+<script src="../../juego/assets/fh-drainage.js"></script>
+<script>
+(function(){
+ 'use strict';
+ const CELL=1.524,D=window.FHDrainage,units={columns:60,rows:40,feetPerCell:5};
+ const query=new URLSearchParams(location.search),small=query.has('small'),rain=query.has('rain')?1:0;
+ const section=D.makeSection(small?'small':'straight',{x:5,y:5},units,'canal_prueba');
+ const bridge=D.makeBridge({x:5,y:5},units,'rejilla_prueba');
+ const project={schema:'forest-horror-map-v1',units,floors:[{id:'b1',elevationFt:-10,items:[section,bridge]}]};
+ const scene=new THREE.Scene();scene.background=new THREE.Color(0x111a1d);
+ const story=new THREE.Group();scene.add(story);
+ const groundMat=new THREE.MeshLambertMaterial({color:0x62615b});
+ // Las superficies secas son las que entrega el mismo recortador del motor.
+ const dry=D.cutFloorRects(project,0,[{x:0,y:0,w:10,h:10}]);
+ for(const r of dry){
+  const ground=new THREE.Mesh(new THREE.BoxGeometry(r.w*CELL,.12,r.h*CELL),groundMat);
+  ground.position.set((r.x+r.w/2)*CELL,-.06,(r.y+r.h/2)*CELL);
+  story.add(ground);
+ }
+ D.attachFloor(THREE,project,story,0,CELL);
+ const camera=new THREE.PerspectiveCamera(55,1,.05,100);
+ const renderer=new THREE.WebGLRenderer({antialias:true});
+ renderer.setPixelRatio(Math.min(1.5,window.devicePixelRatio||1));
+ document.body.appendChild(renderer.domElement);
+ scene.add(new THREE.HemisphereLight(0x9ac2d2,0x282b31,1.25));
+ const key=new THREE.DirectionalLight(0xd6e7db,1.8);key.position.set(6,14,5);scene.add(key);
+ const avatar=new THREE.Group();
+ const body=new THREE.Mesh(new THREE.CylinderGeometry(.24,.28,1.25,8),
+   new THREE.MeshLambertMaterial({color:0xd4b465}));
+ body.position.y=.66;avatar.add(body);
+ const head=new THREE.Mesh(new THREE.SphereGeometry(.24,10,8),
+   new THREE.MeshLambertMaterial({color:0xe6cda4}));
+ head.position.y=1.45;avatar.add(head);scene.add(avatar);
+ let x=5,z=5,angle=-.75,radius=20,hideWater=false;
+ const status=document.getElementById('status'),buttons={
+  bank:document.getElementById('bank'),channel:document.getElementById('channel'),
+  bridge:document.getElementById('bridge'),water:document.getElementById('water')
+ };
+ buttons.bank.onclick=()=>{x=8;z=1};
+ buttons.channel.onclick=()=>{x=small?6.6:8;z=5};
+ buttons.bridge.onclick=()=>{x=5;z=5};
+ const waterMeshes=story.children.filter(m=>m.material?.isShaderMaterial);
+ buttons.water.onclick=()=>{
+  hideWater=!hideWater;for(const mesh of waterMeshes)mesh.visible=!hideWater;
+  buttons.water.textContent=hideWater?'Mostrar agua':'Ocultar agua';
+ };
+ if(query.get('water')==='off')buttons.water.click();
+ const keys=new Set();
+ window.addEventListener('keydown',e=>{keys.add(e.key.toLowerCase());if(['arrowup','arrowdown','arrowleft','arrowright'].includes(e.key.toLowerCase()))e.preventDefault();});
+ window.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
+ let grabbing=false,lastX=0;
+ renderer.domElement.addEventListener('pointerdown',e=>{grabbing=true;lastX=e.clientX;renderer.domElement.setPointerCapture(e.pointerId);});
+ renderer.domElement.addEventListener('pointermove',e=>{if(grabbing){angle+=(e.clientX-lastX)*.007;lastX=e.clientX;}});
+ renderer.domElement.addEventListener('pointerup',()=>grabbing=false);
+ renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();radius=Math.max(9,Math.min(31,radius+Math.sign(e.deltaY)*1.2));},{passive:false});
+ const center=new THREE.Vector3(5*CELL,0,5*CELL);
+ function size(){
+  const width=Math.max(300,innerWidth),height=Math.max(320,innerHeight-115);
+  camera.aspect=width/height;camera.updateProjectionMatrix();renderer.setSize(width,height,false);
+ }
+ window.addEventListener('resize',size);size();
+ let last=performance.now();
+ function frame(now){
+  const dt=Math.min(.04,(now-last)/1000);last=now;
+  const dx=(keys.has('d')||keys.has('arrowright')?1:0)-(keys.has('a')||keys.has('arrowleft')?1:0);
+  const dz=(keys.has('s')||keys.has('arrowdown')?1:0)-(keys.has('w')||keys.has('arrowup')?1:0);
+  const speed=2.2*dt/Math.max(1,Math.hypot(dx,dz));
+  x=Math.max(.25,Math.min(9.75,x+dx*speed));
+  z=Math.max(.25,Math.min(9.75,z+dz*speed));
+  const h=D.supportAt(project,0,{x,y:z});
+  avatar.position.set(x*CELL,h*CELL,z*CELL);
+  const onBridge=D.bridgeAt(project,0,{x,y:z});
+  status.textContent='Apoyo real: '+(onBridge?'reja':h<0?'fondo de canal':'banqueta')+
+   ' · Altura: '+h.toFixed(3)+' tiles · Agua: '+(hideWater?'oculta':'visible')+
+   ' · Mallas volumétricas: '+story.children.filter(mesh=>mesh.name?.startsWith('fh_drain_solid_')||mesh.name?.startsWith('fh_drain_grate_')).length+
+   ' · Controles: camina hacia la reja y el agua';
+  D.updateVisuals(dt,rain,0);
+  if(hideWater)for(const mesh of waterMeshes)mesh.visible=false;
+  camera.position.set(center.x+Math.sin(angle)*radius,radius*.70,center.z+Math.cos(angle)*radius);
+  camera.lookAt(center.x,0,center.z);
+  renderer.render(scene,camera);
+  if(renderer.info.programs.some(program=>program.diagnostics?.runnable===false)){
+   status.textContent='ERROR: no se pudo compilar el shader del drenaje';return;
+  }
+  document.body.dataset.rendered='true';
+  requestAnimationFrame(frame);
+ }
+ requestAnimationFrame(frame);
+})()
+</script></body></html>

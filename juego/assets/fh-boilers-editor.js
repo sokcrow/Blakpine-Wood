@@ -86,7 +86,8 @@
   }
   if(model.kind==='auxiliary'&&['bomba_recirculacion','panel_control_caldera'].includes(model.id)){
    const watts=model.id==='bomba_recirculacion'?150:30;
-   item.service={requiresPower:true,powerConnection:'direct',watts,rayos:Math.ceil(watts/200)};
+   item.service={requiresPower:true,powerConnection:'direct',watts,rayos:Math.ceil(watts/200),
+    ...(model.id==='bomba_recirculacion'?{waterLiftPump:false,onDemand:true}:{})};
   }
   if(model.kind==='heater'){
    const preset=root.FHWaterHot?.PRESETS[model.id]||{};
@@ -99,6 +100,10 @@
    item.networkId='main';item.hotNetworkId='main';item.pipeLeadFt=10;
    project.plumbing={...project.plumbing,enabled:true};
    item.interact={id:'utility_'+item.id,verb:'use',label:'Inspeccionar '+model.name,effects:[]};
+  }
+  if(model.id==='bomba_recirculacion'){
+   item.pumpFlowLpm=30;item.pumpInletRangeFt=15;item.pumpRangeFt=240;
+   item.networkId='main';item.pipeLeadFt=10;
   }
   return item;
  };
@@ -152,6 +157,35 @@
    power?.connected?'Cable conectado, pero el circuito no tiene corriente.':
    'Sin circuito: falta un breaker alcanzable por las paredes.');}
   fields.append(note);
+  if(model.id==='bomba_recirculacion'){
+   const enable=document.createElement('label');enable.style.gridColumn='1/-1';
+   const toggle=document.createElement('input');toggle.type='checkbox';
+   toggle.checked=it.service?.waterLiftPump===true;
+   toggle.onchange=()=>{
+    if(root.FHStyleEditor&&!root.FHStyleEditor.canEditItem(it)){openInspector();return;}
+    it.service={...it.service,waterLiftPump:toggle.checked,requiresPower:true,
+     powerConnection:'direct',onDemand:true,watts:Number(it.service?.watts)||150};
+    if(toggle.checked){
+     it.networkId||='main';it.pipeLeadFt??=10;
+     project.plumbing={...project.plumbing,enabled:true,requireLiftPump:true};
+    }
+    record();render();openInspector();
+   };
+   enable.append(toggle,document.createTextNode(' '+(T.liftPump||'Usar como bomba de elevación')));
+   fields.append(enable);
+   if(toggle.checked){
+    numberField(fields,it,'pumpFlowLpm',T.pumpFlow||'Trasvase (L/min)',30);
+    numberField(fields,it,'pumpInletRangeFt',T.pumpInlet||'Distancia hasta la cisterna (pies)',15);
+    numberField(fields,it,'pumpRangeFt',T.pumpRange||'Alcance de elevación (pies)',240);
+    textField(fields,it,'networkId',T.inlet||'Red de entrada fría');
+    const report=document.createElement('div');report.style.gridColumn='1/-1';
+    const p=utilityVisual().runtime?.waterNetwork?.diagnostics()?.pumps?.find(x=>x.itemId===it.id);
+    report.textContent=p?(p.powered?(T.pumpReady||'Bomba con electricidad'):
+     (T.pumpNoPower||'Bomba sin alimentación eléctrica')):(T.pumpNotReady||'Bomba aún sin diagnóstico');
+    fields.append(report);
+   }
+   return;
+  }
   if(model.kind!=='heater')return;
   const preset=root.FHWaterHot?.PRESETS[model.id]||{};
   const activate=document.createElement('label');activate.style.gridColumn='1/-1';

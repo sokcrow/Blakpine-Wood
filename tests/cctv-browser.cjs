@@ -81,7 +81,14 @@ async function main(){
   const result=await frame.evaluate(async()=>{
    const t=window.__cctv,r=t.renderer;
    const state={power:true,mode:'on',front:'cams',camera:0,cameraQuality:'hd'};
-   const frames=[],times=[];
+   const frames=[],times=[],targetViewports=[];
+   const originalRender=r.render.bind(r);
+   r.render=(scene,camera)=>{
+    if(r.getRenderTarget()===t.target()){
+     const gl=r.getContext();targetViewports.push(Array.from(gl.getParameter(gl.VIEWPORT)));
+    }
+    return originalRender(scene,camera);
+   };
    const pc={isOpen:true,session:{cameras:[{id:'cam0',online:true},{id:'cam1',online:true}]},
     terminalApi:()=>({getState:()=>state,receiveCameraPixels(f){
      let nonBlack=0;for(let i=0;i<f.pixels.length;i+=4)if(f.pixels[i]+f.pixels[i+1]+f.pixels[i+2]>0)nonBlack++;
@@ -109,14 +116,35 @@ async function main(){
    const released=t.target()===null;
    state.camera=0;state.cameraQuality='hd';pc.isOpen=true;capture(1000020);
    const recreated=t.target()!==null&&t.target()!==first;
+   // DPR != 1 reproducía frames recortados por setViewport escalado sobre un render target.
+   const dpiChecks=[];
+   for(const [ratio,time] of [[1.5,1000030],[0.75,1000050]]){
+    r.setPixelRatio(ratio);
+    const ownViewport=r.getViewport(vector()).toArray();
+    const start=targetViewports.length;
+    capture(time);
+    dpiChecks.push({
+     ratio,viewport:targetViewports[start],
+     restored:JSON.stringify(r.getViewport(vector()).toArray())===JSON.stringify(ownViewport)
+    });
+   }
+   r.setPixelRatio(1);
    pc.isOpen=false;t.release();
-   return {frames,restored,released,recreated,times,renderer:r.getContext().getParameter(r.getContext().RENDERER)};
+   return {frames,restored,released,recreated,dpiChecks,times,
+    renderer:r.getContext().getParameter(r.getContext().RENDERER)};
   });
   assert.deepEqual(result.frames.map(f=>[f.id,f.width,f.height]),[
-   ['cam0',960,552],['cam1',960,552],['cam1',640,368],['cam0',960,552]]);
+   ['cam0',960,552],['cam1',960,552],['cam1',640,368],['cam0',960,552],
+   ['cam0',960,552],['cam0',960,552]]);
   assert.ok(result.frames[0].nonBlack>0,'CCTV renderiza geometría real');
   assert.ok(result.restored,'Máscara, caché, actores, escena, viewport y scissor restaurados');
   assert.ok(result.released&&result.recreated,'Liberar y reconstruir recursos al cerrar/abrir');
+  assert.equal(result.dpiChecks.length,2);
+  for(const dpi of result.dpiChecks){
+   assert.deepEqual(dpi.viewport,[0,0,960,552],
+    'Render target conserva dimensiones reales con pixelRatio '+dpi.ratio);
+   assert.ok(dpi.restored,'Viewport original restaurado tras capturar con pixelRatio '+dpi.ratio);
+  }
   assert.deepEqual(errors,[]);
   console.log('PASS: arranque compuesto y captura CCTV con Three r128/WebGL reales');
   console.log(JSON.stringify(result,null,2));
