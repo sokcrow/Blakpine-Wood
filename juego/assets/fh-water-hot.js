@@ -59,13 +59,13 @@
   }
   function routesTo(f,it){
    if(!floors[f]||!wantsHot(it))return [];
-   const ports=it.type==='water_outlet'?[{f,it}]:cold.portsFor?.(f,it)||[];
+   const ports=it.type==='water_outlet'?[{f,it}]:cold.portsFor?.(f,it,'hot')||[];
    const matches=[];
    for(const port of ports){
     if(!wantsHot(port.it))continue;
     for(const b of boilers){
      if(!related(b.it,port.it)||!related(b.it,it))continue;
-     const route=cold.routeBetween?.(b.f,b.it,port.f,port.it);
+     const route=cold.routeBetween?.(b.f,b.it,port.f,port.it,'hot');
      if(!route||route.feet>Math.max(0,num(b.it.hotRangeFt,240)))continue;
      matches.push({boiler:b,port,route});
     }
@@ -79,7 +79,7 @@
    const ready=active&&saved.liters>0&&saved.temperatureC>=minHot(b);
    return {floor:b.f,itemId:b.it.id,modelId:b.it.modelId,liters:saved.liters,
     capacityLiters:size(b),temperatureC:saved.temperatureC,
-    targetTemperatureC:target(b),coldConnected:!!coldStatus.water,
+    targetTemperatureC:target(b),coldConnected:!!coldStatus.water,coldReason:coldStatus.reason||'',
     powered:hasPower,heating:hasPower&&!!coldStatus.water&&saved.liters>0&&
      saved.temperatureC<target(b)-.001,ready};
   }
@@ -94,7 +94,8 @@
    const matches=routesTo(f,it);
    const available=matches.find(x=>info(x.boiler).ready);
    const first=available||matches[0];
-   if(!first)return {connected:false,hotWater:false,reason:'unconnected'};
+   if(!first)return {connected:false,hotWater:false,reason:
+    (it.type==='water_outlet'||cold.portsFor?.(f,it,'hot')?.some(p=>wantsHot(p.it)))?'noRoute':'noHotOutlet'};
    const i=info(first.boiler);
    return {connected:true,hotWater:!!available,sourceId:first.boiler.it.id,
     sourceFloor:first.boiler.f,via:first.port.it.id,feet:first.route.feet,

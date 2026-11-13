@@ -191,7 +191,8 @@
    const exteriorGrid=(typeof globalThis!=='undefined'?globalThis.FHExteriorGrid:null)?.createRuntime(project,state)||null;
   const feetPerCell=Math.max(.1,number(project?.units?.feetPerCell,5));
   const graphs=floors.map(f=>wallGraph(f.items||[]));
-  const waterNetwork=(options.waterCore||(typeof globalThis!=='undefined'?globalThis.FHWaterPotable:null))?.createRuntime(project,s,wallGraph)||null;
+  const waterNetwork=(options.waterCore||(typeof globalThis!=='undefined'?globalThis.FHWaterPotable:null))?.createRuntime(project,s,wallGraph,
+    (f,it)=>electricalStatus(f,it,hotElectricalSnapshot||electrical()).powered)||null;
   let hotElectricalSnapshot=null;
   const hotWater=(options.hotCore||(typeof globalThis!=='undefined'?globalThis.FHWaterHot:null))?.createRuntime(
    project,s,waterNetwork,(f,it)=>electricalStatus(f,it,hotElectricalSnapshot||electrical()).powered)||null;
@@ -1060,9 +1061,8 @@
    power.currentWatts=usedWatts;power.currentKwh+=deltaKwh;
    s.meters.waterLiters+=waterLiters;
    s.meters.drainLiters+=drainLiters;
-   waterNetwork?.tick(seconds/60);
    hotElectricalSnapshot=snap;
-   try{hotWater?.tick(seconds/60)}finally{hotElectricalSnapshot=null;}
+   try{waterNetwork?.tick(seconds/60);hotWater?.tick(seconds/60)}finally{hotElectricalSnapshot=null;}
    if(state.phone.placedAt){
     const f=Math.floor(number(state.phone.placedFloor,-1));
     const charger=itemAt(f,state.phone.placedAt);

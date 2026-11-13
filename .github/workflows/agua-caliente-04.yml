@@ -4,6 +4,7 @@ on:
     paths:
       - "juego/assets/fh-water-hot.js"
       - "juego/assets/fh-water-hot.test.js"
+      - "juego/assets/fh-water-lift.test.js"
       - "juego/assets/fh-water-storage-catalog.test.js"
       - "juego/assets/fh-water-editor.js"
       - "juego/assets/fh-water-visuals.js"
@@ -16,6 +17,7 @@ on:
     paths:
       - "juego/assets/fh-water-hot.js"
       - "juego/assets/fh-water-hot.test.js"
+      - "juego/assets/fh-water-lift.test.js"
       - "juego/assets/fh-water-storage-catalog.test.js"
       - "juego/assets/fh-water-editor.js"
       - "juego/assets/fh-water-visuals.js"
@@ -33,10 +35,16 @@ jobs:
         with:
           node-version: "22"
       - run: node --test juego/assets/fh-water-hot.test.js
+      - run: node --test juego/assets/fh-water-lift.test.js
       - run: node --test juego/assets/fh-water-storage-catalog.test.js
       - run: node --test juego/assets/fh-water-potable.test.js
       - run: node --test tests/fh-services-core.test.js
       - run: node --check juego/assets/fh-water-hot.js
+      - run: node --check juego/assets/fh-water-potable.js
+      - run: node --check juego/assets/fh-services-core.js
+      - run: node --check juego/assets/fh-water-strings.js
+      - run: node --check juego/assets/fh-boilers-strings.js
+      - run: node --check juego/assets/fh-services-engine-hook.js
       - run: node --check juego/assets/fh-boilers-editor.js
       - run: node --check juego/assets/fh-water-editor.js
       - run: node --check juego/assets/fh-water-visuals.js

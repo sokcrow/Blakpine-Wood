@@ -157,15 +157,20 @@
     for(const section of route.sections||[]){
      if(section.vertical){
       const floorA=section.floor,floorB=section.toFloor,base=stories[floorA];
-      const height=Math.abs((Number(DATA.floors[floorB]?.elevationFt)||0)-
+      const end=section.toPoint||section.point;
+      const dx=(end.x-section.point.x)*CELL,dz=(end.y-section.point.y)*CELL;
+      const dy=((Number(DATA.floors[floorB]?.elevationFt)||0)-
        (Number(DATA.floors[floorA]?.elevationFt)||0))*FT;
+      const length=Math.hypot(dx,dy,dz);
       const key=['v',Math.min(floorA,floorB),Math.max(floorA,floorB),
-       section.point.x.toFixed(3),section.point.y.toFixed(3)].join(':');
-      if(seen.has(key)||!base||height<.02)continue;
+       ...[[section.point.x,section.point.y],[end.x,end.y]].map(p=>p.map(n=>n.toFixed(3)).join(',')).sort()].join(':');
+      if(seen.has(key)||!base||length<.02)continue;
       seen.add(key);
-      const mesh=new THREE.Mesh(new THREE.CylinderGeometry(.023,.023,height,6),material);
+      const mesh=new THREE.Mesh(new THREE.CylinderGeometry(.023,.023,length,6),material);
       mesh.name=prefix+'_MONTANTE';
-      mesh.position.set(section.point.x*CELL,height/2+heightFt*FT,section.point.y*CELL);
+      mesh.position.set(section.point.x*CELL+dx/2,heightFt*FT+dy/2,section.point.y*CELL+dz/2);
+      mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),
+       new THREE.Vector3(dx/length,dy/length,dz/length));
       mesh.userData.fhPipe=true;base.add(mesh);
       if(typeof applyFOW==='function')applyFOW(mesh);
       continue;
@@ -207,7 +212,7 @@
    '\n  if(window.FHWaterVisuals?.choose(it)?.mount==="wall"&&!window.FHWaterVisuals.frontAllowed(it,user.x/CELL,user.z/CELL)){notice(window.FH_WATER_TEXT?.wrongSide||"Usa el dispositivo desde su frente.");return true;}'+
    '\n  if(window.FHWaterVisuals?.onUse(it,f,service,notice,user.x/CELL,user.z/CELL))return true;');
   const rootURL=new URL('./juego/assets/',root.document?.baseURI||'https://localhost/');
-  const tags=['fh-water-catalog.js','fh-water-storage-catalog.js','fh-water-strings.js','fh-water-visuals.js?v=20261112-agua-glb-directo-2'].map(f=>'<script src="'+new URL(f,rootURL).href+'"></scr'+'ipt>').join('');
+  const tags=['fh-water-catalog.js','fh-water-storage-catalog.js','fh-water-strings.js','fh-water-visuals.js?v=20261113-sotano-bombeo'].map(f=>'<script src="'+new URL(f,rootURL).href+'"></scr'+'ipt>').join('');
   const head=doc.indexOf('</head>');if(head<0)throw Error('Agua 01: no se encontró la cabecera del motor');
   return doc.slice(0,head)+tags+doc.slice(head);
  }
