@@ -117,3 +117,15 @@ test('el catálogo es un ítem normal de herramienta y normaliza partidas viejas
  approx(p.battery,43.25);assert.equal(p.chargeElapsedMinutes,0);
  assert.equal(p.placedMode,'');
 });
+
+test('el cargador portátil contabiliza electricidad solo al recibir suministro',()=>{
+ const {sys,state}=fixture({battery:30});
+ assert.equal(sys.chargePhone(0,'outlet'),true);
+ const initial=sys.state.meters.kwh;
+ sys.tick(3,1);
+ assert.ok(sys.state.meters.kwh>initial);
+ sys.setService('electricity',false);
+ const paused=sys.state.meters.kwh;
+ sys.tick(3,1);
+ approx(sys.state.meters.kwh,paused);
+});
