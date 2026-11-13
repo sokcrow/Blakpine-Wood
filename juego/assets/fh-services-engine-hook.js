@@ -245,6 +245,8 @@
 
   // El motor original se conserva en Base64. Estos ajustes operan sobre
   // su documento 3D decodificado, y no alteran ni su esquema ni los bundles.
+  // Los fixtures parciales de servicios no contienen el motor completo.
+  if(doc.includes('function createGameState(initial={}){')&&doc.includes('function makeInventorySprite(def,id,{large=false}={}){')){
   doc=once(doc,"flashlight:initial.flashlight&&typeof initial.flashlight==='object'?{...initial.flashlight}:null,hidden:",
    "flashlight:initial.flashlight&&typeof initial.flashlight==='object'?{...initial.flashlight}:null,phone:initial.phone&&typeof initial.phone==='object'?{...initial.phone}:null,hidden:",'persistencia del celular');
   doc=once(doc,"const itemDefs=[...(DATA.itemDefs||[])];",
@@ -280,6 +282,7 @@
    " }else if(def?.icon){const label=document.createElement('span');label.className='itemIconText';label.textContent=def.icon;node.append(label);}"
   ].join("\n");
   doc=once(doc,sprite,spriteWithImage,'ícono en inventario');
+  }
   // fixturePowered ya consulta sourceFor; no recalcular los enchufes por cada foco.
   doc=root.FHInternetVisuals?.patchEngineDoc(doc)||doc;
   doc=root.FHElectricVisuals?.patchEngineDoc(doc)||doc;
