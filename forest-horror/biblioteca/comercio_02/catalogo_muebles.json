@@ -1,0 +1,194 @@
+{
+  "schema": "forest-horror-furniture-catalog-v1",
+  "version": 1,
+  "units": {
+    "length": "ft",
+    "metersPerFoot": 0.3048,
+    "referenceMapFeetPerCell": 5
+  },
+  "furniture": [
+    {
+      "id": "caja_registradora_c02",
+      "name": "Caja registradora retro",
+      "category": "Cobro",
+      "pack": "comercio_02",
+      "environment": "interior",
+      "widthFt": 1.5,
+      "depthFt": 1.25,
+      "heightFt": 1.25,
+      "blocksMovement": true,
+      "placement": "floor_or_surface",
+      "mountHeightFt": 0,
+      "glb": "modelos_glb/caja_registradora_c02.glb",
+      "thumbnail": "miniaturas/caja_registradora_c02.png",
+      "tags": [
+        "registradora",
+        "cobro",
+        "tienda"
+      ],
+      "description": "Modelo visual Pixel Art Low Poly; sin interacción económica incorporada.",
+      "surfaceOverhangFt": 0.1,
+      "shopRole": "register"
+    },
+    {
+      "id": "mostrador_caja_c02",
+      "name": "Mostrador de caja",
+      "category": "Cobro",
+      "pack": "comercio_02",
+      "environment": "interior",
+      "widthFt": 5,
+      "depthFt": 2.5,
+      "heightFt": 3.25,
+      "blocksMovement": true,
+      "placement": "floor",
+      "mountHeightFt": 0,
+      "glb": "modelos_glb/mostrador_caja_c02.glb",
+      "thumbnail": "miniaturas/mostrador_caja_c02.png",
+      "tags": [
+        "mostrador",
+        "caja",
+        "tienda"
+      ],
+      "description": "Modelo visual Pixel Art Low Poly; sin interacción económica incorporada.",
+      "supportSurfaces": [
+        {
+          "id": "top",
+          "xFt": 0,
+          "zFt": 0,
+          "widthFt": 4.7,
+          "depthFt": 2.3,
+          "heightFt": 3.25
+        }
+      ]
+    },
+    {
+      "id": "refrigerador_vertical_bebidas_c02",
+      "name": "Refrigerador de bebidas",
+      "category": "Refrigeración",
+      "pack": "comercio_02",
+      "environment": "interior",
+      "widthFt": 3.5,
+      "depthFt": 3.25,
+      "heightFt": 7,
+      "blocksMovement": true,
+      "placement": "floor",
+      "mountHeightFt": 0,
+      "glb": "modelos_glb/refrigerador_vertical_bebidas_c02.glb",
+      "thumbnail": "miniaturas/refrigerador_vertical_bebidas_c02.png",
+      "tags": [
+        "refrigerador",
+        "bebidas",
+        "tienda"
+      ],
+      "description": "Modelo visual Pixel Art Low Poly; sin interacción económica incorporada."
+    },
+    {
+      "id": "congelador_horizontal_c02",
+      "name": "Congelador horizontal",
+      "category": "Refrigeración",
+      "pack": "comercio_02",
+      "environment": "interior",
+      "widthFt": 5,
+      "depthFt": 2.75,
+      "heightFt": 3.5,
+      "blocksMovement": true,
+      "placement": "floor",
+      "mountHeightFt": 0,
+      "glb": "modelos_glb/congelador_horizontal_c02.glb",
+      "thumbnail": "miniaturas/congelador_horizontal_c02.png",
+      "tags": [
+        "congelador",
+        "helados",
+        "tienda"
+      ],
+      "description": "Modelo visual Pixel Art Low Poly; sin interacción económica incorporada."
+    },
+    {
+      "id": "rack_snacks_c02",
+      "name": "Rack de botanas",
+      "category": "Exhibición",
+      "pack": "comercio_02",
+      "environment": "interior",
+      "widthFt": 2.25,
+      "depthFt": 1.75,
+      "heightFt": 5,
+      "blocksMovement": true,
+      "placement": "floor",
+      "mountHeightFt": 0,
+      "glb": "modelos_glb/rack_snacks_c02.glb",
+      "thumbnail": "miniaturas/rack_snacks_c02.png",
+      "tags": [
+        "rack",
+        "snacks",
+        "botanas"
+      ],
+      "description": "Modelo visual Pixel Art Low Poly; sin interacción económica incorporada.",
+      "shopRole": "display"
+    },
+    {
+      "id": "gondola_simple_c02",
+      "name": "Góndola sencilla",
+      "category": "Exhibición",
+      "pack": "comercio_02",
+      "environment": "interior",
+      "widthFt": 3,
+      "depthFt": 1.25,
+      "heightFt": 6.25,
+      "blocksMovement": true,
+      "placement": "floor",
+      "mountHeightFt": 0,
+      "glb": "modelos_glb/gondola_simple_c02.glb",
+      "thumbnail": "miniaturas/gondola_simple_c02.png",
+      "tags": [
+        "gondola",
+        "estante",
+        "productos"
+      ],
+      "description": "Modelo visual Pixel Art Low Poly; sin interacción económica incorporada.",
+      "shopRole": "display"
+    },
+    {
+      "id": "exhibidor_frutas_c02",
+      "name": "Exhibidor de frutas",
+      "category": "Frutería",
+      "pack": "comercio_02",
+      "environment": "interior",
+      "widthFt": 4,
+      "depthFt": 2.25,
+      "heightFt": 3.75,
+      "blocksMovement": true,
+      "placement": "floor",
+      "mountHeightFt": 0,
+      "glb": "modelos_glb/exhibidor_frutas_c02.glb",
+      "thumbnail": "miniaturas/exhibidor_frutas_c02.png",
+      "tags": [
+        "fruta",
+        "exhibidor",
+        "comercio"
+      ],
+      "description": "Modelo visual Pixel Art Low Poly; sin interacción económica incorporada.",
+      "shopRole": "display"
+    },
+    {
+      "id": "cajero_atm_c02",
+      "name": "Cajero automático ATM",
+      "category": "Servicios",
+      "pack": "comercio_02",
+      "environment": "interior",
+      "widthFt": 2.5,
+      "depthFt": 2.25,
+      "heightFt": 6,
+      "blocksMovement": true,
+      "placement": "floor",
+      "mountHeightFt": 0,
+      "glb": "modelos_glb/cajero_atm_c02.glb",
+      "thumbnail": "miniaturas/cajero_atm_c02.png",
+      "tags": [
+        "atm",
+        "dinero",
+        "banco"
+      ],
+      "description": "Modelo visual Pixel Art Low Poly; sin interacción económica incorporada."
+    }
+  ]
+}

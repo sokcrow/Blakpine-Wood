@@ -31,7 +31,7 @@ test('puente carga catálogo técnico opcional sin agregar generadores a ventas'
  const win={},document={baseURI:'https://test.local/',currentScript:{src:'https://test.local/juego/assets/fh-glb-bridge.js'}};
  const fetch=async url=>({ok:true,json:async()=>url.includes('generadores/')?catalog:url.includes('catalogo_delivery')?delivery:main});
  vm.runInNewContext(fs.readFileSync(path.join(__dirname,'fh-glb-bridge.js'),'utf8'),{window:win,document,fetch,URL,console});
- const entries=await win.FHAssets.catalog();assert.equal(entries.size,94);
+ const entries=await win.FHAssets.catalog();assert.equal(entries.size,main.furniture.length+catalog.furniture.length);
  for(const m of catalog.furniture){assert.equal(entries.get(m.id).glb,m.glb);assert.equal(main.furniture.some(x=>x.id===m.id),false);}
 });
 

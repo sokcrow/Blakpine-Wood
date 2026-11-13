@@ -1,0 +1,58 @@
+[
+  {
+    "id": "caja_registradora_c02",
+    "triangles": 84,
+    "vertices": 168,
+    "textures": 7,
+    "glbBytes": 8080
+  },
+  {
+    "id": "mostrador_caja_c02",
+    "triangles": 62,
+    "vertices": 124,
+    "textures": 7,
+    "glbBytes": 6936
+  },
+  {
+    "id": "refrigerador_vertical_bebidas_c02",
+    "triangles": 166,
+    "vertices": 332,
+    "textures": 9,
+    "glbBytes": 12860
+  },
+  {
+    "id": "congelador_horizontal_c02",
+    "triangles": 108,
+    "vertices": 216,
+    "textures": 7,
+    "glbBytes": 9288
+  },
+  {
+    "id": "rack_snacks_c02",
+    "triangles": 130,
+    "vertices": 260,
+    "textures": 6,
+    "glbBytes": 10220
+  },
+  {
+    "id": "gondola_simple_c02",
+    "triangles": 132,
+    "vertices": 264,
+    "textures": 4,
+    "glbBytes": 10036
+  },
+  {
+    "id": "exhibidor_frutas_c02",
+    "triangles": 236,
+    "vertices": 472,
+    "textures": 5,
+    "glbBytes": 15784
+  },
+  {
+    "id": "cajero_atm_c02",
+    "triangles": 120,
+    "vertices": 240,
+    "textures": 9,
+    "glbBytes": 10240
+  }
+]
