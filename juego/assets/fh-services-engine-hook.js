@@ -11,7 +11,7 @@
   const potable='<script src="'+base+'fh-water-potable.js?v=20261113-sotano-bombeo"></'+'script>';
   const hot='<script src="'+base+'fh-water-hot.js?v=20261113-sotano-bombeo"></'+'script>';
   const boilerCatalog='<script src="'+base+'fh-boilers-catalog.js?v=20261112-boilers-04"></'+'script>';
-  const boilerStrings='<script src="'+base+'fh-boilers-strings.js?v=20261112-boilers-04"></'+'script>';
+  const boilerStrings='<script src="'+base+'fh-boilers-strings.js?v=20261113-sotano-bombeo"></'+'script>';
   const core='<script src="'+base+'fh-services-core.js?v=20261112-double-outlet-only-1"></'+'script>';
   const exteriorCore='<script src="'+base+'fh-exterior-grid.js?v=20261111-pole-collision-1"></'+'script>';
    const exteriorVisual='<script src="'+base+'fh-exterior-visuals.js?v=20261111-exterior-03"></'+'script>';
