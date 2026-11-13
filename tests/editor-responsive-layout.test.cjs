@@ -80,3 +80,34 @@ test('cerrar popovers conserva el foco cuando ya está dentro del diálogo',()=>
  assert.deepEqual(f.calls,['close']);
  assert.equal(f.doc.activeElement,f.control);
 });
+
+const {preservePanelInput}=require('../juego/assets/fh-editor-layout.js');
+function focusedPanel(tagName='INPUT',type='number'){
+ const active={tagName,type};
+ const entry={panel:{hidden:false,contains:node=>node===active}};
+ return {active,entry};
+}
+test('el teclado conserva el panel del campo numérico si sólo cambia la altura o el desplazamiento',()=>{
+ const {active,entry}=focusedPanel();
+ // La decisión no depende de la altura ni de los offsets de visualViewport.
+ for(const width of [844,844.25,843.75])assert.equal(preservePanelInput(new Set([entry]),active,844,width),true);
+});
+test('cambiar de orientación o de ancho permite completar la redistribución',()=>{
+ const {active,entry}=focusedPanel();
+ assert.equal(preservePanelInput([entry],active,844,390),false);
+ assert.equal(preservePanelInput([entry],active,844,667),false);
+ assert.equal(preservePanelInput([entry],active,0,844),false);
+});
+test('salir del campo o cerrar el panel permite reanudar la redistribución',()=>{
+ const {active,entry}=focusedPanel();
+ assert.equal(preservePanelInput([entry],null,844,844),false);
+ assert.equal(preservePanelInput([entry],{tagName:'INPUT',type:'number'},844,844),false);
+ entry.panel.hidden=true;
+ assert.equal(preservePanelInput([entry],active,844,844),false);
+});
+test('los campos editables conservan el foco sin inmovilizar paneles por botones o casillas',()=>{
+ for(const [tag,type,expected] of [['INPUT','text',true],['TEXTAREA','',true],['SELECT','',true],['INPUT','checkbox',false],['INPUT','button',false],['BUTTON','button',false]]){
+  const {active,entry}=focusedPanel(tag,type);
+  assert.equal(preservePanelInput([entry],active,844,844),expected,tag+':'+type);
+ }
+});

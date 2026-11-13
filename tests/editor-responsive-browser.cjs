@@ -81,6 +81,24 @@ async function main(){
     await capture(page,`${width}x${height}`);await context.close();console.log(`PASS ${width}x${height}: aviso vertical`);continue;
    }
    assert.ok(g.map.h>height*.6,`Altura insuficiente: ${g.map.h}/${height}`);
+   if(height<=500){
+    // Regresión del teclado: simular cambios de altura y eventos de visualViewport.
+    // No sustituye una prueba del teclado real en Android/iOS.
+    for(const id of ['quickColumns','quickRows']){
+     await page.locator('#subbar>.fh-overflow-toggle').click();
+     const input=page.locator('#'+id);await input.focus();await input.fill('41');
+     await page.setViewportSize({width,height:220});
+     await page.evaluate(()=>{visualViewport?.dispatchEvent(new Event('resize'));visualViewport?.dispatchEvent(new Event('scroll'));});
+     await settle(page);
+     assert.equal(await page.locator('#fhMore-subbar').isVisible(),true);
+     assert.equal(await input.evaluate(el=>el===document.activeElement),true);
+     assert.equal(await input.inputValue(),'41');
+     await input.press('Tab');await settle(page);
+     assert.equal(await page.evaluate(id=>project.units[id==='quickColumns'?'columns':'rows'],id),41);
+     await page.keyboard.press('Escape');
+     await page.setViewportSize({width,height});await settle(page);
+    }
+   }
    // P1: un renderizado en un piso elevado no debe cerrar ni realimentar los menús.
    await page.evaluate(()=>changeFloor(1));await settle(page);
    for(const bar of ['categories','tools']){

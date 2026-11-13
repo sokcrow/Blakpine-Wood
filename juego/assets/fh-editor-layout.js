@@ -30,12 +30,19 @@
   }
   return true;
  }
- if(typeof module==='object'&&module.exports)module.exports={visibleCount,mutationsAffectLayout,handoffToDialog};
+ function preservePanelInput(entries,active,widthBefore,widthAfter){
+  if(!active||!widthBefore||Math.abs(widthBefore-widthAfter)>1)return false;
+  const editable=active.isContentEditable||active.tagName==='TEXTAREA'||active.tagName==='SELECT'||
+   active.tagName==='INPUT'&&!['button','submit','reset','checkbox','radio','range','color','file'].includes(active.type);
+  return !!editable&&[...entries].some(entry=>!entry.panel.hidden&&entry.panel.contains(active));
+ }
+ if(typeof module==='object'&&module.exports)module.exports={visibleCount,mutationsAffectLayout,handoffToDialog,preservePanelInput};
  if(!root.document)return;
  const doc=root.document,T=root.FH_EDITOR_LAYOUT_TEXT,$=id=>doc.getElementById(id);
  const body=doc.body,app=$('app'),stage=$('stage'),inspector=$('inspector'),fields=$('fields');
  const panels=new Set();
  let compact=false,portrait=false,sidebarExpanded=true,frame=0,selectionFrame=0;
+ let layoutWidth=0,viewportDeferred=false;
  let inspectedItem=null,inspectedFloor=null,inspectedValue='';
  function element(tag,id,text){const el=doc.createElement(tag);if(id)el.id=id;if(text)el.textContent=text;return el;}
  function button(id,text){const el=element('button',id,text);el.type='button';return el;}
@@ -235,17 +242,29 @@
  inspector.addEventListener('focusout',requestSelectionSync);
  const originalRender=render;
  render=function(...args){const result=originalRender(...args);requestSelectionSync();return result;};
+ function applyViewport(v){
+  app.style.height=v.h+'px';app.style.top=v.y+'px';app.style.left=v.x+'px';app.style.width=v.w+'px';
+ }
  function layout(){
   frame=0;
+  const v=viewport();
+  // El teclado puede emitir resize, scroll y ResizeObserver. Ninguna de esas
+  // rutas debe mover los nodos del campo enfocado ni cerrar su popover.
+  if(preservePanelInput(panels,doc.activeElement,layoutWidth,v.w)){
+   viewportDeferred=true;applyViewport(v);
+   for(const entry of panels)positionPanel(entry);
+   resize();return;
+  }
+  viewportDeferred=false;layoutWidth=v.w;
   if(panels.size)closePanels(true);
-  const v=viewport(),nextPortrait=v.w<600&&v.h>v.w,nextCompact=v.h<=500||v.w<900;
+  const nextPortrait=v.w<600&&v.h>v.w,nextCompact=v.h<=500||v.w<900;
   if(nextCompact!==compact||nextPortrait!==portrait){
    closePanels();body.classList.remove('fh-properties-open');
    if(inspector.contains(doc.activeElement))properties.focus();
   }
   compact=nextCompact;portrait=nextPortrait;
   body.classList.add('fh-editor');body.classList.toggle('fh-compact',compact);body.classList.toggle('fh-portrait',portrait);
-  app.style.height=v.h+'px';app.style.top=v.y+'px';app.style.left=v.x+'px';app.style.width=v.w+'px';
+  applyViewport(v);
   notice.hidden=!portrait;stage.inert=portrait;
   updateProperties();
   // Primero las filas interiores; después las barras que contienen sus lanzadores.
@@ -253,6 +272,7 @@
   syncSelection();resize();
  }
  function schedule(){if(!frame)frame=requestAnimationFrame(layout);}
+ doc.addEventListener('focusout',()=>{if(viewportDeferred)schedule();});
  const sizes=new ResizeObserver(schedule);
  for(const el of [app,stage,$('headActions'),subbar,$('categories'),$('tools')])sizes.observe(el);
  root.visualViewport?.addEventListener('resize',schedule);root.visualViewport?.addEventListener('scroll',schedule);
