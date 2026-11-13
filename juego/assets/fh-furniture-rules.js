@@ -111,6 +111,9 @@
     if(catalogEntry.id==='escritorio_pc'&&item.pcAssemblyRequired===undefined)item.pcAssemblyRequired=true;
     item.type = typeFor(catalogEntry.id);
     item.label = catalogEntry.name;
+    // Rol opcional: la futura zona de tienda contará registradoras y exhibidores.
+    if (catalogEntry.shopRole === 'register' || catalogEntry.shopRole === 'display') item.shopRole = catalogEntry.shopRole;
+    else delete item.shopRole;
     item.w = Number(catalogEntry.widthFt) / cellFt;
     item.h = Number(catalogEntry.depthFt) / cellFt;
     // Los brazos de los postes son visuales, no un obstáculo a nivel del suelo.

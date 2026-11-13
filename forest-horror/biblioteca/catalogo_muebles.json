@@ -1923,6 +1923,205 @@
       "geometryBackMinMeters": null,
       "forSale": false,
       "environment": "exterior"
+    },
+    {
+      "id": "caja_registradora_c02",
+      "name": "Caja registradora retro",
+      "category": "Cobro",
+      "pack": "comercio_02",
+      "environment": "interior",
+      "shortCode": "CR",
+      "widthFt": 1.5,
+      "depthFt": 1.25,
+      "heightFt": 1.25,
+      "blocksMovement": true,
+      "placement": "floor_or_surface",
+      "mountHeightFt": 0,
+      "glb": "modelos_glb/caja_registradora_c02.glb",
+      "thumbnail": "miniaturas/caja_registradora_c02.png",
+      "tags": [
+        "registradora",
+        "cobro",
+        "tienda"
+      ],
+      "triangles": 84,
+      "description": "Modelo 3D Pixel Art Low Poly. Funciones de comercio e inventario pendientes.",
+      "surfaceOverhangFt": 0.1,
+      "shopRole": "register"
+    },
+    {
+      "id": "mostrador_caja_c02",
+      "name": "Mostrador de caja",
+      "category": "Cobro",
+      "pack": "comercio_02",
+      "environment": "interior",
+      "shortCode": "MC",
+      "widthFt": 5,
+      "depthFt": 2.5,
+      "heightFt": 3.25,
+      "blocksMovement": true,
+      "placement": "floor",
+      "mountHeightFt": 0,
+      "glb": "modelos_glb/mostrador_caja_c02.glb",
+      "thumbnail": "miniaturas/mostrador_caja_c02.png",
+      "tags": [
+        "mostrador",
+        "caja",
+        "tienda"
+      ],
+      "triangles": 62,
+      "description": "Modelo 3D Pixel Art Low Poly. Funciones de comercio e inventario pendientes.",
+      "supportSurfaces": [
+        {
+          "id": "top",
+          "xFt": 0,
+          "zFt": 0,
+          "widthFt": 4.7,
+          "depthFt": 2.3,
+          "heightFt": 3.25
+        }
+      ]
+    },
+    {
+      "id": "refrigerador_vertical_bebidas_c02",
+      "name": "Refrigerador de bebidas",
+      "category": "Refrigeración",
+      "pack": "comercio_02",
+      "environment": "interior",
+      "shortCode": "RB",
+      "widthFt": 3.5,
+      "depthFt": 3.25,
+      "heightFt": 7,
+      "blocksMovement": true,
+      "placement": "floor",
+      "mountHeightFt": 0,
+      "glb": "modelos_glb/refrigerador_vertical_bebidas_c02.glb",
+      "thumbnail": "miniaturas/refrigerador_vertical_bebidas_c02.png",
+      "tags": [
+        "refrigerador",
+        "bebidas",
+        "tienda"
+      ],
+      "triangles": 166,
+      "description": "Modelo 3D Pixel Art Low Poly. Funciones de comercio e inventario pendientes."
+    },
+    {
+      "id": "congelador_horizontal_c02",
+      "name": "Congelador horizontal",
+      "category": "Refrigeración",
+      "pack": "comercio_02",
+      "environment": "interior",
+      "shortCode": "CH",
+      "widthFt": 5,
+      "depthFt": 2.75,
+      "heightFt": 3.5,
+      "blocksMovement": true,
+      "placement": "floor",
+      "mountHeightFt": 0,
+      "glb": "modelos_glb/congelador_horizontal_c02.glb",
+      "thumbnail": "miniaturas/congelador_horizontal_c02.png",
+      "tags": [
+        "congelador",
+        "helados",
+        "tienda"
+      ],
+      "triangles": 108,
+      "description": "Modelo 3D Pixel Art Low Poly. Funciones de comercio e inventario pendientes."
+    },
+    {
+      "id": "rack_snacks_c02",
+      "name": "Rack de botanas",
+      "category": "Exhibición",
+      "pack": "comercio_02",
+      "environment": "interior",
+      "shortCode": "RS",
+      "widthFt": 2.25,
+      "depthFt": 1.75,
+      "heightFt": 5,
+      "blocksMovement": true,
+      "placement": "floor",
+      "mountHeightFt": 0,
+      "glb": "modelos_glb/rack_snacks_c02.glb",
+      "thumbnail": "miniaturas/rack_snacks_c02.png",
+      "tags": [
+        "rack",
+        "snacks",
+        "botanas"
+      ],
+      "triangles": 130,
+      "description": "Modelo 3D Pixel Art Low Poly. Funciones de comercio e inventario pendientes.",
+      "shopRole": "display"
+    },
+    {
+      "id": "gondola_simple_c02",
+      "name": "Góndola sencilla",
+      "category": "Exhibición",
+      "pack": "comercio_02",
+      "environment": "interior",
+      "shortCode": "GS",
+      "widthFt": 3,
+      "depthFt": 1.25,
+      "heightFt": 6.25,
+      "blocksMovement": true,
+      "placement": "floor",
+      "mountHeightFt": 0,
+      "glb": "modelos_glb/gondola_simple_c02.glb",
+      "thumbnail": "miniaturas/gondola_simple_c02.png",
+      "tags": [
+        "gondola",
+        "estante",
+        "productos"
+      ],
+      "triangles": 132,
+      "description": "Modelo 3D Pixel Art Low Poly. Funciones de comercio e inventario pendientes.",
+      "shopRole": "display"
+    },
+    {
+      "id": "exhibidor_frutas_c02",
+      "name": "Exhibidor de frutas",
+      "category": "Frutería",
+      "pack": "comercio_02",
+      "environment": "interior",
+      "shortCode": "EF",
+      "widthFt": 4,
+      "depthFt": 2.25,
+      "heightFt": 3.75,
+      "blocksMovement": true,
+      "placement": "floor",
+      "mountHeightFt": 0,
+      "glb": "modelos_glb/exhibidor_frutas_c02.glb",
+      "thumbnail": "miniaturas/exhibidor_frutas_c02.png",
+      "tags": [
+        "fruta",
+        "exhibidor",
+        "comercio"
+      ],
+      "triangles": 236,
+      "description": "Modelo 3D Pixel Art Low Poly. Funciones de comercio e inventario pendientes.",
+      "shopRole": "display"
+    },
+    {
+      "id": "cajero_atm_c02",
+      "name": "Cajero automático ATM",
+      "category": "Servicios",
+      "pack": "comercio_02",
+      "environment": "interior",
+      "shortCode": "AT",
+      "widthFt": 2.5,
+      "depthFt": 2.25,
+      "heightFt": 6,
+      "blocksMovement": true,
+      "placement": "floor",
+      "mountHeightFt": 0,
+      "glb": "modelos_glb/cajero_atm_c02.glb",
+      "thumbnail": "miniaturas/cajero_atm_c02.png",
+      "tags": [
+        "atm",
+        "dinero",
+        "banco"
+      ],
+      "triangles": 120,
+      "description": "Modelo 3D Pixel Art Low Poly. Funciones de comercio e inventario pendientes."
     }
   ]
 }
