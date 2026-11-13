@@ -346,6 +346,42 @@ test('si el panel de diagnóstico falla al montarse, el motor sigue construyénd
 
 
 
+test('el agua del drenaje comparte la máscara FOW sin perder su shader de ondas',()=>{
+ const {context,motor}=integrationEnvironment(),html=context.prepareGLBEngineDoc(motor);
+ const from=html.indexOf('function installVisibility(root=scene)'),to=html.indexOf('const heroMaterial=',from);
+ assert.ok(from>0&&to>from,'Instalador real de visibilidad localizado');
+ const THREE=require('./vendor/three.min.js'),drain=require('./fh-drainage.js');
+ const scene=new THREE.Scene(),story=new THREE.Group();
+ scene.add(story);
+ const section={id:'canal-b1',type:'hall',x:5,y:5,w:10,h:10,rotation:0,
+  drainage:{version:1,kind:'straight',flowTo:null}};
+ drain.attachFloor(THREE,{floors:[{items:[section]}]},story,0,1.524);
+ const water=story.children.find(mesh=>mesh.material?.isShaderMaterial);
+ assert.ok(water,'El canal tiene su superficie de agua GPU');
+ const env=vm.createContext({scene,MAX_X:150,MAX_Z:150,sightUniform:{value:null}});
+ vm.runInContext(html.slice(from,to),env);
+ env.installVisibility();
+ const shader={uniforms:{...water.material.uniforms},
+  vertexShader:water.material.vertexShader,fragmentShader:water.material.fragmentShader};
+ water.material.onBeforeCompile(shader);
+ assert.equal(shader.uniforms.uSight,env.sightUniform,'El agua usa la textura FOW del jugador');
+ assert.match(shader.vertexShader,/varying vec3 fhPos;/,'La máscara recibe la posición mundial');
+ assert.match(shader.vertexShader,/fhPos=\(modelMatrix\*vec4\(position,1\.\)\)\.xyz;/);
+ assert.match(shader.fragmentShader,/texture2D\(uSight,uvFh\)\.r/,'Muestrea la visibilidad real');
+ assert.match(shader.fragmentShader,/gl_FragColor\.rgb\*=clamp\(fhLight,0\.,1\.\);/,
+  'El agua queda negra fuera de visión sin revelar el recorrido');
+ assert.match(shader.vertexShader,/heightMask=noise/,'Conserva las ondas GPU');
+ assert.equal(water.material.depthWrite,true,'No pierde la profundidad del agua opaca');
+});
+
+test('la visión base sin luz no excede 5 ft',()=>{
+ const {context,motor}=integrationEnvironment(),html=context.prepareGLBEngineDoc(motor);
+ assert.match(html,/return peeking\?\{base:1\.524,dim:1\.524,beam:0,angle:0\}:\{\.\.\.r,base:1\.524,dim:1\.524\};/,
+  'El radio de oscuridad debe ser un cuadro de 5 ft, también al mirar por puertas');
+ assert.match(html,/params\.sources\?\.length\|\|fhNatural\?\.hasLight\(\)/,
+  'Las fuentes de luz válidas siguen ampliando la visión');
+});
+
 test('el shader del motor conserva negro opaco y profundidad en el suelo sin luz',()=>{
  const {context,motor}=integrationEnvironment(),html=context.prepareGLBEngineDoc(motor);
  const from=html.indexOf('function installVisibility(root=scene)'),to=html.indexOf('const heroMaterial=',from);
