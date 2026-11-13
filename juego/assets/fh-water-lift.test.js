@@ -78,3 +78,21 @@ test('municipio ilimitado rellena cisterna gradualmente pero no salta bomba del 
  assert.equal(r.cold.status(2,tin).liters,0);
  assert.equal(r.cold.status(0,cis).liters,100);
 });
+
+test('bomba integrada consume electricidad del breaker y se detiene en un apagón',()=>{
+ const m=map();
+ m.floors[0].items.push({id:'breaker',type:'breaker_panel',x:0,y:0,
+  circuits:[{zoneId:'main',rangeFt:300}]});
+ const pump=obj(m,0,'pump');pump.zoneId='main';
+ pump.service.watts=150;pump.service.rayos=1;
+ const game={services:{contracts:{water:'suspended',electricity:'active'}}};
+ const r=services.createRuntime(m,game,{waterCore:potable,hotCore:hotCore});
+ assert.equal(r.statusFor(0,pump).power.powered,true);
+ r.tick(1,1);r.tick(1,1);
+ assert.equal(r.waterStatus(2,obj(m,2,'tin')).liters,20);
+ assert.ok(game.services.meters.kwh>0,'bomba funcionando consume energía eléctrica');
+ r.setService('electricity',false);
+ assert.equal(r.statusFor(0,pump).power.powered,false);
+ r.tick(1,1);
+ assert.equal(r.waterStatus(2,obj(m,2,'tin')).liters,20);
+});
