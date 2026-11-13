@@ -226,7 +226,7 @@
    '\n  if(window.FHWaterVisuals?.choose(it)?.mount==="wall"&&!window.FHWaterVisuals.frontAllowed(it,user.x/CELL,user.z/CELL)){notice(window.FH_WATER_TEXT?.wrongSide||"Usa el dispositivo desde su frente.");return true;}'+
    '\n  if(window.FHWaterVisuals?.onUse(it,f,service,notice,user.x/CELL,user.z/CELL))return true;');
   const rootURL=new URL('./juego/assets/',root.document?.baseURI||'https://localhost/');
-  const tags=['fh-water-catalog.js','fh-water-storage-catalog.js','fh-water-strings.js','fh-water-visuals.js?v=20261113-sotano-bombeo'].map(f=>'<script src="'+new URL(f,rootURL).href+'"></scr'+'ipt>').join('');
+  const tags=['fh-water-catalog.js','fh-water-storage-catalog.js','fh-water-strings.js','fh-water-visuals.js?v=20261113-agua-glb-electricidad-1'].map(f=>'<script src="'+new URL(f,rootURL).href+'"></scr'+'ipt>').join('');
   const head=doc.indexOf('</head>');if(head<0)throw Error('Agua 01: no se encontró la cabecera del motor');
   return doc.slice(0,head)+tags+doc.slice(head);
  }
