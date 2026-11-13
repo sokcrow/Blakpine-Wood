@@ -127,14 +127,17 @@ test('alimentación directa del breaker conserva su prioridad sin ocupar enchufe
 test('puente GLB 3D funciona con el bucle transformado por Parking (Codex P1)',()=>{
  const {api}=visualsLoader();
  const parked="for(const it of items)if(!['red_wall','wall','property_wall','half_wall','fence','window','door','peephole_door','room','hall','outside','building','pavement','parking','grass','dirt','asphalt','alley','sidewalk','concrete','gravel','cobblestone','tile_floor','carpet','wood_floor','parking_decal','drain_access','opening','spawn'].includes(it.type)&&!it.roadControl){";
- const fake='<html><head></head><body><script>'+parked+
-  '\\nfunction furniture(f,a){\\n const group=new THREE.Group();'+
-  '\\nfunction fhServicesSyncVisuals(){}\\nhandle:(it,f)=>{\\n  const service=window.FHServicesRuntime,T=window.FH_SERVICES_TEXT||{};'+
+ const nl=String.fromCharCode(10);
+ const fake='<html><head></head><body><script>'+parked+nl+
+  'function furniture(f,a){'+nl+' const group=new THREE.Group();'+nl+
+  'function fhServicesSyncVisuals(){}'+nl+'handle:(it,f)=>{'+nl+
+  '  const service=window.FHServicesRuntime,T=window.FH_SERVICES_TEXT||{};'+
   '</script></body></html>';
- const result=api.patchEngineDoc(fake);
- assert.match(result,/function furniture\\(f,a\\)\\{\\s*if\\(window\\.FHWaterVisuals\\?\\.choose\\(a\\)\\)return;/,
-  'No depende de la lista de exclusiones modificada por Parking');
- assert.match(result,/const fhWaterVisuals=window\\.FHWaterVisuals\\?\\.install/,
+ const output=api.patchEngineDoc(fake);
+ assert.ok(output.includes('function furniture(f,a){'+nl+
+  ' if(window.FHWaterVisuals?.choose(a))return;'),
+  'El parche debe omitir el mueble genérico tras Parking');
+ assert.ok(output.includes('const fhWaterVisuals=window.FHWaterVisuals?.install'),
   'Conservar carga de modelos GLB y servicios en motor');
- assert.ok(result.includes(parked),'No alterar las excepciones de Parking');
+ assert.ok(output.includes(parked),'No alterar exclusiones de Parking');
 });
