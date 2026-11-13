@@ -51,6 +51,7 @@
    state.construction={};
   const save=typeof options.save==='function'?options.save:()=>{};
   const entries=new Map();
+  let lastTickMinute=null;
   for(const [id,parcel] of parcelMap){
    const spec=normalize(parcel.construction);
    const stored=state.construction[id];
@@ -83,6 +84,9 @@
   }
   function tick(minute){
    if(!Number.isFinite(minute))return false;
+   const rounded=Math.floor(minute);
+   if(lastTickMinute===rounded)return false;
+   lastTickMinute=rounded;
    let changed=false;
    for(const [id,entry] of entries){
     const previousMinute=entry.lastMinute;
