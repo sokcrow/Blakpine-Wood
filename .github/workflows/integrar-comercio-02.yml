@@ -1,0 +1,51 @@
+name: Integración de assets Comercio 02
+on:
+  push:
+    branches:
+      - feat/comercio-02-conveniencia-assets
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  materializar-assets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Recuperar fuentes originales del paquete aprobado
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd forest-horror/biblioteca/comercio_02
+          cat fuentes-01.b64 fuentes-02.b64 fuentes-03.b64 | base64 --decode | tar -xJf -
+      - name: Generar GLB texturados y miniaturas originales
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check 'numpy==2.3.5' 'Pillow==12.3.0' 'trimesh==4.11.1'
+          cd forest-horror/biblioteca/comercio_02
+          python generar_comercio_02.py
+          python crear_miniaturas_desde_glb.py
+          python validar_comercio_02.py
+          mkdir -p ../modelos_glb ../miniaturas
+          cp modelos_glb/*.glb ../modelos_glb/
+          cp miniaturas/*.png ../miniaturas/
+      - name: Pruebas de catálogo y colocación del editor
+        run: node --test juego/assets/fh-comercio-02-catalog.test.js
+      - name: Publicar modelos y fuentes en la misma rama
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm forest-horror/biblioteca/comercio_02/fuentes-01.b64
+          rm forest-horror/biblioteca/comercio_02/fuentes-02.b64
+          rm forest-horror/biblioteca/comercio_02/fuentes-03.b64
+          git add -A forest-horror/biblioteca/comercio_02 forest-horror/biblioteca/modelos_glb forest-horror/biblioteca/miniaturas
+          if ! git diff --cached --quiet; then
+            git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'build: publicar ocho GLB y ocho miniaturas de Comercio 02'
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
