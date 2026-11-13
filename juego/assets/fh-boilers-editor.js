@@ -82,7 +82,7 @@
   // Separar el cuerpo del muro una sola vez, antes de persistir el JSON.
   // Así 3D, hitbox, interacción y editor comparten el mismo centro.
   if(model.placement==='floor'){
-   const adjusted=root.FHWaterVisuals?.floorPlacement(item,model,current().items,cell*.3048);
+   const adjusted=root.FHWaterVisuals?.floorPlacement?.(item,model,current().items,cell*.3048);
    if(adjusted){item.x=adjusted.x;item.y=adjusted.y;}
   }
   item.zoneId=''; // El motor elige automáticamente el breaker alcanzable por la pared.
