@@ -19,7 +19,7 @@
   // con su propia textura sin modificar el FOW ni los registros del jugador.
   const sightHead='function drawSight(){const at=eyeLocation();const ts=performance.now();';
   const sightStart=doc.indexOf(sightHead);
-  const sightEnd=doc.indexOf('\nfunction installVisibility(){',sightStart);
+  const sightEnd=doc.indexOf('\nfunction installVisibility(',sightStart);
   if(sightStart<0||sightEnd<sightStart)throw Error('Hook CCTV incompatible: drawSight del motor');
   let sight=doc.slice(sightStart,sightEnd);
   function sightOnce(needle,replacement){
@@ -44,14 +44,29 @@
    'const opaque=sightWalls[sightFloor].slice();for(const d of doorList[sightFloor])if(!d.transparent&&!d.passable&&(observer||!peeking||d!==peekDoor))opaque.push(d.block);');
   sightOnce('elevatorStops.filter(stop=>stop.f===currentFloor)',
    'elevatorStops.filter(stop=>stop.f===sightFloor)');
+  sightOnce("if(cab?.floor===currentFloor&&cab.phase==='open')continue;",
+   "if(cab?.floor===sightFloor&&cab.phase==='open')continue;");
+  // El preparado actualiza las luces de acceso y la caché del jugador al
+  // cambiar de minuto. Una captura remota no debe escribir esos registros.
+  if(sight.includes(' const minute=Math.floor(Number(GameState.clock?.minutes)||0);')){
+   sightOnce(' const minute=Math.floor(Number(GameState.clock?.minutes)||0);',
+    ' if(!observer){\n const minute=Math.floor(Number(GameState.clock?.minutes)||0);');
+   sightOnce('  (f,x,y)=>fhGroundExposure?.(f,x*CELL,y*CELL)===true)||[];',
+    '  (f,x,y)=>fhGroundExposure?.(f,x*CELL,y*CELL)===true)||[];\n }');
+  }
   sightOnce('const nx=x=>x/MAX_X*sightCanvas.width,nz=z=>z/MAX_Z*sightCanvas.height;',
    'const nx=x=>x/MAX_X*visionCanvas.width,nz=z=>z/MAX_Z*visionCanvas.height;');
   if(sight.split('currentFloor,at.x,at.z').length!==2)throw Error('Hook CCTV incompatible: fuentes de luz');
   sight=sight.replace('currentFloor,at.x,at.z','sightFloor,at.x,at.z');
   sight=sight.split('q.').join('visionCtx.');
   sight=sight.split('sightCanvas.').join('visionCanvas.');
-  sightOnce('const beamDir={x:-Math.sin(yaw),z:-Math.cos(yaw)};',
-   'const beamDir={x:-Math.sin(sightYaw),z:-Math.cos(sightYaw)};');
+  // prepareGLBEngineDoc orienta la linterna por el sprite, no por la cámara.
+  // Conservar flashDir para el jugador al adaptar también el motor preparado.
+  const beamHead=sight.includes('const beamDir=flashDir;')
+   ?'const beamDir=flashDir;':'const beamDir={x:-Math.sin(yaw),z:-Math.cos(yaw)};';
+  sightOnce(beamHead,beamHead==='const beamDir=flashDir;'
+   ?'const beamDir=observer?{x:-Math.sin(sightYaw),z:-Math.cos(sightYaw)}:flashDir;'
+   :'const beamDir={x:-Math.sin(sightYaw),z:-Math.cos(sightYaw)};');
   sightOnce('sightTexture.needsUpdate=true;',
    'visionTexture.needsUpdate=true;\n if(observer)return;');
   doc=doc.slice(0,sightStart)+sight+doc.slice(sightEnd);

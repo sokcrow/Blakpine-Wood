@@ -18,6 +18,18 @@ const engineChunks=Array.from({length:13},(_,i)=>{
  assert.ok(match,'Fragmento Base64 '+i);return match[1];
 });
 const baseEngine=Buffer.from(engineChunks.join(''),'base64').toString('utf8');
+function preparedEngine(){
+ const editor=fs.readFileSync(path.join(__dirname,'../../index.html'),'utf8');
+ const sharedStart=editor.indexOf('const ForestShared=(()=>{');
+ const sharedEnd=editor.indexOf("\n'use strict';",sharedStart);
+ const start=editor.indexOf('function addLiveTextToEngine(doc){');
+ const end=editor.indexOf('let fhCharacterLaunchPending',start);
+ assert.ok(sharedStart>=0&&sharedEnd>sharedStart&&start>=0&&end>start);
+ const env={URL,document:{baseURI:'https://example.test/'},window:{},ENGINE_SOURCE:baseEngine};
+ vm.runInNewContext(editor.slice(sharedStart,sharedEnd)+editor.slice(start,end)+
+  '\nvar PATCHED=prepareGLBEngineDoc(ENGINE_SOURCE);',env,{timeout:20000});
+ return env.PATCHED;
+}
 const sightStart=baseEngine.indexOf('function drawSight(){');
 const sightEnd=baseEngine.indexOf('\nfunction installVisibility(){',sightStart);
 assert.ok(sightStart>0&&sightEnd>sightStart,'Fuente real de drawSight');
@@ -46,6 +58,76 @@ test('adaptador añade módulo CCTV y conserva motor, sin sustituir a RAVEN/OS',
 });
 test('adaptador rechaza fuentes sin los puntos de integración necesarios',()=>{
  assert.throws(()=>sandboxWindow.FHCCTVEngine.patch('<html><head></head></html>'),/Hook CCTV incompatible/);
+});
+
+test('P1: CCTV admite prepareGLBEngineDoc real y conserva iluminación y diagnóstico',()=>{
+ const prepared=preparedEngine();
+ assert.match(prepared,/function installVisibility\(root=scene\)/);
+ assert.match(prepared,/const beamDir=flashDir;/);
+ const patched=sandboxWindow.FHCCTVEngine.patch(prepared);
+ assert.match(patched,/const beamDir=observer\?\{[^;]+:flashDir;/);
+ assert.match(patched,/FHLights.sourcesNear\(roomLampEntries,lighting,sightFloor,at.x,at.z/);
+ assert.match(patched,/fhCCTVFrame\(now\);\s*circleMask\(\);if\(!frame.fhReady/);
+ for(const script of patched.matchAll(/<script>([\s\S]*?)<\/script>/g)){
+  if(script[1].trim())assert.doesNotThrow(()=>new vm.Script(script[1]));
+ }
+});
+
+test('CCTV compone arquitectura, PG y barreras tras el fallback actual de servicios',()=>{
+ const window={document:{baseURI:'https://example.test/index.html'}};
+ const document={baseURI:window.document.baseURI};
+ const env={window,document,URL,console};
+ for(const file of ['fh-services-engine-hook.js','fh-architecture-skins.js',
+  'fh-structure-engine-hook.js','fh-barriers-engine-hook.js']){
+  document.currentScript={src:new URL('juego/assets/'+file,document.baseURI).href};
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname,file),'utf8'),env);
+ }
+ let doc=preparedEngine();
+ // El adaptador de servicios vigente falla también en main; reproducir el
+ // catch de open3DPreview, que conserva el documento preparado sin ese hook.
+ assert.throws(()=>window.FHServicesEngine.patch(doc),/Hook de servicios incompatible: selección \(0\)/);
+ doc=window.FHArchitectureSkins.patchEngineDoc(doc);
+ doc=window.FHStructureHealthEngine.patch(doc);
+ doc=window.FHBarriersEngine.patch(doc);
+ doc=sandboxWindow.FHCCTVEngine.patch(doc);
+ assert.match(doc,/fhCCTVFrame\(now\);/);
+ for(const script of doc.matchAll(/<script>([\s\S]*?)<\/script>/g)){
+  if(script[1].trim())assert.doesNotThrow(()=>new vm.Script(script[1]));
+ }
+});
+
+test('visión preparada conserva cachés del jugador y usa el ascensor del piso CCTV',()=>{
+ const patched=sandboxWindow.FHCCTVEngine.patch(preparedEngine());
+ const start=patched.indexOf('function drawSight(observer=null){');
+ const sight=patched.slice(start,patched.indexOf('\nfunction installVisibility(',start));
+ const untouched=()=>{throw Error('La captura remota no debe actualizar al jugador');};
+ const actorSnapshot={},drainLights=[],last={f:0},canvas={width:80,height:80};
+ const ctx={fillRect(){},save(){},beginPath(){},moveTo(){},lineTo(){},closePath(){},
+  clip(){},translate(){},scale(){},restore(){},createRadialGradient(){return {addColorStop(){}};}};
+ const cameraTexture={needsUpdate:false},playerTexture={needsUpdate:false};
+ const camera={floor:1,at:{x:15,z:20},yaw:0,canvas,ctx,texture:cameraTexture};
+ let rays=0;
+ const env={observer:camera,performance:{now:()=>100},eyeLocation:untouched,
+  currentFloor:0,yaw:2,peeking:false,visibilityDirty:false,lastSightTime:10,visibilityLast:last,
+  fhActorSightSnapshot:actorSnapshot,fhDrainAccessLights:drainLights,GameState:{clock:{minutes:5}},
+  window:{FHLights:{sourcesNear(entries,lighting,floor){assert.equal(floor,1);return [];}}},
+  lighting:{range(floor,room,flash){assert.equal(floor,1);assert.equal(flash,false);return {base:1.5,beam:0};}},
+  roomAt:()=>null,roomLampEntries:[],sightCanvas:{width:4,height:4},q:ctx,sightTexture:playerTexture,
+  sightWalls:[[],[]],doorList:[[],[]],
+  elevatorStops:[{f:1,shaftId:'lift',item:{},x:1,z:1}],
+  elevatorSystem:{get:()=>({cabin:{floor:1,phase:'open'}})},
+  ForestShared:{sightRayDistance(x,z,dir,opaque,radius){
+   assert.equal(opaque.length,0,'La cabina abierta del piso observado no bloquea');rays++;return radius;
+  }},CELL:1.5,STEPS:4,dirs:[{x:1,z:0},{x:0,z:1},{x:-1,z:0},{x:0,z:-1}],
+  LOOK_RADIUS:19,MAX_X:100,MAX_Z:100,flashDir:{x:1,z:0},fhNatural:null,
+  fhHorrorLightsFail:()=>false,sightParameters:untouched,
+  updateSegmentSight:untouched,updateFurnitureSight:untouched,updateElevatorSight:untouched,
+  updateDoorSight:untouched,updateLampSight:untouched};
+ vm.runInNewContext(sight+'\ndrawSight(observer);',env);
+ assert.ok(rays>0);assert.equal(cameraTexture.needsUpdate,true);
+ assert.equal(playerTexture.needsUpdate,false);assert.equal(env.visibilityDirty,false);
+ assert.equal(env.lastSightTime,10);assert.equal(env.visibilityLast,last);
+ assert.equal(env.fhActorSightSnapshot,actorSnapshot);assert.equal(env.fhDrainAccessLights,drainLights);
 });
 
 test('P1: adapta el motor real con el cierre de frame instrumentado y varios </head>',()=>{
