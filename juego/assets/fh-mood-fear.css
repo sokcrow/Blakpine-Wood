@@ -3,7 +3,7 @@
    Solo se muestra el nombre del estado, nunca puntos internos ni pérdida de PS. */
 #fhSpatialLayer .fh-sound.fh-fear-comic{
  position:absolute;display:block;max-width:min(72vw,310px);
- padding:0;margin:0;color:var(--fear,#25d53a);
+ padding:0;margin:0;color:var(--fear);
  background:transparent;border:0;outline:0;box-shadow:none;
  text-align:center;white-space:normal;
  text-transform:uppercase;letter-spacing:.05em;
