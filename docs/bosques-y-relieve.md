@@ -51,9 +51,10 @@ edificio. Alrededor de construcciones y calles se mantiene una franja plana de
 incluidas las esquinas. En calles se mide desde el borde de la banqueta
 configurada. Después de esa franja comienza la transición gradual del relieve.
 La malla conserva un margen adicional ligado a su resolución para impedir que
-la interpolación introduzca pendientes dentro de los 15 ft. Esta franja sólo
-afecta al relieve: no amplía las exclusiones de árboles ni convierte esa
-superficie en una reserva para Construcción. La elevación original de cada
+la interpolación introduzca pendientes dentro de los 15 ft. Los árboles también
+respetan esa franja: la distancia se mide hasta el borde de la copa, no hasta el
+tronco. La consulta de colocación comparte los límites de construcción y calle
+con el relieve, sin convertir esa superficie en una reserva para Construcción. La elevación original de cada
 planta permanece intacta.
 
 La malla natural respeta los recortes originales de `surfaceRectsMinusVoids`,
@@ -88,7 +89,7 @@ otra máscara de oscuridad.
 ## Colisión, visión y retirada
 
 El radio del tronco se obtiene de la base de cada GLB, separado del ancho de
-copa. La colocación respeta las reservas con margen de copa; los movimientos y
+copa. La colocación deja las copas a un mínimo de 15 ft de construcciones y calles; los movimientos y
 rayos sólo utilizan el tronco circular. `ForestShared.solidAt` y
 `ForestShared.sightRayDistance` siguen siendo las consultas de colisión y visión
 compartidas. Sus candidatos forestales proceden del índice por sectores.

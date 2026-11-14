@@ -68,7 +68,7 @@ window.addEventListener('beforeunload',()=>fhForestVisuals.dispose());`);
   doc=once(doc,'fhDeliveryNpc.position.set(point.x,1.05,point.z);','fhDeliveryNpc.position.set(point.x,1.05+fhGroundRise(point.floor,point.x,point.z),point.z);');
   const baseURL=new URL('../../',scriptURL);
   const files=['fh-forest-strings.js','fh-terrain.js','fh-forest-catalog.js','fh-forest.js','fh-forest-visuals.js','vendor/GLTFLoader.js'];
-  const scripts=files.map(file=>'<script src="'+new URL('juego/assets/'+file+'?v=20261114-forest1',baseURL).href+'"></scr'+'ipt>').join('');
+  const scripts=files.map(file=>'<script src="'+new URL('juego/assets/'+file+'?v=20261114-forest-trees15ft',baseURL).href+'"></scr'+'ipt>').join('');
   const headEnd=doc.indexOf('</head>');if(headEnd<0)throw Error('Motor sin cabecera para el bosque');
   return doc.slice(0,headEnd)+scripts+doc.slice(headEnd);
  }
