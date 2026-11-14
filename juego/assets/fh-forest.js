@@ -24,7 +24,7 @@
     const probability=cfg.density*Math.max(0,Math.min(1,(density-.25)/.5));
     if(Terrain.random(cfg.seed,ix,iz,3)>=probability)continue;
     const model=choose(Terrain.random(cfg.seed,ix,iz,4)),canopyRadius=model.ancho_ft*.3048/2;
-    if(terrain.reservedAt(x,z,canopyRadius+.35)||excluded.has(id))continue;
+    if(terrain.vegetationReservedAt(x,z,canopyRadius+.35)||excluded.has(id))continue;
     const tree={id,x,z,y:terrain.heightAt(x,z),rotation:Terrain.random(cfg.seed,ix,iz,5)*Math.PI*2,modelId:model.id,radius:model.trunkRadiusM,canopyRadius,height:model.heightM,sector:sectorKey(x,z)};
     all.set(id,tree);if(!sectors.has(tree.sector))sectors.set(tree.sector,[]);sectors.get(tree.sector).push(tree);
    }

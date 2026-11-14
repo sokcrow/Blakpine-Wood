@@ -1,7 +1,7 @@
 (function(root){
  'use strict';
  const text=Object.freeze({button:'Bosque y relieve',title:'Terreno natural',enabled:'Activar bosque y relieve',
-  explanation:'Se genera en el terreno libre de PB. El suelo permanece plano durante 15 ft alrededor de construcciones y calles. Las semillas se guardan con el mapa; la tala de una partida no modifica este diseño.',
+  explanation:'Se genera en el terreno libre de PB. Se conservan 15 ft de suelo plano y libres de copas alrededor de construcciones y calles. Las semillas se guardan con el mapa; la tala de una partida no modifica este diseño.',
   terrainSeed:'Semilla del relieve',forestSeed:'Semilla del bosque',amplitude:'Amplitud del relieve (metros)',wavelength:'Tamaño de las lomas (metros)',
   density:'Densidad del bosque (0 a 1)',spacing:'Separación base entre árboles (metros)',snow:'Permitir pinos nevados en este entorno',
   preview:'Actualizar previsualización',save:'Guardar',cancel:'Cerrar',saved:'Configuración del terreno guardada.',

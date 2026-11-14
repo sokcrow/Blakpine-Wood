@@ -53,7 +53,7 @@ test('Mantiene 15 ft planos desde los lados y esquinas de una construcción, ent
   for(const [cx,cz,sx,sz] of [[r.x,r.y,-1,-1],[r.x+r.w,r.y,1,-1],[r.x,r.y+r.h,-1,1],[r.x+r.w,r.y+r.h,1,1]]){
    for(let a=0;a<=Math.PI/2;a+=Math.PI/24)check(cx+sx*Math.cos(a)*clearance,cz+sz*Math.sin(a)*clearance);
   }
-  assert.equal(t.reservedAt(r.x-3,r.y+3),false,'La franja de relieve no amplía la reserva para árboles/obras');
+  assert.equal(t.reservedAt(r.x-3,r.y+3),false,'La franja no amplía la reserva física de Construcción');
  }
 });
 
@@ -83,4 +83,15 @@ test('Aplica la franja a edificios rotados, habitaciones por spans y construccio
  assert.equal(t.heightAt(point.x,point.z),0);
  const b=map();b.floors[1].items=[{type:'room',spans:[{x:20,y:20,w:10,h:10}]}];assert.equal(Terrain.create(b).heightAt(30+clearance,25),0);
  const c=map();c.properties=[{floorId:'pb',construction:{simulated:true},polygon:[{x:20,y:20},{x:30,y:20},{x:30,y:30},{x:20,y:30}]}];assert.equal(Terrain.create(c).heightAt(30+clearance,25),0);
+});
+
+test('La exclusión de vegetación comparte los 15 ft del relieve sin ampliar la reserva física',()=>{
+ const m=map();m.floors[1].items=[{type:'building',x:30,y:30,w:10,h:10}];const t=Terrain.create(m),radius=1,clearance=15*.3048;
+ assert.equal(t.reservedAt(43,35),false);
+ assert.equal(t.vegetationReservedAt(43,35,radius),true);
+ assert.equal(t.vegetationReservedAt(40+clearance+radius-.01,35,radius),true);
+ assert.equal(t.vegetationReservedAt(40+clearance+radius+.01,35,radius),false);
+ const inside=(clearance+radius-.01)/Math.sqrt(2),outside=(clearance+radius+.01)/Math.sqrt(2);
+ assert.equal(t.vegetationReservedAt(40+inside,40+inside,radius),true);
+ assert.equal(t.vegetationReservedAt(40+outside,40+outside,radius),false,'La distancia se mide radialmente en las esquinas');
 });
