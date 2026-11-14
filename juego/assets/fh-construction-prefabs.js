@@ -89,6 +89,7 @@
   const widths=base.map((n,i)=>n+Math.floor(available/base.length)+(i<available%base.length?1:0));
   const prefix='fhpf_'+encodeURIComponent(property.id).replace(/%/g,'~');
   const existingIds=new Set((project.floors||[]).flatMap(f=>f.items||[]).map(it=>it.id));
+  if([...existingIds].some(id=>String(id).startsWith(prefix+'_')))return fail('generated');
   const items=[];let serial=0;
   const add=(kind,attrs,phase='estructura')=>{
    const id=prefix+'_'+String(++serial);
