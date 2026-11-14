@@ -19,11 +19,12 @@
  function recoveryPG(resources){
   return finite(resources?.pgMax)?whole(resources.pgMax*.10):0;
  }
- function createRuntime(gameState,callbacks={},initialMinute){
-  if(!gameState||!gameState.character?.resources)throw Error('Faltan recursos del personaje.');
-  const resources=gameState.character.resources;
+ function createRuntime(gameState,callbacks={},initialMinute,unit=gameState?.character){
+  if(!gameState||!unit?.resources)throw Error('Faltan recursos de la unidad.');
+  const owner=unit===gameState.character?gameState:unit;
+  const resources=unit.resources;
   const startMinute=finite(initialMinute)?initialMinute:finite(gameState.clock?.minutes)?gameState.clock.minutes:0;
-  const saved=gameState.survival&&typeof gameState.survival==='object'?gameState.survival:{};
+  const saved=owner.survival&&typeof owner.survival==='object'?owner.survival:{};
   const state=Object.assign({
    version:2,lastMinute:startMinute,
    mode:'awake',sleepMinutes:0,sitCarry:0,sleepPECarry:0,
@@ -42,7 +43,7 @@
   for(const key of ['sleepMinutes','sitCarry','sleepPECarry','sleepSPCarry','stressCarry','relaxCarry']){
    if(!finite(state[key])||state[key]<0)state[key]=0;
   }
-  gameState.survival=state;
+  owner.survival=state;
   function setResource(key,value){
    const max=resources[key+'Max'];
    if(!finite(max)||max<0)return false;
@@ -61,7 +62,7 @@
     setResource(key,resources[key]);
   }
   function checkCritical(){
-   if(gameState.character.life==='dead')return state.critical;
+   if(unit.life==='dead')return state.critical;
    if(resources.pg<=0&&!state.critical){
     state.critical={status:'critical',successes:0,failures:0};
     callbacks.onCritical?.(state.critical);
@@ -104,7 +105,7 @@
    if(state.critical.successes>=3)state.critical.status='stable';
    else if(state.critical.failures>=3){
     state.critical.status='dead';
-    gameState.character.life='dead';
+    unit.life='dead';
     callbacks.onDeath?.();
    }
    callbacks.onCritical?.(state.critical);
