@@ -30,7 +30,11 @@
    return result;
   }
   function publish(p){
-   job.position={floor:p.floor,x:p.x,z:p.z};
+   const next={floor:p.floor,x:p.x,z:p.z};
+   if(job.unit){
+    if(!job.unit.setPosition(next))throw Error('No se pudo mover la unidad del repartidor');
+    job.position=job.unit.position;
+   }else job.position=next; // Compatibilidad con integraciones anteriores.
    options.position?.({...job.position});
   }
   function start(orderId,destination){
@@ -52,7 +56,9 @@
    if(agent.tick(id=>id==='entrar'?'done':'blocked').action!=='entrar')return false;
    const routing=agent.tick(id=>id==='ir_a_puerta'?'running':'blocked');
    if(routing.action!=='ir_a_puerta')return false;
-   job={orderId,agent,portal:best.portal,position:{...best.points[0]},route:best.points,index:1,stage:'incoming',destination:{...destination},replanAt:0};
+   const unit=options.unitFor?.(orderId)||null;
+   if(options.unitFor&&(!unit||typeof unit.setPosition!=='function'))return false;
+   job={orderId,agent,unit,portal:best.portal,position:{...best.points[0]},route:best.points,index:1,stage:'incoming',destination:{...destination},replanAt:0};
    options.spawn?.({...job.position});options.pose?.('walk');
    publish(job.position);
    return true;
@@ -117,7 +123,8 @@
    if(job&&['incoming','returning'].includes(job.stage)&&job.index>=job.route.length)reached();
   }
   return Object.freeze({start,tick,delivered,get active(){return !!job},get orderId(){return job?.orderId||null},
-   get stage(){return job?.stage||'idle'},get position(){return job?{...job.position}:null},
+   get stage(){return job?.stage||'idle'},get unit(){return job?.unit||null},
+   get position(){return job?{...(job.unit?.position||job.position)}:null},
    get snapshot(){return job?.agent.snapshot()||null}});
  }
  return Object.freeze({createRuntime});
