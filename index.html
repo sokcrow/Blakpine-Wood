@@ -5034,7 +5034,7 @@ function floorSightThroughOpening(f,at,target,openings){
    ['window.FHSurvivalRuntime=fhSurvival;',
     'window.FHSurvivalRuntime=fhSurvival;\nwindow.FHUnitsRuntime=window.FHUnitCore.createRuntime(GameState,{characterRules:window.FHCharacterCore,survivalCore:window.FHSurvival,moodCore:window.FHMoodFear,playerSurvival:()=>window.FHSurvivalRuntime,playerMood:()=>window.FHMoodFearRuntime,playerPosition:()=>({floor:currentFloor,x:user.x,z:user.z})});'],
    ['fhNpcCourier=window.FHNPCCourier.createRuntime({',
-    'fhNpcCourier=window.FHNPCCourier.createRuntime({\n    unitFor:orderId=>{const unit=window.FHUnitsRuntime?.ensure("courier:"+String(orderId),{name:"Repartidor"});if(unit){window.FHUnitsRuntime.assignController(unit.id,{type:"ai",ownerId:"courier"});saveProgress();}return unit;},']
+    'fhNpcCourier=window.FHNPCCourier.createRuntime({\n    unitFor:orderId=>{const unit=window.FHUnitsRuntime?.ensure("courier:"+String(orderId),{name:window.FH_UNIT_TEXT.courierName});if(unit){window.FHUnitsRuntime.assignController(unit.id,{type:"ai",ownerId:"courier"});saveProgress();}return unit;},']
   ];
   for(const [before,after] of points){
    const count=doc.split(before).length-1;
