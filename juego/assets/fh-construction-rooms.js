@@ -124,8 +124,9 @@
   const construction=options.construction?.status?.(property.id)||null;
   const inProgress=construction?construction.finished===false:property.construction?.simulated===true;
   if(inProgress)issues.push({code:'obra_pendiente'});
+  const unconfigured=!required.length&&!inspected.length;
   return {parcelId:property.id,preset,rooms:inspected,issues,unverified,
-   status:issues.length?'incomplete':unverified.length?'unverified':'ready',
+   status:issues.length?'incomplete':unverified.length?'unverified':unconfigured?'unconfigured':'ready',
    access:'no_verificado',npcUsable:null};
  }
  function createRuntime(project,options={}){
