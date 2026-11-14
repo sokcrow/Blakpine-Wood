@@ -8,6 +8,7 @@
  'use strict';
  const EPS=1e-5;
  const MIN=Object.freeze({ayuntamiento:[11,10],casas:[12,10],apartamentos:[24,10],tienda:[12,10]});
+ const TARGET=Object.freeze({ayuntamiento:[18,13],casas:[14,11],apartamentos:[28,12],tienda:[16,11]});
  const KINDS=Object.freeze({ayuntamiento:['oficina','bano'],casas:['cocina','dormitorio','bano'],
   apartamentos:['bano','dormitorio','cocina','bano','dormitorio','cocina'],tienda:['bano','ventas']});
  const MIN_ROOM=Object.freeze({oficina:5,bano:4,cocina:4,dormitorio:4,ventas:8,descanso:4});
@@ -68,10 +69,14 @@
   const floor=(project?.floors||[]).find(f=>String(f.id)===String(property?.floorId));
   if(!floor||!Array.isArray(floor.items))return fail('no_floor');
   if(property?.generatedPrefab||floor.items.some(it=>it.constructionParcelId===property.id))return fail('generated');
-  const rect=outline(property,project.units);
-  if(!rect)return fail('invalid_parcel');
+  const availableRegion=outline(property,project.units);
+  if(!availableRegion)return fail('invalid_parcel');
   const [needW,needH]=MIN[preset];
-  if(rect.w<needW||rect.h<needH)return fail('small_parcel',{minimum:[needW+2,needH+2]});
+  if(availableRegion.w<needW||availableRegion.h<needH)return fail('small_parcel',{minimum:[needW+2,needH+2]});
+  const [maxW,maxH]=TARGET[preset];
+  const w=Math.min(maxW,availableRegion.w),h=Math.min(maxH,availableRegion.h);
+  const rect={x:availableRegion.x+Math.floor((availableRegion.w-w)/2),
+   y:availableRegion.y+Math.floor((availableRegion.h-h)/2),w,h};
   const clearTypes=new Set(['outside','grass','dirt']);
   for(const it of floor.items){
    const box=footprint(it,project.units);
@@ -219,5 +224,5 @@
   property.generatedPrefab={version:1,preset,itemIds:draft.items.map(it=>it.id)};
   return {ok:true,rooms:draft.rooms,items:draft.items.length,apartments:draft.apartments,rect:draft.rect};
  }
- return Object.freeze({MIN,outline,plan,place});
+ return Object.freeze({MIN,TARGET,outline,plan,place});
 });
