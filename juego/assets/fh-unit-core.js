@@ -44,7 +44,8 @@
    if(old&&old.body===body)return old;
    const unit=Object.freeze({
     id,body,get resources(){return body.resources},get scores(){return body.scores},
-    get inventory(){return body.inventory},get mental(){return body.mental},
+    get inventory(){return player&&Array.isArray(gameState.inventory)?gameState.inventory:body.inventory},
+    get mental(){return body.mental},
     get survival(){return player?gameState.survival:body.survival},
     get position(){
      if(player&&typeof options.playerPosition==='function')return copyPosition(options.playerPosition());
