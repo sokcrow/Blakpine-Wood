@@ -129,15 +129,18 @@
    access:'no_verificado',npcUsable:null};
  }
  function createRuntime(project,options={}){
+  const current=()=>({...options,
+   services:typeof options.getServices==='function'?options.getServices():options.services,
+   construction:typeof options.getConstruction==='function'?options.getConstruction():options.construction});
   return Object.freeze({
    inspectParcel:parcelId=>{
     const property=(project?.properties||[]).find(p=>p?.id===parcelId);
-    return inspectParcel(project,property,options);
+    return inspectParcel(project,property,current());
    },
    inspectRoom:(floorId,roomId)=>{
     const {floor}=floorOf(project,floorId);
     const room=(floor?.items||[]).find(it=>it.type==='room'&&String(it.roomId||it.id)===String(roomId));
-    return inspectRoom(project,floorId,room,options);
+    return inspectRoom(project,floorId,room,current());
    }
   });
  }
