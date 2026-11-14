@@ -11,7 +11,7 @@
  needs:Object.freeze({toilet:'inodoro',bathSink:'lavabo',kitchenSink:'fregadero',cook:'equipo de cocina',
   fridge:'refrigerador',bed:'cama',desk:'escritorio',seat:'asiento',table:'mesa',
   bano:'baño',cocina:'cocina',dormitorio:'dormitorio',oficina:'oficina',descanso:'sala de descanso'}),
- status:Object.freeze({ready:'Requisitos comprobados',unverified:'Servicios pendientes de comprobar',
+ status:Object.freeze({ready:'Requisitos comprobados',unconfigured:'Sin requisitos configurados',unverified:'Servicios pendientes de comprobar',
   incomplete:'Requisitos incompletos'}),
  issue:Object.freeze({falta_mueble:'Falta',falta_habitacion:'Falta una habitación de tipo',
   sin_agua:'Sin agua',sin_drenaje:'Sin drenaje',sin_electricidad:'Sin electricidad',
