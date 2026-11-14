@@ -36,7 +36,7 @@
   if(!gameState||typeof gameState!=='object')throw Error('Estado de partida inválido');
   if(!gameState.units||typeof gameState.units!=='object'||Array.isArray(gameState.units))
    gameState.units={};
-  const controllers=new Map(),wrappers=new Map();
+  const controllers=new Map(),wrappers=new Map(),survivalRuntimes=new Map(),mentalRuntimes=new Map();
   const playerBody=()=>gameState.character?.resources&&safeId(gameState.character.id)?gameState.character:null;
   const isPlayer=id=>!!playerBody()&&playerBody().id===id;
   function wrap(id,body,player=false){
@@ -88,17 +88,22 @@
    const unit=get(id),engine=options.survivalCore||root?.FHSurvival;
    if(!unit||!engine?.createRuntime)return null;
    if(unit.isPlayer&&options.playerSurvival?.())return options.playerSurvival();
+   if(survivalRuntimes.has(id))return survivalRuntimes.get(id);
    // Misma fórmula y reglas; el propietario del estado cambia, no el cuerpo.
-   return engine.createRuntime(gameState,callbacks,initialMinute,unit.body);
+   const runtime=engine.createRuntime(gameState,callbacks,initialMinute,unit.body);
+   survivalRuntimes.set(id,runtime);return runtime;
   }
   function createMoodFear(id,callbacks={},settings={}){
    const unit=get(id),engine=options.moodCore||root?.FHMoodFear;
    if(!unit||!engine?.createRuntime)return null;
    if(unit.isPlayer&&options.playerMood?.())return options.playerMood();
-   return engine.createRuntime(unit.body,callbacks,settings);
+   if(mentalRuntimes.has(id))return mentalRuntimes.get(id);
+   const runtime=engine.createRuntime(unit.body,callbacks,settings);
+   mentalRuntimes.set(id,runtime);return runtime;
   }
-  function list(){return [playerBody(),...Object.values(gameState.units)]
-   .filter(body=>body?.id&&safeId(body.id)).map(body=>get(body.id)).filter(Boolean)}
+  function list(){const unique=new Set();return [playerBody(),...Object.values(gameState.units)]
+   .filter(body=>body?.id&&safeId(body.id)&&!unique.has(body.id)&&unique.add(body.id))
+   .map(body=>get(body.id)).filter(Boolean)}
   if(playerBody())assignController(playerBody().id,{type:'human'});
   return Object.freeze({get,ensure,assignController,createSurvival,createMoodFear,list,
    get player(){const body=playerBody();return body?get(body.id):null}});
