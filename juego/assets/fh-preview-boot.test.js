@@ -98,6 +98,37 @@ test('arranque real: servicios, 24 GLB y PG componen después de cómics y menú
  assert.doesNotThrow(()=>new vm.Script(body),'la cadena completa produce JavaScript válido');
 });
 
+test('construcción se instala antes de FOW y conserva el registro de modelos dinámicos',()=>{
+ const {context,window,motor}=integrationEnvironment();
+ const html=context.prepareGLBEngineDoc(motor);
+ const hook='installVisibility();window.FHAssets?.setSightMaskInstaller(installVisibility);';
+ const install='window.FHConstructionVisualRuntime=window.FHConstructionVisuals?.install({THREE,DATA,CELL,stories,runtime:fhConstruction});';
+ assert.equal(html.split(install).length-1,1);
+ assert.ok(html.includes(install+'\n'+hook),'Las obras reciben FOW y se conserva el instalador de GLB');
+ const THREE=require('./vendor/three.min.js'),scene=new THREE.Scene(),stories=[new THREE.Group()];
+ scene.add(stories[0]);
+ let maskInstaller;
+ const env=vm.createContext({THREE,scene,stories,DATA:{floors:[{id:'f1'}],properties:[{
+  id:'obra',floorId:'f1',construction:{simulated:true},polygon:[{x:0,y:0},{x:2,y:0},{x:2,y:2}]
+ }]},CELL:1.524,fhConstruction:{status:()=>({finished:false,progress:20})},
+ sightUniform:{value:null},MAX_X:24,MAX_Z:24,window:{FHConstructionVisuals:require('./fh-construction-visuals.js'),
+ FHAssets:{setSightMaskInstaller(fn){maskInstaller=fn;}}}});
+ const from=html.indexOf('function installVisibility(root=scene)'),to=html.indexOf('const heroMaterial=',from);
+ assert.ok(from>=0&&to>from);
+ vm.runInContext(html.slice(from,to),env);
+ vm.runInContext(install+'\n'+hook,env);
+ assert.equal(env.window.FHConstructionVisualRuntime.count,1);
+ assert.equal(typeof maskInstaller,'function');
+ const mesh=stories[0].children[0].children[0];
+ const shader={uniforms:{},vertexShader:'#include <common>\n#include <begin_vertex>',fragmentShader:'#include <common>\n#include <dithering_fragment>'};
+ mesh.material.onBeforeCompile(shader);
+ assert.ok(shader.uniforms.uSight,'Las obras usan la máscara real del motor');
+ const served=window.FHServicesEngine.patch(html);
+ const patched=window.FHCCTVEngine.patch(window.FHBarriersEngine.patch(
+  window.FHStructureHealthEngine.patch(window.FHArchitectureSkins.patchEngineDoc(served))));
+ assert.doesNotThrow(()=>new vm.Script(patched.slice(patched.lastIndexOf('<script>')+8,patched.lastIndexOf('</script>'))));
+});
+
 test('el primer tick de supervivencia funciona a oscuras y respeta paredes y puertas',()=>{
  const {context,motor}=integrationEnvironment();
  const html=context.prepareGLBEngineDoc(motor);
@@ -125,15 +156,17 @@ test('el primer tick de supervivencia funciona a oscuras y respeta paredes y pue
  vm.runInContext(fs.readFileSync(path.join(__dirname,'fh-lights.js'),'utf8'),runtime);
  vm.runInContext(helper,runtime);
  const tick=()=>vm.runInContext(html.slice(from,to),runtime);
+ const illuminated=()=>vm.runInContext('window.FHLights.sourcesIlluminate(window.FHLights.sourcesNear(roomLampEntries,lighting,currentFloor,user.x,user.z,1,16),user.x,user.z,fhLightBlockers(),ForestShared.pointInSight)',runtime);
  assert.doesNotThrow(tick,'El primer tick no debe detener el render por una variable fuera de alcance');
  minute=60;tick();
- assert.equal(game.character.resources.sp,18,'La puerta opaca cerrada impide recibir luz');
+ assert.equal(illuminated(),false,'La puerta opaca cerrada impide recibir luz');
  door.passable=true;minute=120;tick();
- assert.equal(game.character.resources.sp,18,'La puerta abierta deja pasar luz');
+ assert.equal(illuminated(),true,'La puerta abierta deja pasar luz');
  door.passable=false;door.transparent=true;minute=180;tick();
- assert.equal(game.character.resources.sp,18,'La puerta transparente deja pasar luz');
+ assert.equal(illuminated(),true,'La puerta transparente deja pasar luz');
  doors[0]=[];walls[0]=[wall];minute=240;tick();
- assert.equal(game.character.resources.sp,16,'Las paredes siguen bloqueando luz');
+ assert.equal(illuminated(),false,'Las paredes siguen bloqueando luz');
+ assert.equal(game.character.resources.sp,20,'Supervivencia conserva la corrección que evita drenar PS por oscuridad');
  assert.equal(walls[0].length,1,'El cálculo no modifica los obstáculos del mapa');
 });
 
@@ -148,9 +181,10 @@ test('fotograma ensamblado: movimiento, cámara y render deben terminar antes de
   const calls=[],messages=[],handlers={},noop=()=>{},sprite=()=>({position:new THREE.Vector3(),scale:new THREE.Vector3()});
   const step=(name)=>{calls.push(name);if(failAt===name)throw Error('failure-'+name);};
   const window={document:{baseURI:'https://game.test/',currentScript:null},console:{error:noop},
+   FHConstruction:require('./fh-construction.js'),
    parent:{postMessage(message){messages.push(message);if(message.type==='FOREST_PREVIEW_RUNNING')calls.push('running');}},
    addEventListener(type,fn){handlers[type]=fn;}};
-  const env=vm.createContext({window,parent:window.parent,URL,console,
+  const env=vm.createContext({window,parent:window.parent,URL,console,fhConstruction:{tick:()=>false},
    last:0,perfFrames:0,perfStamp:0,perfFPS:0,elevatorSystem:{update:noop},updateElevatorVisuals:noop,
    elevatorArrivalEvents:[],elevatorFlicker:0,lighting:{state:{charge:100,enabled:false},tick:noop,flicker:()=>false},
    lastBatteryNotice:false,visibilityDirty:false,flashlightSpot:{position:new THREE.Vector3(),target:{position:new THREE.Vector3()}},

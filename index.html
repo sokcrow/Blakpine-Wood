@@ -4988,8 +4988,8 @@ function floorSightThroughOpening(f,at,target,openings){
   const changes=[
    ['const GameState=createGameState(restored||DATA.initialGameState);',
     'const GameState=createGameState(restored||DATA.initialGameState);\nGameState.construction=structuredClone(restored?.construction||DATA.initialGameState?.construction||{});\nconst fhConstruction=window.FHConstruction.createRuntime(DATA,GameState,{save:()=>saveProgress()});\nwindow.FHConstructionRuntime=fhConstruction;'],
-   ['installVisibility();\nconst tex={}',
-    'window.FHConstructionVisualRuntime=window.FHConstructionVisuals?.install({THREE,DATA,CELL,stories,runtime:fhConstruction});\ninstallVisibility();\nconst tex={}'],
+   ['installVisibility();window.FHAssets?.setSightMaskInstaller(installVisibility);',
+    'window.FHConstructionVisualRuntime=window.FHConstructionVisuals?.install({THREE,DATA,CELL,stories,runtime:fhConstruction});\ninstallVisibility();window.FHAssets?.setSightMaskInstaller(installVisibility);'],
    ['window.FHDeliveryRuntime?.update(dt);',
     'if(fhConstruction.tick(window.FHConstruction.absoluteMinute(GameState.clock)))window.FHConstructionVisualRuntime?.update();window.FHDeliveryRuntime?.update(dt);']
   ];
