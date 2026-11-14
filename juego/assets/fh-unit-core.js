@@ -27,7 +27,7 @@
   if(resources&&typeof resources==='object')for(const k of ['pg','sp','pe']){
    if(Number.isFinite(resources[k]))r[k]=Math.max(0,Math.min(r[k+'Max'],resources[k]));
   }
-  return {id,name:String(name).slice(0,80),life:life==='dead'?'dead':'alive',
+  return {id,name:String(name||root?.FH_UNIT_TEXT?.defaultName||id).slice(0,80),life:life==='dead'?'dead':'alive',
    scores:stats,skills:skills&&typeof skills==='object'&&!Array.isArray(skills)?skills:{},
    resources:r,inventory:Array.isArray(inventory)?inventory.slice():[],
    mental:null,survival:null,position:null};
