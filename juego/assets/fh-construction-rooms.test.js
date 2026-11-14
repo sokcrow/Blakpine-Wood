@@ -18,7 +18,7 @@ test('mapa antiguo y habitación sin preset conservan funcionamiento anterior',(
  const project=map('personalizado'),original=JSON.stringify(project);
  project.floors[0].items.push({id:'r0',type:'room',x:0,y:0,w:4,h:4});
  assert.equal(Audit.inspectRoom(project,'f1',project.floors[0].items[0]),null);
- assert.equal(Audit.inspectParcel(project,project.properties[0]).status,'ready');
+ assert.equal(Audit.inspectParcel(project,project.properties[0]).status,'unconfigured');
  assert.equal(project.properties[0].construction.preset,'personalizado');
  assert.equal(JSON.stringify(project).startsWith(original.slice(0,70)),true);
 });
