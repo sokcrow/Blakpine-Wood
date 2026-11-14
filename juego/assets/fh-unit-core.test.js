@@ -10,7 +10,7 @@ function create(){
  const caps=globalThis.FHCharacterCore.resources(baseline);
  const game={clock:{minutes:0},character:{id:'player_01',name:'Persona',
   life:'alive',scores:{...baseline},resources:{...caps,pg:caps.pgMax,sp:caps.spMax,pe:caps.peMax},
-  inventory:['linterna'],skills:{}},survival:{version:2,lastMinute:0,mode:'awake'}};
+  skills:{}},inventory:['linterna'],survival:{version:2,lastMinute:0,mode:'awake'}};
  let playerPosition={floor:0,x:2,z:4};
  const make=(gameState=game)=>U.createRuntime(gameState,{characterRules:globalThis.FHCharacterCore,
   survivalCore:Survival,moodCore:MoodFear,playerPosition:()=>playerPosition,
