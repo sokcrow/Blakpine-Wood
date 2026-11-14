@@ -46,8 +46,15 @@ listas de polígonos, superficies, edificios, habitaciones, pasillos, objetos
 rotados, tramos y accesos. Las calles incluyen la banqueta configurada. Se
 protegen también las proyecciones de estructuras y escaleras de otros niveles.
 La protección no depende de que el motor de propiedades pueda reconstruir un
-edificio. El relieve se aplana y enlaza suavemente con las reservas; la elevación
-original de cada planta permanece intacta.
+edificio. Alrededor de construcciones y calles se mantiene una franja plana de
+**15 ft (4.572 m)** en todas las direcciones, medida desde el borde exterior,
+incluidas las esquinas. En calles se mide desde el borde de la banqueta
+configurada. Después de esa franja comienza la transición gradual del relieve.
+La malla conserva un margen adicional ligado a su resolución para impedir que
+la interpolación introduzca pendientes dentro de los 15 ft. Esta franja sólo
+afecta al relieve: no amplía las exclusiones de árboles ni convierte esa
+superficie en una reserva para Construcción. La elevación original de cada
+planta permanece intacta.
 
 La malla natural respeta los recortes originales de `surfaceRectsMinusVoids`,
 incluidos escaleras, patios heredados y drenajes; no rellena sus aberturas. El

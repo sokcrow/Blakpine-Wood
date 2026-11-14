@@ -7,6 +7,8 @@
  'use strict';
  const clamp=(n,a,b,d)=>Number.isFinite(Number(n))?Math.max(a,Math.min(b,Number(n))):d;
  const smooth=t=>t*t*(3-2*t);
+ const RELIEF_CLEARANCE_FT=15,RELIEF_CLEARANCE_M=RELIEF_CLEARANCE_FT*.3048;
+ const constructionTypes=new Set(['building','room','hall','stairs','asphalt','alley','pavement','sidewalk','concrete','cobblestone','parking']);
  function seed(value){let h=2166136261;for(const c of String(value)){h=Math.imul(h^c.charCodeAt(0),16777619);}return h>>>0;}
  function random(s,x,z,channel=0){let h=seed(s)^Math.imul(x,374761393)^Math.imul(z,668265263)^Math.imul(channel,1274126177);h=Math.imul(h^(h>>>13),1274126177);return ((h^(h>>>16))>>>0)/4294967296;}
  function noise(s,x,z){const a=Math.floor(x),b=Math.floor(z),u=smooth(x-a),v=smooth(z-b);const mix=(p,q,t)=>p+(q-p)*t;return mix(mix(random(s,a,b),random(s,a+1,b),u),mix(random(s,a,b+1),random(s,a+1,b+1),u),v);}
@@ -29,47 +31,49 @@
   const nx=Math.ceil(width/cfg.terrain.meshStepM),nz=Math.ceil(depth/cfg.terrain.meshStepM),sx=width/nx,sz=depth/nz;
   if(cfg.enabled&&nx*nz>1000000)throw Error(Text.terrainLimit);
   const shapes=[],buckets=new Map(),bucketSize=24;
-  function add(poly,pad=0){
+  function add(poly,pad=0,reliefPad=0){
    if(!poly||poly.length<1||!poly.every(p=>Number.isFinite(p.x)&&Number.isFinite(p.z)))return;
-   const shape={poly,pad,minX:Math.min(...poly.map(p=>p.x))-pad,maxX:Math.max(...poly.map(p=>p.x))+pad,minZ:Math.min(...poly.map(p=>p.z))-pad,maxZ:Math.max(...poly.map(p=>p.z))+pad};
+   const shape={poly,pad,reliefPad,minX:Math.min(...poly.map(p=>p.x))-pad,maxX:Math.max(...poly.map(p=>p.x))+pad,minZ:Math.min(...poly.map(p=>p.z))-pad,maxZ:Math.max(...poly.map(p=>p.z))+pad};
    shapes.push(shape);
-   const margin=cfg.terrain.transitionM+Math.hypot(sx,sz);
+   const margin=Math.max(0,reliefPad-pad)+cfg.terrain.transitionM+Math.hypot(sx,sz);
    for(let x=Math.floor((shape.minX-margin)/bucketSize);x<=Math.floor((shape.maxX+margin)/bucketSize);x++)for(let z=Math.floor((shape.minZ-margin)/bucketSize);z<=Math.floor((shape.maxZ+margin)/bucketSize);z++){
     const key=x+':'+z;if(!buckets.has(key))buckets.set(key,[]);buckets.get(key).push(shape);
    }
   }
   const poly=points=>(points||[]).map(p=>({x:Number(p.x)*cell,z:Number(p.y)*cell}));
-  function rect(r,centered=false,pad=0){
+  function rect(r,centered=false,pad=0,reliefPad=0){
    if(![r.x,r.y,r.w,r.h].every(v=>Number.isFinite(Number(v))))return;
    const w=Number(r.w)*cell,h=Number(r.h)*cell,a=(Number(r.rotation)||0)*Math.PI/180;
    const cx=Number(r.x)*cell+(centered?0:w/2),cz=Number(r.y)*cell+(centered?0:h/2);
-   add([[-w/2,-h/2],[w/2,-h/2],[w/2,h/2],[-w/2,h/2]].map(([x,z])=>({x:cx+x*Math.cos(a)-z*Math.sin(a),z:cz+x*Math.sin(a)+z*Math.cos(a)})),pad);
+   add([[-w/2,-h/2],[w/2,-h/2],[w/2,h/2],[-w/2,h/2]].map(([x,z])=>({x:cx+x*Math.cos(a)-z*Math.sin(a),z:cz+x*Math.sin(a)+z*Math.cos(a)})),pad,reliefPad);
   }
   const floorId=floor?.id;
   for(const zone of [...(map.properties||[]),...(map.locationZones||[])])if(!zone.floorId||zone.floorId===floorId){
-   for(const p of zone.polygons?.length?zone.polygons:[zone.polygon])if(p?.length>=3)add(poly(p));
+   for(const p of zone.polygons?.length?zone.polygons:[zone.polygon])if(p?.length>=3)add(poly(p),0,zone.construction?RELIEF_CLEARANCE_M:0);
   }
   const areaTypes=new Set(['room','hall','outside','building','pavement','parking','grass','dirt','asphalt','alley','sidewalk','concrete','gravel','cobblestone','courtyard']);
   for(let fi=0;fi<(map.floors||[]).length;fi++)for(const it of map.floors[fi].items||[]){
    if(fi!==main&&!['room','building','hall','stairs'].includes(it.type))continue;
-   if(it.a&&it.b){add(poly([it.a,it.b]),Math.max(.4,(Number(it.thicknessFt)||1)*.3048/2));continue;}
+   const reliefPad=constructionTypes.has(it.type)||it.road?RELIEF_CLEARANCE_M:0;
+   if(it.a&&it.b){const halfThickness=Math.max(.4,(Number(it.thicknessFt)||1)*.3048/2);add(poly([it.a,it.b]),halfThickness,halfThickness+RELIEF_CLEARANCE_M);continue;}
    if(it.type==='spawn'){add(poly([it]),2);continue;}
-   if(it.spans?.length){for(const r of it.spans)rect(r,false,.25);continue;}
-   if(it.cells?.length){for(const p of it.cells)rect({...p,w:1,h:1},false,.25);continue;}
-   if(it.road){const s=(Number(it.road.sidewalkFt)||0)*.3048;rect(it,false,s+.25);continue;}
-   if(areaTypes.has(it.type))rect(it,false,.25);
+   if(it.spans?.length){for(const r of it.spans)rect(r,false,.25,reliefPad);continue;}
+   if(it.cells?.length){for(const p of it.cells)rect({...p,w:1,h:1},false,.25,reliefPad);continue;}
+   if(it.road){const s=(Number(it.road.sidewalkFt)||0)*.3048;rect(it,false,s+.25,s+RELIEF_CLEARANCE_M);continue;}
+   if(areaTypes.has(it.type))rect(it,false,.25,reliefPad);
    else rect({...it,w:it.w??1,h:it.h??1},true,.5);
   }
-  function distance(x,z){let result=Infinity;for(const s of buckets.get(Math.floor(x/bucketSize)+':'+Math.floor(z/bucketSize))||[]){const d=s.poly.length===1?Math.hypot(x-s.poly[0].x,z-s.poly[0].z):s.poly.length===2?distanceSegment(x,z,...s.poly):polygonDistance(x,z,s.poly);result=Math.min(result,Math.max(0,d-s.pad));}return result;}
+  function distance(x,z,relief=false){let result=Infinity;for(const s of buckets.get(Math.floor(x/bucketSize)+':'+Math.floor(z/bucketSize))||[]){const d=s.poly.length===1?Math.hypot(x-s.poly[0].x,z-s.poly[0].z):s.poly.length===2?distanceSegment(x,z,...s.poly):polygonDistance(x,z,s.poly);result=Math.min(result,Math.max(0,d-(relief?Math.max(s.pad,s.reliefPad):s.pad)));}return result;}
   const reservedAt=(x,z,r=0)=>x-r<0||z-r<0||x+r>width||z+r>depth||distance(x,z)<=r+1e-8;
   const heights=new Map();
   function vertex(ix,iz){
    const key=ix+iz*(nx+1);if(heights.has(key))return heights.get(key);
    const x=ix*sx,z=iz*sz,t=cfg.terrain;
-   const feather=smooth(Math.max(0,Math.min(1,(distance(x,z)-Math.hypot(sx,sz))/t.transitionM)));
+   const feather=smooth(Math.max(0,Math.min(1,(distance(x,z,true)-Math.hypot(sx,sz))/t.transitionM)));
    const n=(noise(t.seed,x/t.wavelengthM,z/t.wavelengthM)-.5)*1.6+(noise(t.seed+':detail',x/t.wavelengthM*2,z/t.wavelengthM*2)-.5)*.4;
    const h=cfg.enabled?n*t.amplitudeM*feather:0;heights.set(key,h);return h;
   }
+  // El margen de una diagonal mantiene los 15 ft planos también entre vértices.
   // Misma diagonal y plano triangular que la malla visible, incluso en depresiones.
   function heightAt(x,z){
    if(!cfg.enabled)return 0;
@@ -98,5 +102,5 @@
   }
   return {config:cfg,mainFloor:main,cell,width,depth,nx,nz,sx,sz,vertex,heightAt,slopeAt,reservedAt,reservedRect,protectionDistance:distance};
  }
- return Object.freeze({config,create,seed,random,noise});
+ return Object.freeze({RELIEF_CLEARANCE_FT,config,create,seed,random,noise});
 });

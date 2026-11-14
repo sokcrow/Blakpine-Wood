@@ -38,3 +38,49 @@ test('Reserva el borde de una obra que intersecta el margen de un objeto puntual
  const m=map();m.floors[1].items=[{type:'spawn',x:40,y:20}];const t=Terrain.create(m);
  assert.ok(t.reservedRect({x:35,z:21,w:10,d:3}));
 });
+
+test('Mantiene 15 ft planos desde los lados y esquinas de una construcción, entre vértices',()=>{
+ assert.equal(Terrain.RELIEF_CLEARANCE_FT,15);
+ const clearance=15*.3048;
+ for(const meshStepM of [.5,1.5,3]){
+  const m=map({enabled:true,terrain:{meshStepM}}),r={type:'building',x:30.31,y:30.47,w:10.24,h:8.51};m.floors[1].items=[r];const t=Terrain.create(m);
+  const check=(x,z)=>{assert.equal(t.heightAt(x,z),0,JSON.stringify({meshStepM,x,z}));assert.equal(t.slopeAt(x,z),0);};
+  for(let i=0;i<=12;i++){
+   const d=clearance*i/12;
+   check(r.x-d,r.y+r.h*.37);check(r.x+r.w+d,r.y+r.h*.63);
+   check(r.x+r.w*.37,r.y-d);check(r.x+r.w*.63,r.y+r.h+d);
+  }
+  for(const [cx,cz,sx,sz] of [[r.x,r.y,-1,-1],[r.x+r.w,r.y,1,-1],[r.x,r.y+r.h,-1,1],[r.x+r.w,r.y+r.h,1,1]]){
+   for(let a=0;a<=Math.PI/2;a+=Math.PI/24)check(cx+sx*Math.cos(a)*clearance,cz+sz*Math.sin(a)*clearance);
+  }
+  assert.equal(t.reservedAt(r.x-3,r.y+3),false,'La franja de relieve no amplía la reserva para árboles/obras');
+ }
+});
+
+test('Protege 15 ft después de la banqueta de una calle y después de asfalto sin metadatos road',()=>{
+ const clearance=15*.3048;
+ for(const withRoad of [true,false]){
+  const m=map(),road={type:'asphalt',x:10.33,y:32.17,w:55.1,h:4.2};
+  if(withRoad)road.road={axis:'x',sidewalkFt:5};m.floors[1].items=[road];const t=Terrain.create(m),sidewalk=withRoad?5*.3048:0;
+  for(const x of [15.31,35.17,60.29])for(const d of [0,2,clearance]){
+   assert.equal(t.heightAt(x,road.y-sidewalk-d),0);assert.equal(t.heightAt(x,road.y+road.h+sidewalk+d),0);
+  }
+ }
+});
+
+test('El relieve reaparece fuera de la franja y su transición; mantiene la escala física del mapa',()=>{
+ const m=map(),r={type:'building',x:10,y:10,w:10,h:10};m.floors[1].items=[r];
+ const t=Terrain.create(m),original=Terrain.create(map());
+ assert.equal(t.heightAt(65,65),original.heightAt(65,65));assert.notEqual(t.heightAt(65,65),0);
+ const ft=map();ft.units.metersPerCell=.3048;ft.floors[1].items=[{type:'building',x:30,y:30,w:10,h:10}];
+ const feetTerrain=Terrain.create(ft);assert.equal(feetTerrain.heightAt((30-15)*.3048,35*.3048),0);
+});
+
+test('Aplica la franja a edificios rotados, habitaciones por spans y construcciones por parcela',()=>{
+ const clearance=15*.3048;
+ const a=map();a.floors[1].items=[{type:'building',x:30,y:30,w:10,h:6,rotation:45}];const t=Terrain.create(a),angle=Math.PI/4;
+ const point={x:35+Math.cos(angle)*(5+clearance),z:33+Math.sin(angle)*(5+clearance)};
+ assert.equal(t.heightAt(point.x,point.z),0);
+ const b=map();b.floors[1].items=[{type:'room',spans:[{x:20,y:20,w:10,h:10}]}];assert.equal(Terrain.create(b).heightAt(30+clearance,25),0);
+ const c=map();c.properties=[{floorId:'pb',construction:{simulated:true},polygon:[{x:20,y:20},{x:30,y:20},{x:30,y:30},{x:20,y:30}]}];assert.equal(Terrain.create(c).heightAt(30+clearance,25),0);
+});
