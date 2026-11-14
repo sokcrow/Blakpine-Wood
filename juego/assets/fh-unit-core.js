@@ -16,7 +16,7 @@
  const positionValid=p=>p&&Number.isInteger(p.floor)&&
   Number.isFinite(p.x)&&Number.isFinite(p.z);
  const copyPosition=p=>positionValid(p)?{floor:p.floor,x:p.x,z:p.z}:null;
- function makeBody(id,{name='Unidad',scores,resources,skills,inventory,life='alive'}={},rules=root?.FHCharacterCore){
+ function makeBody(id,{name,scores,resources,skills,inventory,life='alive'}={},rules=root?.FHCharacterCore){
   if(!safeId(id))throw Error('ID de unidad inválido');
   const stats={};
   for(const k of SCORES)stats[k]=Number.isInteger(scores?.[k])&&scores[k]>=1&&scores[k]<=6?scores[k]:3;
