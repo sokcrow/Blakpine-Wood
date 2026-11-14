@@ -2,7 +2,7 @@
 (function(root){
  'use strict';
  root.FH_CONSTRUCTION_PREFABS_TEXT=Object.freeze({
-  button:'Generar edificio completo',help:'Crea paredes, puertas, losa, habitaciones, muebles y puntos de servicio editables. No conecta redes inexistentes.',
+  button:'Generar edificio completo',help:'Crea paredes, puertas, losa, habitaciones, muebles y puntos de servicio editables. No conecta redes inexistentes. La obra simulada conserva por ahora el vallado y porcentaje existentes; el montaje visual por fases aún está pendiente.',
   success:'Edificio generado. Puedes editar sus paredes, habitaciones y muebles.',
   busy:'Generando edificio...',generated:'Esta parcela ya tiene una construcción generada.',
   select:'Selecciona un proyecto antes de generar.',
