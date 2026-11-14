@@ -1,7 +1,7 @@
 /* Capa de parcelas editable: solo metadatos; ninguna pared, malla ni colisión. */
 (function(root){
  'use strict';
- const P=()=>root.FHStyleProperty,Z=()=>root.FHPropertyZones,C=()=>root.FHConstruction,T=()=>root.FH_CONSTRUCTION_TEXT;
+ const P=()=>root.FHStyleProperty,Z=()=>root.FHPropertyZones,C=()=>root.FHConstruction,T=()=>root.FH_CONSTRUCTION_TEXT,R=()=>root.FHConstructionRooms,RT=()=>root.FH_CONSTRUCTION_ROOMS_TEXT;
  const escape=s=>String(s??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[ch]));
  const types=new Set(['property_zone','location_exterior','location_common','property_select','property_erase']);
  let start=null,gesture=null,live=null,extendZoneId='';
@@ -130,6 +130,19 @@
   if(!prop)return;
   const c=Z().counts(current(),prop),editable=prop.source==='zone';
   const heading=escape(prop.name||'Propiedad'),owner=escape(prop.ownerId||'');
+  const roomOptions=RT();
+  const ownedRooms=(current().items||[]).map((it,index)=>({it,index})).filter(({it})=>it.type==='room'&&P().roomInProperty(it,prop));
+  const roomFields=ownedRooms.map(({it,index})=>'<label>'+escape(it.label||it.roomId||it.id||'Habitación')+
+   '<select data-fh-construction-room="'+index+'"><option value="">'+escape(roomOptions.noPreset)+'</option>'+
+   R().ROOM_PRESETS.map(kind=>'<option value="'+kind+'"'+(it.constructionRoom===kind?' selected':'')+'>'+
+    escape(roomOptions.presets[kind])+'</option>').join('')+'</select></label>').join('')||'<p>'+escape(roomOptions.noRooms)+'</p>';
+  const audit=R().inspectParcel(project,prop);
+  const auditIssues=(audit?.issues||[]).slice(0,8).map(issue=>{
+   const action=roomOptions.issue[issue.code]||issue.code;
+   return escape(action+(issue.need?' '+(roomOptions.needs[issue.need]||issue.need):'')+(issue.count?' ('+issue.count+')':''));
+  }).join(' · ');
+  const inspection='<p><strong>'+escape(roomOptions.status[audit?.status||'unverified'])+'</strong>'+
+   (auditIssues?' · '+auditIssues:'')+'</p><small>'+escape(roomOptions.helpRuntime)+'</small>';
   const spec=C().normalize(prop.construction),str=T();
   const presetOptions='<option value="">'+escape(str.none)+'</option>'+C().PRESETS.map(p=>'<option value="'+p+'"'+(spec?.preset===p?' selected':'')+'>'+escape(str.presets[p])+'</option>').join('');
   modal('<h2>Propiedad · '+heading+'</h2><p>Zona de administración del DM. No crea paredes ni obstáculos.</p>'+
@@ -138,6 +151,8 @@
    '<label>ID del jugador propietario<input id="fhParcelOwner" maxlength="80" placeholder="Vacío = sin reclamar" value="'+owner+'"></label>'+
    (editable?'<label>Disponibilidad<select id="fhParcelClaim"><option value="yes"'+(prop.claimable!==false?' selected':'')+'>Disponible para reclamar (futuro)</option><option value="no"'+(prop.claimable===false?' selected':'')+'>Reservada por el DM</option></select></label>':'')+
    (editable?'<fieldset><legend>'+escape(str.title)+'</legend><label>'+escape(str.preset)+'<select id="fhParcelConstructionPreset">'+presetOptions+'</select></label><label><input id="fhParcelConstructionSimulated" type="checkbox"'+(spec?.simulated?' checked':'')+'> '+escape(str.simulated)+'</label><small>'+escape(str.help)+'</small></fieldset>':'')+
+   (editable?'<fieldset><legend>'+escape(roomOptions.title)+'</legend>'+roomFields+'<small>'+escape(roomOptions.help)+'</small></fieldset>':'')+
+   inspection+
    '<div class="actions"><button class="primary" id="fhParcelSave">Guardar</button>'+
    (editable?'<button class="danger" id="fhParcelDelete">Eliminar parcela</button>':'')+
    '<button id="fhParcelClose">Cerrar</button></div>',()=>{
@@ -149,6 +164,10 @@
       const simulated=document.getElementById('fhParcelConstructionSimulated').checked;
       if(!preset)delete prop.construction;
       else if(!spec||spec.preset!==preset||spec.simulated!==simulated)C().plan(prop,preset,simulated);
+      document.querySelectorAll('[data-fh-construction-room]').forEach(select=>{
+       const index=Number(select.dataset.fhConstructionRoom),room=current().items[index];
+       if(room?.type==='room'&&P().roomInProperty(room,prop))R().planRoom(room,select.value);
+      });
      }
      prop.ownerId=document.getElementById('fhParcelOwner').value.trim().slice(0,80);
      record();closeModal();toast('Datos de propiedad guardados');render();
