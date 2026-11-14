@@ -94,3 +94,19 @@ test('el runtime consulta los servicios actuales y no congela su ausencia inicia
  live=services();
  assert.equal(runtime.inspectRoom('f1','bath').status,'ready');
 });
+
+test('la inspección utiliza el FHServices real sin inventar agua ni drenaje',()=>{
+ require('./fh-water-potable.js');
+ const FHServices=require('./fh-services-core.js');
+ const project=map('personalizado'),r=room('b1','bano');
+ const wc=item('wc','inodoro_clasico',1,1);
+ const sink=item('sink','lavabo_pedestal',2,2);
+ wc.service={requiresWater:true,drains:true};sink.service={requiresWater:true,drains:true};
+ project.units={feetPerCell:5};
+ project.floors[0].items.push(r,wc,sink);
+ const native=FHServices.createRuntime(project,{});
+ const result=Audit.inspectRoom(project,'f1',r,{services:native});
+ assert.equal(result.status,'incomplete');
+ assert.ok(result.issues.some(i=>i.code==='sin_agua'));
+ assert.ok(result.issues.some(i=>i.code==='sin_drenaje'));
+});
