@@ -165,11 +165,13 @@
      if(!preset||preset==='personalizado'){toast(PT().select);return;}
      const simulated=document.getElementById('fhParcelConstructionSimulated').checked;
      generate.disabled=true;generate.textContent=PT().busy;
+     let catalogReady=false;
      try{
       const response=await fetch(new URL('./forest-horror/biblioteca/catalogo_muebles.json',document.baseURI).href);
       if(!response.ok)throw Error('catalog_http');
       const catalog=await response.json();
       if(catalog.schema!=='forest-horror-furniture-catalog-v1')throw Error('catalog_schema');
+      catalogReady=true;
       // No mutar hasta que la comprobación de espacios, modelos y colisiones pase.
       const result=PF().place(project,prop,preset,{catalog,modelRules:root.FHFurnitureRules,shared:ForestShared});
       if(!result.ok){
@@ -184,7 +186,7 @@
       record();closeModal();toast(PT().success);render();
      }catch(error){
       console.error('[Construcción 04]',error);
-      toast(PT().errors.missing_catalog);
+      toast(catalogReady?PT().errors.invalid_catalog:PT().errors.missing_catalog);
      }finally{
       if(generate.isConnected){generate.disabled=false;generate.textContent=PT().button;}
      }
