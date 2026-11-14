@@ -162,6 +162,8 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
 <script src="./juego/assets/fh-property-zones.js?v=20261106-zonas-color"></script>
 <script src="./juego/assets/fh-construction-strings.js?v=20261113-construction1"></script>
 <script src="./juego/assets/fh-construction.js?v=20261113-construction1"></script>
+<script src="./juego/assets/fh-construction-rooms-strings.js?v=20261113-rooms02"></script>
+<script src="./juego/assets/fh-construction-rooms.js?v=20261113-rooms02"></script>
 <script src="./juego/assets/fh-style-renderer.js"></script>
 <script src="./juego/assets/fh-style-strings.js"></script>
 <script src="./juego/assets/fh-style-editor.js"></script>
@@ -5002,7 +5004,20 @@ function floorSightThroughOpening(f,at,target,openings){
   return doc.replace('</head>',scripts+'</head>');
  }
 
- return addConstructionToEngine(addDrainAccessToEngine(addPreviewReturnToSpawnpoint(addPreviewDiagnostics(addCourtyardsToEngine(addMoodFearToEngine(addFloorVisibilityToEngine(addNaturalLightToEngine(addShadowEncountersToEngine(assembled)))))))));
+ // Diagnóstico de habitaciones: sólo se consulta, no añade simulación por fotograma.
+ function addRoomNeedsToEngine(doc){
+  const anchor='const GameState=createGameState(restored||DATA.initialGameState);';
+  const insert=anchor+'\nwindow.FHRoomNeedsRuntime=window.FHConstructionRooms.createRuntime(DATA,{getServices:()=>window.FHServicesRuntime,getConstruction:()=>window.FHConstructionRuntime});';
+  const count=doc.split(anchor).length-1;
+  if(count!==1)throw Error('Hook habitaciones incompatible ('+count+')');
+  doc=doc.replace(anchor,insert);
+  const files=['fh-construction-rooms-strings.js','fh-construction-rooms.js'];
+  const scripts=files.map(file=>'<script src="'+new URL('./juego/assets/'+file+'?v=20261113-rooms02',document.baseURI).href+'"></'+'script>').join('');
+  if(!doc.includes('</head>'))throw Error('Motor 3D sin cabecera para habitaciones');
+  return doc.replace('</head>',scripts+'</head>');
+ }
+
+ return addRoomNeedsToEngine(addConstructionToEngine(addDrainAccessToEngine(addPreviewReturnToSpawnpoint(addPreviewDiagnostics(addCourtyardsToEngine(addMoodFearToEngine(addFloorVisibilityToEngine(addNaturalLightToEngine(addShadowEncountersToEngine(assembled))))))))));
 }
 let fhCharacterLaunchPending=false;
 async function start3DPreview(){
