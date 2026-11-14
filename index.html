@@ -5041,7 +5041,7 @@ function floorSightThroughOpening(f,at,target,openings){
    if(count!==1)throw Error('Hook Unidad incompatible ('+count+'): '+before.slice(0,85));
    doc=doc.replace(before,after);
   }
-  const files=['fh-character-core.js','fh-unit-core.js'];
+  const files=['fh-character-core.js','fh-unit-strings.js','fh-unit-core.js'];
   const scripts=files.map(file=>'<script src="'+new URL('./juego/assets/'+file+'?v=20261114-unit1',document.baseURI).href+'"></'+'script>').join('');
   if(!doc.includes('</head>'))throw Error('Motor 3D sin cabecera para Unidad');
   return doc.replace('</head>',scripts+'</head>');
