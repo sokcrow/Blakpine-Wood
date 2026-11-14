@@ -76,3 +76,21 @@ test('clasificar habitaciones no modifica la geometría ni permite tipos descono
  assert.throws(()=>Audit.planRoom(r,'bodega'),/desconocida/);
  assert.throws(()=>Audit.planRoom({type:'wall'},'bano'),/Solo/);
 });
+
+test('la cocina exige refrigerador, fregadero y equipo de cocina con electricidad',()=>{
+ const project=map('personalizado'),r=room('k1','cocina');
+ project.floors[0].items.push(r,item('sink','fregadero_mueble',1,1),
+  item('fridge','refrigerador',2,2),item('stove','estufa_horno',3,3));
+ const result=Audit.inspectRoom(project,'f1',r,{services:services({power:false})});
+ assert.equal(result.status,'incomplete');
+ assert.ok(result.issues.some(i=>i.code==='sin_electricidad'));
+});
+test('el runtime consulta los servicios actuales y no congela su ausencia inicial',()=>{
+ const project=map('personalizado'),r=room('bath','bano');
+ project.floors[0].items.push(r,item('wc','inodoro_clasico',1,1),item('sink','lavabo_pedestal',2,2));
+ let live=null;
+ const runtime=Audit.createRuntime(project,{getServices:()=>live});
+ assert.equal(runtime.inspectRoom('f1','bath').status,'unverified');
+ live=services();
+ assert.equal(runtime.inspectRoom('f1','bath').status,'ready');
+});
