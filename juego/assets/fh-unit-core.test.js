@@ -51,7 +51,7 @@ test('Unidad IA tiene scores, PG, PS, PE, skills, inventario y estado propios co
  assert.equal(npc.resources.pg,npc.resources.pgMax);
  npc.resources.pg-=4;npc.inventory.push('paquete');
  assert.equal(game.character.resources.pg,game.character.resources.pgMax);
- assert.deepEqual(game.character.inventory,['linterna']);
+ assert.deepEqual(game.inventory,['linterna']);
  assert.equal(units.ensure('courier:order_2'),npc);
 });
 test('Posición del jugador viene del motor; posición del NPC vive en su Unidad',()=>{
