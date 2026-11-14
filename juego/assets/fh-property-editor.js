@@ -1,7 +1,7 @@
 /* Capa de parcelas editable: solo metadatos; ninguna pared, malla ni colisión. */
 (function(root){
  'use strict';
- const P=()=>root.FHStyleProperty,Z=()=>root.FHPropertyZones;
+ const P=()=>root.FHStyleProperty,Z=()=>root.FHPropertyZones,C=()=>root.FHConstruction,T=()=>root.FH_CONSTRUCTION_TEXT;
  const escape=s=>String(s??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[ch]));
  const types=new Set(['property_zone','location_exterior','location_common','property_select','property_erase']);
  let start=null,gesture=null,live=null,extendZoneId='';
@@ -69,7 +69,8 @@
    const name=prop.name||'Propiedad',owner=prop.ownerId?'Dueño: '+prop.ownerId:(prop.claimable===false?'Reservada':'Disponible');
    c.save();c.textAlign='center';c.textBaseline='middle';c.lineWidth=3/cam.scale;c.strokeStyle='#151d27';c.fillStyle='#fff2bf';
    c.font='700 '+12/cam.scale+'px system-ui';c.strokeText(name,center.x,center.y-8/cam.scale);c.fillText(name,center.x,center.y-8/cam.scale);
-   c.font=10/cam.scale+'px system-ui';c.strokeText(owner,center.x,center.y+8/cam.scale);c.fillText(owner,center.x,center.y+8/cam.scale);c.restore();
+   const work=C().normalize(prop.construction),construction=work?.simulated?' · Obra '+Math.floor(work.progress)+'%':'';
+   c.font=10/cam.scale+'px system-ui';c.strokeText(owner+construction,center.x,center.y+8/cam.scale);c.fillText(owner+construction,center.x,center.y+8/cam.scale);c.restore();
   }
   for(const zone of locations())drawLocation(c,zone,cam);
   if(start&&live){const rect=Z().rectangle(start,live,project.units.columns,project.units.rows);
@@ -129,18 +130,26 @@
   if(!prop)return;
   const c=Z().counts(current(),prop),editable=prop.source==='zone';
   const heading=escape(prop.name||'Propiedad'),owner=escape(prop.ownerId||'');
+  const spec=C().normalize(prop.construction),str=T();
+  const presetOptions='<option value="">'+escape(str.none)+'</option>'+C().PRESETS.map(p=>'<option value="'+p+'"'+(spec?.preset===p?' selected':'')+'>'+escape(str.presets[p])+'</option>').join('');
   modal('<h2>Propiedad · '+heading+'</h2><p>Zona de administración del DM. No crea paredes ni obstáculos.</p>'+
    '<p><small>ID: '+escape(prop.id)+' · '+c.walls+' muros · '+c.areas+' áreas · '+c.doors+' puertas · '+c.objects+' objetos contenidos</small></p>'+
    (editable?'<label>Nombre de parcela<input id="fhParcelName" maxlength="80" value="'+heading+'"></label>':'')+
    '<label>ID del jugador propietario<input id="fhParcelOwner" maxlength="80" placeholder="Vacío = sin reclamar" value="'+owner+'"></label>'+
    (editable?'<label>Disponibilidad<select id="fhParcelClaim"><option value="yes"'+(prop.claimable!==false?' selected':'')+'>Disponible para reclamar (futuro)</option><option value="no"'+(prop.claimable===false?' selected':'')+'>Reservada por el DM</option></select></label>':'')+
+   (editable?'<fieldset><legend>'+escape(str.title)+'</legend><label>'+escape(str.preset)+'<select id="fhParcelConstructionPreset">'+presetOptions+'</select></label><label><input id="fhParcelConstructionSimulated" type="checkbox"'+(spec?.simulated?' checked':'')+'> '+escape(str.simulated)+'</label><small>'+escape(str.help)+'</small></fieldset>':'')+
    '<div class="actions"><button class="primary" id="fhParcelSave">Guardar</button>'+
    (editable?'<button class="danger" id="fhParcelDelete">Eliminar parcela</button>':'')+
    '<button id="fhParcelClose">Cerrar</button></div>',()=>{
     document.getElementById('fhParcelSave').onclick=()=>{
      if(root.FHStyleEditor?.hasActor()){toast('Solo el DM puede asignar propiedades.');return}
      if(editable){prop.name=(document.getElementById('fhParcelName').value.trim()||'Parcela').slice(0,80);
-      prop.claimable=document.getElementById('fhParcelClaim').value==='yes';}
+      prop.claimable=document.getElementById('fhParcelClaim').value==='yes';
+      const preset=document.getElementById('fhParcelConstructionPreset').value;
+      const simulated=document.getElementById('fhParcelConstructionSimulated').checked;
+      if(!preset)delete prop.construction;
+      else if(!spec||spec.preset!==preset||spec.simulated!==simulated)C().plan(prop,preset,simulated);
+     }
      prop.ownerId=document.getElementById('fhParcelOwner').value.trim().slice(0,80);
      record();closeModal();toast('Datos de propiedad guardados');render();
     };

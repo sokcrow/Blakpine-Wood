@@ -160,6 +160,8 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
 <script src="./juego/assets/engine-12.js"></script>
 <script src="./juego/assets/fh-style-property.js"></script>
 <script src="./juego/assets/fh-property-zones.js?v=20261106-zonas-color"></script>
+<script src="./juego/assets/fh-construction-strings.js?v=20261113-construction1"></script>
+<script src="./juego/assets/fh-construction.js?v=20261113-construction1"></script>
 <script src="./juego/assets/fh-style-renderer.js"></script>
 <script src="./juego/assets/fh-style-strings.js"></script>
 <script src="./juego/assets/fh-style-editor.js"></script>
@@ -4978,7 +4980,29 @@ function floorSightThroughOpening(f,at,target,openings){
   }
   return addDrainGeometryToEngine(doc);
  }
- return addDrainAccessToEngine(addPreviewReturnToSpawnpoint(addPreviewDiagnostics(addCourtyardsToEngine(addMoodFearToEngine(addFloorVisibilityToEngine(addNaturalLightToEngine(addShadowEncountersToEngine(assembled))))))));
+
+ // Construcción por parcela: estado de partida separado de la geometría del mapa.
+ function addConstructionToEngine(doc){
+  const changes=[
+   ['const GameState=createGameState(restored||DATA.initialGameState);',
+    'const GameState=createGameState(restored||DATA.initialGameState);\nGameState.construction=structuredClone(restored?.construction||DATA.initialGameState?.construction||{});\nconst fhConstruction=window.FHConstruction.createRuntime(DATA,GameState,{save:()=>saveProgress()});\nwindow.FHConstructionRuntime=fhConstruction;'],
+   ['installVisibility();\nconst tex={}',
+    'window.FHConstructionVisualRuntime=window.FHConstructionVisuals?.install({THREE,DATA,CELL,stories,runtime:fhConstruction});\ninstallVisibility();\nconst tex={}'],
+   ['window.FHDeliveryRuntime?.update(dt);',
+    'if(fhConstruction.tick(window.FHConstruction.absoluteMinute(GameState.clock)))window.FHConstructionVisualRuntime?.update();window.FHDeliveryRuntime?.update(dt);']
+  ];
+  for(const [before,after] of changes){
+   const count=doc.split(before).length-1;
+   if(count!==1)throw Error('Hook de construcción incompatible ('+count+'): '+before.slice(0,90));
+   doc=doc.replace(before,after);
+  }
+  const files=['fh-construction-strings.js','fh-construction.js','fh-construction-visuals.js'];
+  const scripts=files.map(file=>'<script src="'+new URL('./juego/assets/'+file+'?v=20261113-construction1',document.baseURI).href+'"></'+'script>').join('');
+  if(!doc.includes('</head>'))throw Error('Falta cabecera para Construcción');
+  return doc.replace('</head>',scripts+'</head>');
+ }
+
+ return addConstructionToEngine(addDrainAccessToEngine(addPreviewReturnToSpawnpoint(addPreviewDiagnostics(addCourtyardsToEngine(addMoodFearToEngine(addFloorVisibilityToEngine(addNaturalLightToEngine(addShadowEncountersToEngine(assembled)))))))));
 }
 let fhCharacterLaunchPending=false;
 async function start3DPreview(){
