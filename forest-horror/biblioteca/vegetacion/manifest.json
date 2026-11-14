@@ -1,0 +1,130 @@
+{
+  "pack": "Blakpine Wood - Arboles Low Poly Pixel Art FT Copa Alta",
+  "units": "ft",
+  "feetPerGlbUnit": 1,
+  "format": "GLB",
+  "count": 12,
+  "atlas": "texturas/atlas_arboles_pixel_art.png",
+  "models": [
+    {
+      "nombre": "Roble verde",
+      "archivo": "modelos_glb/01_roble_verde.glb",
+      "miniatura": "miniaturas/01_roble_verde.png",
+      "triangulos": 692,
+      "vertices": 2076,
+      "alto_ft": 45.0,
+      "primer_follaje_ft": 28.72,
+      "ancho_ft": 26.56
+    },
+    {
+      "nombre": "Roble otoñal",
+      "archivo": "modelos_glb/02_roble_otonal.glb",
+      "miniatura": "miniaturas/02_roble_otonal.png",
+      "triangulos": 692,
+      "vertices": 2076,
+      "alto_ft": 43.0,
+      "primer_follaje_ft": 27.44,
+      "ancho_ft": 24.59
+    },
+    {
+      "nombre": "Cerezo rosado",
+      "archivo": "modelos_glb/03_cerezo_rosa.glb",
+      "miniatura": "miniaturas/03_cerezo_rosa.png",
+      "triangulos": 692,
+      "vertices": 2076,
+      "alto_ft": 25.0,
+      "primer_follaje_ft": 15.96,
+      "ancho_ft": 14.45
+    },
+    {
+      "nombre": "Pino alto",
+      "archivo": "modelos_glb/04_pino_alto.glb",
+      "miniatura": "miniaturas/04_pino_alto.png",
+      "triangulos": 181,
+      "vertices": 543,
+      "alto_ft": 65.0,
+      "primer_follaje_ft": 22.32,
+      "ancho_ft": 35.29
+    },
+    {
+      "nombre": "Pino delgado",
+      "archivo": "modelos_glb/05_pino_delgado.glb",
+      "miniatura": "miniaturas/05_pino_delgado.png",
+      "triangulos": 181,
+      "vertices": 543,
+      "alto_ft": 48.0,
+      "primer_follaje_ft": 16.48,
+      "ancho_ft": 18.65
+    },
+    {
+      "nombre": "Pino nevado",
+      "archivo": "modelos_glb/06_pino_nevado.glb",
+      "miniatura": "miniaturas/06_pino_nevado.png",
+      "triangulos": 251,
+      "vertices": 753,
+      "alto_ft": 46.0,
+      "primer_follaje_ft": 15.67,
+      "ancho_ft": 22.7
+    },
+    {
+      "nombre": "Abedul verde",
+      "archivo": "modelos_glb/07_abedul_verde.glb",
+      "miniatura": "miniaturas/07_abedul_verde.png",
+      "triangulos": 692,
+      "vertices": 2076,
+      "alto_ft": 40.0,
+      "primer_follaje_ft": 25.53,
+      "ancho_ft": 15.43
+    },
+    {
+      "nombre": "Abedul otoñal",
+      "archivo": "modelos_glb/08_abedul_otonal.glb",
+      "miniatura": "miniaturas/08_abedul_otonal.png",
+      "triangulos": 692,
+      "vertices": 2076,
+      "alto_ft": 38.0,
+      "primer_follaje_ft": 24.25,
+      "ancho_ft": 15.02
+    },
+    {
+      "nombre": "Árbol seco",
+      "archivo": "modelos_glb/09_arbol_seco.glb",
+      "miniatura": "miniaturas/09_arbol_seco.png",
+      "triangulos": 308,
+      "vertices": 924,
+      "alto_ft": 35.0,
+      "primer_follaje_ft": null,
+      "ancho_ft": 17.45
+    },
+    {
+      "nombre": "Manzano",
+      "archivo": "modelos_glb/10_manzano.glb",
+      "miniatura": "miniaturas/10_manzano.png",
+      "triangulos": 1052,
+      "vertices": 3156,
+      "alto_ft": 18.0,
+      "primer_follaje_ft": 11.49,
+      "ancho_ft": 12.49
+    },
+    {
+      "nombre": "Pino joven",
+      "archivo": "modelos_glb/11_pino_joven.glb",
+      "miniatura": "miniaturas/11_pino_joven.png",
+      "triangulos": 133,
+      "vertices": 399,
+      "alto_ft": 12.0,
+      "primer_follaje_ft": 4.04,
+      "ancho_ft": 5.99
+    },
+    {
+      "nombre": "Pino oscuro",
+      "archivo": "modelos_glb/12_pino_oscuro.glb",
+      "miniatura": "miniaturas/12_pino_oscuro.png",
+      "triangulos": 205,
+      "vertices": 615,
+      "alto_ft": 58.0,
+      "primer_follaje_ft": 19.92,
+      "ancho_ft": 26.56
+    }
+  ]
+}

@@ -186,6 +186,12 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
 <script src="./juego/assets/fh-access-config.js?v=20261107-map-v1"></script>
 <script src="./juego/assets/fh-weather-strings.js?v=20261108-clima1"></script>
 <script src="./juego/assets/fh-weather-editor.js?v=20261108-clima1"></script>
+<script src="./juego/assets/fh-forest-strings.js?v=20261114-forest1"></script>
+<script src="./juego/assets/fh-terrain.js?v=20261114-forest1"></script>
+<script src="./juego/assets/fh-forest-catalog.js?v=20261114-forest1"></script>
+<script src="./juego/assets/fh-forest.js?v=20261114-forest1"></script>
+<script src="./juego/assets/fh-forest-editor.js?v=20261114-forest1"></script>
+<script src="./juego/assets/fh-forest-engine-hook.js?v=20261114-forest1"></script>
 <script src="./juego/assets/fh-services-strings.js?v=20261112-double-outlet-only-1"></script>
 <script src="./juego/assets/fh-exterior-grid.js?v=20261111-pole-collision-1"></script>
 <script src="./juego/assets/fh-exterior-strings.js?v=20261111-exterior-03-fix1"></script>
@@ -1739,7 +1745,7 @@ function toast(msg){let el=$('#toast');el.textContent=msg;el.style.display='bloc
   }
  }
 }
-function record(){rememberFloorRefs();syncStairLinks();normalizeArchitecture(floorIndex);const created=rebuildFloorSpaces(floorIndex);syncPropertyDoorRoles();history=history.slice(0,historyIndex+1);history.push(JSON.stringify({floors:project.floors.map(f=>({id:f.id,name:f.name,items:f.items,elevationFt:f.elevationFt,ceilingHeightFt:f.ceilingHeightFt,roof:f.roof,lightingManual:!!f.lightingManual,apartments:f.apartments||[]})),properties:project.properties||[],locationZones:project.locationZones||[],buildingNames:project.buildingNames||{},patterns:project.patterns||[],buildingOwnerId:project.buildingOwnerId||"",buildingOwners:project.buildingOwners||{},styleSystem:project.styleSystem||0,mainFloorId:project.mainFloorId||''}));if(history.length>75)history.shift();historyIndex=history.length-1;saveSoon();if(activeLayer==='lighting')refreshCircuits();render();return created}
+function record(){rememberFloorRefs();syncStairLinks();normalizeArchitecture(floorIndex);const created=rebuildFloorSpaces(floorIndex);syncPropertyDoorRoles();history=history.slice(0,historyIndex+1);history.push(JSON.stringify({floors:project.floors.map(f=>({id:f.id,name:f.name,items:f.items,elevationFt:f.elevationFt,ceilingHeightFt:f.ceilingHeightFt,roof:f.roof,lightingManual:!!f.lightingManual,apartments:f.apartments||[]})),properties:project.properties||[],locationZones:project.locationZones||[],buildingNames:project.buildingNames||{},patterns:project.patterns||[],buildingOwnerId:project.buildingOwnerId||"",buildingOwners:project.buildingOwners||{},styleSystem:project.styleSystem||0,mainFloorId:project.mainFloorId||'',...(project.environment?{environment:clone(project.environment)}:{})}));if(history.length>75)history.shift();historyIndex=history.length-1;saveSoon();if(activeLayer==='lighting')refreshCircuits();render();return created}
 function undo(){if(historyIndex<=0)return;historyIndex--;restoreHistory()}
 function redo(){if(historyIndex>=history.length-1)return;historyIndex++;restoreHistory()}
 function restoreHistory(){
@@ -1750,6 +1756,7 @@ function restoreHistory(){
   project.buildingNames=saved.buildingNames||{};project.patterns=saved.patterns||[];
   project.buildingOwnerId=saved.buildingOwnerId||'';project.buildingOwners=saved.buildingOwners||{};
   project.styleSystem=saved.styleSystem||0;
+  if(saved.environment)project.environment=clone(saved.environment);else delete project.environment;
   if(saved.mainFloorId)project.mainFloorId=saved.mainFloorId;else delete project.mainFloorId;
  }
  const selectedId=current()?.id;
@@ -3213,12 +3220,13 @@ function basementSlabs(){const ground=window.FHFloorLevels.mainIndex(project);re
 function exportProject(includeImages){syncStairLinks();recalcAllSpaces();const out=clone(project);out.buildingSlabs=clone(buildingSlabs(window.FHFloorLevels.mainIndex(project)));out.slabsByLevel=slabsForLevels();out.roofSlabsByFloor=project.floors.map((_,i)=>clone(buildingSlabs(i)));out.basementSlabs=basementSlabs();out.exportedAt=new Date().toISOString();out.floors.forEach((f,i)=>{f.items=courtyardFloorItems(f.items,i);f.architectureGraph=buildArchitectureGraph(f.items.filter(it=>STRUCTURAL_TYPES.has(it.type)));f.grid={columns:out.units.columns,rows:out.units.rows,fitToImage:false,cellWidthPx:window.FHMapGrid.cellSize(out.units),cellHeightPx:window.FHMapGrid.cellSize(out.units),feetPerCell:out.units.feetPerCell};if(!includeImages){delete f.reference.data;f.reference.imageIncluded=false}else{f.reference.imageIncluded=true}for(const it of f.items){if(it.type==='peephole_door'){const dx=it.b.x-it.a.x,dy=it.b.y-it.a.y,len=Math.hypot(dx,dy)||1,sign=it.peekSide||1;it.peekTo={x:rounded(-dy/len*sign,5),y:rounded(dx/len*sign,5)};it.peekFrom={x:-it.peekTo.x,y:-it.peekTo.y}}}});return out}
 function downloadBlob(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000)}
 function fileBase(){return(project.title||'ForestHorror').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\w-]+/g,'_').slice(0,40)||'ForestHorror'}
-function exportJSON(withImages){const doc=exportProject(withImages);try{window.FHRoads?.validateProject(doc);window.FHDrainage?.validateProject(doc);window.FHDrainageAccess?.validateProject(doc);window.FHStructureHealth?.validateMap(doc);window.FHAccessConfig?.validateMap(doc)}catch(error){toast(error.message);return}window.FHStyleProperty?.validateMap(doc);window.FHParking?.validateProject(doc);const warnings=[...ForestShared.interactionReferenceWarnings(doc),...ForestShared.progressionReferenceWarnings(doc)];
+function exportJSON(withImages){const doc=exportProject(withImages);try{if(doc.environment)window.FHTerrain?.config(doc.environment);window.FHRoads?.validateProject(doc);window.FHDrainage?.validateProject(doc);window.FHDrainageAccess?.validateProject(doc);window.FHStructureHealth?.validateMap(doc);window.FHAccessConfig?.validateMap(doc)}catch(error){toast(error.message);return}window.FHStyleProperty?.validateMap(doc);window.FHParking?.validateProject(doc);const warnings=[...ForestShared.interactionReferenceWarnings(doc),...ForestShared.progressionReferenceWarnings(doc)];
  const finish=()=>{const s=JSON.stringify(doc,null,2);downloadBlob(new Blob([s],{type:'application/json;charset=utf-8'}),`${fileBase()}_${withImages?'COMPLETO':'COORDENADAS'}.json`);toast(withImages?'JSON completo exportado':'JSON de coordenadas exportado')};
  if(warnings.length){modal(`<h2>Referencias por revisar</h2><p>Hay ${warnings.length} aviso(s) en las interacciones. Puedes exportar de todos modos.</p><div style="max-height:38vh;overflow:auto">${warnings.map(w=>`<p><small>${escapeAttr(w.path)}: ${escapeAttr(w.message)}</small></p>`).join('')}</div><div class="actions"><button id="exportAnyway" class="primary">Exportar de todos modos</button><button id="cancelExport">Cancelar</button></div>`,()=>{$('#exportAnyway').onclick=()=>{closeModal();finish()};$('#cancelExport').onclick=closeModal});return}
  finish();}
 function exportPNG(){const area=window.FHMapGrid.bounds(project.units);if(area.width*area.height>28000000){toast(window.FH_MAP_GRID_TEXT.exportTooLarge);return}const temp=document.createElement('canvas');temp.width=area.width;temp.height=area.height;const c=temp.getContext('2d');renderOn(c,area.width,area.height,{tx:-area.x,ty:-area.y,scale:1},{dpr:1,clean:true});temp.toBlob(blob=>{if(blob){downloadBlob(blob,`${fileBase()}_${current().id}.png`);toast('Vista PNG exportada')}else toast('No se pudo exportar PNG')},'image/png')}
 function importProject(obj){
+ if(obj.environment)window.FHTerrain?.config(obj.environment);
  window.FHStructureHealth?.validateMap(obj);
  window.FHAccessConfig?.validateMap(obj);
  window.FHRoads?.validateProject(obj);window.FHDrainage?.validateProject(obj);window.FHDrainageAccess?.validateProject(obj);window.FHStyleProperty?.validateMap(obj);window.FHParking?.validateProject(obj);const next=ForestShared.loadProject(obj);window.FHElectricCatalog?.upgradeMap(next);
@@ -3266,7 +3274,7 @@ window.FHRoadEditor?.install({project:()=>project,current,modal,closeModal,toast
  const raw=readStorage(key());let error=null;
  if(raw){try{const draft=JSON.parse(raw);window.FHStructureHealth?.validateMap(draft);window.FHAccessConfig?.validateMap(draft);project=ForestShared.loadProject(draft);window.FHElectricCatalog?.upgradeMap(project);status('✓ Borrador restaurado')}catch(err){error=err;project=newProject();status('⚠ Borrador incompatible; mapa nuevo')}}
  else status('Nuevo borrador');
- ensureGridConfig(!!raw);rememberFloorRefs();window.FHStyleEditor?.install({project:()=>project,current,record,modal,closeModal,toast});window.FHParkingEditor?.install({project:()=>project,current,record,modal,closeModal,toast,newId:numId,canEditAt:item=>{const p=window.FHStyleEditor;if(!p?.hasActor())return true;const a=Number(item.rotation||0)*Math.PI/180,points=[[0,0],[-.5,-.5],[.5,-.5],[-.5,.5],[.5,.5]];return points.every(([u,v])=>p.canEditAt({x:item.x+Math.cos(a)*item.w*u-Math.sin(a)*item.h*v,y:item.y+Math.sin(a)*item.w*u+Math.cos(a)*item.h*v}));},canEditItem:item=>window.FHStyleEditor?.canEditItem(item)!==false});window.FHWeatherEditor?.install({project:()=>project,record,modal,closeModal,toast});wire();refreshFloorTabs();setCategory('structure');loadedImgs=project.floors.map(()=>null);
+ ensureGridConfig(!!raw);rememberFloorRefs();window.FHStyleEditor?.install({project:()=>project,current,record,modal,closeModal,toast});window.FHParkingEditor?.install({project:()=>project,current,record,modal,closeModal,toast,newId:numId,canEditAt:item=>{const p=window.FHStyleEditor;if(!p?.hasActor())return true;const a=Number(item.rotation||0)*Math.PI/180,points=[[0,0],[-.5,-.5],[.5,-.5],[-.5,.5],[.5,.5]];return points.every(([u,v])=>p.canEditAt({x:item.x+Math.cos(a)*item.w*u-Math.sin(a)*item.h*v,y:item.y+Math.sin(a)*item.w*u+Math.cos(a)*item.h*v}));},canEditItem:item=>window.FHStyleEditor?.canEditItem(item)!==false});window.FHWeatherEditor?.install({project:()=>project,record,modal,closeModal,toast});window.FHForestEditor?.install({project:()=>project,record,modal,closeModal,toast});wire();refreshFloorTabs();setCategory('structure');loadedImgs=project.floors.map(()=>null);
  project.floors.forEach((_,i)=>setupImage(i));
  const migratedFurniture=normalizeFurnitureFootprints();
  const migratedPoles=window.FHExteriorGrid?.compactMapFootprints(project)||0;
@@ -3394,7 +3402,7 @@ function makeCurrent3DProject(){
  const slabsByLevel=project.floors.slice(1).map((_,i)=>i+1<=mainIndex?clone(empty):clone(buildingSlabs(i)));
  const basementSlabs=window.FHBasement?.resolveSlabs(project,i=>buildingSlabs(i))||project.floors.map((_,i)=>i<mainIndex?clone(buildingSlabs(i)):null);
  // Excluir únicamente imágenes de referencia de varios MB; geometría 3D proviene de items.
- return {schema:SCHEMA,version:project.version||1,mainFloorId:project.mainFloorId||undefined,styleSystem:project.styleSystem||0,buildingOwnerId:project.buildingOwnerId||'',buildingOwners:clone(project.buildingOwners||{}),buildingNames:clone(project.buildingNames||{}),properties:clone(project.properties||[]),locationZones:clone(project.locationZones||[]),patterns:clone(project.patterns||[]),title:project.title||'Forest Horror',createdAt:project.createdAt,itemDefs:clone(project.itemDefs||[]),initialGameState:clone(project.initialGameState||{}),weather:clone(project.weather||{enabled:false}),elevatorEvents:clone(project.elevatorEvents||{}),__runtimeSave:fhMapSave,__runtimeCharacter:fhProfile?clone(fhProfile):null,units,buildingSlabs:clone(buildingSlabs(mainIndex)),slabsByLevel,basementSlabs,roofSlabsByFloor:project.floors.map((_,i)=>clone(buildingSlabs(i))),
+ return {schema:SCHEMA,version:project.version||1,mainFloorId:project.mainFloorId||undefined,styleSystem:project.styleSystem||0,buildingOwnerId:project.buildingOwnerId||'',buildingOwners:clone(project.buildingOwners||{}),buildingNames:clone(project.buildingNames||{}),properties:clone(project.properties||[]),locationZones:clone(project.locationZones||[]),patterns:clone(project.patterns||[]),title:project.title||'Forest Horror',createdAt:project.createdAt,itemDefs:clone(project.itemDefs||[]),initialGameState:clone(project.initialGameState||{}),weather:clone(project.weather||{enabled:false}),...(project.environment?{environment:clone(project.environment)}:{}),elevatorEvents:clone(project.elevatorEvents||{}),__runtimeSave:fhMapSave,__runtimeCharacter:fhProfile?clone(fhProfile):null,units,buildingSlabs:clone(buildingSlabs(mainIndex)),slabsByLevel,basementSlabs,roofSlabsByFloor:project.floors.map((_,i)=>clone(buildingSlabs(i))),
   floors:project.floors.map(f=>({id:f.id,name:f.name,elevationFt:f.elevationFt,
    ceilingHeightFt:f.ceilingHeightFt,roof:f.roof?clone(f.roof):undefined,lightingManual:!!f.lightingManual,items:clone(courtyardFloorItems(window.FHAreaMerge?.forEngine(f.items)||f.items,project.floors.indexOf(f))),apartments:clone(f.apartments||[])}))};
 }
@@ -5075,6 +5083,7 @@ async function start3DPreview(){
     toast('Las barandillas y mallas no pudieron cargarse en 3D.');
    }
    if(window.FHCCTVEngine?.patch)architectureDoc=window.FHCCTVEngine.patch(architectureDoc);
+   if(window.FHForestEngine?.patch)architectureDoc=window.FHForestEngine.patch(architectureDoc);
    play3DFrame.srcdoc=architectureDoc;
   }catch(architectureError){
    console.error('[Forest Arquitectura] Falló la integración visual:',architectureError);
