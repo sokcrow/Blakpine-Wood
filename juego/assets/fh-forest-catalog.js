@@ -1,0 +1,167 @@
+/* Catálogo del pack: pies convertidos únicamente en vegetación. */
+(function(root){
+ const catalog={
+ "schema": "forest-horror-vegetation-v1",
+ "metersPerGlbUnit": 0.3048,
+ "models": [
+  {
+   "nombre": "Roble verde",
+   "archivo": "modelos_glb/01_roble_verde.glb",
+   "miniatura": "miniaturas/01_roble_verde.png",
+   "triangulos": 692,
+   "vertices": 2076,
+   "alto_ft": 45.0,
+   "primer_follaje_ft": 28.72,
+   "ancho_ft": 26.56,
+   "id": "01_roble_verde",
+   "trunkRadiusM": 0.7203,
+   "heightM": 13.716000000000001
+  },
+  {
+   "nombre": "Roble otoñal",
+   "archivo": "modelos_glb/02_roble_otonal.glb",
+   "miniatura": "miniaturas/02_roble_otonal.png",
+   "triangulos": 692,
+   "vertices": 2076,
+   "alto_ft": 43.0,
+   "primer_follaje_ft": 27.44,
+   "ancho_ft": 24.59,
+   "id": "02_roble_otonal",
+   "trunkRadiusM": 0.6684,
+   "heightM": 13.1064
+  },
+  {
+   "nombre": "Cerezo rosado",
+   "archivo": "modelos_glb/03_cerezo_rosa.glb",
+   "miniatura": "miniaturas/03_cerezo_rosa.png",
+   "triangulos": 692,
+   "vertices": 2076,
+   "alto_ft": 25.0,
+   "primer_follaje_ft": 15.96,
+   "ancho_ft": 14.45,
+   "id": "03_cerezo_rosa",
+   "trunkRadiusM": 0.2847,
+   "heightM": 7.62
+  },
+  {
+   "nombre": "Pino alto",
+   "archivo": "modelos_glb/04_pino_alto.glb",
+   "miniatura": "miniaturas/04_pino_alto.png",
+   "triangulos": 181,
+   "vertices": 543,
+   "alto_ft": 65.0,
+   "primer_follaje_ft": 22.32,
+   "ancho_ft": 35.29,
+   "id": "04_pino_alto",
+   "trunkRadiusM": 0.6254,
+   "heightM": 19.812
+  },
+  {
+   "nombre": "Pino delgado",
+   "archivo": "modelos_glb/05_pino_delgado.glb",
+   "miniatura": "miniaturas/05_pino_delgado.png",
+   "triangulos": 181,
+   "vertices": 543,
+   "alto_ft": 48.0,
+   "primer_follaje_ft": 16.48,
+   "ancho_ft": 18.65,
+   "id": "05_pino_delgado",
+   "trunkRadiusM": 0.3638,
+   "heightM": 14.630400000000002
+  },
+  {
+   "nombre": "Pino nevado",
+   "archivo": "modelos_glb/06_pino_nevado.glb",
+   "miniatura": "miniaturas/06_pino_nevado.png",
+   "triangulos": 251,
+   "vertices": 753,
+   "alto_ft": 46.0,
+   "primer_follaje_ft": 15.67,
+   "ancho_ft": 22.7,
+   "id": "06_pino_nevado",
+   "trunkRadiusM": 0.4194,
+   "heightM": 14.020800000000001
+  },
+  {
+   "nombre": "Abedul verde",
+   "archivo": "modelos_glb/07_abedul_verde.glb",
+   "miniatura": "miniaturas/07_abedul_verde.png",
+   "triangulos": 692,
+   "vertices": 2076,
+   "alto_ft": 40.0,
+   "primer_follaje_ft": 25.53,
+   "ancho_ft": 15.43,
+   "id": "07_abedul_verde",
+   "trunkRadiusM": 0.2764,
+   "heightM": 12.192
+  },
+  {
+   "nombre": "Abedul otoñal",
+   "archivo": "modelos_glb/08_abedul_otonal.glb",
+   "miniatura": "miniaturas/08_abedul_otonal.png",
+   "triangulos": 692,
+   "vertices": 2076,
+   "alto_ft": 38.0,
+   "primer_follaje_ft": 24.25,
+   "ancho_ft": 15.02,
+   "id": "08_abedul_otonal",
+   "trunkRadiusM": 0.269,
+   "heightM": 11.5824
+  },
+  {
+   "nombre": "Árbol seco",
+   "archivo": "modelos_glb/09_arbol_seco.glb",
+   "miniatura": "miniaturas/09_arbol_seco.png",
+   "triangulos": 308,
+   "vertices": 924,
+   "alto_ft": 35.0,
+   "primer_follaje_ft": null,
+   "ancho_ft": 17.45,
+   "id": "09_arbol_seco",
+   "trunkRadiusM": 0.9015,
+   "heightM": 10.668000000000001
+  },
+  {
+   "nombre": "Manzano",
+   "archivo": "modelos_glb/10_manzano.glb",
+   "miniatura": "miniaturas/10_manzano.png",
+   "triangulos": 1052,
+   "vertices": 3156,
+   "alto_ft": 18.0,
+   "primer_follaje_ft": 11.49,
+   "ancho_ft": 12.49,
+   "id": "10_manzano",
+   "trunkRadiusM": 0.2685,
+   "heightM": 5.486400000000001
+  },
+  {
+   "nombre": "Pino joven",
+   "archivo": "modelos_glb/11_pino_joven.glb",
+   "miniatura": "miniaturas/11_pino_joven.png",
+   "triangulos": 133,
+   "vertices": 399,
+   "alto_ft": 12.0,
+   "primer_follaje_ft": 4.04,
+   "ancho_ft": 5.99,
+   "id": "11_pino_joven",
+   "trunkRadiusM": 0.1447,
+   "heightM": 3.6576000000000004
+  },
+  {
+   "nombre": "Pino oscuro",
+   "archivo": "modelos_glb/12_pino_oscuro.glb",
+   "miniatura": "miniaturas/12_pino_oscuro.png",
+   "triangulos": 205,
+   "vertices": 615,
+   "alto_ft": 58.0,
+   "primer_follaje_ft": 19.92,
+   "ancho_ft": 26.56,
+   "id": "12_pino_oscuro",
+   "trunkRadiusM": 0.5714,
+   "heightM": 17.6784
+  }
+ ]
+};
+ if(typeof module==='object'&&module.exports)module.exports=catalog;
+ if(root)root.FHForestCatalog=catalog;
+})(typeof globalThis!=='undefined'?globalThis:this);
