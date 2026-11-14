@@ -101,3 +101,22 @@ test('IDs no seguros y recursos sin reglas comunes no crean unidades inválidas'
  assert.equal(units.get('constructor'),null);
  assert.throws(()=>U.makeBody('courier:invalid',{},{}),/reglas comunes/);
 });
+
+test('Cada unidad conserva una sola instancia de supervivencia y sanidad mental',()=>{
+ const {make}=create(),units=make(),npc=units.ensure('citizen:shared');
+ const survivalA=units.createSurvival(npc.id,{},0),survivalB=units.createSurvival(npc.id,{},15);
+ const moodA=units.createMoodFear(npc.id),moodB=units.createMoodFear(npc.id);
+ assert.strictEqual(survivalA,survivalB);
+ assert.strictEqual(moodA,moodB);
+ assert.strictEqual(survivalA.resources,npc.resources);
+ assert.strictEqual(moodA.state,npc.mental);
+});
+test('La muerte se registra en el cuerpo NPC, sin afectar al jugador',()=>{
+ const {game,make}=create(),units=make(),npc=units.ensure('citizen:mortal');
+ const survival=units.createSurvival(npc.id,{},0);
+ survival.damagePG(npc.resources.pg);
+ assert.equal(survival.state.critical.status,'critical');
+ for(let i=0;i<3;i++)survival.deathSave(1,()=>.9);
+ assert.equal(npc.body.life,'dead');
+ assert.equal(game.character.life,'alive');
+});
