@@ -1,7 +1,7 @@
 /* Capa de parcelas editable: solo metadatos; ninguna pared, malla ni colisión. */
 (function(root){
  'use strict';
- const P=()=>root.FHStyleProperty,Z=()=>root.FHPropertyZones,C=()=>root.FHConstruction,T=()=>root.FH_CONSTRUCTION_TEXT,R=()=>root.FHConstructionRooms,RT=()=>root.FH_CONSTRUCTION_ROOMS_TEXT;
+ const P=()=>root.FHStyleProperty,Z=()=>root.FHPropertyZones,C=()=>root.FHConstruction,T=()=>root.FH_CONSTRUCTION_TEXT,R=()=>root.FHConstructionRooms,RT=()=>root.FH_CONSTRUCTION_ROOMS_TEXT,PF=()=>root.FHConstructionPrefabs,PT=()=>root.FH_CONSTRUCTION_PREFABS_TEXT;
  const escape=s=>String(s??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[ch]));
  const types=new Set(['property_zone','location_exterior','location_common','property_select','property_erase']);
  let start=null,gesture=null,live=null,extendZoneId='';
@@ -153,9 +153,42 @@
    (editable?'<fieldset><legend>'+escape(str.title)+'</legend><label>'+escape(str.preset)+'<select id="fhParcelConstructionPreset">'+presetOptions+'</select></label><label><input id="fhParcelConstructionSimulated" type="checkbox"'+(spec?.simulated?' checked':'')+'> '+escape(str.simulated)+'</label><small>'+escape(str.help)+'</small></fieldset>':'')+
    (editable?'<fieldset><legend>'+escape(roomOptions.title)+'</legend>'+roomFields+'<small>'+escape(roomOptions.help)+'</small></fieldset>':'')+
    inspection+
+   (editable?'<fieldset><legend>'+escape(PT().button)+'</legend><p><small>'+escape(PT().help)+'</small></p>'+
+    (prop.generatedPrefab?'<p>'+escape(PT().generated)+'</p>':'<button type="button" id="fhParcelGenerate" class="accent">'+escape(PT().button)+'</button>')+'</fieldset>':'')+
    '<div class="actions"><button class="primary" id="fhParcelSave">Guardar</button>'+
    (editable?'<button class="danger" id="fhParcelDelete">Eliminar parcela</button>':'')+
    '<button id="fhParcelClose">Cerrar</button></div>',()=>{
+    const generate=document.getElementById('fhParcelGenerate');
+    if(generate)generate.onclick=async()=>{
+     if(root.FHStyleEditor?.hasActor()){toast('Solo el DM puede construir edificios.');return;}
+     const preset=document.getElementById('fhParcelConstructionPreset').value;
+     if(!preset||preset==='personalizado'){toast(PT().select);return;}
+     const simulated=document.getElementById('fhParcelConstructionSimulated').checked;
+     generate.disabled=true;generate.textContent=PT().busy;
+     try{
+      const response=await fetch(new URL('./forest-horror/biblioteca/catalogo_muebles.json',document.baseURI).href);
+      if(!response.ok)throw Error('catalog_http');
+      const catalog=await response.json();
+      if(catalog.schema!=='forest-horror-furniture-catalog-v1')throw Error('catalog_schema');
+      // No mutar hasta que la comprobación de espacios, modelos y colisiones pase.
+      const result=PF().place(project,prop,preset,{catalog,modelRules:root.FHFurnitureRules,shared:ForestShared});
+      if(!result.ok){
+       toast((PT().errors[result.code]||PT().errors.invalid_catalog)+
+        (result.code==='small_parcel'?' ('+result.minimum.join(' × ')+' tiles)':''));
+       return;
+      }
+      prop.name=(document.getElementById('fhParcelName').value.trim()||'Parcela').slice(0,80);
+      prop.claimable=document.getElementById('fhParcelClaim').value==='yes';
+      prop.ownerId=document.getElementById('fhParcelOwner').value.trim().slice(0,80);
+      C().plan(prop,preset,simulated);
+      record();closeModal();toast(PT().success);render();
+     }catch(error){
+      console.error('[Construcción 04]',error);
+      toast(PT().errors.missing_catalog);
+     }finally{
+      if(generate.isConnected){generate.disabled=false;generate.textContent=PT().button;}
+     }
+    };
     document.getElementById('fhParcelSave').onclick=()=>{
      if(root.FHStyleEditor?.hasActor()){toast('Solo el DM puede asignar propiedades.');return}
      if(editable){prop.name=(document.getElementById('fhParcelName').value.trim()||'Parcela').slice(0,80);
