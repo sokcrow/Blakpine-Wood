@@ -5017,7 +5017,21 @@ function floorSightThroughOpening(f,at,target,openings){
   return doc.replace('</head>',scripts+'</head>');
  }
 
- return addRoomNeedsToEngine(addConstructionToEngine(addDrainAccessToEngine(addPreviewReturnToSpawnpoint(addPreviewDiagnostics(addCourtyardsToEngine(addMoodFearToEngine(addFloorVisibilityToEngine(addNaturalLightToEngine(addShadowEncountersToEngine(assembled))))))))));
+
+ // Acceso a sanitarios para unidades: consulta bajo demanda, mismo GOAP y colisión real.
+ function addUnitFacilitiesToEngine(doc){
+  const anchor='window.FHRoomNeedsRuntime=window.FHConstructionRooms.createRuntime(DATA,{getServices:()=>window.FHServicesRuntime,getConstruction:()=>window.FHConstructionRuntime});';
+  const inserted=anchor+'\nwindow.FHUnitFacilitiesRuntime=window.FHUnitFacilities.createRuntime(DATA,{geometry:window.FHStyleProperty,roomAudit:window.FHConstructionRooms,goap:window.FHNPCGOAP,cell:CELL,step:CELL/2,canWalk:(f,x,z)=>fhNpcCanWalk(f,x,z,false),transitions:fhNpcStairTransitions,getServices:()=>window.FHServicesRuntime,getConstruction:()=>window.FHConstructionRuntime});';
+  const count=doc.split(anchor).length-1;
+  if(count!==1)throw Error('Hook sanitarios de unidad incompatible ('+count+')');
+  doc=doc.replace(anchor,inserted);
+  const files=['fh-unit-facilities-strings.js','fh-unit-facilities.js'];
+  const scripts=files.map(file=>'<script src="'+new URL('./juego/assets/'+file+'?v=20261114-npc-bath1',document.baseURI).href+'"></'+'script>').join('');
+  if(!doc.includes('</head>'))throw Error('Motor 3D sin cabecera para baños NPC');
+  return doc.replace('</head>',scripts+'</head>');
+ }
+
+ return addUnitFacilitiesToEngine(addRoomNeedsToEngine(addConstructionToEngine(addDrainAccessToEngine(addPreviewReturnToSpawnpoint(addPreviewDiagnostics(addCourtyardsToEngine(addMoodFearToEngine(addFloorVisibilityToEngine(addNaturalLightToEngine(addShadowEncountersToEngine(assembled)))))))))));
 }
 let fhCharacterLaunchPending=false;
 async function start3DPreview(){
