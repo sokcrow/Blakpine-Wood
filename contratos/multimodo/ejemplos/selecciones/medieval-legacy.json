@@ -2,5 +2,5 @@
   "kind": "blakpine-mode-selection-v1",
   "version": 1,
   "worldProfile": "contratos/multimodo/ejemplos/mundos/villa-medieval.json",
-  "rulesetManifest": "contratos/multimodo/ejemplos/reglas/tercer-sistema-pendiente.json"
+  "rulesetManifest": "contratos/multimodo/ejemplos/reglas/legacy.json"
 }

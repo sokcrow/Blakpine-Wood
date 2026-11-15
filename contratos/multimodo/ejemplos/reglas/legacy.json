@@ -1,0 +1,8 @@
+{
+  "kind": "blakpine-ruleset-manifest-v1",
+  "version": 1,
+  "id": "legacy",
+  "label": "Legacy — Blakpine Wood (sistema actual)",
+  "domain": "combat",
+  "status": "planned"
+}

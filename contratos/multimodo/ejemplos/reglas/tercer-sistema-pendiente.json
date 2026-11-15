@@ -1,8 +1,0 @@
-{
-  "kind": "blakpine-ruleset-manifest-v1",
-  "version": 1,
-  "id": "tercer-sistema-pendiente",
-  "label": "Tercer reglamento por definir",
-  "domain": "combat",
-  "status": "reserved"
-}

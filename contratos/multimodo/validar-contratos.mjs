@@ -1,11 +1,10 @@
 #!/usr/bin/env node
 // Validador estático de contratos multimodo. Sin paquetes externos ni arranque del juego.
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve, relative, isAbsolute, sep } from 'node:path';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
-const rel = 'contratos/multimodo';
 let checks = 0;
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -61,27 +60,50 @@ for (const [kind, schema] of Object.entries(refs)) {
   assert(schema.$schema === 'https://json-schema.org/draft/2020-12/schema', kind + ': dialécto JSON Schema');
   assert(schema.properties.kind.const === kind, kind + ': esquema incoherente');
 }
-const worlds = [
- 'ciudad-moderna', 'distopia', 'villa-medieval'
-].map(id => 'contratos/multimodo/ejemplos/mundos/' + id + '.json');
-const rulesets = [
- 'dnd', 'moon-system', 'tercer-sistema-pendiente'
-].map(id => 'contratos/multimodo/ejemplos/reglas/' + id + '.json');
-const selections = [
- 'moderno-dnd', 'distopia-moon', 'medieval-tercero'
-].map(id => 'contratos/multimodo/ejemplos/selecciones/' + id + '.json');
+const examplesRoot = 'contratos/multimodo/ejemplos/';
+const worldIds = ['ciudad-moderna', 'distopia', 'villa-medieval'];
+const ruleIds = ['legacy', 'dnd', 'moon-system'];
+const selectionIds = ['moderno-dnd', 'distopia-moon', 'medieval-legacy'];
+const worlds = worldIds.map(id => examplesRoot + 'mundos/' + id + '.json');
+const rulesets = ruleIds.map(id => examplesRoot + 'reglas/' + id + '.json');
+const selections = selectionIds.map(id => examplesRoot + 'selecciones/' + id + '.json');
+
+function assertOnlyExamples(dir, ids) {
+  const actual = readdirSync(safePath(examplesRoot + dir)).filter(name => name.endsWith('.json')).sort();
+  const expected = ids.map(id => id + '.json').sort();
+  assert(JSON.stringify(actual) === JSON.stringify(expected),
+    'Ejemplos inesperados u obsoletos en ' + dir + ': ' + actual.join(', '));
+}
+assertOnlyExamples('mundos', worldIds);
+assertOnlyExamples('reglas', ruleIds);
+assertOnlyExamples('selecciones', selectionIds);
+for (const obsolete of ['reglas/tercer-sistema-pendiente.json', 'selecciones/medieval-tercero.json']) {
+  assert(!existsSync(safePath(examplesRoot + obsolete)), 'Referencia obsoleta: ' + obsolete);
+}
 const ids = new Set();
 for (const path of [...worlds, ...rulesets]) {
   const doc = load(path);
   validate(doc, refs[doc.kind], path);
   assert(!ids.has(doc.kind + ':' + doc.id), 'ID duplicado: ' + doc.id);
   ids.add(doc.kind + ':' + doc.id);
-  if (doc.kind === 'blakpine-world-profile-v1' && doc.map) {
-    const map = load(doc.map.path);
-    assert(map.schema === 'forest-horror-map-v1', 'Formato heredado incompatible: ' + doc.map.path);
+  if (doc.kind === 'blakpine-world-profile-v1') {
+    assert(!Object.hasOwn(doc, 'rulesetManifest') && !Object.hasOwn(doc, 'rulesets'),
+      'El perfil no debe imponer reglamentos: ' + path);
+    if (doc.map) {
+      const map = load(doc.map.path);
+      assert(map.schema === 'forest-horror-map-v1', 'Formato heredado incompatible: ' + doc.map.path);
+    }
   }
-  if (doc.kind === 'blakpine-ruleset-manifest-v1' && doc.status === 'reserved') {
-    assert(!doc.adapter, 'Un reglamento reservado no puede declarar adaptador operativo');
+  if (doc.kind === 'blakpine-ruleset-manifest-v1') {
+    assert(ruleIds.includes(doc.id) && path.endsWith('/' + doc.id + '.json'),
+      'ID de reglamento ajeno a Legacy, DnD y Moon: ' + path);
+    assert(doc.status === 'planned', 'Integración multimodo sin implementación verificada: ' + doc.id);
+    if (doc.id === 'legacy') {
+      assert(!Object.hasOwn(doc, 'adapter'), 'Legacy no tiene adaptador multimodo implementado');
+    } else {
+      assert(doc.adapter?.contract === 'blakpine-combat-adapter-v1',
+        'Contrato simbólico de adaptador inválido: ' + doc.id);
+    }
   }
 }
 const verifyBinding = binding => {
@@ -91,7 +113,17 @@ const verifyBinding = binding => {
   assert(world.kind === 'blakpine-world-profile-v1', 'Referencia de mundo errónea');
   assert(rules.kind === 'blakpine-ruleset-manifest-v1', 'Referencia de reglas errónea');
 };
-for (const path of selections) verifyBinding(load(path));
+const expectedSelections = [
+  {path: selections[0], worldProfile: worlds[0], rulesetManifest: rulesets[1]},
+  {path: selections[1], worldProfile: worlds[1], rulesetManifest: rulesets[2]},
+  {path: selections[2], worldProfile: worlds[2], rulesetManifest: rulesets[0]}
+];
+for (const {path, worldProfile, rulesetManifest} of expectedSelections) {
+  const selection = load(path);
+  verifyBinding(selection);
+  assert(selection.worldProfile === worldProfile && selection.rulesetManifest === rulesetManifest,
+    'Selección de ejemplo incorrecta: ' + path);
+}
 for (const worldProfile of worlds) for (const rulesetManifest of rulesets) {
   verifyBinding({
     kind: 'blakpine-mode-selection-v1',
@@ -100,4 +132,5 @@ for (const worldProfile of worlds) for (const rulesetManifest of rulesets) {
   });
 }
 console.log('PASS: ' + checks + ' aserciones estructurales; 3 mundos, 3 reglamentos y 9 combinaciones.');
-console.log('NOTA: no se ejecutó el juego; "planned" y "reserved" no implican adaptadores operativos.');
+console.log('LEGACY: comportamiento actual conservado sin configuración multimodo; no existe adaptador Legacy verificado.');
+console.log('PENDIENTE: adaptadores multimodo Legacy, DnD y Moon. No se ejecutó el juego ni se probaron nueve modos jugables.');
