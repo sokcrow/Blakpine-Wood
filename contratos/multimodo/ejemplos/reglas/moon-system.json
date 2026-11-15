@@ -1,0 +1,13 @@
+{
+  "kind": "blakpine-ruleset-manifest-v1",
+  "version": 1,
+  "id": "moon-system",
+  "label": "Moon System (monedas)",
+  "domain": "combat",
+  "status": "planned",
+  "adapter": {
+    "id": "combat.moon-system",
+    "contract": "blakpine-combat-adapter-v1"
+  },
+  "statsNamespace": "moon-system"
+}

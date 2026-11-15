@@ -1,0 +1,13 @@
+{
+  "kind": "blakpine-ruleset-manifest-v1",
+  "version": 1,
+  "id": "dnd",
+  "label": "DnD",
+  "domain": "combat",
+  "status": "planned",
+  "adapter": {
+    "id": "combat.dnd",
+    "contract": "blakpine-combat-adapter-v1"
+  },
+  "statsNamespace": "dnd"
+}

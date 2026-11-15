@@ -1,0 +1,17 @@
+{
+  "kind": "blakpine-world-profile-v1",
+  "version": 1,
+  "id": "villa-medieval",
+  "label": "Villa o castillo medieval",
+  "environment": {
+    "archetype": "medieval-settlement",
+    "layoutProfile": "medieval-village-or-castle",
+    "infrastructureProfiles": [
+      "streets-connected",
+      "drainage-medieval"
+    ],
+    "tags": [
+      "medieval"
+    ]
+  }
+}

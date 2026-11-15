@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/sokcrow/Blakpine-Wood/blob/main/contratos/multimodo/v1/manifiesto-reglas.schema.json",
+  "title": "Manifiesto de sistema de reglas v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind",
+    "version",
+    "id",
+    "label",
+    "domain",
+    "status"
+  ],
+  "properties": {
+    "kind": {
+      "const": "blakpine-ruleset-manifest-v1"
+    },
+    "version": {
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "label": {
+      "type": "string",
+      "minLength": 1
+    },
+    "domain": {
+      "const": "combat"
+    },
+    "status": {
+      "enum": [
+        "planned",
+        "implemented",
+        "reserved"
+      ]
+    },
+    "adapter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "contract"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "contract": {
+          "const": "blakpine-combat-adapter-v1"
+        }
+      }
+    },
+    "statsNamespace": {
+      "type": "string",
+      "minLength": 1
+    },
+    "extensions": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  }
+}

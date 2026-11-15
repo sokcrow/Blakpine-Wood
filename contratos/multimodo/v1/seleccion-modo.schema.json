@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/sokcrow/Blakpine-Wood/blob/main/contratos/multimodo/v1/seleccion-modo.schema.json",
+  "title": "Selección de mundo y reglamento v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind",
+    "version",
+    "worldProfile",
+    "rulesetManifest"
+  ],
+  "properties": {
+    "kind": {
+      "const": "blakpine-mode-selection-v1"
+    },
+    "version": {
+      "const": 1
+    },
+    "worldProfile": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9_./-]+\\.json$"
+    },
+    "rulesetManifest": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9_./-]+\\.json$"
+    },
+    "extensions": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  }
+}
