@@ -104,7 +104,7 @@
   if(!floor||!geometry?.roomInProperty||!geometry.inside)return null;
   const rooms=(floor.items||[]).filter(it=>it?.type==='room'&&geometry.roomInProperty(it,property)
    &&ROOM_PRESETS.includes(it.constructionRoom));
-  const inspected=[],preset=property.construction?.preset||'personalizado',required=BUILDINGS[preset]||[];
+  const inspected=[],preset=property.construction?.preset||property.generatedPrefab?.preset||'personalizado',required=BUILDINGS[preset]||[];
   const issues=[],unverified=[];
   const grouped=preset==='apartamentos'&&Array.isArray(property.generatedPrefab?.apartments)
    &&property.generatedPrefab.apartments.length>0;
