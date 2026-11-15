@@ -1,4 +1,6 @@
-/* Construcción 04: generador nativo, sin sustituir editor, física ni catálogo. */
+/* Construcción 04 — planos editables con habitaciones privadas y circulación común.
+ * Toda geometría es nativa de forest-horror-map-v1; no genera mallas decorativas.
+ */
 (function(root,factory){
  'use strict';
  const api=factory();
@@ -6,224 +8,375 @@
  if(root)root.FHConstructionPrefabs=api;
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
  'use strict';
- const EPS=1e-5;
- const MIN=Object.freeze({ayuntamiento:[11,10],casas:[12,10],apartamentos:[24,10],tienda:[12,10]});
- const TARGET=Object.freeze({ayuntamiento:[18,13],casas:[14,11],apartamentos:[28,12],tienda:[16,11]});
- const KINDS=Object.freeze({ayuntamiento:['oficina','bano'],casas:['cocina','dormitorio','bano'],
-  apartamentos:['bano','dormitorio','cocina','bano','dormitorio','cocina'],tienda:['bano','ventas']});
- const MIN_ROOM=Object.freeze({oficina:5,bano:4,cocina:4,dormitorio:4,ventas:8,descanso:4});
- const floorSurface={preset:'concreto',color:'#989A96'};
- const floors={bano:{preset:'azulejo',color:'#8FADAC'},cocina:{preset:'baldosa',color:'#B7AEA0'},
-  dormitorio:{preset:'madera',color:'#9C806A'},oficina:{preset:'baldosa',color:'#AAA8A0'},
-  descanso:{preset:'madera',color:'#9C806A'},ventas:{preset:'baldosa',color:'#AAA8A0'}};
- const isNum=n=>typeof n==='number'&&Number.isFinite(n);
+ const EPS=1e-5,ROOM_MARGIN=.12,FRONT=.70;
+ const MIN=Object.freeze({ayuntamiento:[12,11],casas:[13,12],apartamentos:[22,22],tienda:[13,11]});
+ const TARGET=Object.freeze({ayuntamiento:[22,16],casas:[19,16],apartamentos:[64,28],tienda:[22,16]});
+ const ROOM_FLOORS=Object.freeze({
+  bano:{preset:'azulejo',color:'#90AEAF'},dormitorio:{preset:'madera',color:'#A0846E'},
+  cocina:{preset:'baldosa',color:'#B8B0A5'},oficina:{preset:'baldosa',color:'#ADA9A1'},
+  ventas:{preset:'baldosa',color:'#AAA8A0'},comun:{preset:'concreto',color:'#A1A4A0'}
+ });
+ const LABELS={ayuntamiento:'Ayuntamiento',casas:'Casa',apartamentos:'Apartamentos',tienda:'Tienda'};
+ const NAMES={bano:'Baño',dormitorio:'Recámara',cocina:'Sala y cocina',oficina:'Oficina',
+  ventas:'Área de ventas',comun:'Pasillo común'};
  const round=n=>Math.round(n*1000)/1000;
- const fail=(code,details={})=>({ok:false,code,...details});
+ const number=n=>typeof n==='number'&&Number.isFinite(n);
+ const failure=(code,data={})=>({ok:false,code,...data});
+ const box=(x,y,w,h)=>({x,y,w,h});
+ const overlaps=(a,b)=>a.x<b.x+b.w-EPS&&a.x+a.w>b.x+EPS&&a.y<b.y+b.h-EPS&&a.y+a.h>b.y+EPS;
+ const contains=(rect,p)=>p.x>=rect.x-EPS&&p.y>=rect.y-EPS&&p.x<=rect.x+rect.w+EPS&&p.y<=rect.y+rect.h+EPS;
  const inside=(p,poly)=>{
-  if(!poly?.length)return false;
-  let yes=false;
-  for(let j=poly.length-1,i=0;i<poly.length;j=i++){
-   const a=poly[i],b=poly[j];
-   const cross=(b.x-a.x)*(p.y-a.y)-(b.y-a.y)*(p.x-a.x);
+  if(!Array.isArray(poly)||poly.length<3)return false;
+  let v=false;
+  for(let i=0,j=poly.length-1;i<poly.length;j=i++){
+   const a=poly[i],b=poly[j],cross=(b.x-a.x)*(p.y-a.y)-(b.y-a.y)*(p.x-a.x);
    if(Math.abs(cross)<EPS&&p.x>=Math.min(a.x,b.x)-EPS&&p.x<=Math.max(a.x,b.x)+EPS
     &&p.y>=Math.min(a.y,b.y)-EPS&&p.y<=Math.max(a.y,b.y)+EPS)return true;
-   if((a.y>p.y)!==(b.y>p.y)&&p.x<(b.x-a.x)*(p.y-a.y)/(b.y-a.y)+a.x)yes=!yes;
+   if((a.y>p.y)!==(b.y>p.y)&&p.x<(b.x-a.x)*(p.y-a.y)/(b.y-a.y)+a.x)v=!v;
   }
-  return yes;
+  return v;
  };
- const overlap=(a,b)=>a.x<b.x+b.w-EPS&&a.x+a.w>b.x+EPS&&a.y<b.y+b.h-EPS&&a.y+a.h>b.y+EPS;
- function footprint(item,units){
-  if(item?.a&&item?.b){
-   const x=Math.min(item.a.x,item.b.x),y=Math.min(item.a.y,item.b.y);
-   return {x:x-.05,y:y-.05,w:Math.abs(item.a.x-item.b.x)+.1,h:Math.abs(item.a.y-item.b.y)+.1};
+ function footprint(it,units){
+  if(it?.a&&it?.b)return box(Math.min(it.a.x,it.b.x)-.10,Math.min(it.a.y,it.b.y)-.10,
+   Math.abs(it.b.x-it.a.x)+.20,Math.abs(it.b.y-it.a.y)+.20);
+  if(!number(it?.x)||!number(it?.y))return null;
+  const w=Math.max(0,Number(it.w)||0),h=Math.max(0,Number(it.h)||0);
+  const regionTypes=['room','hall','building','outside','grass','dirt','pavement','parking','concrete','asphalt','alley','sidewalk'];
+  if(it.type==='asphalt'&&it.road){
+   const gap=Math.max(0,Number(it.road.sidewalkFt)||0)/(Number(units?.feetPerCell)||5);
+   return it.road.axis==='x'?box(it.x,it.y-gap,w,h+gap*2):box(it.x-gap,it.y,w+gap*2,h);
   }
-  if(!isNum(item?.x)||!isNum(item?.y))return null;
-  const w=Math.max(0,Number(item.w)||0),h=Math.max(0,Number(item.h)||0);
-  if(item.type==='asphalt'&&item.road){
-   const side=Math.max(0,Number(item.road.sidewalkFt)||0)/(Number(units?.feetPerCell)||5);
-   return item.road.axis==='x'?{x:item.x,y:item.y-side,w,h:h+side*2}:
-    {x:item.x-side,y:item.y,w:w+side*2,h};
-  }
-  if(item.type==='room'||['hall','building','outside','grass','dirt','pavement','parking','concrete','asphalt','alley','sidewalk'].includes(item.type))
-   return {x:item.x,y:item.y,w,h};
-  return {x:item.x-w/2,y:item.y-h/2,w,h};
+  return regionTypes.includes(it.type)?box(it.x,it.y,w,h):box(it.x-w/2,it.y-h/2,w,h);
  }
- function outline(property,units){
-  const poly=property?.polygon;
-  if(property?.source!=='zone'||!Array.isArray(poly)||poly.length!==4||
-   poly.some(p=>!isNum(p.x)||!isNum(p.y)))return null;
+ function outline(prop,units){
+  const poly=prop?.polygon;
+  if(prop?.source!=='zone'||!Array.isArray(poly)||poly.length!==4||poly.some(p=>!number(p.x)||!number(p.y)))return null;
   const xs=[...new Set(poly.map(p=>p.x))],ys=[...new Set(poly.map(p=>p.y))];
   if(xs.length!==2||ys.length!==2)return null;
-  const left=Math.min(...xs),right=Math.max(...xs),top=Math.min(...ys),bottom=Math.max(...ys);
-  const region={x:Math.ceil(left+1-EPS),y:Math.ceil(top+1-EPS),
-   w:Math.floor(right-1+EPS)-Math.ceil(left+1-EPS),
-   h:Math.floor(bottom-1+EPS)-Math.ceil(top+1-EPS)};
-  if(region.x<0||region.y<0||region.w<=0||region.h<=0||
-   region.x+region.w>units?.columns||region.y+region.h>units?.rows)return null;
-  const corners=[{x:region.x,y:region.y},{x:region.x+region.w,y:region.y},
-   {x:region.x+region.w,y:region.y+region.h},{x:region.x,y:region.y+region.h}];
-  return corners.every(p=>inside(p,poly))?region:null;
+  const x=Math.ceil(Math.min(...xs)+1-EPS),y=Math.ceil(Math.min(...ys)+1-EPS);
+  const w=Math.floor(Math.max(...xs)-1+EPS)-x,h=Math.floor(Math.max(...ys)-1+EPS)-y;
+  if(x<0||y<0||w<=0||h<=0||x+w>units?.columns||y+h>units?.rows)return null;
+  return [{x,y},{x:x+w,y},{x:x+w,y:y+h},{x,y:y+h}].every(p=>inside(p,poly))?box(x,y,w,h):null;
+ }
+ function footprintFor(prop,units,preset){
+  const available=outline(prop,units);
+  if(!available)return null;
+  const [mw,mh]=TARGET[preset];
+  // El terreno puede contener patio; el edificio se adapta al área libre hasta su variante de planta.
+  const w=Math.min(available.w,mw),h=Math.min(available.h,mh);
+  return box(available.x+Math.floor((available.w-w)/2),available.y+Math.floor((available.h-h)/2),w,h);
+ }
+ function newName(project,preset){
+  const base=LABELS[preset]||'Edificio',taken=new Set((project?.properties||[]).map(p=>p.name));
+  let n=1;while(taken.has(base+' '+n))n++;
+  return base+' '+n;
+ }
+ function areaProject(project,floorId,a,b,preset,zones,id){
+  if(!MIN[preset])return failure('unknown_preset');
+  const created=zones.create(project,floorId,a,b,project.units.columns,project.units.rows,id);
+  if(!created.ok)return failure('invalid_parcel',{detail:created.reason});
+  created.zone.name=newName(project,preset);
+  created.zone.claimable=false;
+  return {ok:true,property:created.zone};
  }
  function plan(project,property,preset,options={}){
-  if(!MIN[preset])return fail('unknown_preset');
-  const floor=(project?.floors||[]).find(f=>String(f.id)===String(property?.floorId));
-  if(!floor||!Array.isArray(floor.items))return fail('no_floor');
-  if(property?.generatedPrefab||floor.items.some(it=>it.constructionParcelId===property.id))return fail('generated');
-  const availableRegion=outline(property,project.units);
-  if(!availableRegion)return fail('invalid_parcel');
-  const [needW,needH]=MIN[preset];
-  if(availableRegion.w<needW||availableRegion.h<needH)return fail('small_parcel',{minimum:[needW+2,needH+2]});
-  const [maxW,maxH]=TARGET[preset];
-  const w=Math.min(maxW,availableRegion.w),h=Math.min(maxH,availableRegion.h);
-  const rect={x:availableRegion.x+Math.floor((availableRegion.w-w)/2),
-   y:availableRegion.y+Math.floor((availableRegion.h-h)/2),w,h};
-  const clearTypes=new Set(['outside','grass','dirt']);
-  for(const it of floor.items){
-   const box=footprint(it,project.units);
-   if(!box||!overlap(box,rect))continue;
-   if(!clearTypes.has(it.type))return fail('occupied',{itemId:it.id});
-  }
-  const list=KINDS[preset];
-  const base=list.map(k=>MIN_ROOM[k]),available=rect.w-base.reduce((a,b)=>a+b,0);
-  if(available<0)return fail('small_parcel',{minimum:[needW+2,needH+2]});
-  const widths=base.map((n,i)=>n+Math.floor(available/base.length)+(i<available%base.length?1:0));
-  const prefix='fhpf_'+encodeURIComponent(property.id).replace(/%/g,'~');
-  const existingIds=new Set((project.floors||[]).flatMap(f=>f.items||[]).map(it=>it.id));
-  if([...existingIds].some(id=>String(id).startsWith(prefix+'_')))return fail('generated');
-  const items=[];let serial=0;
-  const add=(kind,attrs,phase='estructura')=>{
-   const id=prefix+'_'+String(++serial);
-   if(existingIds.has(id))throw Error('prefab_id_conflict');
-   const item={id,type:kind,constructionParcelId:property.id,constructionPhase:phase,...attrs};
-   items.push(item);return item;
-  };
-  const pt=(x,y)=>({x:round(x),y:round(y)});
-  const seg=(type,ax,ay,bx,by,extra={})=>add(type,
-   {a:pt(ax,ay),b:pt(bx,by),heightFt:type==='red_wall'||type==='wall'?9:7,
-    widthFt:['door','window'].includes(type)?3:0,
-    open:false,locked:false,peekSide:1,doorRole:type==='door'?'interior':undefined,...extra},
-   type==='red_wall'?'estructura':'instalaciones');
-  const horizontal=(y,x1,x2,gaps,outer)=>{
-   const sorted=[...gaps].sort((a,b)=>a.x-b.x);
-   let cursor=x1;
-   for(const g of sorted){
-    if(g.x>cursor+EPS)seg(outer?'red_wall':'wall',cursor,y,g.x,y);
-    seg(g.type,g.x,y,g.x+1,y,g.extra||{});
-    cursor=g.x+1;
-   }
-   if(cursor<x2-EPS)seg(outer?'red_wall':'wall',cursor,y,x2,y);
-  };
-  const vertical=(x,y1,y2,gap,extra={})=>{
-   if(!gap){seg('wall',x,y1,x,y2);return;}
-   if(gap>y1+EPS)seg('wall',x,y1,x,gap);
-   seg('door',x,gap,x,gap+1,extra);
-   if(gap+1<y2-EPS)seg('wall',x,gap+1,x,y2);
-  };
-  const X=rect.x,Y=rect.y,R=X+rect.w,B=Y+rect.h,divideY=B-3,rooms=[];
-  let cursor=X;
-  for(let i=0;i<list.length;i++){
-   const kind=list[i],w=widths[i],apt=preset==='apartamentos'?(i<3?1:2):0;
-   const aptId=apt?prefix+'_vivienda_'+apt:'';
-   const roomId=prefix+'_habitacion_'+(i+1);
-   const room={x:cursor,y:Y,w,h:divideY-Y,kind,aptId,roomId,index:i};
-   rooms.push(room);
-   add('room',{x:cursor,y:Y,w,h:divideY-Y,label:
-     (kind==='bano'?'Baño':kind==='cocina'?'Cocina':kind==='dormitorio'?'Dormitorio':
-      kind==='oficina'?'Oficina':'Área de ventas')+(apt?' '+apt:''),
-    roomId,apartmentId:aptId,manualApartmentId:aptId,blocksViewOutside:true,
-    surfaceStyle:floors[kind],...(kind==='ventas'?{}:{constructionRoom:kind})},'cimientos');
-   cursor+=w;
-  }
-  add('room',{x:X,y:divideY,w:rect.w,h:3,label:preset==='apartamentos'?'Pasillo común':'Vestíbulo',
-   roomId:prefix+'_vestibulo',blocksViewOutside:false,surfaceStyle:floorSurface},'cimientos');
-  const front=Math.floor(X+rect.w/2);
-  horizontal(B,X,R,[{x:front,type:'door',extra:{doorRole:'entrance',roofBoundary:true,architectureSkin:'puerta_madera'}}],true);
-  const windows=rooms.map(r=>({x:Math.floor(r.x+r.w/2),type:'window',extra:{roofBoundary:true,windowSkin:'clasica'}}));
-  horizontal(Y,X,R,windows,true);
-  seg('red_wall',X,Y,X,B);seg('red_wall',R,Y,R,B);
-  for(let i=0;i<rooms.length-1;i++){
-   const r=rooms[i],boundary=r.x+r.w;
-   const aptPortal=preset==='apartamentos'&&i!==2;
-   vertical(boundary,Y,divideY,aptPortal?Math.floor(Y+(divideY-Y)/2):null,
-    {doorRole:'interior',apartmentId:r.aptId});
-  }
-  const hallDoors=[];
-  for(const r of rooms){
-   if(preset==='apartamentos'&&![2,5].includes(r.index))continue;
-   hallDoors.push({x:Math.floor(r.x+r.w/2),type:'door',extra:{
-    doorRole:preset==='apartamentos'?'entrance':'interior',apartmentId:r.aptId,
-    architectureSkin:'puerta_madera'}});
-  }
-  horizontal(divideY,X,R,hallDoors,false);
-  const modelRules=options.modelRules,shared=options.shared;
+  if(!MIN[preset])return failure('unknown_preset');
+  const base=(project?.floors||[]).find(f=>f.id===property?.floorId);
+  if(!base||!Array.isArray(base.items))return failure('no_floor');
+  if(property.generatedPrefab||project.floors.some(f=>(f.items||[]).some(it=>it.constructionParcelId===property.id)))
+   return failure('generated');
+  const rect=footprintFor(property,project.units,preset);
+  if(!rect)return failure('invalid_parcel');
+  const [minW,minH]=MIN[preset];
+  if(rect.w<minW||rect.h<minH)return failure('small_parcel',{minimum:[minW+2,minH+2]});
   const catalog=options.catalog?.furniture||options.catalog;
-  if(!Array.isArray(catalog))return fail('missing_catalog');
-  const modelIndex=new Map(catalog.map(m=>[m.id,m]));
-  function model(room,id,dx,dy){
-   const entry=modelIndex.get(id);
-   if(!entry)throw Error('missing_model:'+id);
-   const sizeFt=Number(project.units?.feetPerCell)||5;
-   const item=add('misc',{x:round(room.x+dx),y:round(room.y+dy),
-    w:round(entry.widthFt/sizeFt),h:round(entry.depthFt/sizeFt),heightFt:entry.heightFt,
-    modelId:id,label:entry.name,blocksMovement:entry.blocksMovement!==false,rotation:0,
-    roomId:room.roomId,apartmentId:room.aptId||'',placement:'floor',
-    ...(entry.shopRole?{shopRole:entry.shopRole}:{})},'instalaciones');
-   if(typeof modelRules?.applyCatalogModel==='function'&&shared){
-    modelRules.applyCatalogModel(item,entry,shared,sizeFt);
-   }else{
-    item.type=({cama_individual:'bed',silla_madera:'chair',mesa_pequena:'table'}[id]||'misc');
-   }
-   return item;
+  if(!Array.isArray(catalog))return failure('missing_catalog');
+  const models=new Map(catalog.map(e=>[e.id,e]));
+  const count=Number(options.stories??1);
+  if(!Number.isInteger(count)||count<1||count>3)return failure('invalid_stories');
+  const requestedFloors=[base],createdFloors=[],floorsSorted=[...project.floors].sort((a,b)=>a.elevationFt-b.elevationFt);
+  if(!number(base.elevationFt))return failure('levels_conflict');
+  for(let level=1;level<count;level++){
+   const elev=base.elevationFt+10*level;
+   const matched=floorsSorted.find(f=>Math.abs(f.elevationFt-elev)<EPS);
+   if(matched){requestedFloors.push(matched);continue}
+   if(floorsSorted.some(f=>f.elevationFt>base.elevationFt&&f.elevationFt<elev+10-EPS))
+    return failure('levels_conflict');
+   const id='floor_'+property.id+'_'+level;
+   if(project.floors.some(f=>f.id===id)||createdFloors.some(f=>f.id===id))return failure('levels_conflict');
+   const newFloor={id,name:'Piso '+(level+1)+' · '+(LABELS[preset]||'Edificio'),
+    elevationFt:elev,ceilingHeightFt:10,lightingManual:true,items:[]};
+   requestedFloors.push(newFloor);createdFloors.push(newFloor);
   }
-  function point(type,r,m,xOffset=0,yOffset=0){
-   return add(type,{x:round(m.x+xOffset),y:round(m.y+yOffset),
-    w:type==='power_outlet'?.25:.3,h:type==='power_outlet'?.25:.3,
-    rotation:0,heightFt:type==='power_outlet'?2.5:1,
-    roomId:r.roomId,apartmentId:r.aptId||'',blocksMovement:false,networkId:'main',
-    radiusFt:5,zoneId:'main'},'instalaciones');
+  const clearTypes=new Set(['outside','grass','dirt']);
+  for(const floor of requestedFloors)for(const it of floor.items){
+   if(clearTypes.has(it.type))continue;
+   const b=footprint(it,project.units);
+   if(b&&overlaps(b,rect))return failure('occupied',{itemId:it.id,floorId:floor.id});
+  }
+  const prefix='fhpf_'+encodeURIComponent(property.id).replace(/%/g,'~');
+  const usedIds=new Set(project.floors.flatMap(f=>f.items||[]).map(it=>it.id));
+  if([...usedIds].some(id=>String(id).startsWith(prefix+'_')))return failure('generated');
+  const all=[],levels=[],units=[];let serial=0;
+  const feet=Number(project.units?.feetPerCell)||5,modelRules=options.modelRules,shared=options.shared;
+  const pt=(x,y)=>({x:round(x),y:round(y)});
+  const reserve=(floor,kind,attributes,phase='estructura')=>{
+   const id=prefix+'_'+String(++serial);if(usedIds.has(id))throw Error('id_collision');
+   const it={id,type:kind,constructionParcelId:property.id,constructionPhase:phase,...attributes};
+   floor.items.push(it);all.push(it);return it;
+  };
+  const stroke=(floor,type,x1,y1,x2,y2,attrs={})=>reserve(floor,type,
+   {a:pt(x1,y1),b:pt(x2,y2),heightFt:['wall','red_wall'].includes(type)?9:7,
+    widthFt:['door','window'].includes(type)?3:0,open:false,locked:false,peekSide:1,...attrs},
+   type==='red_wall'?'estructura':'instalaciones');
+  const line=(f,axis,at,start,end,gaps=[],exterior=false)=>{
+   const sorted=[...gaps].sort((a,b)=>a.at-b.at);let cursor=start;
+   for(const gap of sorted){
+    if(gap.at<cursor-EPS||gap.at+1>end+EPS)throw Error('invalid_gap');
+    const draw=(a,b,type,extra)=>axis==='h'?stroke(f,type,a,at,b,at,extra):stroke(f,type,at,a,at,b,extra);
+    if(gap.at>cursor+EPS)draw(cursor,gap.at,exterior?'red_wall':'wall',{});
+    draw(gap.at,gap.at+1,gap.type||'door',gap.attrs||{});
+    cursor=gap.at+1;
+   }
+   if(cursor<end-EPS)(axis==='h'?stroke(f,exterior?'red_wall':'wall',cursor,at,end,at):
+    stroke(f,exterior?'red_wall':'wall',at,cursor,at,end));
+  };
+  const room=(f,name,r,aptId='',kind='',extras={})=>{
+   const identifier=prefix+'_r'+(++serial);
+   const attrs={x:round(r.x),y:round(r.y),w:round(r.w),h:round(r.h),
+    label:name,roomId:identifier,apartmentId:aptId,manualApartmentId:aptId,
+    blocksViewOutside:true,surfaceStyle:ROOM_FLOORS[kind]||ROOM_FLOORS.comun,...extras};
+   if(['bano','cocina','dormitorio','oficina'].includes(kind))attrs.constructionRoom=kind;
+   return reserve(f,'room',attrs,'cimientos');
+  };
+  const door=(at,role='interior',aptId='')=>({at,type:'door',
+   attrs:{doorRole:role,apartmentId:aptId,architectureSkin:'puerta_madera'}});
+  const window=(at)=>({at,type:'window',attrs:{roofBoundary:true,windowSkin:'clasica'}});
+  function roomBox(it){return box(it.x,it.y,it.w,it.h);}
+  function furniture(f,r,modelId,sides=['north','west','east','south'],excludeWindows=false){
+   const entry=models.get(modelId);
+   if(!entry||!number(entry.widthFt)||!number(entry.depthFt))throw Error('missing_model:'+modelId);
+   const width=entry.widthFt/feet,depth=entry.depthFt/feet;
+   const site=roomBox(r),obstacles=f.items.filter(it=>it.roomId===r.roomId&&it.modelId);
+   const doors=f.items.filter(it=>it.type==='door'&&it.a&&it.b);
+   const windows=f.items.filter(it=>it.type==='window'&&it.a&&it.b);
+   function clear(candidate,front){
+    if(!contains(site,{x:candidate.x+.03,y:candidate.y+.03})||
+     !contains(site,{x:candidate.x+candidate.w-.03,y:candidate.y+candidate.h-.03}))return false;
+    if(!contains(site,{x:front.x+.03,y:front.y+.03})||
+     !contains(site,{x:front.x+front.w-.03,y:front.y+front.h-.03}))return false;
+    const occupied=obstacles.map(it=>({x:it.x-it.w/2,y:it.y-it.h/2,w:it.w,h:it.h}));
+    if(occupied.some(b=>overlaps(b,candidate)||overlaps(b,front)))return false;
+    const doorGap=doors.map(it=>box(Math.min(it.a.x,it.b.x)-.8,Math.min(it.a.y,it.b.y)-.8,
+     Math.abs(it.a.x-it.b.x)+1.6,Math.abs(it.a.y-it.b.y)+1.6));
+    if(doorGap.some(b=>overlaps(b,candidate)||overlaps(b,front)))return false;
+    if(excludeWindows&&windows.some(it=>overlaps(
+     box(Math.min(it.a.x,it.b.x)-1,Math.min(it.a.y,it.b.y)-1,
+      Math.abs(it.a.x-it.b.x)+2,Math.abs(it.a.y-it.b.y)+2),candidate)))return false;
+    return true;
+   }
+   for(const side of sides)for(let shift=.65;shift<=Math.max(.65,(side==='north'||side==='south'?site.w:site.h)-.65);shift+=.35){
+    const along=shift,depthY=side==='north'||side==='south',iw=depthY?width:depth,ih=depthY?depth:width;
+    let cx,cy,rotation,front;
+    if(side==='north'){cx=site.x+along;cy=site.y+ROOM_MARGIN+ih/2;rotation=0;
+     front=box(cx-iw/2,cy+ih/2,iw,FRONT);}
+    if(side==='south'){cx=site.x+along;cy=site.y+site.h-ROOM_MARGIN-ih/2;rotation=180;
+     front=box(cx-iw/2,cy-ih/2-FRONT,iw,FRONT);}
+    if(side==='west'){cx=site.x+ROOM_MARGIN+iw/2;cy=site.y+along;rotation=90;
+     front=box(cx+iw/2,cy-ih/2,FRONT,ih);}
+    if(side==='east'){cx=site.x+site.w-ROOM_MARGIN-iw/2;cy=site.y+along;rotation=270;
+     front=box(cx-iw/2-FRONT,cy-ih/2,FRONT,ih);}
+    const candidate=box(cx-iw/2,cy-ih/2,iw,ih);
+    if(!clear(candidate,front))continue;
+    const item=reserve(f,'misc',{x:round(cx),y:round(cy),w:round(iw),h:round(ih),
+     rotation,label:entry.name||modelId,modelId,heightFt:entry.heightFt,
+     blocksMovement:entry.blocksMovement!==false,roomId:r.roomId,apartmentId:r.apartmentId,
+     placement:'floor',...(entry.shopRole?{shopRole:entry.shopRole}:{})},'instalaciones');
+    if(modelRules?.applyCatalogModel&&shared)modelRules.applyCatalogModel(item,entry,shared,feet);
+    // El catálogo aplica tamaño no rotado; corregir huella del objeto orientado.
+    item.w=round(iw);item.h=round(ih);
+    return item;
+   }
+   throw Error('no_furniture_space:'+modelId+':'+r.roomId);
+  }
+  function fixture(f,r,it,type){
+   const k=type==='power_outlet';
+   reserve(f,type,{x:round(it.x),y:round(it.y),w:k?.25:.3,h:k?.25:.3,
+    roomId:r.roomId,apartmentId:r.apartmentId,rotation:it.rotation||0,
+    blocksMovement:false,networkId:'main',radiusFt:5,zoneId:'main'},'instalaciones');
+  }
+  function lamp(f,r){
+   reserve(f,'light_fixture',{x:round(r.x+r.w/2),y:round(r.y+r.h/2),w:.4,h:.4,
+    heightFt:8,lightKind:'bulb',roomId:r.roomId,apartmentId:r.apartmentId,
+    requiresPower:true,blocksMovement:false,zoneId:'main'},'instalaciones');
+  }
+  function furnish(f,r,kind){
+   const place=(id,sides,away)=>furniture(f,r,id,sides,away);
+   if(kind==='bano'){
+    for(const id of ['inodoro_clasico','lavabo_pedestal']){
+     const it=place(id,id==='inodoro_clasico'?['west','north','east']:['east','south','north']);
+     fixture(f,r,it,'water_outlet');fixture(f,r,it,'drain_outlet');
+    }
+   }else if(kind==='dormitorio'){
+    place('cama_individual',['west','south','north','east'],true);
+   }else if(kind==='cocina'){
+    for(const id of ['fregadero_mueble','estufa_horno','refrigerador']){
+     const it=place(id,['north','west','east','south']);
+     if(id==='fregadero_mueble'){fixture(f,r,it,'water_outlet');fixture(f,r,it,'drain_outlet');}
+     else fixture(f,r,it,'power_outlet');
+    }
+   }else if(kind==='oficina'){
+    const it=place('escritorio_clasico',['west','north','east']);
+    fixture(f,r,it,'power_outlet');
+    place('silla_madera',['east','south','north']);
+   }else if(kind==='ventas'){
+    const it=place('caja_registradora_c02',['west','north','east']);
+    fixture(f,r,it,'power_outlet');
+    place('gondola_simple_c02',['north','south','west']);
+    place('rack_snacks_c02',['south','north','east']);
+   }
+   lamp(f,r);
+  }
+  function exterior(f,rect,entrySide,at,windows=[]){
+   const X=rect.x,Y=rect.y,R=X+rect.w,B=Y+rect.h;
+   const top=windows.filter(w=>w.axis==='top').map(w=>window(w.at));
+   const bottom=windows.filter(w=>w.axis==='bottom').map(w=>window(w.at));
+   const left=entrySide==='left'?[{at,type:'door',attrs:{doorRole:'entrance',roofBoundary:true,architectureSkin:'puerta_madera'}}]:[];
+   const down=entrySide==='bottom'?[{at,type:'door',attrs:{doorRole:'entrance',roofBoundary:true,architectureSkin:'puerta_madera'}}]:[];
+   line(f,'h',Y,X,R,top,true);line(f,'h',B,X,R,[...bottom,...down],true);
+   line(f,'v',X,Y,B,left,true);line(f,'v',R,Y,B,[],true);
+  }
+  const boxesByLevel=[];
+  function apartments(f,level){
+   const X=rect.x,Y=rect.y,R=X+rect.w,B=Y+rect.h,hall=3.5,stair=3.5;
+   const depth=(rect.h-hall)/2;
+   if(depth<9)return failure('small_parcel');
+   const usable=rect.w-stair;
+   const columns=Math.floor(usable/7.5);
+   if(columns<2)return failure('small_parcel');
+   const unitW=usable/columns;
+   const windows=[];
+   for(let side=0;side<2;side++)for(let c=0;c<columns;c++){
+    const x=X+c*unitW,back=side===0?Y:B,windX=x+unitW-1.5;
+    windows.push({axis:side===0?'top':'bottom',at:Math.floor(windX)});
+   }
+   exterior(f,rect,'left',Math.floor(Y+depth+1),windows);
+   const hallRoom=room(f,'Pasillo común · piso '+(level+1),
+    box(X,Y+depth,rect.w,hall),'','comun',{commonArea:true,blocksViewOutside:false});
+   const stairPoint={x:round(R-1.7),y:round(Y+depth+hall/2)};
+   for(let side=0;side<2;side++){
+    const top=side===0,unitY=top?Y:Y+depth+hall;
+    const outerY=top?Y:B,insideY=top?Y+depth:Y+depth+hall;
+    const corridorDoors=[];
+    for(let c=0;c<columns;c++){
+     const x=X+c*unitW,w=unitW,aptId=prefix+'_vivienda_'+(level+1)+'_'+(side*columns+c+1);
+     const bathW=2.7,bathH=2.8,bedH=4.15;
+     const bath=box(x,top?outerY:outerY-bathH,bathW,bathH);
+     const bed=box(x+bathW,top?outerY:outerY-bedH,w-bathW,bedH);
+     const livingY=top?outerY+bedH:unitY,livH=depth-bedH;
+     if(livH<4.7||bed.w<4.5)return failure('small_parcel');
+     const live=box(x,livingY,w,livH);
+     const bathSpace=room(f,'Baño · '+aptId,bath,aptId,'bano',
+      {privateRoom:true,requiresClosedDoor:true});
+     const bedSpace=room(f,'Recámara · '+aptId,bed,aptId,'dormitorio',{privateRoom:true});
+     const living=room(f,'Sala y cocina · '+aptId,live,aptId,'cocina',{
+      spans:[box(x,top?outerY+bathH:outerY-bedH,bathW,bedH-bathH),live],
+      kitchenLivingCombined:true});
+     // Pared entre baño y recámara; ambas puertas abren al espacio de sala-cocina.
+     line(f,'v',x+bathW,outerY-bedH*(top?0:1),outerY+bedH*(top?1:0),[],false);
+     const bathCut=top?outerY+bathH:outerY-bathH;
+     const bedroomCut=top?outerY+bedH:outerY-bedH;
+     line(f,'h',bathCut,x,x+bathW,[door(x+Math.floor(bathW/2),'interior',aptId)],false);
+     line(f,'h',bedroomCut,x+bathW,x+w,
+      [door(Math.floor(x+bathW+(w-bathW)/2),'interior',aptId)],false);
+     corridorDoors.push(door(Math.floor(x+w/2),'entrance',aptId));
+     // Medianeras entre viviendas: sin puertas entre vecinos.
+     if(c>0)line(f,'v',x,unitY,unitY+depth,[],false);
+     furnish(f,bathSpace,'bano');furnish(f,bedSpace,'dormitorio');
+     furnish(f,living,'cocina');
+     units.push({id:aptId,floorId:f.id,roomIds:[bathSpace.roomId,bedSpace.roomId,living.roomId],
+      doorIds:[],private:true});
+    }
+    line(f,'h',insideY,X,X+usable,corridorDoors,false);
+   }
+   // El hueco de escalera pertenece a zona común y no atraviesa ningún departamento.
+   if(level<count-1)reserve(f,'stairs',{x:stairPoint.x,y:stairPoint.y,w:.5,h:3.5,
+    rotation:0,heightFt:10,blocksMovement:false,stairDirection:'up',
+    targetFloorId:requestedFloors[level+1].id,roomId:hallRoom.roomId,
+    label:'Escalera al piso '+(level+2)},'estructura');
+   lamp(f,hallRoom);
+   return {ok:true,apartments:columns*2};
+  }
+  function simple(f,level){
+   const X=rect.x,Y=rect.y,R=X+rect.w,B=Y+rect.h;
+   exterior(f,rect,'bottom',Math.floor(X+rect.w/2),
+    [{axis:'top',at:Math.floor(X+rect.w*.55)}]);
+   const bathW=3,bathH=3,bedW=Math.max(5,Math.min(7,rect.w*.4)),bedH=4.5;
+   const bathRect=box(X,Y,bathW,bathH);
+   const sleepRect=box(R-bedW,Y,bedW,bedH);
+   const centerY=Y+Math.max(bathH,bedH);
+   const social=box(X,centerY,rect.w,B-centerY);
+   if(social.h<4.5)return failure('small_parcel');
+   const bath=room(f,'Baño',bathRect,'','bano',{privateRoom:true,requiresClosedDoor:true});
+   line(f,'h',Y+bathH,X,X+bathW,[door(Math.floor(X+bathW/2))],false);
+   line(f,'v',X+bathW,Y,Y+bathH,[],false);
+   const bedroom=room(f,preset==='ayuntamiento'?'Oficina':'Recámara',sleepRect,'',
+    preset==='ayuntamiento'?'oficina':'dormitorio',{privateRoom:true});
+   line(f,'h',Y+bedH,R-bedW,R,[door(Math.floor(R-bedW+bedW/2))],false);
+   line(f,'v',R-bedW,Y,Y+bedH,[],false);
+   const main=room(f,preset==='tienda'?'Área de ventas':preset==='ayuntamiento'?'Vestíbulo y oficinas':'Sala y cocina',
+    social,'',preset==='tienda'?'ventas':preset==='ayuntamiento'?'oficina':'cocina');
+   furnish(f,bath,'bano');furnish(f,bedroom,preset==='ayuntamiento'?'oficina':'dormitorio');
+   furnish(f,main,preset==='tienda'?'ventas':preset==='ayuntamiento'?'oficina':'cocina');
+   return {ok:true,apartments:0};
   }
   try{
-   for(const room of rooms){
-    const r=room;
-    if(r.kind==='bano'){
-     for(const m of [model(r,'inodoro_clasico',1.1,1.5),model(r,'lavabo_pedestal',r.w-1.2,2.65)]){
-      point('water_outlet',r,m,.3,.25);point('drain_outlet',r,m,-.25,.3);
-     }
-    }else if(r.kind==='cocina'){
-     const sink=model(r,'fregadero_mueble',1.1,1.4);
-     point('water_outlet',r,sink,.3,.25);point('drain_outlet',r,sink,-.25,.25);
-     for(const m of [model(r,'estufa_horno',r.w-1.2,2.8),model(r,'refrigerador',1.1,4.5)]){
-      point('power_outlet',r,m,.35,-.35);
-     }
-    }else if(r.kind==='dormitorio'){model(r,'cama_individual',1.3,2.1);model(r,'mesa_pequena',r.w-1.1,1.4);
-    }else if(r.kind==='oficina'){
-     const desk=model(r,'escritorio_clasico',1.35,2.1);
-     model(r,'silla_madera',r.w-1.1,3.4);point('power_outlet',r,desk,.35,-.45);
-    }else if(r.kind==='ventas'){
-     const cash=model(r,'caja_registradora_c02',1.2,1.5);
-     model(r,'gondola_simple_c02',1.5,3.25);
-     model(r,'rack_snacks_c02',r.w-1.5,4.6);
-     point('power_outlet',r,cash,.35,-.35);
-    }
-    add('light_fixture',{x:round(r.x+r.w/2),y:round(r.y+1),w:.4,h:.4,rotation:0,
-     heightFt:8,roomId:r.roomId,apartmentId:r.aptId||'',zoneId:'main',
-     lightKind:'bulb',blocksMovement:false,requiresPower:true},'instalaciones');
+   for(let level=0;level<count;level++){
+    // Trabajar sobre una copia de cada piso para asegurar transacción total ante un fallo.
+    const original=requestedFloors[level];
+    const f={...original,items:[...original.items]};levels.push(f);
+    const result=preset==='apartamentos'?apartments(f,level):simple(f,level);
+    if(!result.ok)return result;
+    boxesByLevel.push(result.apartments);
    }
-   add('light_fixture',{x:round(X+rect.w/2),y:round(divideY+1.5),w:.4,h:.4,rotation:0,
-    heightFt:8,roomId:prefix+'_vestibulo',zoneId:'main',lightKind:'bulb',
-    blocksMovement:false,requiresPower:true},'instalaciones');
   }catch(error){
-   return fail(error.message.startsWith('missing_model:')?'missing_model':'invalid_catalog',{detail:error.message});
+   const code=String(error.message||'').startsWith('missing_model:')?'missing_model':
+    String(error.message||'').startsWith('no_furniture_space:')?'furniture_no_space':'invalid_catalog';
+   return failure(code,{detail:String(error.message||error)});
   }
-  return {ok:true,preset,parcelId:property.id,items,rooms:rooms.length,apartments:preset==='apartamentos'?2:0,rect};
+  return {ok:true,preset,parcelId:property.id,rect,levels,createdFloors,
+   items:all,rooms:all.filter(it=>it.type==='room').length,
+   apartments:boxesByLevel.reduce((a,b)=>a+b,0),stories:count,units};
  }
  function place(project,property,preset,options={}){
   const draft=plan(project,property,preset,options);
   if(!draft.ok)return draft;
-  const floor=project.floors.find(f=>String(f.id)===String(property.floorId));
-  floor.items.push(...draft.items);
-  property.generatedPrefab={version:1,preset,itemIds:draft.items.map(it=>it.id)};
-  return {ok:true,rooms:draft.rooms,items:draft.items.length,apartments:draft.apartments,rect:draft.rect};
+  for(const level of draft.levels){
+   const existing=project.floors.find(f=>f.id===level.id);
+   if(existing)existing.items=level.items;
+   else project.floors.push(level);
+  }
+  project.floors.sort((a,b)=>a.elevationFt-b.elevationFt);
+  property.generatedPrefab={version:2,preset,itemIds:draft.items.map(it=>it.id),
+   floorIds:draft.levels.map(f=>f.id),apartments:draft.units};
+  return {ok:true,rooms:draft.rooms,items:draft.items.length,
+   apartments:draft.apartments,stories:draft.stories,rect:draft.rect,
+   floorIds:draft.levels.map(f=>f.id)};
  }
- return Object.freeze({MIN,TARGET,outline,plan,place});
+ function placeArea(project,floorId,a,b,preset,options={}){
+  const zones=options.zones;
+  if(!zones?.create)return failure('no_zones');
+  const id=options.id||'parcel_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8);
+  const proposed=areaProject(project,floorId,a,b,preset,zones,id);
+  if(!proposed.ok)return proposed;
+  const property=proposed.property;
+  const draft=plan(project,property,preset,options);
+  if(!draft.ok)return draft;
+  project.properties??=[];
+  project.properties.push(property);
+  const result=place(project,property,preset,options);
+  if(!result.ok){project.properties=project.properties.filter(p=>p!==property);return result;}
+  return {...result,property};
+ }
+ return Object.freeze({MIN,TARGET,outline,footprintFor,newName,plan,place,placeArea});
 });
