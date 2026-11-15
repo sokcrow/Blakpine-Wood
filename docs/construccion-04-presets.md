@@ -2,9 +2,11 @@
 
 ## Flujo del editor
 
-En **Zonas → Colocar edificio** se dibuja el terreno. A continuación se elige **Ayuntamiento, Casas, Apartamentos o Tienda**, la cantidad de plantas (1–3) y si se activa **Simular obra durante la partida**. La herramienta crea la parcela de forma automática con un nombre único (p. ej., **Apartamentos 1**) y, tras validar el espacio y el catálogo, inserta el edificio. También se conserva la opción antigua de generar en una parcela ya creada desde **Editar zona → Proyecto**.
+En **Zonas → Colocar edificio**, primero se elige **Ayuntamiento, Casas, Apartamentos o Tienda**, la cantidad de plantas (1–3) y si se activa **Simular obra durante la partida**. Después se extiende el contorno del edificio sobre el mapa, con medidas visibles en tiles y pies; el arrastre se detiene al máximo del preset. Antes de aplicarlo se muestra una confirmación, mientras el contorno permanece visible. La parcela se crea con un margen exterior de una casilla; el edificio ocupa exactamente la huella escogida, sin recortes silenciosos. La herramienta crea la parcela de forma automática con un nombre único (p. ej., **Apartamentos 1**) y, tras validar el espacio y el catálogo, inserta el edificio. También se conserva la opción antigua de generar en una parcela ya creada desde **Editar zona → Proyecto**.
 
 El proyecto **Personalizado** sigue siendo manual. Las herramientas habituales del editor permiten mover, girar, eliminar y modificar **cada pared, puerta, habitación, escalera, mueble y punto de servicio** generado. No existe un único GLB monolítico ni una estructura decorativa bloqueada.
+
+- Cada preset tiene un máximo técnico (en tiles): Ayuntamiento 22×16, Casas 19×16, Apartamentos 64×28 y Tienda 22×16. La interfaz muestra también las medidas en pies. El trazado nuevo **no puede superar su máximo**; la API rechaza tamaños excesivos. Se conserva una casilla exterior de margen en la parcela.
 
 ## Arquitectura y vivienda
 
