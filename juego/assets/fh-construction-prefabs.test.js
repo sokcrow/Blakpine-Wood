@@ -316,7 +316,9 @@ test('escalera 1x2 queda en corredor y ambos pisos tienen su propia arquitectura
  for(let k=0;k<m.floors.length;k++){
   const floor=m.floors[k];
   assert.equal(Geometry.buildings(m,floor.id).length,1);
+  const upper=m.floors[k+1],wallHeight=upper?upper.elevationFt-floor.elevationFt:floor.ceilingHeightFt;
   assert.ok(floor.items.filter(it=>it.type==='red_wall').length>=4);
+  assert.ok(floor.items.filter(it=>['red_wall','wall'].includes(it.type)).every(it=>Math.abs(it.heightFt-wallHeight)<.001),'Muros terminan donde empieza la losa o el techo del siguiente nivel');
   assert.ok(floor.items.filter(it=>it.type==='room'&&it.constructionRoom==='bano').length>=4);
   assert.ok(floor.items.filter(it=>it.type==='door'&&it.apartmentId&&it.doorRole==='entrance').length>=4);
   if(k===m.floors.length-1)continue;
