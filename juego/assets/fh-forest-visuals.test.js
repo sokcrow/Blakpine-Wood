@@ -32,3 +32,44 @@ test('12 GLB auténticos declaran altura en pies; catálogo JS coincide con JSON
   assert.equal(bounds.min[1],0);assert.equal(bounds.max[1],model.alto_ft);assert.ok(Math.abs(model.heightM-bounds.max[1]*.3048)<1e-9);assert.ok(fs.existsSync(path.join(folder,model.miniatura)));assert.ok(model.trunkRadiusM<model.ancho_ft*.3048/2);
  }
 });
+
+function readSlot(slot){const matrix=new THREE.Matrix4();slot.mesh.getMatrixAt(slot.index,matrix);return matrix;}
+function cameraRay(tree,{height=1,fromX=-1,far=2}={}){return new THREE.Raycaster(new THREE.Vector3(tree.x+fromX,tree.y+height,tree.z),new THREE.Vector3(1,0,0),.04,far);}
+test('Rayos reales detectan el árbol por instancia, incluido mientras está oculto',async()=>{
+ const s=setup();await s.visual.ready;const tree=s.runtime.trees[0],slot=s.visual.slots.get(tree.id)[0],before=readSlot(slot),ray=cameraRay(tree);
+ const neighbor=[...s.visual.slots.values()].flat().find(other=>other.mesh===slot.mesh&&other.index!==slot.index);assert.ok(neighbor);const neighborBefore=readSlot(neighbor);
+ const hits=ray.intersectObject(s.visual.cutawayRoot,true);assert.ok(hits.some(hit=>hit.fhForestTreeId===tree.id&&hit.instanceId===slot.index));
+ s.visual.setCameraHidden(new Set([tree.id]));assert.equal(readSlot(slot).elements[0],0);
+ assert.ok(ray.intersectObject(s.visual.cutawayRoot,true).some(hit=>hit.fhForestTreeId===tree.id),'La selección no depende de la matriz visual colapsada');
+ assert.deepEqual(readSlot(neighbor),neighborBefore,'Otro árbol del mismo batch permanece visible');assert.ok(slot.mesh.visible);assert.ok(slot.mesh.parent.visible);
+ s.visual.setCameraHidden([]);assert.deepEqual(readSlot(slot),before);s.visual.dispose();
+});
+test('No corta árboles detrás de la cámara ni más allá del personaje',async()=>{
+ const s=setup();await s.visual.ready;const tree=s.runtime.trees[0];
+ for(const ray of [cameraRay(tree,{fromX:1}),cameraRay(tree,{far:.2})])assert.equal(ray.intersectObject(s.visual.cutawayRoot,true).some(hit=>hit.fhForestTreeId===tree.id),false);
+ s.visual.dispose();
+});
+test('La intersección usa triángulos reales, no sólo la caja ni el radio de la copa',async()=>{
+ const s=setup({load(url,done){const scene=new THREE.Group(),geometry=new THREE.SphereGeometry(1,12,8);geometry.translate(0,4,0);scene.add(new THREE.Mesh(geometry,new THREE.MeshBasicMaterial()));done({scene});}});await s.visual.ready;
+ const tree=s.runtime.trees[0],ray=new THREE.Raycaster(new THREE.Vector3(tree.x+.29,tree.y+4*.3048+.29,tree.z-1),new THREE.Vector3(0,0,1),.04,2);
+ assert.equal(ray.intersectObject(s.visual.cutawayRoot,true).some(hit=>hit.fhForestTreeId===tree.id),false);
+ ray.set(new THREE.Vector3(tree.x,tree.y+4*.3048,tree.z-1),new THREE.Vector3(0,0,1));assert.ok(ray.intersectObject(s.visual.cutawayRoot,true).some(hit=>hit.fhForestTreeId===tree.id));s.visual.dispose();
+});
+test('El hide no cambia colisiones, IDs, terreno ni estado de tala; un árbol talado nunca se restaura',async()=>{
+ const s=setup();await s.visual.ready;const tree=s.runtime.trees[0],slot=s.visual.slots.get(tree.id)[0],ids=s.runtime.trees.map(t=>t.id),height=s.runtime.heightAt(tree.x,tree.z);
+ s.visual.setCameraHidden([tree.id]);assert.ok(s.runtime.getTree(tree.id));assert.ok(s.runtime.collisionCandidates(0,tree.x,tree.z).some(t=>t.id===tree.id));
+ assert.deepEqual(s.runtime.trees.map(t=>t.id),ids);assert.equal(s.runtime.heightAt(tree.x,tree.z),height);
+ s.runtime.removeTree(tree.id);s.visual.setCameraHidden([]);assert.equal(readSlot(slot).elements[0],0);assert.equal(s.runtime.getTree(tree.id),null);
+ assert.equal(cameraRay(tree).intersectObject(s.visual.cutawayRoot,true).some(hit=>hit.fhForestTreeId===tree.id),false);s.visual.dispose();
+});
+test('CCTV restaura temporalmente las instancias y recupera el hide aunque falle el render',async()=>{
+ const s=setup();await s.visual.ready;const tree=s.runtime.trees[0],slot=s.visual.slots.get(tree.id)[0],before=readSlot(slot);s.visual.setCameraHidden([tree.id]);
+ assert.throws(()=>s.visual.withoutCameraCutaway(()=>{assert.deepEqual(readSlot(slot),before);throw Error('render-failure');}),/render-failure/);
+ assert.equal(readSlot(slot).elements[0],0);assert.ok(s.visual.cameraHiddenIds.has(tree.id));
+ s.visual.withoutCameraCutaway(()=>{s.runtime.removeTree(tree.id);});assert.equal(readSlot(slot).elements[0],0);assert.equal(s.visual.cameraHiddenIds.has(tree.id),false);s.visual.dispose();
+});
+test('Rayos de cámara respetan la transformación de la planta',async()=>{
+ const s=setup();await s.visual.ready;const tree=s.runtime.trees[0];s.parent.position.set(50,7,-30);s.parent.rotation.y=.6;s.parent.scale.setScalar(1.2);s.parent.updateMatrixWorld(true);
+ const from=new THREE.Vector3(tree.x-1,tree.y+1,tree.z).applyMatrix4(s.parent.matrixWorld),to=new THREE.Vector3(tree.x+1,tree.y+1,tree.z).applyMatrix4(s.parent.matrixWorld);
+ const ray=new THREE.Raycaster(from,to.clone().sub(from).normalize(),.04,from.distanceTo(to));assert.ok(ray.intersectObject(s.visual.cutawayRoot,true).some(hit=>hit.fhForestTreeId===tree.id));s.visual.dispose();
+});

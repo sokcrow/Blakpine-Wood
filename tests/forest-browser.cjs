@@ -35,6 +35,14 @@ const server=http.createServer((req,res)=>{
   const result=await page.evaluate(async()=>{
    const f=FHForestRuntime,v=FHForestVisualRuntime,api=ForestHorrorEnvironmentAPI,g=ForestHorrorGame,tree=f.trees.find(t=>t.radius>.4);
    const blocked=!g.canWalk(tree.x,tree.z),slot=v.slots.get(tree.id)[0],matrix=new THREE.Matrix4();slot.mesh.getMatrixAt(slot.index,matrix);
+   const ray=new THREE.Raycaster(new THREE.Vector3(tree.x-2,tree.y+1,tree.z),new THREE.Vector3(1,0,0),.04,4);
+   const picked=ray.intersectObject(v.cutawayRoot,true).some(hit=>hit.fhForestTreeId===tree.id);
+   v.setCameraHidden([tree.id]);const cutMatrix=new THREE.Matrix4();slot.mesh.getMatrixAt(slot.index,cutMatrix);
+   const cutHidden=cutMatrix.elements[0]===0&&cutMatrix.elements[5]===0&&cutMatrix.elements[10]===0;
+   const hiddenStillPickable=ray.intersectObject(v.cutawayRoot,true).some(hit=>hit.fhForestTreeId===tree.id);
+   const cctvRestored=v.withoutCameraCutaway(()=>{const m=new THREE.Matrix4();slot.mesh.getMatrixAt(slot.index,m);return m.equals(matrix);});
+   v.setCameraHidden([]);const restoredMatrix=new THREE.Matrix4();slot.mesh.getMatrixAt(slot.index,restoredMatrix);
+   const cutRestored=restoredMatrix.equals(matrix);
    const oldCount=f.trees.length,removed=api.removeTree(tree.id),walkable=g.canWalk(tree.x,tree.z),saved=structuredClone(g.gameState),after=new THREE.Matrix4();slot.mesh.getMatrixAt(slot.index,after);
    const sourceMap=structuredClone(g.data),again=FHForest.createRuntime(sourceMap,saved),fresh=FHForest.createRuntime(sourceMap,{});
    const catalog=await (await fetch('/forest-horror/biblioteca/vegetacion/catalogo_vegetacion.json')).json(),loader=new THREE.GLTFLoader(),heights=[];
@@ -46,13 +54,13 @@ const server=http.createServer((req,res)=>{
    // Forzar compilación de los materiales instanciados, además del render normal.
    const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(55,1,.1,200),parent=new THREE.Group();scene.add(parent);parent.add(v.group.clone());scene.add(new THREE.AmbientLight(0xffffff));
    camera.position.set(60,45,110);camera.lookAt(60,0,60);const renderer=new THREE.WebGLRenderer();renderer.setSize(256,256);renderer.compile(scene,camera);renderer.render(scene,camera);const drawCalls=renderer.info.render.calls;renderer.dispose();
-   return {trees:oldCount,blocked,removed,walkable,remaining:f.trees.length,hidden:after.elements[0]===0&&after.elements[5]===0&&after.elements[10]===0,
+   return {trees:oldCount,picked,cutHidden,hiddenStillPickable,cctvRestored,cutRestored,blocked,removed,walkable,remaining:f.trees.length,hidden:after.elements[0]===0&&after.elements[5]===0&&after.elements[10]===0,
     reloadAbsent:again.getTree(tree.id)===null,freshPresent:!!fresh.getTree(tree.id),mapUnchanged:!g.data.environment.forest.exclusions.includes(tree.id),
     sectors:f.sectors.size,batches:v.batches.size,drawCalls,heights,initialY:matrix.elements[13]};
   });
-  assert.ok(result.trees>50);for(const key of ['blocked','removed','walkable','hidden','reloadAbsent','freshPresent','mapUnchanged'])assert.ok(result[key],key);
+  assert.ok(result.trees>50);for(const key of ['picked','cutHidden','hiddenStillPickable','cctvRestored','cutRestored','blocked','removed','walkable','hidden','reloadAbsent','freshPresent','mapUnchanged'])assert.ok(result[key],key);
   assert.equal(result.remaining,result.trees-1);assert.ok(result.drawCalls>0);for(const h of result.heights)assert.ok(Math.abs(h.actual-h.expected)<.001,JSON.stringify(h));
   assert.deepEqual(errors,[],JSON.stringify(errors));
-  console.log('PASS: editor, arranque del motor, 12 GLB en metros, instancias/FOW, colisión y retirada persistente');console.log(JSON.stringify(result));
+  console.log('PASS: editor, arranque del motor, 12 GLB en metros, instancias/FOW, hide por árbol, colisión y retirada persistente');console.log(JSON.stringify(result));
  }finally{await browser?.close();await new Promise(resolve=>server.close(resolve));}
 })().catch(e=>{console.error(e);process.exitCode=1;});
