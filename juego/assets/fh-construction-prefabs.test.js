@@ -195,6 +195,23 @@ test('auditoría inspecciona CADA vivienda incluso en pisos superiores',()=>{
  audit=Rooms.inspectParcel(m,p,{geometry:Geometry});
  assert.ok(audit.issues.some(it=>it.code==='sin_privacidad'&&it.apartmentId===upper.id));
 });
+test('una puerta decorativa fuera de lugar no certifica conexión entre pasillo y vivienda',()=>{
+ const {m,p,result}=make('apartamentos',2,33,26);
+ assert.equal(result.ok,true);
+ const unit=p.generatedPrefab.apartments[0],f=m.floors[0];
+ const entry=f.items.find(it=>it.type==='door'&&it.apartmentId===unit.id&&it.doorRole==='entrance');
+ assert.ok(entry);
+ const original={a:{...entry.a},b:{...entry.b}};
+ entry.a={x:entry.a.x+5,y:entry.a.y+2};
+ entry.b={x:entry.b.x+5,y:entry.b.y+2};
+ assert.ok(Rooms.inspectParcel(m,p,{geometry:Geometry}).issues.some(i=>
+  i.code==='sin_acceso_privado'&&i.apartmentId===unit.id));
+ Object.assign(entry,original);
+ const stairs=f.items.find(it=>it.type==='stairs'&&it.targetFloorId===m.floors[1].id);
+ assert.ok(stairs);
+ f.items=f.items.filter(it=>it.id!==stairs.id);
+ assert.ok(Rooms.inspectParcel(m,p,{geometry:Geometry}).issues.some(i=>i.code==='sin_escalera'));
+});
 test('niveles creados tienen metadatos compatibles con el editor',()=>{
  const {m,result}=make('apartamentos',3,32,28);
  assert.equal(result.ok,true);
