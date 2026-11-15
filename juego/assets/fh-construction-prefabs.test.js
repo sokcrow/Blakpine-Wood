@@ -3,6 +3,7 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
+const vm=require('node:vm');
 const Prefabs=require('./fh-construction-prefabs.js');
 const Geometry=require('./fh-style-property.js');
 const Rooms=require('./fh-construction-rooms.js');
@@ -118,11 +119,12 @@ test('dibujar preset crea parcela automáticamente y nombre consecutivo',()=>{
  let r=Prefabs.placeArea(m,'f1',{x:1,y:1},{x:30,y:28},'apartamentos',
   {zones:Zones,catalog,stories:1,id:'zone1'});
  assert.equal(r.ok,true);assert.equal(r.property.name,'Apartamentos 1');
- assert.equal(m.properties.length,1);
+ const firstApartments=r.apartments;
+ assert.equal(m.properties.length,1+firstApartments);
  r=Prefabs.placeArea(m,'f1',{x:39,y:1},{x:70,y:28},'apartamentos',
   {zones:Zones,catalog,stories:1,id:'zone2'});
  assert.equal(r.ok,true);assert.equal(r.property.name,'Apartamentos 2');
- assert.equal(m.properties.length,2);
+ assert.equal(m.properties.length,2+firstApartments+r.apartments);
  assert.ok(r.property.generatedPrefab.apartments.length>=4);
 });
 test('no sobreponer edificios a calles ni sobrescribir propiedades existentes',()=>{
@@ -275,6 +277,112 @@ test('el contorno respeta los bordes del mapa y el mínimo del preset',()=>{
  const min=Prefabs.MIN.casas;
  assert.equal(Prefabs.measureFootprint({x:2,y:2},{x:2+min[0]-1,y:2+min[1]},'casas',units).code,'small_parcel');
  assert.equal(Prefabs.measureFootprint({x:0,y:0},{x:15,y:12},'casas',units).code,'invalid_parcel');
+});
+test('cada apartamento es una parcela reclamable, sin doble propiedad sobre su interior',()=>{
+ const {m,p,result}=make('apartamentos',2,35,26);
+ assert.equal(result.ok,true);
+ const units=p.generatedPrefab.apartments;
+ assert.equal(m.properties.length,1+units.length);
+ assert.equal(p.propertyRole,'building');
+ assert.equal(p.claimable,false);
+ for(const unit of units){
+  const parcel=m.properties.find(v=>v.id===unit.id);
+  assert.ok(parcel);
+  assert.equal(parcel.floorId,unit.floorId);
+  assert.equal(parcel.propertyRole,'apartment');
+  assert.equal(parcel.buildingParcelId,p.id);
+  assert.equal(parcel.claimable,true);
+  const corners=parcel.polygon;
+  const at={x:(corners[0].x+corners[2].x)/2,y:(corners[0].y+corners[2].y)/2};
+  assert.equal(Geometry.propertyAt(m,unit.floorId,at)?.id,unit.id);
+  assert.equal(Zones.at(m,unit.floorId,at)?.id,unit.id);
+  parcel.ownerId='habitante-'+unit.id;
+  assert.equal(Geometry.canEditAt(m,unit.floorId,at,parcel.ownerId),true);
+  assert.equal(Geometry.canEditAt(m,unit.floorId,at,'vecino'),false);
+ }
+ for(const floor of m.floors){
+  const common=floor.items.find(it=>it.type==='room'&&it.commonArea);
+  assert.ok(common);
+  const at={x:common.x+common.w/2,y:common.y+common.h/2};
+  assert.equal(Geometry.propertyAt(m,floor.id,at),null);
+  assert.equal(Zones.at(m,floor.id,at),null);
+  assert.equal(Geometry.canEditAt(m,floor.id,at,'habitante-'+units[0].id),false);
+ }
+});
+test('escalera 1x2 queda en corredor y ambos pisos tienen su propia arquitectura',()=>{
+ const {m,p,result}=make('apartamentos',3,35,28);
+ assert.equal(result.ok,true);
+ assert.equal(m.floors.length,3);
+ const shafts=[];
+ for(let k=0;k<m.floors.length;k++){
+  const floor=m.floors[k];
+  assert.equal(Geometry.buildings(m,floor.id).length,1);
+  const upper=m.floors[k+1],wallHeight=upper?upper.elevationFt-floor.elevationFt:floor.ceilingHeightFt;
+  assert.ok(floor.items.filter(it=>it.type==='red_wall').length>=4);
+  assert.ok(floor.items.filter(it=>['red_wall','wall'].includes(it.type)).every(it=>Math.abs(it.heightFt-wallHeight)<.001),'Muros terminan donde empieza la losa o el techo del siguiente nivel');
+  assert.ok(floor.items.filter(it=>it.type==='room'&&it.constructionRoom==='bano').length>=4);
+  assert.ok(floor.items.filter(it=>it.type==='door'&&it.apartmentId&&it.doorRole==='entrance').length>=4);
+  if(k===m.floors.length-1)continue;
+  const stair=floor.items.find(it=>it.type==='stairs'&&!it.autoLanding);
+  assert.ok(stair);
+  assert.equal(stair.w,1);assert.equal(stair.h,2);assert.equal(stair.rotation,90);
+  assert.equal(stair.blocksMovement,false);
+  assert.equal(stair.targetFloorId,m.floors[k+1].id);
+  const corridor=floor.items.find(it=>it.type==='room'&&it.commonArea);
+  assert.ok(stair.x-1>corridor.x&&stair.x+1<corridor.x+corridor.w);
+  assert.ok(stair.y-.5>=corridor.y&&stair.y+.5<=corridor.y+corridor.h);
+  for(const parcel of m.properties.filter(p=>p.propertyRole==='apartment'&&p.floorId===floor.id)){
+   assert.equal(Zones.inside({x:stair.x,y:stair.y},parcel.polygon),false);
+  }
+  shafts.push(stair);
+ }
+ assert.ok(Math.abs(shafts[0].y-shafts[1].y)>1);
+ assert.equal(p.generatedPrefab.apartments.length,result.apartments);
+});
+test('cada enchufe se monta en un muro estructural del mismo piso',()=>{
+ const {m,result}=make('apartamentos',2,35,26);
+ assert.equal(result.ok,true);
+ let count=0;
+ for(const floor of m.floors)for(const socket of floor.items.filter(it=>it.type==='power_outlet')){
+  count++;
+  const wall=floor.items.find(it=>it.id===socket.wallId);
+  assert.ok(wall,'Enchufe sin muro '+socket.id);
+  assert.ok(['wall','red_wall','property_wall'].includes(wall.type));
+  assert.equal(socket.utilitySkin,'enchufe_doble');
+  const v={x:wall.b.x-wall.a.x,y:wall.b.y-wall.a.y};
+  assert.ok(Math.abs((socket.x-wall.a.x)*v.y-(socket.y-wall.a.y)*v.x)<.01,
+   'Enchufe no proyectado en muro: '+socket.id);
+  const angle=socket.rotation*Math.PI/180,normal={x:-Math.sin(angle),y:Math.cos(angle)};
+  const room=floor.items.find(it=>it.type==='room'&&it.roomId===socket.roomId);
+  assert.ok(room);
+  const p={x:socket.x+normal.x*.20,y:socket.y+normal.y*.20};
+  assert.ok(Geometry.roomContains(room,p),'Enchufe orientado fuera de habitación: '+socket.id);
+ }
+ assert.ok(count>=4);
+});
+test('contrato compartido real: mapa v1 válido y escalera transitable',()=>{
+ // Ejecuta las funciones reales de ForestShared embebidas en el editor.
+ const html=fs.readFileSync(path.resolve(__dirname,'../../index.html'),'utf8');
+ const begin=html.indexOf('const ForestShared=(()=>{'),end=html.indexOf('\n})();',begin);
+ assert.ok(begin>=0&&end>begin);
+ const Shared=vm.runInNewContext(html.slice(begin,end+6)+';ForestShared');
+ const {m,p,result}=make('apartamentos',2,35,28);
+ assert.equal(result.ok,true);
+ m.title='Prueba de planta multifamiliar';
+ const checked=Shared.validate(m);
+ assert.equal(checked.ok,true,JSON.stringify(checked.errors||[]));
+ const stair=m.floors[0].items.find(it=>it.type==='stairs');
+ assert.ok(stair);
+ const first=Shared.stairPointAt(stair,-.7),second=Shared.stairPointAt(stair,.1);
+ assert.equal(Shared.stairAutoTriggerAt(stair,first.x,first.y,second.x,second.y,1,false),true);
+ const landing=Shared.stairDownMarker(stair);
+ assert.equal(landing.w,1);assert.equal(landing.h,1);
+ assert.ok(Shared.stairOnRun(stair,stair.x,stair.y,1));
+ for(const floor of m.floors)for(const socket of floor.items.filter(it=>it.type==='power_outlet')){
+  const mounted=Shared.switchWallMount(floor.items,{x:socket.x,y:socket.y},
+   {wallId:socket.wallId,maxDistance:.1,rotation:socket.rotation});
+  assert.ok(mounted,'Enchufe estructural no reconocible por el motor: '+socket.id);
+ }
 });
 test('cargar prefabs no modifica mapas antiguos ni crea propiedades espontáneas',()=>{
  const m=map(),before=JSON.stringify(m);

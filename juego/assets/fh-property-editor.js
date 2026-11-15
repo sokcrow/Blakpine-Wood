@@ -12,8 +12,10 @@
  const props=()=>P().properties(project,current().id);
  const locations=()=>Z().locations(project,current().id);
  const sourceAt=p=>{
-  const properties=props().filter(prop=>Z().inside(p,prop.polygon));
-  if(properties.length===1)return {kind:'property',zone:properties[0]};
+  const property=P().propertyAt(project,current().id,p);
+  if(property)return {kind:'property',zone:property};
+  const container=props().filter(prop=>prop.propertyRole==='building'&&Z().inside(p,prop.polygon));
+  if(container.length===1)return {kind:'property',zone:container[0]};
   const zones=locations().filter(zone=>Z().zoneContains(zone,p));
   return zones.length===1?{kind:'location',zone:zones[0]}:null;
  };
@@ -65,13 +67,29 @@
   const d=opts.dpr||1;
   c.save();c.setTransform(d,0,0,d,0,0);c.translate(cam.tx,cam.ty);c.scale(cam.scale,cam.scale);
   for(const prop of props()){
-   drawOutline(c,prop.polygon,false,true);
-   const center=toPixel(midpoint(prop.polygon));
-   const name=prop.name||'Propiedad',owner=prop.ownerId?'Dueño: '+prop.ownerId:(prop.claimable===false?'Reservada':'Disponible');
+   const individual=prop.propertyRole==='apartment';
+   drawOutline(c,prop.polygon,false,prop.propertyRole!=='building',individual?'#7fd6b8':'#e6bd43');
+   // Una sola etiqueta pequeña en el acceso, sin repetir el nombre de la
+   // vivienda sobre los textos de baño, recámara y sala-cocina.
+   const at=midpoint(prop.polygon);
+   if(individual){
+    const corridor=(current().items||[]).find(it=>it.type==='room'&&it.commonArea===true);
+    if(corridor){
+     const ys=prop.polygon.map(p=>p.y),minY=Math.min(...ys),maxY=Math.max(...ys);
+     at.y=corridor.y>=maxY-.01?maxY-.72:minY+.72;
+    }
+   }else if(prop.propertyRole==='building'&&prop.generatedPrefab?.preset==='apartamentos')
+    at.y=Math.min(...prop.polygon.map(p=>p.y))+.42;
+   const center=toPixel(at);
+   const name=prop.name||'Propiedad',owner=prop.ownerId?'Dueño: '+prop.ownerId:(individual?'':prop.claimable===false?'Reservada':'Disponible');
    c.save();c.textAlign='center';c.textBaseline='middle';c.lineWidth=3/cam.scale;c.strokeStyle='#151d27';c.fillStyle='#fff2bf';
-   c.font='700 '+12/cam.scale+'px system-ui';c.strokeText(name,center.x,center.y-8/cam.scale);c.fillText(name,center.x,center.y-8/cam.scale);
-   const work=C().normalize(prop.construction),construction=work?.simulated?' · Obra '+Math.floor(work.progress)+'%':'';
-   c.font=10/cam.scale+'px system-ui';c.strokeText(owner+construction,center.x,center.y+8/cam.scale);c.fillText(owner+construction,center.x,center.y+8/cam.scale);c.restore();
+   c.font='700 '+(individual?10:12)/cam.scale+'px system-ui';
+   c.strokeText(name,center.x,center.y-(individual?0:8)/cam.scale);c.fillText(name,center.x,center.y-(individual?0:8)/cam.scale);
+   if(!individual){
+    const work=C().normalize(prop.construction),construction=work?.simulated?' · Obra '+Math.floor(work.progress)+'%':'';
+    c.font=10/cam.scale+'px system-ui';c.strokeText(owner+construction,center.x,center.y+8/cam.scale);c.fillText(owner+construction,center.x,center.y+8/cam.scale);
+   }
+   c.restore();
   }
   for(const zone of locations())drawLocation(c,zone,cam);
   if(activeTool==='prefab_zone'){
@@ -240,7 +258,7 @@
  function openProperty(id){
   const prop=project.properties?.find(p=>p.id===id&&p.floorId===current().id);
   if(!prop)return;
-  const c=Z().counts(current(),prop),editable=prop.source==='zone';
+  const c=Z().counts(current(),prop),editable=prop.source==='zone',individual=prop.propertyRole==='apartment';
   const heading=escape(prop.name||'Propiedad'),owner=escape(prop.ownerId||'');
   const roomOptions=RT();
   const ownedRooms=(current().items||[]).map((it,index)=>({it,index})).filter(({it})=>it.type==='room'&&P().roomInProperty(it,prop));
@@ -259,13 +277,13 @@
   const presetOptions='<option value="">'+escape(str.none)+'</option>'+C().PRESETS.map(p=>'<option value="'+p+'"'+(spec?.preset===p?' selected':'')+'>'+escape(str.presets[p])+'</option>').join('');
   modal('<h2>Propiedad · '+heading+'</h2><p>Zona de administración del DM. No crea paredes ni obstáculos.</p>'+
    '<p><small>ID: '+escape(prop.id)+' · '+c.walls+' muros · '+c.areas+' áreas · '+c.doors+' puertas · '+c.objects+' objetos contenidos</small></p>'+
-   (editable?'<label>Nombre de parcela<input id="fhParcelName" maxlength="80" value="'+heading+'"></label>':'')+
+   (editable?'<label>Nombre de '+(individual?'departamento':'parcela')+'<input id="fhParcelName" maxlength="80" value="'+heading+'"></label>':'')+
    '<label>ID del jugador propietario<input id="fhParcelOwner" maxlength="80" placeholder="Vacío = sin reclamar" value="'+owner+'"></label>'+
    (editable?'<label>Disponibilidad<select id="fhParcelClaim"><option value="yes"'+(prop.claimable!==false?' selected':'')+'>Disponible para reclamar (futuro)</option><option value="no"'+(prop.claimable===false?' selected':'')+'>Reservada por el DM</option></select></label>':'')+
-   (editable?'<fieldset><legend>'+escape(str.title)+'</legend><label>'+escape(str.preset)+'<select id="fhParcelConstructionPreset">'+presetOptions+'</select></label><label><input id="fhParcelConstructionSimulated" type="checkbox"'+(spec?.simulated?' checked':'')+'> '+escape(str.simulated)+'</label><small>'+escape(str.help)+'</small></fieldset>':'')+
+   (editable&&!individual?'<fieldset><legend>'+escape(str.title)+'</legend><label>'+escape(str.preset)+'<select id="fhParcelConstructionPreset">'+presetOptions+'</select></label><label><input id="fhParcelConstructionSimulated" type="checkbox"'+(spec?.simulated?' checked':'')+'> '+escape(str.simulated)+'</label><small>'+escape(str.help)+'</small></fieldset>':'')+
    (editable?'<fieldset><legend>'+escape(roomOptions.title)+'</legend>'+roomFields+'<small>'+escape(roomOptions.help)+'</small></fieldset>':'')+
    inspection+
-   (editable?'<fieldset><legend>'+escape(PT().button)+'</legend><p><small>'+escape(PT().help)+'</small></p>'+
+   (editable&&!individual?'<fieldset><legend>'+escape(PT().button)+'</legend><p><small>'+escape(PT().help)+'</small></p>'+
     (prop.generatedPrefab?'<p>'+escape(PT().generated)+'</p>':'<label>'+escape(PT().floors)+'<select id="fhParcelConstructionFloors"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></label><button type="button" id="fhParcelGenerate" class="accent">'+escape(PT().button)+'</button>')+'</fieldset>':'')+
    '<div class="actions"><button class="primary" id="fhParcelSave">Guardar</button>'+
    (editable?'<button class="danger" id="fhParcelDelete">Eliminar parcela</button>':'')+
@@ -311,10 +329,12 @@
      if(root.FHStyleEditor?.hasActor()){toast('Solo el DM puede asignar propiedades.');return}
      if(editable){prop.name=(document.getElementById('fhParcelName').value.trim()||'Parcela').slice(0,80);
       prop.claimable=document.getElementById('fhParcelClaim').value==='yes';
-      const preset=document.getElementById('fhParcelConstructionPreset').value;
-      const simulated=document.getElementById('fhParcelConstructionSimulated').checked;
-      if(!preset)delete prop.construction;
-      else if(!spec||spec.preset!==preset||spec.simulated!==simulated)C().plan(prop,preset,simulated,{stories:prop.generatedPrefab?.floorIds?.length||1});
+      if(!individual){
+       const preset=document.getElementById('fhParcelConstructionPreset').value;
+       const simulated=document.getElementById('fhParcelConstructionSimulated').checked;
+       if(!preset)delete prop.construction;
+       else if(!spec||spec.preset!==preset||spec.simulated!==simulated)C().plan(prop,preset,simulated,{stories:prop.generatedPrefab?.floorIds?.length||1});
+      }
       document.querySelectorAll('[data-fh-construction-room]').forEach(select=>{
        const index=Number(select.dataset.fhConstructionRoom),room=current().items[index];
        if(room?.type==='room'&&P().roomInProperty(room,prop))R().planRoom(room,select.value);

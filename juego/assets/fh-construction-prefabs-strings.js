@@ -32,6 +32,7 @@
    missing_catalog:'No se pudo cargar el catálogo de muebles.',
    missing_model:'Falta un modelo del mobiliario del edificio.',
    furniture_no_space:'No caben los muebles y sus zonas de acceso. Amplía el terreno.',
+   outlet_no_wall:'No existe una pared estructural adecuada para montar un enchufe. Ajusta la distribución.',
    invalid_stories:'La cantidad de pisos no es válida.',
    levels_conflict:'Las alturas o pisos existentes impiden construir niveles adicionales.',
    invalid_catalog:'No se pudo preparar la distribución del edificio.'

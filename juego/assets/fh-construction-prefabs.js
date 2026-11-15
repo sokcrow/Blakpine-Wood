@@ -165,10 +165,16 @@
    const it={id,type:kind,constructionParcelId:property.id,constructionPhase:phase,...attributes};
    floor.items.push(it);all.push(it);return it;
   };
-  const stroke=(floor,type,x1,y1,x2,y2,attrs={})=>reserve(floor,type,
-   {a:pt(x1,y1),b:pt(x2,y2),heightFt:['wall','red_wall'].includes(type)?9:7,
-    widthFt:['door','window'].includes(type)?3:0,open:false,locked:false,peekSide:1,...attrs},
-   type==='red_wall'?'estructura':'instalaciones');
+  const stroke=(floor,type,x1,y1,x2,y2,attrs={})=>{
+   const idx=requestedFloors.findIndex(f=>f.id===floor.id),upper=requestedFloors[idx+1];
+   // Un muro termina en la losa inmediata, no 1 ft por debajo de ella.
+   const height=upper?upper.elevationFt-floor.elevationFt:
+    Number(floor.ceilingHeightFt)||10;
+   return reserve(floor,type,
+    {a:pt(x1,y1),b:pt(x2,y2),heightFt:['wall','red_wall'].includes(type)?round(height):7,
+     widthFt:['door','window'].includes(type)?3:0,open:false,locked:false,peekSide:1,...attrs},
+    type==='red_wall'?'estructura':'instalaciones');
+  };
   const line=(f,axis,at,start,end,gaps=[],exterior=false)=>{
    const sorted=[...gaps].sort((a,b)=>a.at-b.at);let cursor=start;
    for(const gap of sorted){
@@ -245,9 +251,38 @@
    throw Error('no_furniture_space:'+modelId+':'+r.roomId);
   }
   function fixture(f,r,it,type){
-   const k=type==='power_outlet';
-   reserve(f,type,{x:round(it.x),y:round(it.y),w:k?.25:.3,h:k?.25:.3,
-    roomId:r.roomId,apartmentId:r.apartmentId,rotation:it.rotation||0,
+   const electric=type==='power_outlet';
+   let mount=null;
+   if(electric){
+    // El GLB eléctrico exige wallId, giro y punto EXACTO en pared estructural.
+    // Buscar el tramo real más cercano al mueble, nunca su centro como enchufe.
+    const pieces=f.items.filter(o=>['wall','red_wall','property_wall'].includes(o.type)&&o.a&&o.b);
+    let distance=Infinity;
+    const spans=r.spans?.length?r.spans:[r];
+    const touchesRoom=p=>spans.some(sp=>p.x>=sp.x-.02&&p.x<=sp.x+sp.w+.02
+     &&p.y>=sp.y-.02&&p.y<=sp.y+sp.h+.02);
+    for(const wall of pieces){
+     const dx=wall.b.x-wall.a.x,dy=wall.b.y-wall.a.y,den=dx*dx+dy*dy;
+     if(den<EPS)continue;
+     const t=Math.max(0,Math.min(1,((it.x-wall.a.x)*dx+(it.y-wall.a.y)*dy)/den));
+     const point={x:wall.a.x+t*dx,y:wall.a.y+t*dy};
+     if(!touchesRoom(point))continue;
+     const d=Math.hypot(point.x-it.x,point.y-it.y);
+     if(d>=distance)continue;
+     const length=Math.sqrt(den),normal={x:-dy/length,y:dx/length};
+     if((it.x-point.x)*normal.x+(it.y-point.y)*normal.y<0){normal.x*=-1;normal.y*=-1;}
+     const rotation=(-Math.atan2(normal.x,normal.y)*180/Math.PI+360)%360;
+     mount={x:round(point.x),y:round(point.y),wallId:wall.id,rotation};
+     distance=d;
+    }
+    if(!mount)throw Error('no_structural_outlet_wall:'+r.roomId);
+   }
+   reserve(f,type,{x:mount?.x??round(it.x),y:mount?.y??round(it.y),
+    w:electric?.25:.3,h:electric?.25:.3,roomId:r.roomId,
+    apartmentId:r.apartmentId,rotation:mount?.rotation??(it.rotation||0),
+    ...(electric?{wallId:mount.wallId,utilitySkin:'enchufe_doble',
+      utilityMountHeightFt:1.5,utilityWidthFt:.75,utilityHeightFt:.75,
+      utilityDepthFt:.25,slots:2,capacityRayos:6}:{}),
     blocksMovement:false,networkId:'main',radiusFt:5,zoneId:'main'},'instalaciones');
   }
   function lamp(f,r){
@@ -309,7 +344,9 @@
    const waiting=[];
    const hallRoom=room(f,'Pasillo común · piso '+(level+1),
     box(X,Y+depth,rect.w,hall),'','comun',{commonArea:true,blocksViewOutside:false});
-   const stairPoint={x:round(R-(level%2===0?1.2:2.5)),y:round(Y+depth+hall/2)};
+   // 1×2 tiles dentro del corredor: cada planta tiene llegada y, si procede, subida.
+   // Alternar bandas transversales impide que dos tramos se solapen en pisos intermedios.
+   const stairPoint={x:round(R-1.75),y:round(Y+depth+(level%2===0?0.85:2.65))};
    for(let side=0;side<2;side++){
     const top=side===0,unitY=top?Y:Y+depth+hall;
     const outerY=top?Y:B,insideY=top?Y+depth:Y+depth+hall;
@@ -323,10 +360,10 @@
      const livingY=top?outerY+bedH:unitY,livH=depth-bedH;
      if(livH<4.7||bed.w<4.5)return failure('small_parcel');
      const live=box(x,livingY,w,livH);
-     const bathSpace=room(f,'Baño · '+name,bath,aptId,'bano',
+     const bathSpace=room(f,'Baño',bath,aptId,'bano',
       {privateRoom:true,requiresClosedDoor:true});
-     const bedSpace=room(f,'Recámara · '+name,bed,aptId,'dormitorio',{privateRoom:true});
-     const living=room(f,'Sala y cocina · '+name,live,aptId,'cocina',{
+     const bedSpace=room(f,'Recámara',bed,aptId,'dormitorio',{privateRoom:true});
+     const living=room(f,'Sala y cocina',live,aptId,'cocina',{
       spans:[box(x,top?outerY+bathH:outerY-bedH,bathW,bedH-bathH),live],
       kitchenLivingCombined:true});
      // Pared entre baño y recámara; ambas puertas abren al espacio de sala-cocina.
@@ -341,6 +378,7 @@
      if(c>0)line(f,'v',x,unitY,unitY+depth,[],false);
      waiting.push([bathSpace,'bano'],[bedSpace,'dormitorio'],[living,'cocina']);
      units.push({id:aptId,name:'Departamento '+unitNumber,floorId:f.id,
+      polygon:[pt(x,unitY),pt(x+w,unitY),pt(x+w,unitY+depth),pt(x,unitY+depth)],
       roomIds:[bathSpace.roomId,bedSpace.roomId,living.roomId],
       doorIds:[],private:true});
     }
@@ -349,8 +387,9 @@
    // Las puertas del corredor ya existen: el mobiliario respeta sus radios de acceso.
    for(const [livingRoom,kind] of waiting)furnish(f,livingRoom,kind);
    // El hueco de escalera pertenece a zona común y no atraviesa ningún departamento.
-   if(level<count-1)reserve(f,'stairs',{x:stairPoint.x,y:stairPoint.y,w:.5,h:3.5,
-    rotation:0,heightFt:10,blocksMovement:false,stairDirection:'up',
+   if(level<count-1)reserve(f,'stairs',{x:stairPoint.x,y:stairPoint.y,w:1,h:2,
+    rotation:90,heightFt:requestedFloors[level+1].elevationFt-f.elevationFt,
+    blocksMovement:false,stairDirection:'up',
     targetFloorId:requestedFloors[level+1].id,roomId:hallRoom.roomId,
     label:'Escalera al piso '+(level+2)},'estructura');
    lamp(f,hallRoom);
@@ -378,8 +417,9 @@
    const mainKind=preset==='tienda'?'ventas':preset==='ayuntamiento'?'oficina':upperHouse?'dormitorio':'cocina';
    const main=room(f,preset==='tienda'?'Área de ventas':preset==='ayuntamiento'?'Vestíbulo y oficinas':upperHouse?'Recámara superior':'Sala y cocina',
     social,'',mainKind,upperHouse?{privateRoom:true}:{});
-   if(level<count-1)reserve(f,'stairs',{x:round(R-(level%2===0?1.2:2.5)),y:round(B-2),
-    w:.5,h:3.5,rotation:0,heightFt:10,blocksMovement:false,
+   if(level<count-1)reserve(f,'stairs',{x:round(R-(level%2===0?1.5:3.1)),y:round(B-1.5),
+    w:1,h:2,rotation:0,heightFt:requestedFloors[level+1].elevationFt-f.elevationFt,
+    blocksMovement:false,
     stairDirection:'up',targetFloorId:requestedFloors[level+1].id,
     roomId:main.roomId,label:'Escalera al piso '+(level+2)},'estructura');
    furnish(f,bath,'bano');
@@ -398,12 +438,18 @@
    }
   }catch(error){
    const code=String(error.message||'').startsWith('missing_model:')?'missing_model':
-    String(error.message||'').startsWith('no_furniture_space:')?'furniture_no_space':'invalid_catalog';
+    String(error.message||'').startsWith('no_furniture_space:')?'furniture_no_space':
+    String(error.message||'').startsWith('no_structural_outlet_wall:')?'outlet_no_wall':'invalid_catalog';
    return failure(code,{detail:String(error.message||error)});
   }
+  const parcels=units.map(u=>({id:u.id,name:u.name,floorId:u.floorId,
+   source:'zone',propertyRole:'apartment',buildingParcelId:property.id,
+   claimable:true,ownerId:'',polygon:u.polygon}));
+  const existing=new Set((project.properties||[]).map(p=>p.id));
+  if(parcels.some(p=>existing.has(p.id)))return failure('generated');
   return {ok:true,preset,parcelId:property.id,rect,levels,createdFloors,
    items:all,rooms:all.filter(it=>it.type==='room').length,
-   apartments:boxesByLevel.reduce((a,b)=>a+b,0),stories:count,units};
+   apartments:boxesByLevel.reduce((a,b)=>a+b,0),stories:count,units,parcels};
  }
  function place(project,property,preset,options={}){
   const draft=plan(project,property,preset,options);
@@ -414,7 +460,12 @@
    else project.floors.push(level);
   }
   project.floors.sort((a,b)=>a.elevationFt-b.elevationFt);
-  property.generatedPrefab={version:2,preset,itemIds:draft.items.map(it=>it.id),
+  if(draft.parcels.length){
+   project.properties??=[];
+   property.propertyRole='building';property.claimable=false;
+   project.properties.push(...draft.parcels);
+  }
+  property.generatedPrefab={version:3,preset,itemIds:draft.items.map(it=>it.id),
    floorIds:draft.levels.map(f=>f.id),apartments:draft.units};
   return {ok:true,rooms:draft.rooms,items:draft.items.length,
    apartments:draft.apartments,stories:draft.stories,rect:draft.rect,

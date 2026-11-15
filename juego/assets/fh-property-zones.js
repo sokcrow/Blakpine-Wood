@@ -53,7 +53,8 @@
   return (map.properties||[]).filter(p=>p.floorId===floorId&&p.id!==ignoreId&&intersectionArea(p.polygon,rect)>EPS);
  }
  function at(map,floorId,point){
-  const matching=(map.properties||[]).filter(p=>p.floorId===floorId&&inside(point,p.polygon));
+  // Una parcela contenedora no debe volver ambiguo el acceso a la vivienda.
+  const matching=(map.properties||[]).filter(p=>p.floorId===floorId&&p.propertyRole!=='building'&&inside(point,p.polygon));
   return matching.length===1?matching[0]:null;
  }
  function doorAt(map,floorId,door){
