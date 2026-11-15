@@ -2,14 +2,14 @@
 (function(root){
  'use strict';
  let env;
- const R=()=>root.FHDrainage,A=()=>root.FHDrainageAccess,T=()=>root.FH_DRAIN_TEXT;
+ const R=()=>root.FHDrainage,A=()=>root.FHDrainageAccess,Draw=()=>root.FHDrainageDraw,T=()=>root.FH_DRAIN_TEXT;
  const KINDS={
   drain_straight:'straight',drain_elbow:'elbow',drain_tee:'tee',drain_cross:'cross',drain_dead_end:'dead_end',
   drain_small:'small',drain_small_elbow:'small_elbow',drain_small_tee:'small_tee',
   drain_small_cross:'small_cross',drain_small_dead_end:'small_dead_end',drain_outfall:'outfall'
  };
  const ACCESS={drain_street_access:'street',drain_building_access:'building'};
- const tools=[...Object.keys(KINDS),'drain_bridge',...Object.keys(ACCESS)];
+ const tools=['drain_draw','drain_small_draw',...Object.keys(KINDS),'drain_bridge',...Object.keys(ACCESS)];
  const createEl=(tag,text)=>{const el=document.createElement(tag);if(text!==undefined)el.textContent=text;return el;};
  function editAllowed(item){
   const style=root.FHStyleEditor;
@@ -18,8 +18,48 @@
    {x:item.x+.01,y:item.y+item.h-.01},{x:item.x+item.w-.01,y:item.y+item.h-.01}];
   return at.every(p=>style.canEditAt(p));
  }
- function place(tool,at,drag=false){
+ // Sin reemplazar instancias existentes: el inspector y los enlaces usan sus referencias.
+ function commitRebuild(result){
+  const previous=new Map(env.current().items.map(it=>[String(it.id),it]));
+  const updated=new Set(result.updated.map(it=>String(it.id)));
+  const next=result.items.map(it=>{
+   const old=previous.get(String(it.id));
+   if(updated.has(String(it.id)))it.label=T().labels?.[it.drainage.kind]||it.label;
+   if(!old||!Draw().isAuto(it))return it;
+   if(updated.has(String(it.id))){
+    old.rotation=it.rotation;
+    old.drainage.kind=it.drainage.kind;
+    old.drainage.flowTo=it.drainage.flowTo;
+    old.label=it.label;
+   }
+   return old;
+  });
+  env.current().items=next;
+  if(result.updated.length)env.inspect();
+ }
+ function autoAllowed(result){
+  if(result.updated.some(it=>!editAllowed(it))){env.toast(T().blocked);return false;}
+  return true;
+ }
+ function overlapsSection(item){
+  return env.current().items.some(it=>it!==item&&R().isSection(it)&&
+   it.x<item.x+item.w&&it.x+it.w>item.x&&it.y<item.y+item.h&&it.y+it.h>item.y);
+ }
+ function place(tool,at,drag=false,start=null){
   if(!tools.includes(tool))return false;
+  if(tool==='drain_draw'||tool==='drain_small_draw'){
+   if(!drag&&!env.anchor()){env.anchor(at);env.render();env.toast(T().first);return true;}
+   try{
+    const from=env.anchor()||start||at,kind=tool==='drain_draw'?'main':'small';
+    const result=Draw().applyPath(env.current().items,from,at,kind,env.project().units,env.newId);
+    const changed=new Set([...result.added,...result.updated].map(it=>String(it.id)));
+    if(result.items.some(it=>changed.has(String(it.id))&&!editAllowed(it))){env.toast(T().blocked);return true;}
+    if(changed.size)commitRebuild(result);
+    env.anchor(null);
+    if(changed.size){env.record();env.render();env.toast(T().pathPlaced);}else{env.render();env.toast(T().pathExists);}
+   }catch(error){env.toast(error.message);}
+   return true;
+  }
   if(drag){env.toast(T().drag);return true;}
   try{
    if(ACCESS[tool]){
@@ -37,7 +77,11 @@
     x.x<item.x+item.w&&x.x+x.w>item.x&&x.y<item.y+item.h&&x.y+x.h>item.y)){
     env.toast(T().overlap);return true;
    }
-   env.current().items.push(item);
+   if(section){
+    const rebuilt=Draw().rebuild([...env.current().items,item]);
+    if(!autoAllowed(rebuilt))return true;
+    commitRebuild(rebuilt);
+   }else env.current().items.push(item);
    env.record();env.render();env.toast(T().place);
   }catch(error){env.toast(error.message);}
   return true;
@@ -61,6 +105,7 @@
  }
  function rotate(item){
   if(!R().isSection(item)&&!R().isBridge(item))return false;
+  if(Draw()?.isAuto(item)){env.toast(T().autoShape);return true;}
   if(!editAllowed(item)){env.toast(T().blocked);return true;}
   const previous={x:item.x,y:item.y,w:item.w,h:item.h,rotation:item.rotation};
   if(R().isSection(item))item.rotation=(item.rotation+90)%360;
@@ -69,7 +114,15 @@
    [item.w,item.h]=[item.h,item.w];item.x=cx-item.w/2;item.y=cy-item.h/2;
    if(!editAllowed(item)){[item.w,item.h]=[item.h,item.w];item.x=cx-item.w/2;item.y=cy-item.h/2;env.toast(T().blocked);return true;}
   }
-  try{R().validate(item,env.project().units);}catch(error){Object.assign(item,previous);env.toast(error.message);return true;}
+  try{
+   R().validate(item,env.project().units);
+   if(R().isSection(item)){
+    if(overlapsSection(item))throw Error(T().overlap);
+    const rebuilt=Draw().rebuild(env.current().items);
+    if(!editAllowed(item)||!autoAllowed(rebuilt)){Object.assign(item,previous);return true;}
+    commitRebuild(rebuilt);
+   }
+  }catch(error){Object.assign(item,previous);env.toast(error.message);return true;}
   env.record();env.render();env.inspect();return true;
  }
  function report(){
@@ -109,8 +162,14 @@
   if(!R().isSection(item)&&!R().isBridge(item))return false;
   const p=createEl('p',item.label+' · '+item.w+'×'+item.h+' tiles');
   p.className='tip';p.style.gridColumn='1/-1';fields.append(p);
-  const rotateButton=createEl('button',T().rotate);rotateButton.type='button';
-  rotateButton.onclick=()=>rotate(item);fields.append(rotateButton);
+  const auto=Draw()?.isAuto(item);
+  for(const id of ['rotateBtn','duplicateBtn']){
+   const button=document.getElementById(id);if(button)button.style.display=auto?'none':'';
+  }
+  const deleteButton=document.getElementById('deleteBtn');if(deleteButton)deleteButton.style.display='';
+  if(auto){fields.append(createEl('p',T().autoShape));}
+  else {const rotateButton=createEl('button',T().rotate);rotateButton.type='button';
+   rotateButton.onclick=()=>rotate(item);fields.append(rotateButton);}
   if(R().isSection(item)){
    const ports=R().ports(item).map(side=>T().directions[side]).join(', ');
    const native=R().nativeComponents(item,env.current().items.filter(peer=>peer!==item&&R().isSection(peer)&&R().touches(item,peer)));
@@ -135,10 +194,33 @@
   const audit=createEl('button',T().audit);audit.type='button';audit.onclick=report;fields.append(audit);
   return true;
  }
+ // El puntero ya movió la pieza manual; validar antes de que index.html registre el cambio.
+ function afterMove(item){
+  if(!R().isSection(item)||Draw()?.isAuto(item))return true;
+  try{
+   R().validate(item,env.project().units);
+   if(overlapsSection(item))throw Error(T().overlap);
+   const result=Draw().rebuild(env.current().items);
+   if(!editAllowed(item)||!autoAllowed(result)){env.toast(T().blocked);return false;}
+   commitRebuild(result);
+   return true;
+  }catch(error){env.toast(error.message);return false;}
+ }
+ function canRemove(item){
+  if(!R().isSection(item)||!Draw())return true;
+  const result=Draw().rebuild(env.current().items.filter(it=>it!==item));
+  if(result.updated.some(it=>!editAllowed(it))){env.toast(T().blocked);return false;}
+  return true;
+ }
+ function afterRemove(item){
+  if(!R().isSection(item)||!Draw())return;
+  const result=Draw().rebuild(env.current().items);
+  commitRebuild(result);
+ }
  root.FHDrainageEditor=Object.freeze({
   install(args){env=args;},
   isTool:t=>tools.includes(t),place,
   choose(t){if(t!=='drain_audit')return false;report();return true;},
-  inspector,rotate,report,beforeRemove
+  inspector,rotate,report,beforeRemove,canRemove,afterRemove,afterMove
  });
 })(typeof globalThis!=='undefined'?globalThis:this);
