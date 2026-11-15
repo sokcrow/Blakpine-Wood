@@ -18,5 +18,36 @@
   "map": {
     "schema": "forest-horror-map-v1",
     "path": "forest-horror/maps/DEMO_Interacciones.json"
+  },
+  "extensions": {
+    "blakpine.world-capabilities.v1": {
+      "architecture": [
+        "multi-level-buildings",
+        "mixed-use-blocks",
+        "partitioned-interiors",
+        "vertical-circulation"
+      ],
+      "paths": [
+        "paved-streets",
+        "sidewalks",
+        "intersections",
+        "service-lanes",
+        "indoor-corridors"
+      ],
+      "materials": [
+        "concrete",
+        "steel",
+        "brick",
+        "glass",
+        "asphalt"
+      ],
+      "services": [
+        "electric-distribution",
+        "potable-water",
+        "sanitary-drainage",
+        "stormwater-drainage",
+        "telecommunications"
+      ]
+    }
   }
 }
