@@ -69,12 +69,27 @@
   for(const prop of props()){
    const individual=prop.propertyRole==='apartment';
    drawOutline(c,prop.polygon,false,prop.propertyRole!=='building',individual?'#7fd6b8':'#e6bd43');
-   const center=toPixel(midpoint(prop.polygon));
+   // Una sola etiqueta pequeña en el acceso, sin repetir el nombre de la
+   // vivienda sobre los textos de baño, recámara y sala-cocina.
+   const at=midpoint(prop.polygon);
+   if(individual){
+    const corridor=(current().items||[]).find(it=>it.type==='room'&&it.commonArea===true);
+    if(corridor){
+     const ys=prop.polygon.map(p=>p.y),minY=Math.min(...ys),maxY=Math.max(...ys);
+     at.y=corridor.y>=maxY-.01?maxY-.72:minY+.72;
+    }
+   }else if(prop.propertyRole==='building'&&prop.generatedPrefab?.preset==='apartamentos')
+    at.y=Math.min(...prop.polygon.map(p=>p.y))+.42;
+   const center=toPixel(at);
    const name=prop.name||'Propiedad',owner=prop.ownerId?'Dueño: '+prop.ownerId:(individual?'':prop.claimable===false?'Reservada':'Disponible');
    c.save();c.textAlign='center';c.textBaseline='middle';c.lineWidth=3/cam.scale;c.strokeStyle='#151d27';c.fillStyle='#fff2bf';
-   c.font='700 '+12/cam.scale+'px system-ui';c.strokeText(name,center.x,center.y-8/cam.scale);c.fillText(name,center.x,center.y-8/cam.scale);
-   const work=C().normalize(prop.construction),construction=work?.simulated?' · Obra '+Math.floor(work.progress)+'%':'';
-   c.font=10/cam.scale+'px system-ui';c.strokeText(owner+construction,center.x,center.y+8/cam.scale);c.fillText(owner+construction,center.x,center.y+8/cam.scale);c.restore();
+   c.font='700 '+(individual?10:12)/cam.scale+'px system-ui';
+   c.strokeText(name,center.x,center.y-(individual?0:8)/cam.scale);c.fillText(name,center.x,center.y-(individual?0:8)/cam.scale);
+   if(!individual){
+    const work=C().normalize(prop.construction),construction=work?.simulated?' · Obra '+Math.floor(work.progress)+'%':'';
+    c.font=10/cam.scale+'px system-ui';c.strokeText(owner+construction,center.x,center.y+8/cam.scale);c.fillText(owner+construction,center.x,center.y+8/cam.scale);
+   }
+   c.restore();
   }
   for(const zone of locations())drawLocation(c,zone,cam);
   if(activeTool==='prefab_zone'){
