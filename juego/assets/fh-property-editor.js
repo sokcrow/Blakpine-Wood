@@ -5,7 +5,7 @@
  const escape=s=>String(s??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[ch]));
  const types=new Set(['property_zone','prefab_zone','location_exterior','location_common','property_select','property_erase']);
  let start=null,gesture=null,live=null,extendZoneId='',prefabPreview=null;
- let prefabKind='apartamentos',prefabStories=2,prefabSimulated=false;
+ let prefabKind='apartamentos',prefabStories=2,prefabSimulated=false,prefabReady=false;
  const local=e=>{const r=canvas.getBoundingClientRect();return {x:e.clientX-r.left,y:e.clientY-r.top}};
  const point=e=>getPoint(local(e));
  const layer=()=>activeLayer==='property';
@@ -100,7 +100,8 @@
   }
   c.restore();
  };
- TOOL_GROUPS.property=[['prefab_zone',PT().tool,'⌂'],['property_zone','Delimitar propiedad','▱'],['location_exterior','Zona exterior','♧'],['location_common','Zona común','▥'],['property_select','Editar zona','☞'],['property_erase','Eliminar zona','⌫'],['pan','Mover mapa','✋']];
+ // Conserva el orden visual original de Zonas; la nueva herramienta va al final.
+ TOOL_GROUPS.property=[['property_zone','Delimitar propiedad','▱'],['location_exterior','Zona exterior','♧'],['location_common','Zona común','▥'],['property_select','Editar zona','☞'],['property_erase','Eliminar zona','⌫'],['pan','Mover mapa','✋'],['prefab_zone',PT().tool,'⌂']];
  const oldLayerForCategory=layerForCategory;
  layerForCategory=function(cat){return cat==='property'?'property':oldLayerForCategory(cat)};
  const tab=document.createElement('button');tab.type='button';tab.dataset.layer='property';tab.textContent='▱ Zonas';tab.onclick=()=>setCategory('property');document.getElementById('layerSwitch').append(tab);
@@ -110,52 +111,58 @@
   const panel=document.getElementById('tools');
   const manage=document.createElement('button');manage.type='button';manage.className='accent';manage.textContent='▱ Administrar zonas';manage.onclick=openManager;panel.prepend(manage);
   document.getElementById('stageHint').textContent='Delimita propiedades, jardines y zonas comunes. No se crean paredes ni colisiones.';
-  if(activeTool==='prefab_zone')showPrefabSettings();
  }};
  const priorFloorChange=changeFloor;
- changeFloor=function(i){start=null;live=null;gesture=null;prefabPreview=null;extendZoneId='';return priorFloorChange(i)};
+ changeFloor=function(i){start=null;live=null;gesture=null;prefabPreview=null;prefabReady=false;extendZoneId='';return priorFloorChange(i)};
  const oldChooseTool=chooseTool;
  chooseTool=function(tool){if(types.has(tool)){start=null;live=null;prefabPreview=null;extendZoneId='';}oldChooseTool(tool);
-  if(tool==='prefab_zone'){showPrefabSettings();document.getElementById('stageHint').textContent=PT().sizeHint;}
+  if(tool==='prefab_zone'){prefabReady=false;openPrefabSettings();document.getElementById('stageHint').textContent=PT().chooseFirst;}
   if(tool==='property_zone')document.getElementById('stageHint').textContent='Dibuja una propiedad reclamable; conserva sus permisos existentes.';
   if(tool==='location_exterior')document.getElementById('stageHint').textContent='Delimita un jardín, patio o zona exterior; no altera permisos.';
   if(tool==='location_common')document.getElementById('stageHint').textContent='Delimita un pasillo, vestíbulo o zona común de edificio.';
   if(tool==='property_select')document.getElementById('stageHint').textContent='Toca una zona para editar su nombre o, en propiedades, su propietario.';
   if(tool==='property_erase')document.getElementById('stageHint').textContent='Toca la zona que quieras eliminar; se pedirá confirmación.';
  };
- function showPrefabSettings(){
-  const tools=document.getElementById('tools');
-  if(!tools||document.getElementById('fhPrefabSettings'))return;
-  const panel=document.createElement('fieldset');panel.id='fhPrefabSettings';
-  const choices=C().PRESETS.filter(kind=>kind!=='personalizado')
+ function openPrefabSettings(){
+  // Usar el modal nativo evita empujar, reordenar o estirar los botones de #tools.
+  const options=C().PRESETS.filter(kind=>kind!=='personalizado')
    .map(kind=>'<option value="'+kind+'">'+escape(T().presets[kind])+'</option>').join('');
-  panel.innerHTML='<legend>'+escape(PT().chooseFirst)+'</legend>'+
-   '<label>'+escape(T().preset)+'<select id="fhPrefabPreset">'+choices+'</select></label>'+
+  const sizeInfo=()=>{
+   const kind=document.getElementById('fhPrefabPreset'),info=document.getElementById('fhPrefabSizeInfo');
+   if(!kind||!info)return;
+   const [minW,minH]=PF().MIN[kind.value],[maxW,maxH]=PF().TARGET[kind.value];
+   const ft=Number(project.units.feetPerCell)||5;
+   info.textContent=PT().maximum+': '+maxW+' × '+maxH+' '+PT().tileUnit+
+    ' ('+Math.round(maxW*ft)+' × '+Math.round(maxH*ft)+' '+PT().feetUnit+')'+
+    ' · '+PT().minimum+': '+minW+' × '+minH+'. '+PT().margin;
+  };
+  modal('<h2>'+escape(PT().chooseFirst)+'</h2><p>'+escape(PT().sizeHint)+'</p>'+
+   '<label>'+escape(T().preset)+'<select id="fhPrefabPreset">'+options+'</select></label>'+
    '<label>'+escape(PT().floors)+'<select id="fhPrefabFloors">'+
    '<option value="1">1</option><option value="2">2</option><option value="3">3</option></select></label>'+
    '<label><input id="fhPrefabSimulated" type="checkbox"> '+escape(T().simulated)+'</label>'+
-   '<p><small id="fhPrefabSizeInfo"></small></p>';
-  tools.prepend(panel);
-  const kind=panel.querySelector('#fhPrefabPreset'),floors=panel.querySelector('#fhPrefabFloors'),
-   simulated=panel.querySelector('#fhPrefabSimulated'),info=panel.querySelector('#fhPrefabSizeInfo');
-  kind.value=prefabKind;floors.value=String(prefabStories);simulated.checked=prefabSimulated;
-  const describe=()=>{
-   const [minW,minH]=PF().MIN[prefabKind],[maxW,maxH]=PF().TARGET[prefabKind];
-   const feet=Number(project.units.feetPerCell)||5;
-   info.textContent=PT().maximum+': '+maxW+' × '+maxH+' '+PT().tileUnit+
-    ' ('+Math.round(maxW*feet)+' × '+Math.round(maxH*feet)+' '+PT().feetUnit+')'+
-    ' · '+PT().minimum+': '+minW+' × '+minH+'. '+PT().margin;
-  };
-  kind.onchange=()=>{prefabKind=kind.value;start=null;live=null;prefabPreview=null;
-   if(prefabKind==='apartamentos'&&prefabStories===1){prefabStories=2;floors.value='2';}
-   describe();render();};
-  floors.onchange=()=>{prefabStories=Number(floors.value);};
-  simulated.onchange=()=>{prefabSimulated=simulated.checked;};
-  describe();
+   '<p><small id="fhPrefabSizeInfo"></small></p>'+
+   '<div class="actions"><button class="primary" id="fhPrefabChoose">'+escape(PT().confirm)+'</button>'+
+   '<button id="fhPrefabCancel">'+escape(PT().cancel)+'</button></div>',()=>{
+    const kind=document.getElementById('fhPrefabPreset'),floors=document.getElementById('fhPrefabFloors'),
+     simulated=document.getElementById('fhPrefabSimulated');
+    kind.value=prefabKind;floors.value=String(prefabStories);simulated.checked=prefabSimulated;
+    kind.onchange=sizeInfo;sizeInfo();
+    document.getElementById('fhPrefabChoose').onclick=()=>{
+     prefabKind=kind.value;prefabStories=Number(floors.value);prefabSimulated=simulated.checked;
+     prefabReady=true;start=null;live=null;prefabPreview=null;
+     closeModal();document.getElementById('stageHint').textContent=PT().sizeHint;render();
+    };
+    document.getElementById('fhPrefabCancel').onclick=()=>{
+     prefabReady=false;closeModal();chooseTool('property_zone');
+    };
+   });
  }
  function add(a,b,tool){
   if(root.FHStyleEditor?.hasActor()){start=null;live=null;toast('Solo el DM puede crear zonas.');render();return}
-  if(tool==='prefab_zone'){start=null;live=null;openPrefabPlacement(a,b);render();return;}
+  if(tool==='prefab_zone'){start=null;live=null;
+   if(!prefabReady){openPrefabSettings();return;}
+   openPrefabPlacement(a,b);render();return;}
   const isLocation=tool==='location_exterior'||tool==='location_common';
   const id=(isLocation?'location_':'parcel_')+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8);
   const selected=extendZoneId?locations().find(z=>z.id===extendZoneId):null;
@@ -429,6 +436,7 @@
   if(!isPropertyTool()||e.button!==0)return;
   e.preventDefault();e.stopImmediatePropagation();
   if(gesture){gesture=null;start=null;live=null;return}
+  if(activeTool==='prefab_zone'&&!prefabReady){openPrefabSettings();return;}
   const p=point(e);gesture={id:e.pointerId,a:p,screen:local(e),tool:activeTool};
   target.setPointerCapture?.(e.pointerId);
  },true);
