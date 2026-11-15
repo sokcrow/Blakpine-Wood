@@ -13,5 +13,36 @@
     "tags": [
       "medieval"
     ]
+  },
+  "extensions": {
+    "blakpine.world-capabilities.v1": {
+      "architecture": [
+        "timber-framed-structures",
+        "stone-masonry",
+        "walled-enclosures",
+        "courtyards",
+        "towers"
+      ],
+      "paths": [
+        "dirt-roads",
+        "stone-paved-lanes",
+        "footpaths",
+        "gated-passages",
+        "courtyard-ways"
+      ],
+      "materials": [
+        "stone",
+        "timber",
+        "lime-mortar",
+        "clay-tile",
+        "thatch"
+      ],
+      "services": [
+        "well-water",
+        "surface-drainage",
+        "solid-fuel-heating",
+        "local-waste-disposal"
+      ]
+    }
   }
 }
