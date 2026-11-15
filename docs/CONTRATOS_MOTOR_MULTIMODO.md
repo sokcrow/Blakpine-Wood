@@ -31,7 +31,7 @@ Un perfil de mundo **no contiene** una lista de reglamentos permitidos. Un regla
 
 Todos incluyen `version: 1`. Son JSON ordinarios con JSON Schema Draft 2020-12 para validación independiente del navegador/juego. **No hay paquetes, CDN, transpilers ni dependencias de ejecución añadidos.**
 
-**Fuente canónica y obligatoria para las demás IAs:** los tres esquemas situados en `contratos/multimodo/v1/` son la única definición de este contrato multimodo. No duplicar esquemas ni crear interfaces incompatibles en `juego/core/` u otros directorios; cualquier integración futura debe consumir o respetar estos documentos. Los puertos del apartado 3 son semánticos, no una segunda API implementada.
+**Fuente canónica y obligatoria para IA 3, IA 4 y las demás integraciones:** los tres esquemas situados en `contratos/multimodo/v1/` son la **única fuente de esquemas** de este contrato multimodo. No duplicar contratos ni crear interfaces incompatibles. Las rutas propuestas `juego/core/`, `juego/worlds/` y `juego/rules/` pueden organizar **implementaciones futuras**, pero **no** serán fuentes paralelas de esquemas, y deberán consumir los esquemas v1 de esta entrega. Los puertos del apartado 3 son semánticos, no una segunda API implementada.
 
 Las rutas `path`, `worldProfile` y `rulesetManifest` son relativas a la **raíz del repositorio**, con barras `/`; no aceptan URL, rutas absolutas ni segmentos `..`. `extensions` es opcional y se reserva para extensiones versionadas por otro equipo; una extensión no cambia las obligaciones del núcleo v1.
 
@@ -105,6 +105,50 @@ Estas son **firmas semánticas para integración futura**: no existen como módu
 
 Los identificadores de actor y posiciones pertenecen al núcleo. La forma de resolver golpes, dados, monedas, turnos y daño pertenece exclusivamente al adaptador. La selección de reglas **no cambia** recorridos, paredes, puertas, alcance geométrico ni lectura de la topología del mapa. No se fija todavía ninguna unidad adicional: se respeta `units` del mapa legado, incluida `feetPerCell` donde exista.
 
+### 3.1. Límite de eventos: intención → resolución → aplicación única → notificación
+
+**Handoff obligatorio del inventario IA 1, PR #193 (§13.2–13.3).** En la ruta Legacy de Sombras, `FHShadowAI.attack` elige recurso (`pg` o `sp`) y daño con dados; el consumidor `addShadowEncountersToEngine` llama a `FHSurvivalRuntime.change('sp', -damage)` o `FHSurvivalRuntime.damagePG(damage)` y **después** emite `GameEvents.emit('combat:damage')` y guarda progreso. Por ello `combat:damage` es **una notificación posterior al daño ya aplicado**, nunca una entrada donde reemplazar, cancelar o volver a ejecutar la resolución.
+
+**Contrato semántico para futuros adaptadores (ninguna función implementada todavía):**
+
+```text
+1. Intención      → identidad de atacante, objetivo, acción y reglamento; sin mutación
+2. Resolución     → adaptador calcula propuesta, gasto y resultado; sin efectos físicos
+3. Aplicación     → coordinador comprueba autorización/colisiones/permisos y
+                    delega UNA SOLA VEZ al propietario correcto del recurso/estructura
+4. Notificación   → evento posterior con resultado realmente aplicado; no aplica daño
+```
+
+No reutilizar `combat:damage` como paso 1, 2 ni 3. No suscribir un adaptador que repita daño al recibir la notificación. El punto previo a la aplicación debe diseñarse **fuera** de `index.html`, de los fragmentos Base64 y de los hooks existentes; esta entrega no lo inyecta. Las consultas de navegación `ForestShared.solidAt`, `canWalk`, `FHNPCGOAP.route` y las reglas de puertas/escaleras/visibilidad siguen bajo autoridad del núcleo. Las capacidades especiales de fase de las Sombras **no se convierten** en permisos universales de movimiento.
+
+### 3.2. Propietarios del estado y prevención de daño duplicado
+
+| Dominio | Ruta Legacy observada en PR #193 | Restricción del futuro contrato |
+| --- | --- | --- |
+| Recursos de personaje `PG/PS/PE` | `GameState.character.resources.pg/sp/pe` y `FHSurvivalRuntime`; `damagePG` comprueba estado crítico | El adaptador propone efectos; el propietario de recursos los aplica **una vez**. `PS` de interfaz corresponde a `sp` interna, no a una segunda reserva. |
+| Miedo y pérdida de `PS` | `horror:stimulus` → `FHMoodFearRuntime.stimulus/promote`; `promote` puede modificar `sp` directamente | No aplicar la misma pérdida desde `horror:stimulus`, `onSanityLoss` **y** `combat:damage`. Distinguir estímulo, efecto efectivo y notificación. |
+| Energía de Sombras | `FHShadowAI.actor.pe` se consume para potenciar ataques/fase | **PE de criatura** diferente de `GameState.character.resources.pe` del jugador; no mezclar costos ni inventarios. |
+| Estructuras y puertas | `FHStructureHealth` gestiona `GameState.structures`, `structure:damage` y cambios de colisionadores al destruir | Daño estructural no es daño PG de actor. Solo su propietario puede decidir la destrucción/actualización física; el adaptador **nunca edita directamente** geometría o colisiones. |
+
+El mismo evento o intención no debe desembocar en dos descuentos de recursos. El guardado posterior no es permiso para volver a aplicar efectos. `FHSkills.roll` es una tirada de habilidades Legacy, **no** el punto universal de resolución para DnD ni Moon.
+
+### 3.3. Identidades separadas y guardados antes de habilitar adaptadores
+
+**Restricción previa a implementar DnD o Moon** (PR #193, §13.2 y §13.4): distinguir cuatro identidades, **sin agregarlas al esquema de mapa**:
+
+- **Mapa:** `forest-horror-map-v1` y su identidad actual; no mutar, reinterpretar ni añadir campos obligatorios al mapa.
+- **Personaje:** identificador individual actual, independiente de la ambientación y de la selección de combate.
+- **Reglamento:** `legacy`, `dnd` o `moon-system` con su versión de contrato; ni `GameState.stats` ni `character.scores/skills` son representaciones universales de los tres modos.
+- **Guardado:** identidad y versión propias, vinculadas de forma inequívoca al mapa, personaje y reglamento, con política explícita de compatibilidad/migración antes de cualquier escritura.
+
+**Claves Legacy protegidas:** `blakpine_character_active_v1` guarda un perfil Legacy (recursos y habilidades); `fh_game_v1_<hash>` se deriva de la identidad del mapa, **sin discriminar reglamento**. El guardado actual usa un sobre `{version:1,state}`, y sincroniza recursos/habilidades Legacy por personaje. **Nunca escribir un estado DnD/Moon en esas claves ni reutilizar sus sobres sin una política aprobada de aislamiento, validación de versiones y migración**. Un guardado DnD/Moon no debe sobrescribir ni ser interpretado como Legacy. Conservar lectura y escritura Legacy actuales cuando no existe configuración multimodo. Rechazar de forma segura reglas/versiones desconocidas antes de guardar; ninguna migración se implementa aquí.
+
+La separación de estas identidades es un **requisito futuro**, no un sobre de guardado ya creado. Este PR no define claves nuevas, no migra perfiles existentes y no cambia `ForestShared.gameSaveKey`, `FHCharacterCore` ni `FHSkills`.
+
+### 3.4. Relevo a otras IAs y restricciones de implementación
+
+El inventario técnico de [PR #193](https://github.com/sokcrow/Blakpine-Wood/pull/193), sobre todo §13.2–13.6, es **fuente de auditoría** para IA 3/4. La matriz identifica riesgos de acoplamiento de `prepareGLBEngineDoc`, `start3DPreview`, `GameState`, navegación, visibilidad, servicios y almacenamiento. Ninguno de los puertos descritos aquí está instalado. Antes de integrar un nuevo modo, IA 3/4 deben revisar ese inventario, **consumir exclusivamente** los esquemas de `contratos/multimodo/v1/`, no crear copias en `juego/core/`, `juego/worlds/` ni `juego/rules/`, y demostrar la separación y aplicación única mediante pruebas específicas. No añadir parches textuales a las funciones existentes del motor ni reemplazar las tiradas generales de habilidades.
+
 ## 4. Compatibilidad y fallos
 
 1. **Entrada heredada / Legacy por defecto:** si el juego abre un JSON `forest-horror-map-v1` sin perfil ni selección multimodo, debe seguir su ruta de carga anterior y su **comportamiento Legacy actual**, sin consultar el nuevo manifiesto, sin nuevos campos obligatorios, conversión ni cambio de comportamiento. El coordinador multimodo **no existe aún**; esta regla protege su integración futura y los archivos funcionales permanecen intactos.
@@ -112,7 +156,7 @@ Los identificadores de actor y posiciones pertenecen al núcleo. La forma de res
 3. **Referencias:** rechazar rutas inexistentes, fuera del repositorio, de formato distinto o JSON inválido antes de cargar una sesión. El esquema comprueba forma; el verificador estático resuelve rutas.
 4. **Estado del reglamento:** los tres manifiestos oficiales usan `planned` para la integración multimodo; no equivale a combate inexistente en Legacy. No declarar `implemented` sin código de adaptador y pruebas. `reserved` solo está permitido por el esquema para futuras extensiones, no es un sistema activo.
 5. **Fallo de adaptador:** no reemplazar silenciosamente otro reglamento, ni reescribir estadísticas guardadas, ni modificar la simulación para compensarlo.
-6. **Persistencia:** no se define una migración de partidas ni se mezclan `PG`, `PS`/`SP`, `PE` o atributos propios entre reglamentos. Será un contrato separado cuando se concrete cada sistema.
+6. **Persistencia:** no se define una migración de partidas ni se mezclan `PG`, `PS`/`SP`, `PE` o atributos propios entre reglamentos. Deben separarse identidades de mapa, personaje, reglamento y guardado conforme a §3.3 **antes** de implementar adaptadores DnD/Moon.
 7. **Cambios futuros:** nuevas claves obligatorias o comportamiento incompatible requieren otro contrato versionado; no se modifica `forest-horror-map-v1` para resolverlos.
 
 ## 5. Validación independiente del juego
@@ -125,7 +169,7 @@ node contratos/multimodo/validar-contratos.mjs
 
 El script utiliza solo Node.js estándar y comprueba los ejemplos contra el subconjunto de JSON Schema empleado aquí; además revisa nombres exactos de los tres reglamentos, que Legacy no anuncie adaptador, los estados pendientes de DnD y Moon, referencias de archivos, ausencia de ejemplos obsoletos, perfiles independientes de los reglamentos, formato de mapas existentes y las **9 combinaciones** posibles. No importa Three.js, no abre `index.html`, no ejecuta combate ni modifica archivos. Una herramienta externa que admita **JSON Schema Draft 2020-12** también puede validar los esquemas individualmente, pero **no es necesaria** para el comprobador incluido.
 
-**Límites de la validación:** nueve combinaciones **estructurales** no significan nueve modos **jugables**. No se prueba la conexión de adaptadores, la ejecución del combate ni la presencia de mapas para todos los mundos. La conservación efectiva del comportamiento Legacy se garantiza en esta entrega por **no tocar archivos funcionales**, no por una prueba de regresión del motor.
+**Límites de la validación:** nueve combinaciones **estructurales** no significan nueve modos **jugables**. No se prueba la conexión de adaptadores, la ejecución del combate ni la presencia de mapas para todos los mundos. El comportamiento Legacy se **preserva por alcance** al no modificar archivos funcionales; **no está certificado mediante regresión ejecutada del motor**. El resultado de aserciones estáticas externas tampoco equivale a ejecutar este validador con Node en un checkout real.
 
 ## 6. Observaciones de repositorio verificadas al definir el contrato
 
