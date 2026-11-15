@@ -6,7 +6,7 @@
   modalTitle:'Construir edificio',modalHelp:'Marca la parcela, elige el proyecto y la cantidad de pisos. Todos los elementos seguirán siendo editables.',
   floors:'Cantidad de pisos',confirm:'Generar edificio',cancel:'Cancelar',
   chooseFirst:'Elige el edificio antes de dibujarlo.',
-  measure:'Contorno del edificio', maximum:'Máximo permitido',
+  measure:'Contorno del edificio', maximum:'Máximo permitido', minimum:'Mínimo',
   footprint:'Tamaño elegido', tileUnit:'casillas', feetUnit:'ft',
   margin:'La parcela añadirá 1 casilla de margen alrededor del edificio.',
   sizeHint:'Extiende el contorno en el mapa. No se puede superar el máximo del preset.',
