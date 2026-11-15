@@ -138,11 +138,33 @@
      &&it.apartmentId===unit.id&&it.doorRole==='entrance');
     const interior=(f.items||[]).filter(it=>['door','peephole_door'].includes(it.type)
      &&it.apartmentId===unit.id&&it.doorRole==='interior');
-    if(entrances.length!==1||interior.length<2)
+    const common=(f.items||[]).find(it=>it.type==='room'&&it.commonArea===true);
+    const bath=privateRooms.find(it=>it.constructionRoom==='bano');
+    const bedroom=privateRooms.find(it=>it.constructionRoom==='dormitorio');
+    const living=privateRooms.find(it=>it.constructionRoom==='cocina');
+    const connects=(door,first,second)=>{
+     if(!door?.a||!door?.b||!first||!second||!geometry.roomContains)return false;
+     const x=(door.a.x+door.b.x)/2,y=(door.a.y+door.b.y)/2;
+     const dx=door.b.x-door.a.x,dy=door.b.y-door.a.y,length=Math.hypot(dx,dy);
+     if(length<.8)return false;
+     const normal={x:-dy/length*.15,y:dx/length*.15};
+     const a={x:x+normal.x,y:y+normal.y},b={x:x-normal.x,y:y-normal.y};
+     return geometry.roomContains(first,a)&&geometry.roomContains(second,b)||
+      geometry.roomContains(first,b)&&geometry.roomContains(second,a);
+    };
+    if(entrances.length!==1||interior.length<2||
+     !entrances.some(d=>connects(d,common,living))||
+     !interior.some(d=>connects(d,bath,living))||
+     !interior.some(d=>connects(d,bedroom,living)))
      issues.push({code:'sin_acceso_privado',apartmentId:unit.id,floorId:f.id});
-    if(!(f.items||[]).some(it=>it.type==='room'&&it.commonArea===true))
-     issues.push({code:'falta_zona_comun',floorId:f.id});
+    if(!common)issues.push({code:'falta_zona_comun',floorId:f.id});
    }
+    const floors=property.generatedPrefab.floorIds||[];
+    for(let i=0;i<floors.length-1;i++){
+     const from=(project.floors||[]).find(f=>f.id===floors[i]);
+     if(!from?.items?.some(it=>it.type==='stairs'&&it.targetFloorId===floors[i+1]))
+      issues.push({code:'sin_escalera',floorId:floors[i]});
+    }
   }else{
    for(const kind of required)if(!rooms.some(room=>room.constructionRoom===kind))
     issues.push({code:'falta_habitacion',need:kind});
