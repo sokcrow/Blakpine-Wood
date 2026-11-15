@@ -52,8 +52,26 @@ const fhForestVisuals=window.FHForestVisuals.install({THREE,runtime:fhForest,par
  applySightMask:installVisibility,onError:(error,id)=>{console.error('[Blakpine bosque]',id,error);notice(window.FH_FOREST_TEXT.assetError);}
 });
 window.FHForestVisualRuntime=fhForestVisuals;
+registerCutaway(mainFloorIndex,fhForestVisuals.cutawayRoot);
 fhForestVisuals.ready.catch(error=>{console.error('[Blakpine bosque]',error);});
 window.addEventListener('beforeunload',()=>fhForestVisuals.dispose());`);
+  // El mismo muestreo cámara/personaje selecciona IDs, nunca sectores completos.
+  const cutStart=doc.indexOf('function updateCameraCutaway(dt){'),cutEnd=doc.indexOf('\nfunction moveUpdate(dt){',cutStart);
+  if(cutStart<0||cutEnd<=cutStart)throw Error('No se encontró el recorte de cámara del motor');
+  let cut=doc.slice(cutStart,cutEnd);
+  cut=once(cut,'function updateCameraCutaway(dt){',
+   'function updateCameraCutaway(dt){\n if(currentFloor!==mainFloorIndex)fhForestVisuals.setCameraHidden([]);');
+  cut=once(cut,'if(peeking||occupiedShaft()){','if(peeking||occupiedShaft()){fhForestVisuals.setCameraHidden([]);');
+  cut=once(cut,'nextCut=new Set(),from=cam.position.clone();','nextCut=new Set(),nextForestCut=new Set(),from=cam.position.clone();');
+  cut=once(cut,'floorElev[currentFloor]+height','floorElev[currentFloor]+fhGroundRise(currentFloor,user.x,user.z)+height');
+  cut=once(cut,'for(const hit of hits){let obj=hit.object;',
+   'for(const hit of hits){if(hit.fhForestTreeId){nextForestCut.add(hit.fhForestTreeId);continue;}let obj=hit.object;');
+  cut=once(cut,'for(const o of nextCut)o.visible=false;',
+   'for(const o of nextCut)o.visible=false;\n fhForestVisuals.setCameraHidden(nextForestCut);');
+  doc=doc.slice(0,cutStart)+cut+doc.slice(cutEnd);
+  // El render remoto usa su propio FOW y no hereda árboles cortados por el jugador.
+  doc=once(doc,'renderer.render(scene,fhCCTVView);',
+   'fhForestVisuals.withoutCameraCutaway(()=>renderer.render(scene,fhCCTVView));');
   // El FOW existente necesita la transformación de cada instancia para enmascararla.
   doc=once(doc,'fhPos=(modelMatrix*vec4(position,1.)).xyz;',
    'vec4 fhWorld=vec4(position,1.);\\n#ifdef USE_INSTANCING\\nfhWorld=instanceMatrix*fhWorld;\\n#endif\\nfhPos=(modelMatrix*fhWorld).xyz;');
@@ -68,7 +86,7 @@ window.addEventListener('beforeunload',()=>fhForestVisuals.dispose());`);
   doc=once(doc,'fhDeliveryNpc.position.set(point.x,1.05,point.z);','fhDeliveryNpc.position.set(point.x,1.05+fhGroundRise(point.floor,point.x,point.z),point.z);');
   const baseURL=new URL('../../',scriptURL);
   const files=['fh-forest-strings.js','fh-terrain.js','fh-forest-catalog.js','fh-forest.js','fh-forest-visuals.js','vendor/GLTFLoader.js'];
-  const scripts=files.map(file=>'<script src="'+new URL('juego/assets/'+file+'?v=20261114-forest-trees15ft',baseURL).href+'"></scr'+'ipt>').join('');
+  const scripts=files.map(file=>'<script src="'+new URL('juego/assets/'+file+'?v=20261115-forest-cutaway1',baseURL).href+'"></scr'+'ipt>').join('');
   const headEnd=doc.indexOf('</head>');if(headEnd<0)throw Error('Motor sin cabecera para el bosque');
   return doc.slice(0,headEnd)+scripts+doc.slice(headEnd);
  }

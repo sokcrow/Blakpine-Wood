@@ -48,3 +48,24 @@ test('Configuración viaja al motor, JSON e historial; carga de controles preced
  assert.match(editor,/environment:clone\(project.environment\)/);assert.match(editor,/project.environment=clone\(saved.environment\)/);
  assert.match(editor,/FHForestEditor\?\.install/);
 });
+
+test('El cutaway REAL oculta sólo el árbol interpuesto, lo restaura al girar y respeta mirilla/ascensor/planta',async()=>{
+ const THREE=require('./vendor/three.min.js'),Visuals=require('./fh-forest-visuals.js'),f=runtime(),parent=new THREE.Group();
+ const loader={load(url,done){const scene=new THREE.Group(),g=new THREE.BoxGeometry(2,65,2);g.translate(0,65/2,0);scene.add(new THREE.Mesh(g,new THREE.MeshBasicMaterial()));done({scene});}};
+ const visual=Visuals.install({THREE,runtime:f,parent,baseURL:'https://test/',applySightMask(){},loader});await visual.ready;
+ const tree=f.trees[0],slot=visual.slots.get(tree.id)[0],matrix=()=>{const m=new THREE.Matrix4();slot.mesh.getMatrixAt(slot.index,m);return m;},before=matrix();
+ const wall=new THREE.Mesh(new THREE.BoxGeometry(.6,3,.2),new THREE.MeshBasicMaterial());wall.position.set(tree.x,tree.y+1.5,tree.z+.5);wall.userData.fhOcclusionRoot=true;wall.updateMatrixWorld(true);
+ let shaft=null;const env=vm.createContext({THREE,mainFloorIndex:0,currentFloor:0,peeking:false,occupiedShaft:()=>shaft,fhForestVisuals:visual,
+  occlusionRay:new THREE.Raycaster(),wasCut:new Set(),cameraRight:new THREE.Vector3(),cutawayTimer:0,
+  exteriorCutawayRoots:[],occlusionRoots:[[visual.cutawayRoot,wall],[]],cam:{position:new THREE.Vector3(tree.x,tree.y+1.7,tree.z-3)},yaw:0,
+  user:{x:tree.x,z:tree.z+1},floorElev:[0,4],CELL:1.524,fhGroundRise:(floor,x,z)=>f.heightAt(x,z,floor)});
+ const source=fn(engine().html,'function updateCameraCutaway(dt){','\nfunction moveUpdate(dt){');vm.runInContext(source,env);
+ env.updateCameraCutaway(.1);assert.equal(matrix().elements[0],0);assert.equal(wall.visible,false,'El corte de edificios conserva su funcionamiento');
+ env.cam.position.set(tree.x,tree.y+1.7,tree.z+3);env.updateCameraCutaway(.1);assert.deepEqual(matrix(),before);assert.equal(wall.visible,true);
+ env.cam.position.set(tree.x,tree.y+1.7,tree.z-3);env.updateCameraCutaway(.1);env.peeking=true;env.updateCameraCutaway(.001);assert.deepEqual(matrix(),before);
+ env.peeking=false;env.updateCameraCutaway(.1);shaft={};env.updateCameraCutaway(.001);assert.deepEqual(matrix(),before);
+ shaft=null;env.updateCameraCutaway(.1);env.currentFloor=1;env.updateCameraCutaway(.001);assert.deepEqual(matrix(),before);
+ assert.match(engine().html,/registerCutaway\(mainFloorIndex,fhForestVisuals.cutawayRoot\)/);
+ assert.match(engine().html,/withoutCameraCutaway\(\(\)=>renderer.render\(scene,fhCCTVView\)\)/);
+ visual.dispose();
+});

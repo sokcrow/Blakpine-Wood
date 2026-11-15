@@ -86,6 +86,26 @@ El FOW original continúa enmascarando los materiales, con la transformación de
 cada instancia incluida en el cálculo de posición mundial. El bosque no añade
 otra máscara de oscuridad.
 
+## Ocultamiento entre cámara y personaje
+
+El bosque participa en `updateCameraCutaway`, con los mismos rayos que ya usa
+el motor para paredes y losas. Cada intersección identifica el árbol concreto:
+se colapsan temporalmente sus instancias, no el sector completo. La detección
+consulta candidatos del índice por sectores y prueba los triángulos del modelo
+GLB compartido. No basta con entrar en el radio de una copa o en su caja.
+
+El árbol vuelve a verse cuando deja de interceptar los rayos. Los árboles detrás
+de la cámara o más allá del personaje no se recortan. Las comprobaciones siguen
+reconociendo instancias ya ocultas para evitar alternancias entre fotogramas.
+Al cambiar de planta, usar mirilla o entrar en un ascensor se restaura el recorte.
+El muestreo acompaña la elevación del terreno del personaje.
+
+El recorte es sólo visual: no cambia troncos, visión/FOW, semillas, exclusiones
+ni GameState. Si un árbol se retira mientras está oculto, la restauración de
+cámara no lo revive. Las capturas CCTV restauran temporalmente las instancias y
+recuperan después el recorte del jugador, incluso si el render lanza un error.
+No se agrega oclusión forestal adicional, dependencias ni workflows.
+
 ## Colisión, visión y retirada
 
 El radio del tronco se obtiene de la base de cada GLB, separado del ancho de

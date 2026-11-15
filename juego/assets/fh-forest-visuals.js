@@ -7,8 +7,43 @@
   const group=new THREE.Group();group.name='FHForest';parent.add(group);
   const batches=new Map(),slots=new Map(),ownedGeometries=new Set(),ownedMaterials=new Set(),textures=new Set();
   let disposed=false;
-  const hide=new THREE.Matrix4().makeScale(0,0,0);
-  const unsubscribe=runtime.onRemove(tree=>{for(const {mesh,index} of slots.get(tree.id)||[]){mesh.setMatrixAt(index,hide);mesh.instanceMatrix.needsUpdate=true;}});
+  const hide=new THREE.Matrix4().makeScale(0,0,0),cameraHidden=new Set(),pickParts=new Map();
+  const pickInverse=new THREE.Matrix4(),pickMatrix=new THREE.Matrix4(),pickPosition=new THREE.Vector3(),pickRotation=new THREE.Quaternion(),pickScale=new THREE.Vector3(1,1,1),pickAxis=new THREE.Vector3(0,1,0);
+  const maxCanopyRadius=Math.max(0,...[...runtime.catalog.values()].map(model=>model.ancho_ft*.3048/2));
+  // Sólo sirve a los rayos del cutaway existente; no añade mallas al render.
+  const cutawayRoot=new THREE.Object3D();cutawayRoot.name='FHForestCameraPick';
+  cutawayRoot.raycast=(raycaster,hits)=>{
+   if(disposed||!runtime.enabled||!Number.isFinite(raycaster.far)||raycaster.far<=raycaster.near)return;
+   group.updateWorldMatrix(true,false);
+   const end=raycaster.ray.at(raycaster.far,new THREE.Vector3()),from=raycaster.ray.origin;
+   pickInverse.copy(group.matrixWorld).invert();
+   const localFrom=from.clone().applyMatrix4(pickInverse),localEnd=end.clone().applyMatrix4(pickInverse);
+   const candidates=runtime.nearby((localFrom.x+localEnd.x)/2,(localFrom.z+localEnd.z)/2,localFrom.distanceTo(localEnd)/2+maxCanopyRadius);
+   for(const tree of candidates){
+    pickPosition.set(tree.x,tree.y,tree.z);pickRotation.setFromAxisAngle(pickAxis,tree.rotation);
+    pickMatrix.compose(pickPosition,pickRotation,pickScale);pickMatrix.premultiply(group.matrixWorld);
+    for(const proxy of pickParts.get(tree.modelId)||[]){
+     proxy.matrixWorld.copy(pickMatrix);
+     const intersections=[];proxy.raycast(raycaster,intersections);
+     if(!intersections.length)continue;
+     const slot=slots.get(tree.id)?.[0];if(!slot)continue;
+     const hit=intersections.reduce((nearest,item)=>item.distance<nearest.distance?item:nearest);
+     hits.push({...hit,object:slot.mesh,instanceId:slot.index,fhForestTreeId:tree.id});break;
+    }
+   }
+  };
+  function setCameraHidden(ids){
+   if(disposed)return;
+   const next=new Set([...ids].filter(id=>runtime.getTree(id)&&slots.has(id)));
+   for(const id of cameraHidden)if(!next.has(id))for(const slot of slots.get(id)||[]){slot.mesh.setMatrixAt(slot.index,runtime.getTree(id)?slot.matrix:hide);slot.mesh.instanceMatrix.needsUpdate=true;}
+   for(const id of next)if(!cameraHidden.has(id))for(const slot of slots.get(id)||[]){slot.mesh.setMatrixAt(slot.index,hide);slot.mesh.instanceMatrix.needsUpdate=true;}
+   cameraHidden.clear();for(const id of next)cameraHidden.add(id);
+  }
+  function withoutCameraCutaway(render){
+   const previous=new Set(cameraHidden);setCameraHidden([]);
+   try{return render();}finally{setCameraHidden(previous);}
+  }
+  const unsubscribe=runtime.onRemove(tree=>{cameraHidden.delete(tree.id);for(const {mesh,index} of slots.get(tree.id)||[]){mesh.setMatrixAt(index,hide);mesh.instanceMatrix.needsUpdate=true;}});
   function rememberMaterial(material){for(const m of Array.isArray(material)?material:[material]){ownedMaterials.add(m);for(const v of Object.values(m))if(v?.isTexture){v.magFilter=v.minFilter=THREE.NearestFilter;v.generateMipmaps=false;v.needsUpdate=true;textures.add(v);}}}
   function mountTerrain(){
    const t=runtime.terrain,material=new THREE.MeshLambertMaterial({color:0x34402a});ownedMaterials.add(material);
@@ -46,6 +81,7 @@
   function mountModel(model,source){
    source.updateMatrixWorld(true);const parts=[];
    source.traverse(node=>{if(node.isMesh){rememberMaterial(node.material);const geometry=node.geometry.clone();geometry.applyMatrix4(node.matrixWorld);geometry.scale(.3048,.3048,.3048);geometry.computeBoundingBox();geometry.computeBoundingSphere();ownedGeometries.add(geometry);parts.push({geometry,material:node.material});}});
+   pickParts.set(model.id,parts.map(part=>new THREE.Mesh(part.geometry,part.material)));
    // La escala pertenece al pack. No se normaliza contra la copa ni contra muebles.
    const bySector=new Map();for(const tree of runtime.trees)if(tree.modelId===model.id){if(!bySector.has(tree.sector))bySector.set(tree.sector,[]);bySector.get(tree.sector).push(tree);}
    for(const [key,trees] of bySector){
@@ -60,7 +96,7 @@
      const matrix=new THREE.Matrix4(),q=new THREE.Quaternion(),scale=new THREE.Vector3(1,1,1),axis=new THREE.Vector3(0,1,0);
      trees.forEach((tree,index)=>{
       q.setFromAxisAngle(axis,tree.rotation);matrix.compose(new THREE.Vector3(tree.x-ix*size,tree.y,tree.z-iz*size),q,scale);mesh.setMatrixAt(index,matrix);
-      if(!slots.has(tree.id))slots.set(tree.id,[]);slots.get(tree.id).push({mesh,index});
+      if(!slots.has(tree.id))slots.set(tree.id,[]);slots.get(tree.id).push({mesh,index,matrix:matrix.clone()});
      });
      mesh.frustumCulled=true;sector.add(mesh);batches.set(model.id+':'+key+':'+sector.children.length,mesh);
     }
@@ -82,7 +118,7 @@
     }catch(error){onError?.(error,id);throw error;}
    }));
   })();
-  return {group,batches,slots,ready,dispose(){if(disposed)return;disposed=true;unsubscribe();parent.remove(group);for(const g of ownedGeometries)g.dispose();for(const m of ownedMaterials)m.dispose();for(const t of textures)t.dispose();}};
+  return {group,batches,slots,ready,cutawayRoot,setCameraHidden,withoutCameraCutaway,get cameraHiddenIds(){return new Set(cameraHidden);},dispose(){if(disposed)return;setCameraHidden([]);disposed=true;pickParts.clear();unsubscribe();parent.remove(group);for(const g of ownedGeometries)g.dispose();for(const m of ownedMaterials)m.dispose();for(const t of textures)t.dispose();}};
  }
  return Object.freeze({install});
 });
