@@ -165,10 +165,16 @@
    const it={id,type:kind,constructionParcelId:property.id,constructionPhase:phase,...attributes};
    floor.items.push(it);all.push(it);return it;
   };
-  const stroke=(floor,type,x1,y1,x2,y2,attrs={})=>reserve(floor,type,
-   {a:pt(x1,y1),b:pt(x2,y2),heightFt:['wall','red_wall'].includes(type)?9:7,
-    widthFt:['door','window'].includes(type)?3:0,open:false,locked:false,peekSide:1,...attrs},
-   type==='red_wall'?'estructura':'instalaciones');
+  const stroke=(floor,type,x1,y1,x2,y2,attrs={})=>{
+   const idx=requestedFloors.findIndex(f=>f.id===floor.id),upper=requestedFloors[idx+1];
+   // Un muro termina en la losa inmediata, no 1 ft por debajo de ella.
+   const height=upper?upper.elevationFt-floor.elevationFt:
+    Number(floor.ceilingHeightFt)||10;
+   return reserve(floor,type,
+    {a:pt(x1,y1),b:pt(x2,y2),heightFt:['wall','red_wall'].includes(type)?round(height):7,
+     widthFt:['door','window'].includes(type)?3:0,open:false,locked:false,peekSide:1,...attrs},
+    type==='red_wall'?'estructura':'instalaciones');
+  };
   const line=(f,axis,at,start,end,gaps=[],exterior=false)=>{
    const sorted=[...gaps].sort((a,b)=>a.at-b.at);let cursor=start;
    for(const gap of sorted){
