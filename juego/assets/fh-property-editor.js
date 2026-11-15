@@ -239,6 +239,10 @@
     const {draft,property}=previewPlan,r=draft.rect,scale=Math.min(640/r.w,280/r.h);
     ctx.save();ctx.translate((660-r.w*scale)/2,(300-r.h*scale)/2);
     ctx.scale(scale,scale);ctx.translate(-r.x,-r.y);
+    ctx.strokeStyle='#37434d';ctx.lineWidth=1/scale;ctx.beginPath();
+    for(let x=r.x;x<=r.x+r.w;x++){ctx.moveTo(x,r.y);ctx.lineTo(x,r.y+r.h);}
+    for(let y=r.y;y<=r.y+r.h;y++){ctx.moveTo(r.x,y);ctx.lineTo(r.x+r.w,y);}
+    ctx.stroke();
     for(const item of draft.levels[Number(floorChoice.value)].items){
      if(item.constructionParcelId!==property.id)continue;
      if(item.a&&item.b){

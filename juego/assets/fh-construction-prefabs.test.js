@@ -433,3 +433,19 @@ test('en 22 × 22 las viviendas y el pasillo cubren toda la planta en cada orien
   }
  }
 });
+
+test('muros, aberturas y recintos de todos los presets comparten vértices de casilla',()=>{
+ const point=p=>assert.ok(Number.isInteger(p.x)&&Number.isInteger(p.y),JSON.stringify(p));
+ const bounds=r=>{point(r);point({x:r.x+r.w,y:r.y+r.h});};
+ for(const preset of Object.keys(Prefabs.MIN))for(const turns of [0,1,2,3]){
+  const m=map(),[minW,minH]=Prefabs.MIN[preset],w=minW+3,h=minH+1;
+  const placed=Prefabs.placeArea(m,'f1',{x:5,y:9},{x:5+(turns%2?h:w),y:9+(turns%2?w:h)},
+   preset,{turns,catalog,zones:Zones,stories:3});
+  assert.equal(placed.ok,true);
+  for(const floor of m.floors)for(const item of floor.items){
+   if(item.a&&item.b){point(item.a);point(item.b);}
+   if(item.type==='room'){bounds(item);for(const span of item.spans||[])bounds(span);}
+  }
+  for(const prop of m.properties)prop.polygon.forEach(point);
+ }
+});
