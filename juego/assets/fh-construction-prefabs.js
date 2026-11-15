@@ -277,17 +277,18 @@
     const outerY=top?Y:B,insideY=top?Y+depth:Y+depth+hall;
     const corridorDoors=[];
     for(let c=0;c<columns;c++){
-     const x=X+c*unitW,w=unitW,aptId=prefix+'_vivienda_'+(level+1)+'_'+(side*columns+c+1);
+     const x=X+c*unitW,w=unitW,unitNumber=level*columns*2+side*columns+c+1;
+     const aptId=prefix+'_vivienda_'+(level+1)+'_'+(side*columns+c+1),name='Depto. '+unitNumber;
      const bathW=2.7,bathH=2.8,bedH=4.15;
      const bath=box(x,top?outerY:outerY-bathH,bathW,bathH);
      const bed=box(x+bathW,top?outerY:outerY-bedH,w-bathW,bedH);
      const livingY=top?outerY+bedH:unitY,livH=depth-bedH;
      if(livH<4.7||bed.w<4.5)return failure('small_parcel');
      const live=box(x,livingY,w,livH);
-     const bathSpace=room(f,'Baño · '+aptId,bath,aptId,'bano',
+     const bathSpace=room(f,'Baño · '+name,bath,aptId,'bano',
       {privateRoom:true,requiresClosedDoor:true});
-     const bedSpace=room(f,'Recámara · '+aptId,bed,aptId,'dormitorio',{privateRoom:true});
-     const living=room(f,'Sala y cocina · '+aptId,live,aptId,'cocina',{
+     const bedSpace=room(f,'Recámara · '+name,bed,aptId,'dormitorio',{privateRoom:true});
+     const living=room(f,'Sala y cocina · '+name,live,aptId,'cocina',{
       spans:[box(x,top?outerY+bathH:outerY-bedH,bathW,bedH-bathH),live],
       kitchenLivingCombined:true});
      // Pared entre baño y recámara; ambas puertas abren al espacio de sala-cocina.
@@ -301,7 +302,8 @@
      // Medianeras entre viviendas: sin puertas entre vecinos.
      if(c>0)line(f,'v',x,unitY,unitY+depth,[],false);
      waiting.push([bathSpace,'bano'],[bedSpace,'dormitorio'],[living,'cocina']);
-     units.push({id:aptId,floorId:f.id,roomIds:[bathSpace.roomId,bedSpace.roomId,living.roomId],
+     units.push({id:aptId,name:'Departamento '+unitNumber,floorId:f.id,
+      roomIds:[bathSpace.roomId,bedSpace.roomId,living.roomId],
       doorIds:[],private:true});
     }
     line(f,'h',insideY,X,X+usable,corridorDoors,false);
