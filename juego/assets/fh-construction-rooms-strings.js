@@ -20,7 +20,8 @@
   departamento_invalido:'Departamento inválido o sin piso',
   sin_privacidad:'Habitación sin cerramiento privado correcto',
   sin_acceso_privado:'Departamento sin acceso y puertas interiores completos',
-  falta_zona_comun:'Falta pasillo o zona común en la planta'}),
+  falta_zona_comun:'Falta pasillo o zona común en la planta',
+  sin_escalera:'Falta una escalera conectada con la siguiente planta'}),
  access:'La accesibilidad para NPC no está comprobada.'
  });
 })(typeof window!=='undefined'?window:globalThis);
