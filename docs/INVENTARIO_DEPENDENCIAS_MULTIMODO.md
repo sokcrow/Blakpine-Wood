@@ -338,7 +338,7 @@ FHShadowAI.tick(minute, dt, player)
 
 ### 13.6. Handoff para IA 2 — límites verificables del diseño
 
-**Zona protegida del motor:** `ForestShared.validate/migrate/loadProject`, `ForestShared.solidAt`, `canWalk/walk/moveUpdate`, `FHNPCGOAP.route`, `fhNpcCanWalk/fhNpcOpenDoor/fhNpcStairTransitions`, `drawSight/installVisibility`, `FHForestEngine.patch`, `FHFloorVisibility`, `buildFloor`, ``CELLS`/`CELL`, losas, puertas y red de drenajes/calles. **No introducir resolución DnD/Moon dentro de ninguno de ellos.**
+**Zona protegida del motor:** `ForestShared.validate/migrate/loadProject`, `ForestShared.solidAt`, `canWalk/walk/moveUpdate`, `FHNPCGOAP.route`, `fhNpcCanWalk/fhNpcOpenDoor/fhNpcStairTransitions`, `drawSight/installVisibility`, `FHForestEngine.patch`, `FHFloorVisibility`, `buildFloor`, `CELL`, losas, puertas y red de drenajes/calles. **No introducir resolución DnD/Moon dentro de ninguno de ellos.**
 
 **Zonas de interfaz futura, sin tocar las implementaciones ahora:** entrada de acciones/ataques en `FHShadowAI`, punto anterior a `FHSurvivalRuntime.damagePG/change` en el consumidor de eventos, cálculo Legacy `FHSkills.odds/roll`, clasificación de efecto de `FHMoodFear.stimulus`, acceso de lectura `FHCharacterRuntime.character` y presentación en `FHStatusHUD`/`FHPlayerMenu`. La IA 2 debe proponer **contratos externos y versionados**; ningún punto existente constituye por sí solo un adaptador multimodo listo.
 
