@@ -157,7 +157,7 @@
       zones:Z(),catalog,stories,modelRules:root.FHFurnitureRules,shared:ForestShared
      });
      if(!result.ok){toast(PT().errors[result.code]||PT().errors.invalid_catalog);return;}
-     C().plan(result.property,preset,simulated);
+     C().plan(result.property,preset,simulated,{stories});
      loadedImgs=project.floors.map(floor=>images.get(floor.id)||null);
      recalcAllSpaces();record();refreshFloorTabs();closeModal();
      toast(PT().success+' · '+result.property.name+' · '+result.apartments+' '+PT().homes);render();
@@ -225,7 +225,7 @@
       prop.name=(document.getElementById('fhParcelName').value.trim()||'Parcela').slice(0,80);
       prop.claimable=document.getElementById('fhParcelClaim').value==='yes';
       prop.ownerId=document.getElementById('fhParcelOwner').value.trim().slice(0,80);
-      C().plan(prop,preset,simulated);
+      C().plan(prop,preset,simulated,{stories});
       loadedImgs=project.floors.map(floor=>images.get(floor.id)||null);
       recalcAllSpaces();record();refreshFloorTabs();closeModal();toast(PT().success);render();
      }catch(error){
@@ -242,7 +242,7 @@
       const preset=document.getElementById('fhParcelConstructionPreset').value;
       const simulated=document.getElementById('fhParcelConstructionSimulated').checked;
       if(!preset)delete prop.construction;
-      else if(!spec||spec.preset!==preset||spec.simulated!==simulated)C().plan(prop,preset,simulated);
+      else if(!spec||spec.preset!==preset||spec.simulated!==simulated)C().plan(prop,preset,simulated,{stories:prop.generatedPrefab?.floorIds?.length||1});
       document.querySelectorAll('[data-fh-construction-room]').forEach(select=>{
        const index=Number(select.dataset.fhConstructionRoom),room=current().items[index];
        if(room?.type==='room'&&P().roomInProperty(room,prop))R().planRoom(room,select.value);
