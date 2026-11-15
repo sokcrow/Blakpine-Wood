@@ -14,5 +14,36 @@
       "urban",
       "dystopian"
     ]
+  },
+  "extensions": {
+    "blakpine.world-capabilities.v1": {
+      "architecture": [
+        "high-density-blocks",
+        "industrial-reuse",
+        "controlled-perimeters",
+        "multi-level-structures"
+      ],
+      "paths": [
+        "narrow-streets",
+        "service-corridors",
+        "gated-access",
+        "pedestrian-passages",
+        "elevated-passages"
+      ],
+      "materials": [
+        "concrete",
+        "steel",
+        "masonry",
+        "sheet-metal",
+        "reclaimed-materials"
+      ],
+      "services": [
+        "segmented-electric-distribution",
+        "limited-water-distribution",
+        "sanitary-drainage",
+        "local-communications",
+        "waste-recovery"
+      ]
+    }
   }
 }
