@@ -216,43 +216,83 @@
   // La vista previa sigue en el mapa hasta confirmar o cancelar.
   prefabPreview=selected;start=null;live=null;render();
   const preset=prefabKind,stories=prefabStories,simulated=prefabSimulated;
-  const r=selected.rect,ft=Number(project.units.feetPerCell)||5;
-  const size=r.w+' × '+r.h+' '+PT().tileUnit+' · '+
-   Math.round(r.w*ft)+' × '+Math.round(r.h*ft)+' '+PT().feetUnit;
-  modal('<h2>'+escape(PT().modalTitle)+' · '+escape(T().presets[preset])+'</h2>'+
-   '<p>'+escape(PT().confirmFootprint)+'</p>'+
-   '<p><strong>'+escape(PT().footprint)+': '+escape(size)+'</strong></p>'+
-   '<p><small>'+escape(PT().margin)+'</small></p>'+
-   '<p>'+escape(PT().floors)+': '+stories+'</p>'+
-   '<div class="actions"><button class="primary" id="fhNewPrefabConfirm">'+escape(PT().confirm)+'</button>'+
-   '<button id="fhNewPrefabCancel">'+escape(PT().cancel)+'</button></div>',()=>{
-   document.getElementById('fhNewPrefabCancel').onclick=()=>{
-    prefabPreview=null;closeModal();render();
-   };
-   const confirm=document.getElementById('fhNewPrefabConfirm');
-   confirm.onclick=async()=>{
+  const origin=selected.rect,floorId=current().id;
+  modal('<h2>'+escape(T().presets[preset])+'</h2>'+
+   '<button id="fhRotatePlan">Girar edificio 90°</button> '+
+   '<label>Planta <select id="fhPlanFloor">'+Array.from({length:stories},(_,i)=>'<option value="'+i+'">'+(i+1)+'</option>').join('')+'</select></label>'+
+   '<p id="fhPlanSize"></p><canvas id="fhFloorPlan" width="660" height="300" style="width:100%;height:auto;background:#19232c" aria-label="Plano arquitectónico"></canvas>'+
+   '<p>Paredes en claro · puertas en amarillo · ventanas en azul · escaleras en verde</p>'+
+   '<details id="fhPlanDetails"><summary>Revisar plano</summary><p id="fhPlanAudit"></p></details>'+
+   '<p id="fhPlanStatus" role="status"></p><div class="actions"><button class="primary" disabled id="fhNewPrefabConfirm">'+escape(PT().confirm)+'</button>'+
+   '<button id="fhNewPrefabCancel">'+escape(PT().cancel)+'</button></div>',async()=>{
+   const el=id=>document.getElementById(id),confirm=el('fhNewPrefabConfirm'),rotate=el('fhRotatePlan');
+   const canvas=el('fhFloorPlan'),floorChoice=el('fhPlanFloor'),status=el('fhPlanStatus');
+   let turns=0,catalog,prepared;
+   const options=()=>({zones:Z(),catalog,stories,turns,modelRules:root.FHFurnitureRules,shared:ForestShared});
+   const end=()=>({x:origin.x+(turns%2?origin.h:origin.w),y:origin.y+(turns%2?origin.w:origin.h)});
+   function draw(){
+    const ctx=canvas.getContext('2d');
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    if(!prepared?.ok)return;
+    const {draft,property}=prepared,r=draft.rect,scale=Math.min(640/r.w,280/r.h);
+    ctx.save();ctx.translate((660-r.w*scale)/2,(300-r.h*scale)/2);
+    ctx.scale(scale,scale);ctx.translate(-r.x,-r.y);
+    for(const item of draft.levels[Number(floorChoice.value)].items){
+     if(item.constructionParcelId!==property.id)continue;
+     if(item.a&&item.b){
+      ctx.strokeStyle=item.type==='door'?'#ffd265':item.type==='window'?'#57bcff':'#edf3f6';
+      ctx.lineWidth=item.type==='red_wall'?.22:.14;
+      ctx.beginPath();ctx.moveTo(item.a.x,item.a.y);ctx.lineTo(item.b.x,item.b.y);ctx.stroke();
+     }else if(item.type==='stairs'){
+      ctx.save();ctx.translate(item.x,item.y);ctx.rotate((item.rotation||0)*Math.PI/180);
+      ctx.strokeStyle='#86dda0';ctx.lineWidth=.12;
+      ctx.strokeRect(-item.w/2,-item.h/2,item.w,item.h);ctx.restore();
+     }
+    }
+    ctx.restore();
+   }
+   function review(){
+    const b=end(),w=b.x-origin.x,h=b.y-origin.y,ft=Number(project.units.feetPerCell)||5;
+    el('fhPlanSize').textContent=w+' × '+h+' casillas · '+w*ft+' × '+h*ft+' ft · '+turns*90+'°';
+    prefabPreview={...selected,rect:{x:origin.x,y:origin.y,w,h}};render();
+    prepared=PF().prepareArea(project,floorId,origin,b,preset,options());
+    draw();confirm.disabled=!prepared.ok;
+    status.textContent=prepared.ok?'':PT().errors[prepared.code]||PT().errors.invalid_catalog;
+    el('fhPlanAudit').textContent=status.textContent;
+    if(!prepared.ok)return;
+    const {property,draft}=prepared;
+    const floors=project.floors.filter(f=>!draft.levels.some(level=>level.id===f.id)).concat(draft.levels);
+    const proposed={...property,generatedPrefab:{preset,apartments:draft.units,floorIds:draft.levels.map(f=>f.id)}};
+    const audit=R().inspectParcel({...project,floors},proposed);
+    const labels=RT(),findings=[...(audit?.issues||[]),...(audit?.unverified||[])];
+    const descriptions=findings.map(issue=>(labels.issue[issue.code]||issue.code)+(issue.need?' '+(labels.needs[issue.need]||issue.need):''));
+    el('fhPlanAudit').textContent=[labels.status[audit?.status||'unverified'],...new Set(descriptions)].join(' · ');
+   }
+   floorChoice.onchange=draw;
+   rotate.disabled=true;
+   rotate.onclick=()=>{turns=(turns+1)%4;review();};
+   el('fhNewPrefabCancel').onclick=()=>{prefabPreview=null;closeModal();render();};
+   confirm.onclick=()=>{
     if(root.FHStyleEditor?.hasActor()){toast(PT().dmOnly);return;}
-    const floorId=current().id,images=new Map(project.floors.map((floor,i)=>[floor.id,loadedImgs[i]]));
-    confirm.disabled=true;confirm.textContent=PT().busy;
-    try{
-     const response=await fetch(new URL('./forest-horror/biblioteca/catalogo_muebles.json',document.baseURI).href);
-     if(!response.ok)throw Error('catalog_http');
-     const catalog=await response.json();
-     if(catalog.schema!=='forest-horror-furniture-catalog-v1')throw Error('catalog_schema');
-     const result=PF().placeArea(project,floorId,
-      {x:r.x,y:r.y},{x:r.x+r.w,y:r.y+r.h},preset,{
-       zones:Z(),catalog,stories,modelRules:root.FHFurnitureRules,shared:ForestShared
-      });
-     if(!result.ok){toast(PT().errors[result.code]||PT().errors.invalid_catalog);return;}
-     C().plan(result.property,preset,simulated,{stories});
-     loadedImgs=project.floors.map(floor=>images.get(floor.id)||null);
-     floorIndex=project.floors.findIndex(floor=>floor.id===floorId);
-     prefabPreview=null;
-     recalcAllSpaces();record();refreshFloorTabs();closeModal();
-     toast(PT().success+' · '+result.property.name+' · '+result.apartments+' '+PT().homes);render();
-    }catch(error){console.error('[Construcción 04]',error);toast(PT().errors.missing_catalog);}
-    finally{if(confirm.isConnected){confirm.disabled=false;confirm.textContent=PT().confirm;}}
+    if(!prepared?.ok||current().id!==floorId)return;
+    const images=new Map(project.floors.map((floor,i)=>[floor.id,loadedImgs[i]]));
+    const result=PF().placeArea(project,floorId,origin,end(),preset,options());
+    if(!result.ok){review();return;}
+    C().plan(result.property,preset,simulated,{stories});
+    loadedImgs=project.floors.map(floor=>images.get(floor.id)||null);
+    floorIndex=project.floors.findIndex(floor=>floor.id===floorId);
+    prefabPreview=null;recalcAllSpaces();record();refreshFloorTabs();closeModal();
+    toast(PT().success+' · '+result.property.name);render();
    };
+   status.textContent=PT().busy;
+   try{
+    const response=await fetch(new URL('./forest-horror/biblioteca/catalogo_muebles.json',document.baseURI).href);
+    if(!response.ok)throw Error('catalog_http');
+    catalog=await response.json();
+    if(catalog.schema!=='forest-horror-furniture-catalog-v1')throw Error('catalog_schema');
+    if(!confirm.isConnected)return;
+    rotate.disabled=false;review();
+   }catch(error){if(confirm.isConnected)status.textContent=PT().errors.missing_catalog;}
   });
  }
  function openProperty(id){

@@ -58,17 +58,17 @@
   if(x<0||y<0||w<=0||h<=0||x+w>units?.columns||y+h>units?.rows)return null;
   return [{x,y},{x:x+w,y},{x:x+w,y:y+h},{x,y:y+h}].every(p=>inside(p,poly))?box(x,y,w,h):null;
  }
- function footprintFor(prop,units,preset){
+ function footprintFor(prop,units,preset,turns=0){
   const available=outline(prop,units);
   if(!available)return null;
-  const [mw,mh]=TARGET[preset];
+  const [mw,mh]=turns%2?[...TARGET[preset]].reverse():TARGET[preset];
   // El terreno puede contener patio; el edificio se adapta al área libre hasta su variante de planta.
   const w=Math.min(available.w,mw),h=Math.min(available.h,mh);
   return box(available.x+Math.floor((available.w-w)/2),available.y+Math.floor((available.h-h)/2),w,h);
  }
  // El rectángulo seleccionado representa el edificio, no una parcela recortada después.
  // Un tile equivale a la medida del proyecto; solo las paredes se ajustan a la rejilla.
- function measureFootprint(a,b,preset,units){
+ function measureFootprint(a,b,preset,units,turns=0){
   if(!MIN[preset])return failure('unknown_preset');
   if(!a||!b||![a.x,a.y,b.x,b.y].every(number))return failure('invalid_parcel');
   const cols=Number(units?.columns),rows=Number(units?.rows);
@@ -77,9 +77,9 @@
   const rect=box(Math.min(ax,bx),Math.min(ay,by),Math.abs(ax-bx),Math.abs(ay-by));
   if(rect.x<1||rect.y<1||rect.x+rect.w>cols-1||rect.y+rect.h>rows-1)
    return failure('invalid_parcel');
-  const [mw,mh]=TARGET[preset];
+  const [mw,mh]=turns%2?[...TARGET[preset]].reverse():TARGET[preset];
   if(rect.w>mw||rect.h>mh)return failure('oversized',{maximum:[mw,mh]});
-  const [minW,minH]=MIN[preset];
+  const [minW,minH]=turns%2?[...MIN[preset]].reverse():MIN[preset];
   if(rect.w<minW||rect.h<minH)return failure('small_parcel',{minimum:[minW,minH]});
   return {ok:true,rect,maximum:[mw,mh]};
  }
@@ -103,8 +103,8 @@
   let n=1;while(taken.has(base+' '+n))n++;
   return base+' '+n;
  }
- function areaProject(project,floorId,a,b,preset,zones,id){
-  const checked=measureFootprint(a,b,preset,project?.units);
+ function areaProject(project,floorId,a,b,preset,zones,id,turns){
+  const checked=measureFootprint(a,b,preset,project?.units,turns);
   if(!checked.ok)return checked;
   const r=checked.rect;
   // La propiedad se extiende una casilla alrededor, solo para preservar el
@@ -123,8 +123,11 @@
   if(!base||!Array.isArray(base.items))return failure('no_floor');
   if(property.generatedPrefab||project.floors.some(f=>(f.items||[]).some(it=>it.constructionParcelId===property.id)))
    return failure('generated');
-  const rect=footprintFor(property,project.units,preset);
-  if(!rect)return failure('invalid_parcel');
+  const turns=options.turns??0;
+  if(!Number.isInteger(turns)||turns<0||turns>3)return failure('invalid_parcel');
+  const world=footprintFor(property,project.units,preset,turns);
+  if(!world)return failure('invalid_parcel');
+  const rect=turns%2?box(world.x,world.y,world.h,world.w):world;
   const [minW,minH]=MIN[preset];
   if(rect.w<minW||rect.h<minH)return failure('small_parcel',{minimum:[minW+2,minH+2]});
   const catalog=options.catalog?.furniture||options.catalog;
@@ -151,7 +154,7 @@
   for(const floor of requestedFloors)for(const it of floor.items){
    if(clearTypes.has(it.type))continue;
    const b=footprint(it,project.units);
-   if(b&&overlaps(b,rect))return failure('occupied',{itemId:it.id,floorId:floor.id});
+   if(b&&overlaps(b,world))return failure('occupied',{itemId:it.id,floorId:floor.id});
   }
   const prefix='fhpf_'+encodeURIComponent(property.id).replace(/%/g,'~');
   const usedIds=new Set(project.floors.flatMap(f=>f.items||[]).map(it=>it.id));
@@ -431,9 +434,10 @@
    for(let level=0;level<count;level++){
     // Trabajar sobre una copia de cada piso para asegurar transacción total ante un fallo.
     const original=requestedFloors[level];
-    const f={...original,items:[...original.items]};levels.push(f);
+    const f={...original,items:turns?[]:[...original.items]};levels.push(f);
     const result=preset==='apartamentos'?apartments(f,level):simple(f,level);
     if(!result.ok)return result;
+    if(turns)f.items=original.items.concat(f.items);
     boxesByLevel.push(result.apartments);
    }
   }catch(error){
@@ -442,18 +446,44 @@
     String(error.message||'').startsWith('no_structural_outlet_wall:')?'outlet_no_wall':'invalid_catalog';
    return failure(code,{detail:String(error.message||error)});
   }
+  if(turns){
+   const rotate=p=>{
+    const x=p.x-rect.x,y=p.y-rect.y;
+    if(turns===1)return pt(rect.x+rect.h-y,rect.y+x);
+    if(turns===2)return pt(rect.x+rect.w-x,rect.y+rect.h-y);
+    return pt(rect.x+y,rect.y+rect.w-x);
+   };
+   const rotateBox=b=>{
+    const a=rotate(b),end=rotate({x:b.x+b.w,y:b.y+b.h});
+    return box(Math.min(a.x,end.x),Math.min(a.y,end.y),round(Math.abs(end.x-a.x)),round(Math.abs(end.y-a.y)));
+   };
+   for(const item of all){
+    if(item.a&&item.b){item.a=rotate(item.a);item.b=rotate(item.b);}
+    else if(item.type==='room'){
+     Object.assign(item,rotateBox(item));
+     if(item.spans)item.spans=item.spans.map(rotateBox);
+    }else{
+     Object.assign(item,rotate(item));
+     item.rotation=((item.rotation||0)+turns*90)%360;
+    }
+   }
+   for(const unit of units)unit.polygon=unit.polygon.map(rotate);
+  }
   const parcels=units.map(u=>({id:u.id,name:u.name,floorId:u.floorId,
    source:'zone',propertyRole:'apartment',buildingParcelId:property.id,
    claimable:true,ownerId:'',polygon:u.polygon}));
   const existing=new Set((project.properties||[]).map(p=>p.id));
   if(parcels.some(p=>existing.has(p.id)))return failure('generated');
-  return {ok:true,preset,parcelId:property.id,rect,levels,createdFloors,
+  return {ok:true,preset,parcelId:property.id,rect:world,levels,createdFloors,
    items:all,rooms:all.filter(it=>it.type==='room').length,
    apartments:boxesByLevel.reduce((a,b)=>a+b,0),stories:count,units,parcels};
  }
  function place(project,property,preset,options={}){
   const draft=plan(project,property,preset,options);
   if(!draft.ok)return draft;
+  return apply(project,property,preset,draft);
+ }
+ function apply(project,property,preset,draft){
   for(const level of draft.levels){
    const existing=project.floors.find(f=>f.id===level.id);
    if(existing)existing.items=level.items;
@@ -471,20 +501,24 @@
    apartments:draft.apartments,stories:draft.stories,rect:draft.rect,
    floorIds:draft.levels.map(f=>f.id)};
  }
- function placeArea(project,floorId,a,b,preset,options={}){
+ function prepareArea(project,floorId,a,b,preset,options={}){
   const zones=options.zones;
   if(!zones?.create)return failure('no_zones');
   const id=options.id||'parcel_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8);
-  const proposed=areaProject(project,floorId,a,b,preset,zones,id);
+  const proposed=areaProject(project,floorId,a,b,preset,zones,id,options.turns);
   if(!proposed.ok)return proposed;
   const property=proposed.property;
   const draft=plan(project,property,preset,options);
   if(!draft.ok)return draft;
+  return {ok:true,property,draft};
+ }
+ function placeArea(project,floorId,a,b,preset,options={}){
+  const prepared=prepareArea(project,floorId,a,b,preset,options);
+  if(!prepared.ok)return prepared;
+  const {property,draft}=prepared;
   project.properties??=[];
   project.properties.push(property);
-  const result=place(project,property,preset,options);
-  if(!result.ok){project.properties=project.properties.filter(p=>p!==property);return result;}
-  return {...result,property};
+  return {...apply(project,property,preset,draft),property};
  }
- return Object.freeze({MIN,TARGET,outline,footprintFor,measureFootprint,limitFootprint,newName,plan,place,placeArea});
+ return Object.freeze({MIN,TARGET,outline,footprintFor,measureFootprint,limitFootprint,newName,plan,place,prepareArea,placeArea});
 });
