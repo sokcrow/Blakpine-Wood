@@ -1,26 +1,48 @@
-# Construcción 04 — Presets que generan edificios
+# Construcción 04 — edificios nativos, viviendas privadas y circulación común
 
-El editor **Zonas → Delimitar propiedad → Proyecto** permite seleccionar Ayuntamiento, Casas, Apartamentos o Tienda. Después de seleccionar un proyecto, el botón **Generar edificio completo** crea una estructura real en el piso de esa parcela. **Personalizado** conserva el editor manual.
+## Flujo del editor
 
-## Datos y construcción
-- Solo se generan edificios en parcelas rectangulares creadas con la herramienta de Zonas; otras parcelas requieren edición manual.
-- Debe quedar libre una casilla de margen en cada lado; el edificio ocupa una huella máxima propia del preset, no necesariamente toda la propiedad.
-- No se elimina ni sobrescribe ninguna pared, calle, pieza, habitación, mueble o infraestructura existente. Se rechaza el área ocupada.
-- Se generan objetos nativos en `floor.items`: paredes rojas de perímetro y losa, huecos con puertas y ventanas, divisiones interiores, vestíbulo y habitaciones `room` con `constructionRoom`.
-- Los GLB se colocan a partir de la metadata física existente en `catalogo_muebles.json`; `FHFurnitureRules.applyCatalogModel` mantiene sus tipos e interacciones donde aplica.
-- Las habitaciones exigidas por Construcción 02 se equipan con mobiliario. Las tiendas incluyen registradora y dos exhibidores. Apartamentos crea **dos viviendas** separadas con accesos desde un corredor común, en una sola planta; no se han agregado plantas ni escaleras automáticamente.
-- Se colocan tomas de agua, desagües y enchufes cerca de los aparatos. **No se crean fuentes, contratos, circuitos o conexiones ficticias**. Los diagnósticos existentes siguen identificando instalaciones no verificadas o desconectadas.
-- Todos los objetos generados incluyen `constructionParcelId`; la parcela registra `generatedPrefab: {version,preset,itemIds}`. Son campos opcionales que preservan `forest-horror-map-v1`. No se borra ninguna edición manual posterior.
-- Para no duplicar ni eliminar cambios del creador, el botón rechaza una segunda generación sobre la misma parcela. Modifica sus elementos con el editor normal.
+En **Zonas → Colocar edificio** se dibuja el terreno. A continuación se elige **Ayuntamiento, Casas, Apartamentos o Tienda**, la cantidad de plantas (1–3) y si se activa **Simular obra durante la partida**. La herramienta crea la parcela de forma automática con un nombre único (p. ej., **Apartamentos 1**) y, tras validar el espacio y el catálogo, inserta el edificio. También se conserva la opción antigua de generar en una parcela ya creada desde **Editar zona → Proyecto**.
 
-## Estado de obra y límites
-La opción **Simular obra durante la partida** conserva las fases, porcentajes y vallado ligeros de Construcción 01. **Limitación pendiente:** las paredes y muebles generados se incorporan a la geometría desde el inicio del mapa; todavía no aparecen progresivamente en cada fase y no participan obreros. Tampoco hay alcalde funcional, PC municipal, economía de construcción, viviendas ocupadas ni empleados. No considerar la obra visual por etapas completada.
+El proyecto **Personalizado** sigue siendo manual. Las herramientas habituales del editor permiten mover, girar, eliminar y modificar **cada pared, puerta, habitación, escalera, mueble y punto de servicio** generado. No existe un único GLB monolítico ni una estructura decorativa bloqueada.
 
-## Validación y mantenimiento
-Pruebas de Construcción 04: generación de cuatro presets, cierre real de perímetro reconocido por arquitectura, contenidos por habitación, protección ante calles y solapes, no duplicación, límites de huella, conservación del JSON y falta de modelos. Ejecutar:
+## Arquitectura y vivienda
 
-```sh
-node --test juego/assets/fh-construction-prefabs.test.js
-```
+- **Pared roja**: perímetro y losas, con puertas/ventanas que conservan el cierre arquitectónico.
+- **Pared azul**: tabiques internos; las puertas sustituyen tramos de muro, no se superponen.
+- **Apartamentos**: se generan **varias unidades por piso según anchura disponible** (no dos unidades rígidas). Cada unidad tiene un identificador persistente, una entrada propia desde un **pasillo común**, baño cerrado, recámara separada y sala-cocina conectadas. La zona de escaleras se mantiene fuera de las viviendas.
+- Los pasillos y vestíbulos son comunes y no obligan a atravesar el departamento de otro vecino. Las escaleras entre plantas enlazan los IDs de pisos vecinos mediante el sistema nativo de niveles.
+- **Baños** compactos de menos de 3 × 3 tiles, con pared, puerta de interior inicialmente cerrada, inodoro, lavabo y metadato opcional `requiresClosedDoor`. Ese campo prepara la futura regla de privacidad de NPC; **aún no ejecuta automáticamente la conducta de uso del baño**.
+- **Recámaras** privadas y separadas, de mayores dimensiones. **Sala y cocina** comparten habitación en este preset; una cocina separada sigue siendo posible mediante edición manual.
+- **Casas** de uno o varios pisos con dormitorios, baños y escaleras. El costo adicional de una segunda planta sigue pendiente del sistema económico; no se inventaron tarifas.
+- **Tiendas** con área de ventas, baño, almacén, registradora y exhibidores. **Ayuntamiento** con oficinas y baño.
 
-No se incorporan dependencias, instaladores ni workflows.
+## Posición de mobiliario y servicios
+
+El posicionador usa las dimensiones **widthFt** y **depthFt** del catálogo GLB (convertidas con `feetPerCell`), acepta coordenadas fraccionarias, busca el anclaje sobre una pared, rota el frente hacia el interior, comprueba la huella tras rotación, mantiene acceso frontal libre y evita los giros sobre puertas. La cama evita ocupar el espacio cercano a las ventanas siempre que el plano lo permita. Si una habitación no admite el mobiliario con espacio de uso, la operación **falla por completo**, no lo inserta flotando o atravesando una pared.
+
+Se colocan salidas de agua/drenaje y enchufes cerca de los aparatos, pero **NO se generan redes eléctricas, fuentes ni conexiones de agua o drenaje ficticias**. Los diagnósticos de Construcción 02 pueden quedar en **No verificado** hasta conectar servicios reales.
+
+## Parcelas, pisos y persistencia
+
+Se conserva el esquema **`forest-horror-map-v1`**. Se añaden metadatos opcionales `constructionParcelId`, `constructionPhase`, `privateRoom`, `requiresClosedDoor` y `generatedPrefab: {version,preset,itemIds,floorIds,apartments}`. Cada vivienda mantiene `apartmentId`; no se crean propietarios ni residentes ficticios.
+
+La colocación es **transaccional**: valida terreno ocupado, otros inmuebles, modelos ausentes, dimensiones mínimas y niveles; solo modifica el mapa si se pudo preparar todo. No regenera una parcela ya materializada para evitar destruir cambios manuales.
+
+Las plantas nuevas conservan `reference` y las cotas del editor. Si el piso superior ya existe con la elevación correcta, se reutiliza sin alterar sus elementos fuera de la huella seleccionada.
+
+## Duraciones y límites actuales
+
+El tiempo de obra usa los **minutos del reloj del juego** y una duración por preset, que aumenta al seleccionar más pisos. Es configurable mediante `FHConstruction.plan(...,{durationMinutes,stories})`; los mapas anteriores sin duración conservan el avance legado.
+
+**Pendiente de completar:** si se marca **Simular obra**, las paredes y los muebles nativos aún aparecen completos en el motor desde el inicio, aunque el porcentaje y la valla de obra progresen. Falta integrar **render, colisiones y disponibilidad de piezas por fase**, y comprobarlo visualmente en navegador/móvil. Por eso **el PR debe permanecer en borrador y no fusionarse** como implementación integral de obras progresivas.
+
+Tampoco se han agregado NPC obreros, alcaldes PJ/IA, gestión política, contratación, costo de construcción, propietarios por departamento ni alquileres.
+
+## Pruebas
+
+- `node --test juego/assets/fh-construction-prefabs.test.js`: planos, dormitorios y baños, varias unidades por piso, puertas, corredores, frentes/huellas de GLB, pisos, escaleras, auto-parcela, servicios no inventados y rechazo transaccional.
+- `node --test juego/assets/fh-construction.test.js`: estado y reloj de obras.
+- Queda pendiente la prueba visual real en Three.js, móviles, navegación NPC real y estrés de edificios grandes.
+
+No se agregan workflows, instaladores ni dependencias.
