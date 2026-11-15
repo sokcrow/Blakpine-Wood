@@ -331,13 +331,12 @@
   }
   const boxesByLevel=[];
   function apartments(f,level){
-   const X=rect.x,Y=rect.y,R=X+rect.w,B=Y+rect.h,hall=3.5,stair=3.5;
+   const X=rect.x,Y=rect.y,R=X+rect.w,B=Y+rect.h,hall=3.5;
    const depth=(rect.h-hall)/2;
    if(depth<9)return failure('small_parcel');
-   const usable=rect.w-stair;
-   const columns=Math.min(5,Math.floor(usable/7.5));
+   const columns=Math.min(5,Math.floor(rect.w/7.5));
    if(columns<2)return failure('small_parcel');
-   const unitW=usable/columns;
+   const unitW=rect.w/columns;
    const windows=[];
    for(let side=0;side<2;side++)for(let c=0;c<columns;c++){
     const x=X+c*unitW,back=side===0?Y:B,windX=x+unitW-1.5;
@@ -385,7 +384,7 @@
       roomIds:[bathSpace.roomId,bedSpace.roomId,living.roomId],
       doorIds:[],private:true});
     }
-    line(f,'h',insideY,X,X+usable,corridorDoors,false);
+    line(f,'h',insideY,X,R,corridorDoors,false);
    }
    // Las puertas del corredor ya existen: el mobiliario respeta sus radios de acceso.
    for(const [livingRoom,kind] of waiting)furnish(f,livingRoom,kind);

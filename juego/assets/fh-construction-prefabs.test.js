@@ -415,3 +415,21 @@ test('auditar un giro ocupado no crea una parcela',()=>{
  assert.equal(review.code,'occupied');
  assert.equal(JSON.stringify(m),before);
 });
+
+test('en 22 × 22 las viviendas y el pasillo cubren toda la planta en cada orientación',()=>{
+ for(const turns of [0,1,2,3]){
+  const m=map();
+  const result=Prefabs.placeArea(m,'f1',{x:10,y:10},{x:32,y:32},'apartamentos',
+   {catalog,zones:Zones,turns,stories:2});
+  assert.equal(result.ok,true);
+  for(const floor of m.floors){
+   const corridor=floor.items.find(i=>i.commonArea);
+   const units=m.properties.filter(p=>p.propertyRole==='apartment'&&p.floorId===floor.id);
+   for(let x=10.125;x<32;x+=.5)for(let y=10.125;y<32;y+=.5){
+    const inHall=Geometry.roomContains(corridor,{x,y});
+    const homes=units.filter(p=>Zones.inside({x,y},p.polygon)).length;
+    assert.equal(Number(inHall)+homes,1);
+   }
+  }
+ }
+});

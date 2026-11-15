@@ -220,21 +220,23 @@
   modal('<h2>'+escape(T().presets[preset])+'</h2>'+
    '<button id="fhRotatePlan">Girar edificio 90°</button> '+
    '<label>Planta <select id="fhPlanFloor">'+Array.from({length:stories},(_,i)=>'<option value="'+i+'">'+(i+1)+'</option>').join('')+'</select></label>'+
-   '<p id="fhPlanSize"></p><canvas id="fhFloorPlan" width="660" height="300" style="width:100%;height:auto;background:#19232c" aria-label="Plano arquitectónico"></canvas>'+
-   '<p>Paredes en claro · puertas en amarillo · ventanas en azul · escaleras en verde</p>'+
+   '<p id="fhPlanSize"></p><p id="fhPlanStatus" role="status"></p>'+
+   '<div id="fhPlanDrawing" hidden><canvas id="fhFloorPlan" width="660" height="300" style="width:100%;height:auto;background:#19232c" aria-label="Plano arquitectónico"></canvas>'+
+   '<p>Paredes en claro · puertas en amarillo · ventanas en azul · escaleras en verde</p></div>'+
    '<details id="fhPlanDetails"><summary>Revisar plano</summary><p id="fhPlanAudit"></p></details>'+
-   '<p id="fhPlanStatus" role="status"></p><div class="actions"><button class="primary" disabled id="fhNewPrefabConfirm">'+escape(PT().confirm)+'</button>'+
+   '<div class="actions"><button class="primary" disabled id="fhNewPrefabConfirm">'+escape(PT().confirm)+'</button>'+
    '<button id="fhNewPrefabCancel">'+escape(PT().cancel)+'</button></div>',async()=>{
    const el=id=>document.getElementById(id),confirm=el('fhNewPrefabConfirm'),rotate=el('fhRotatePlan');
    const canvas=el('fhFloorPlan'),floorChoice=el('fhPlanFloor'),status=el('fhPlanStatus');
-   let turns=0,catalog,prepared;
+   let turns=0,catalog,prepared,previewPlan;
    const options=()=>({zones:Z(),catalog,stories,turns,modelRules:root.FHFurnitureRules,shared:ForestShared});
    const end=()=>({x:origin.x+(turns%2?origin.h:origin.w),y:origin.y+(turns%2?origin.w:origin.h)});
    function draw(){
     const ctx=canvas.getContext('2d');
     ctx.clearRect(0,0,canvas.width,canvas.height);
-    if(!prepared?.ok)return;
-    const {draft,property}=prepared,r=draft.rect,scale=Math.min(640/r.w,280/r.h);
+    el('fhPlanDrawing').hidden=!previewPlan?.ok;
+    if(!previewPlan?.ok)return;
+    const {draft,property}=previewPlan,r=draft.rect,scale=Math.min(640/r.w,280/r.h);
     ctx.save();ctx.translate((660-r.w*scale)/2,(300-r.h*scale)/2);
     ctx.scale(scale,scale);ctx.translate(-r.x,-r.y);
     for(const item of draft.levels[Number(floorChoice.value)].items){
@@ -256,8 +258,15 @@
     el('fhPlanSize').textContent=w+' × '+h+' casillas · '+w*ft+' × '+h*ft+' ft · '+turns*90+'°';
     prefabPreview={...selected,rect:{x:origin.x,y:origin.y,w,h}};render();
     prepared=PF().prepareArea(project,floorId,origin,b,preset,options());
+    previewPlan=prepared;
+    if(!prepared.ok&&['occupied','invalid_parcel','levels_conflict'].includes(prepared.code)){
+     const base=project.floors.find(f=>f.id===floorId);
+     const sample={...project,properties:[],floors:[{...base,items:[]}]};
+     previewPlan=PF().prepareArea(sample,floorId,origin,b,preset,options());
+    }
     draw();confirm.disabled=!prepared.ok;
     status.textContent=prepared.ok?'':PT().errors[prepared.code]||PT().errors.invalid_catalog;
+    if(!prepared.ok&&previewPlan.ok)status.textContent+=' Se muestra la distribución propuesta.';
     el('fhPlanAudit').textContent=status.textContent;
     if(!prepared.ok)return;
     const {property,draft}=prepared;
@@ -291,8 +300,8 @@
     catalog=await response.json();
     if(catalog.schema!=='forest-horror-furniture-catalog-v1')throw Error('catalog_schema');
     if(!confirm.isConnected)return;
-    rotate.disabled=false;review();
-   }catch(error){if(confirm.isConnected)status.textContent=PT().errors.missing_catalog;}
+   }catch(error){if(confirm.isConnected)status.textContent=PT().errors.missing_catalog;return;}
+   rotate.disabled=false;review();
   });
  }
  function openProperty(id){
