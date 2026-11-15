@@ -11,6 +11,7 @@
  const isAuto=it=>D.isSection(it)&&it.drainage.autoDraw===true;
  const sizeOf=kind=>kind==='main'?10:kind==='small'?4:0;
  const prefix=size=>size===4?'small_':'';
+ const piece=(size,kind)=>size===4?(kind==='straight'?'small':'small_'+kind):kind;
  const almost=(a,b)=>Math.abs(a-b)<EPS;
  const interval=(a,b,c,d)=>Math.min(b,d)-Math.max(a,c)>EPS;
  function cell(point,size,units){
@@ -34,7 +35,7 @@
   return result;
  }
  function portStub(item,side){
-  return {...item,rotation:SIDES.indexOf(side)*90+270===360?0:(SIDES.indexOf(side)*90+270)%360,
+  return {...item,rotation:(SIDES.indexOf(side)*90+270)%360,
    drainage:{...item.drainage,kind:prefix(item.w)+'dead_end'}};
  }
  function nearOnSide(a,b,side){
@@ -52,8 +53,8 @@
    return {kind:base+'tee',rotation:{s:0,w:90,n:180,e:270}[missing]};
   }
   if(n===2){
-   if(has('e')&&has('w'))return {kind:base+'straight',rotation:0};
-   if(has('n')&&has('s'))return {kind:base+'straight',rotation:90};
+   if(has('e')&&has('w'))return {kind:piece(size,'straight'),rotation:0};
+   if(has('n')&&has('s'))return {kind:piece(size,'straight'),rotation:90};
    const pair=SIDES.filter(has).join('');
    return {kind:base+'elbow',rotation:{ne:0,es:90,sw:180,nw:270}[pair]};
   }
