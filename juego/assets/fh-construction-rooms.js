@@ -104,15 +104,71 @@
   if(!floor||!geometry?.roomInProperty||!geometry.inside)return null;
   const rooms=(floor.items||[]).filter(it=>it?.type==='room'&&geometry.roomInProperty(it,property)
    &&ROOM_PRESETS.includes(it.constructionRoom));
-  const inspected=rooms.map(room=>inspectRoom(project,property.floorId,room,{...options,geometry})).filter(Boolean);
-  const preset=property.construction?.preset||'personalizado';
-  const required=BUILDINGS[preset]||[];
+  const inspected=[],preset=property.construction?.preset||property.generatedPrefab?.preset||'personalizado',required=BUILDINGS[preset]||[];
   const issues=[],unverified=[];
-  for(const kind of required)if(!inspected.some(r=>r.preset===kind))
-   issues.push({code:'falta_habitacion',need:kind});
-  for(const r of inspected){
-   issues.push(...r.issues.map(issue=>({...issue,roomId:r.roomId})));
-   unverified.push(...r.unverified.map(issue=>({...issue,roomId:r.roomId})));
+  const grouped=preset==='apartamentos'&&Array.isArray(property.generatedPrefab?.apartments)
+   &&property.generatedPrefab.apartments.length>0;
+  const inspect=(room,floorId,apartmentId='')=>{
+   const result=inspectRoom(project,floorId,room,{...options,geometry});
+   if(!result)return;
+   inspected.push({...result,...(apartmentId?{apartmentId,floorId}:{})});
+   issues.push(...result.issues.map(issue=>({...issue,roomId:result.roomId,...(apartmentId?{apartmentId,floorId}:{})})));
+   unverified.push(...result.unverified.map(issue=>({...issue,roomId:result.roomId,...(apartmentId?{apartmentId,floorId}:{})})));
+  };
+  if(grouped){
+   const seen=new Set();
+   for(const unit of property.generatedPrefab.apartments){
+    if(!unit?.id||!unit.floorId||seen.has(unit.id)){
+     issues.push({code:'departamento_invalido'});continue;
+    }
+    seen.add(unit.id);
+    const f=(project.floors||[]).find(floor=>String(floor.id)===String(unit.floorId));
+    if(!f){issues.push({code:'departamento_invalido',apartmentId:unit.id});continue;}
+    const privateRooms=(f.items||[]).filter(it=>it.type==='room'&&it.apartmentId===unit.id
+     &&ROOM_PRESETS.includes(it.constructionRoom));
+    for(const kind of ['bano','dormitorio','cocina'])if(!privateRooms.some(it=>it.constructionRoom===kind))
+     issues.push({code:'falta_habitacion',need:kind,apartmentId:unit.id,floorId:f.id});
+    for(const room of privateRooms){
+     if((room.constructionRoom==='bano'&&(!room.privateRoom||!room.requiresClosedDoor||
+      room.w>3||room.h>3))||(room.constructionRoom==='dormitorio'&&!room.privateRoom))
+      issues.push({code:'sin_privacidad',roomId:room.roomId,apartmentId:unit.id,floorId:f.id});
+     inspect(room,f.id,unit.id);
+    }
+    const entrances=(f.items||[]).filter(it=>['door','peephole_door'].includes(it.type)
+     &&it.apartmentId===unit.id&&it.doorRole==='entrance');
+    const interior=(f.items||[]).filter(it=>['door','peephole_door'].includes(it.type)
+     &&it.apartmentId===unit.id&&it.doorRole==='interior');
+    const common=(f.items||[]).find(it=>it.type==='room'&&it.commonArea===true);
+    const bath=privateRooms.find(it=>it.constructionRoom==='bano');
+    const bedroom=privateRooms.find(it=>it.constructionRoom==='dormitorio');
+    const living=privateRooms.find(it=>it.constructionRoom==='cocina');
+    const connects=(door,first,second)=>{
+     if(!door?.a||!door?.b||!first||!second||!geometry.roomContains)return false;
+     const x=(door.a.x+door.b.x)/2,y=(door.a.y+door.b.y)/2;
+     const dx=door.b.x-door.a.x,dy=door.b.y-door.a.y,length=Math.hypot(dx,dy);
+     if(length<.8)return false;
+     const normal={x:-dy/length*.15,y:dx/length*.15};
+     const a={x:x+normal.x,y:y+normal.y},b={x:x-normal.x,y:y-normal.y};
+     return geometry.roomContains(first,a)&&geometry.roomContains(second,b)||
+      geometry.roomContains(first,b)&&geometry.roomContains(second,a);
+    };
+    if(entrances.length!==1||interior.length<2||
+     !entrances.some(d=>connects(d,common,living))||
+     !interior.some(d=>connects(d,bath,living))||
+     !interior.some(d=>connects(d,bedroom,living)))
+     issues.push({code:'sin_acceso_privado',apartmentId:unit.id,floorId:f.id});
+    if(!common)issues.push({code:'falta_zona_comun',floorId:f.id});
+   }
+    const floors=property.generatedPrefab.floorIds||[];
+    for(let i=0;i<floors.length-1;i++){
+     const from=(project.floors||[]).find(f=>f.id===floors[i]);
+     if(!from?.items?.some(it=>it.type==='stairs'&&it.targetFloorId===floors[i+1]))
+      issues.push({code:'sin_escalera',floorId:floors[i]});
+    }
+  }else{
+   for(const kind of required)if(!rooms.some(room=>room.constructionRoom===kind))
+    issues.push({code:'falta_habitacion',need:kind});
+   for(const room of rooms)inspect(room,property.floorId);
   }
   if(preset==='tienda'){
    const placed=itemsInProperty(floor,property,geometry);

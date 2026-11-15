@@ -10,6 +10,9 @@
  'use strict';
  const PRESETS=Object.freeze(['ayuntamiento','apartamentos','casas','tienda','personalizado']);
  const PHASES=Object.freeze(['planificada','cimientos','estructura','instalaciones','inspeccion','terminada']);
+ // Minutos del reloj del juego; configurables por proyecto y cantidad de niveles.
+ const BASE_MINUTES=Object.freeze({ayuntamiento:5760,apartamentos:8640,casas:4320,tienda:2880,personalizado:3600});
+ const durationFor=(preset,stories=1)=>Math.round((BASE_MINUTES[preset]||3600)*(1+.65*Math.max(0,Math.min(3,Number(stories)||1)-1)));
  const clamp=(n)=>Math.max(0,Math.min(100,n));
  const validPercent=n=>typeof n==='number'&&Number.isFinite(n);
  function normalize(raw){
@@ -17,12 +20,17 @@
   const simulated=raw.simulated===true;
   const preset=PRESETS.includes(raw.preset)?raw.preset:'personalizado';
   const progress=simulated&&validPercent(raw.progress)?clamp(raw.progress):(simulated?0:100);
-  return {version:1,preset,simulated,progress:simulated?progress:100};
+  const duration=Number(raw.durationMinutes);
+  return {version:1,preset,simulated,progress:simulated?progress:100,
+   ...(Number.isInteger(duration)&&duration>0&&duration<=525600?{durationMinutes:duration}:{})};
  }
- function plan(property,preset,simulated=false){
+ function plan(property,preset,simulated=false,options={}){
   if(!property||typeof property!=='object')throw Error('Parcela no válida');
   if(!PRESETS.includes(preset))throw Error('Preset de construcción desconocido');
-  property.construction={version:1,preset,simulated:simulated===true,progress:simulated?0:100};
+  const minutes=Number.isInteger(options.durationMinutes)&&options.durationMinutes>0
+   ?Math.min(525600,options.durationMinutes):durationFor(preset,options.stories);
+  property.construction={version:1,preset,simulated:simulated===true,progress:simulated?0:100,
+   durationMinutes:minutes};
   return property.construction;
  }
  function phase(progress){
@@ -41,8 +49,8 @@
  }
  function createRuntime(project,state={},options={}){
   if(!state||typeof state!=='object')throw Error('Estado de partida no válido');
-  const percentPerMinute=Number.isFinite(options.percentPerMinute)&&options.percentPerMinute>=0
-   ?options.percentPerMinute:0.04;
+  const rateOverride=Number.isFinite(options.percentPerMinute)&&options.percentPerMinute>=0
+   ?options.percentPerMinute:null;
   const parcelMap=new Map((Array.isArray(project?.properties)?project.properties:[])
    .filter(p=>p&&typeof p.id==='string'&&p.id&&normalize(p.construction)?.simulated)
    .map(p=>[p.id,p]));
@@ -58,7 +66,8 @@
    const record=stored&&typeof stored==='object'?stored:{};
    const progress=validPercent(record.progress)?clamp(record.progress):spec.progress;
    const lastMinute=Number.isFinite(record.lastMinute)?record.lastMinute:null;
-   entries.set(id,{progress,lastMinute});
+   const rate=rateOverride!==null?rateOverride:spec.durationMinutes?100/spec.durationMinutes:.04;
+   entries.set(id,{progress,lastMinute,rate});
    state.construction[id]={progress,lastMinute};
   }
   const report=(id)=>{
@@ -96,12 +105,12 @@
      continue;
     }
     const elapsed=Math.min(1440,Math.max(0,entry.lastMinute-previousMinute));
-    if(!elapsed||!percentPerMinute){
+    if(!elapsed||!entry.rate){
      state.construction[id]={progress:entry.progress,lastMinute:entry.lastMinute};
      continue;
     }
     const before=entry.progress;
-    entry.progress=clamp(entry.progress+elapsed*percentPerMinute);
+    entry.progress=clamp(entry.progress+elapsed*entry.rate);
     persist(id,before);
     changed ||= entry.progress!==before;
    }
@@ -117,5 +126,5 @@
   }
   return Object.freeze({tick,advance,status,list:()=>[...entries.keys()].map(report)});
  }
- return Object.freeze({PRESETS,PHASES,normalize,plan,phase,absoluteMinute,createRuntime});
+ return Object.freeze({PRESETS,PHASES,BASE_MINUTES,durationFor,normalize,plan,phase,absoluteMinute,createRuntime});
 });

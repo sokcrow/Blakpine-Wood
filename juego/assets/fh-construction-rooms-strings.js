@@ -16,7 +16,12 @@
  issue:Object.freeze({falta_mueble:'Falta',falta_habitacion:'Falta una habitación de tipo',
   sin_agua:'Sin agua',sin_drenaje:'Sin drenaje',sin_electricidad:'Sin electricidad',
   falta_registradora:'Falta una caja registradora',faltan_exhibidores:'Faltan góndolas o exhibidores',
-  obra_pendiente:'Obra aún sin terminar'}),
+  obra_pendiente:'Obra aún sin terminar',
+  departamento_invalido:'Departamento inválido o sin piso',
+  sin_privacidad:'Habitación sin cerramiento privado correcto',
+  sin_acceso_privado:'Departamento sin acceso y puertas interiores completos',
+  falta_zona_comun:'Falta pasillo o zona común en la planta',
+  sin_escalera:'Falta una escalera conectada con la siguiente planta'}),
  access:'La accesibilidad para NPC no está comprobada.'
  });
 })(typeof window!=='undefined'?window:globalThis);
