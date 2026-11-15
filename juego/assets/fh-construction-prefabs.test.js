@@ -168,6 +168,46 @@ test('duraciones dependientes de preset y pisos sin afectar obras anteriores',()
  assert.equal(oldRuntime.tick(20),true);
  assert.equal(oldRuntime.status('legacy').progress,.4);
 });
+test('auditoría inspecciona CADA vivienda incluso en pisos superiores',()=>{
+ const {m,p,result}=make('apartamentos',2,33,26);
+ assert.equal(result.ok,true);
+ const initial=Rooms.inspectParcel(m,p,{geometry:Geometry});
+ assert.equal(initial.status,'unverified');
+ assert.deepEqual(initial.issues,[]);
+ const upper=p.generatedPrefab.apartments.find(unit=>unit.floorId===m.floors[1].id);
+ assert.ok(upper);
+ const floor=m.floors[1],bath=floor.items.find(it=>it.type==='room'&&it.apartmentId===upper.id&&it.constructionRoom==='bano');
+ assert.ok(bath);
+ const toilet=floor.items.find(it=>it.modelId==='inodoro_clasico'&&it.roomId===bath.roomId);
+ assert.ok(toilet);
+ floor.items=floor.items.filter(it=>it.id!==toilet.id);
+ let audit=Rooms.inspectParcel(m,p,{geometry:Geometry});
+ assert.equal(audit.status,'incomplete');
+ assert.ok(audit.issues.some(it=>it.code==='falta_mueble'&&it.apartmentId===upper.id));
+ floor.items.push(toilet);
+ const door=floor.items.find(it=>it.type==='door'&&it.doorRole==='entrance'&&it.apartmentId===upper.id);
+ assert.ok(door);
+ floor.items=floor.items.filter(it=>it.id!==door.id);
+ audit=Rooms.inspectParcel(m,p,{geometry:Geometry});
+ assert.ok(audit.issues.some(it=>it.code==='sin_acceso_privado'&&it.apartmentId===upper.id));
+ floor.items.push(door);
+ bath.requiresClosedDoor=false;
+ audit=Rooms.inspectParcel(m,p,{geometry:Geometry});
+ assert.ok(audit.issues.some(it=>it.code==='sin_privacidad'&&it.apartmentId===upper.id));
+});
+test('niveles creados tienen metadatos compatibles con el editor',()=>{
+ const {m,result}=make('apartamentos',3,32,28);
+ assert.equal(result.ok,true);
+ assert.equal(m.floors.length,3);
+ for(const floor of m.floors.slice(1)){
+  assert.ok(floor.reference&&typeof floor.reference.data==='string');
+  assert.ok(Number.isFinite(floor.elevationFt));
+ }
+ for(let i=0;i<2;i++){
+  const next=m.floors[i+1];
+  assert.ok(m.floors[i].items.some(it=>it.type==='stairs'&&it.targetFloorId===next.id));
+ }
+});
 test('cargar prefabs no modifica mapas antiguos ni crea propiedades espontáneas',()=>{
  const m=map(),before=JSON.stringify(m);
  assert.equal(Prefabs.outline({},m.units),null);
