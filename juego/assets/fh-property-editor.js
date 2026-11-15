@@ -195,7 +195,7 @@
    (editable?'<fieldset><legend>'+escape(roomOptions.title)+'</legend>'+roomFields+'<small>'+escape(roomOptions.help)+'</small></fieldset>':'')+
    inspection+
    (editable?'<fieldset><legend>'+escape(PT().button)+'</legend><p><small>'+escape(PT().help)+'</small></p>'+
-    (prop.generatedPrefab?'<p>'+escape(PT().generated)+'</p>':'<button type="button" id="fhParcelGenerate" class="accent">'+escape(PT().button)+'</button>')+'</fieldset>':'')+
+    (prop.generatedPrefab?'<p>'+escape(PT().generated)+'</p>':'<label>'+escape(PT().floors)+'<select id="fhParcelConstructionFloors"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></label><button type="button" id="fhParcelGenerate" class="accent">'+escape(PT().button)+'</button>')+'</fieldset>':'')+
    '<div class="actions"><button class="primary" id="fhParcelSave">Guardar</button>'+
    (editable?'<button class="danger" id="fhParcelDelete">Eliminar parcela</button>':'')+
    '<button id="fhParcelClose">Cerrar</button></div>',()=>{
@@ -205,6 +205,8 @@
      const preset=document.getElementById('fhParcelConstructionPreset').value;
      if(!preset||preset==='personalizado'){toast(PT().select);return;}
      const simulated=document.getElementById('fhParcelConstructionSimulated').checked;
+     const stories=Number(document.getElementById('fhParcelConstructionFloors').value);
+     const images=new Map(project.floors.map((floor,i)=>[floor.id,loadedImgs[i]]));
      generate.disabled=true;generate.textContent=PT().busy;
      let catalogReady=false;
      try{
@@ -214,7 +216,7 @@
       if(catalog.schema!=='forest-horror-furniture-catalog-v1')throw Error('catalog_schema');
       catalogReady=true;
       // No mutar hasta que la comprobación de espacios, modelos y colisiones pase.
-      const result=PF().place(project,prop,preset,{catalog,modelRules:root.FHFurnitureRules,shared:ForestShared});
+      const result=PF().place(project,prop,preset,{catalog,stories,modelRules:root.FHFurnitureRules,shared:ForestShared});
       if(!result.ok){
        toast((PT().errors[result.code]||PT().errors.invalid_catalog)+
         (result.code==='small_parcel'?' ('+result.minimum.join(' × ')+' tiles)':''));
@@ -224,7 +226,8 @@
       prop.claimable=document.getElementById('fhParcelClaim').value==='yes';
       prop.ownerId=document.getElementById('fhParcelOwner').value.trim().slice(0,80);
       C().plan(prop,preset,simulated);
-      record();closeModal();toast(PT().success);render();
+      loadedImgs=project.floors.map(floor=>images.get(floor.id)||null);
+      recalcAllSpaces();record();refreshFloorTabs();closeModal();toast(PT().success);render();
      }catch(error){
       console.error('[Construcción 04]',error);
       toast(catalogReady?PT().errors.invalid_catalog:PT().errors.missing_catalog);
