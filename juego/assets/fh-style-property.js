@@ -64,8 +64,11 @@
   function properties(map,floorId){
     return (map.properties||[]).filter(p=>p.floorId===floorId&&Array.isArray(p.polygon)&&p.polygon.length>=3);
   }
+  // La delimitación general de un conjunto residencial no anula los derechos
+  // de sus departamentos ni equivale a una vivienda reclamable.
+  function claimableScopes(map,floorId){return properties(map,floorId).filter(p=>p.propertyRole!=='building');}
   function propertyAt(map,floorId,p){
-    const matches=properties(map,floorId).filter(q=>inside(p,q.polygon));
+    const matches=claimableScopes(map,floorId).filter(q=>inside(p,q.polygon));
     if(matches.length>1)return null; // negar permisos ante solapamientos ambiguos
     return matches[0]||null;
   }
@@ -116,7 +119,7 @@
     return style(room.surfaceStyle,{...fallback,pattern:null},'floor');
   }
   function authority(map,floorId,p){
-    if(properties(map,floorId).filter(q=>inside(p,q.polygon)).length>1)return {id:'overlap:'+floorId,ownerId:''};
+    if(claimableScopes(map,floorId).filter(q=>inside(p,q.polygon)).length>1)return {id:'overlap:'+floorId,ownerId:''};
     const prop=propertyAt(map,floorId,p);
     if(prop)return {id:'property:'+prop.id,ownerId:prop.ownerId};
     const building=buildingAt(map,floorId,p);
@@ -127,8 +130,8 @@
     if(isAdmin)return true;
     if(!actor||!FACES.includes(side))return false;
     const midpoint={x:(wall.a.x+wall.b.x)/2,y:(wall.a.y+wall.b.y)/2};
-    const zoneMatches=properties(map,floorId).filter(p=>p.source==='zone'&&[wall.a,wall.b,midpoint].every(pt=>inside(pt,p.polygon)));
-    if(zoneMatches.length===1&&properties(map,floorId).filter(p=>p!==zoneMatches[0]&&inside(midpoint,p.polygon)).length===0)return zoneMatches[0].ownerId===actor;
+    const zoneMatches=claimableScopes(map,floorId).filter(p=>p.source==='zone'&&[wall.a,wall.b,midpoint].every(pt=>inside(pt,p.polygon)));
+    if(zoneMatches.length===1&&claimableScopes(map,floorId).filter(p=>p!==zoneMatches[0]&&inside(midpoint,p.polygon)).length===0)return zoneMatches[0].ownerId===actor;
     if(zoneMatches.length>1)return false;
     const a=[.02,.5,.98].map(t=>{const main=authority(map,floorId,sample(wall,side,t));if(wall.type==='red_wall'&&main.id.startsWith('outside:')){const opposite=authority(map,floorId,sample(wall,side==='A'?'B':'A',t));if(opposite.id.startsWith('building:'))return opposite;}return main;});
     return a.every(k=>k.ownerId===actor&&k.id===a[0].id);
@@ -152,10 +155,10 @@
   function canPaintRoom(map,floorId,room,actor,isAdmin=false){
     if(isAdmin)return true;
     if(!actor)return false;
-    const owners=properties(map,floorId).filter(prop=>roomInProperty(room,prop));
+    const owners=claimableScopes(map,floorId).filter(prop=>roomInProperty(room,prop));
     if(owners.length===1)return owners[0].ownerId===actor;
     if(owners.length>1)return false;
-    const partial=properties(map,floorId).some(prop=>{const spans=room.spans?.length?room.spans:[room];return spans.some(s=>[[s.x+.002,s.y+.002],[s.x+s.w-.002,s.y+.002],[s.x+.002,s.y+s.h-.002],[s.x+s.w-.002,s.y+s.h-.002]].some(([x,y])=>inside({x,y},prop.polygon)))||prop.polygon.some(p=>roomContains(room,p));});
+    const partial=claimableScopes(map,floorId).some(prop=>{const spans=room.spans?.length?room.spans:[room];return spans.some(s=>[[s.x+.002,s.y+.002],[s.x+s.w-.002,s.y+.002],[s.x+.002,s.y+s.h-.002],[s.x+s.w-.002,s.y+s.h-.002]].some(([x,y])=>inside({x,y},prop.polygon)))||prop.polygon.some(p=>roomContains(room,p));});
     if(partial)return false;
     const enclosed=buildings(map,floorId).filter(b=>roomInProperty(room,b));
     return enclosed.length===1&&!!enclosed[0].ownerId&&enclosed[0].ownerId===actor;
