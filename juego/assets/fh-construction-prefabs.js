@@ -118,6 +118,7 @@
   const usedIds=new Set(project.floors.flatMap(f=>f.items||[]).map(it=>it.id));
   if([...usedIds].some(id=>String(id).startsWith(prefix+'_')))return failure('generated');
   const all=[],levels=[],units=[];let serial=0;
+  const usableFronts=new Map();
   const feet=Number(project.units?.feetPerCell)||5,modelRules=options.modelRules,shared=options.shared;
   const pt=(x,y)=>({x:round(x),y:round(y)});
   const reserve=(floor,kind,attributes,phase='estructura')=>{
@@ -165,8 +166,12 @@
      !contains(site,{x:candidate.x+candidate.w-.03,y:candidate.y+candidate.h-.03}))return false;
     if(!contains(site,{x:front.x+.03,y:front.y+.03})||
      !contains(site,{x:front.x+front.w-.03,y:front.y+front.h-.03}))return false;
-    const occupied=obstacles.map(it=>({x:it.x-it.w/2,y:it.y-it.h/2,w:it.w,h:it.h}));
+    const occupied=obstacles.map(it=>{
+     const rotated=(Number(it.rotation)||0)%180!==0,w=rotated?it.h:it.w,h=rotated?it.w:it.h;
+     return box(it.x-w/2,it.y-h/2,w,h);
+    });
     if(occupied.some(b=>overlaps(b,candidate)||overlaps(b,front)))return false;
+    if((usableFronts.get(r.roomId)||[]).some(b=>overlaps(b,candidate)))return false;
     const doorGap=doors.map(it=>box(Math.min(it.a.x,it.b.x)-.8,Math.min(it.a.y,it.b.y)-.8,
      Math.abs(it.a.x-it.b.x)+1.6,Math.abs(it.a.y-it.b.y)+1.6));
     if(doorGap.some(b=>overlaps(b,candidate)||overlaps(b,front)))return false;
@@ -194,6 +199,8 @@
      placement:'floor',...(entry.shopRole?{shopRole:entry.shopRole}:{})},'instalaciones');
     if(modelRules?.applyCatalogModel&&shared)modelRules.applyCatalogModel(item,entry,shared,feet);
     // Conserva dimensiones originales: el motor aplica la rotación a la huella GLB.
+    if(!usableFronts.has(r.roomId))usableFronts.set(r.roomId,[]);
+    usableFronts.get(r.roomId).push(front);
     return item;
    }
    throw Error('no_furniture_space:'+modelId+':'+r.roomId);
