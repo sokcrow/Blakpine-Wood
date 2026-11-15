@@ -9,5 +9,11 @@
     "id": "combat.dnd",
     "contract": "blakpine-combat-adapter-v1"
   },
-  "statsNamespace": "dnd"
+  "statsNamespace": "dnd",
+  "extensions": {
+    "ia4-combat-scope-v1": {
+      "combatResolution": "d20-planned",
+      "generalSkills": "legacy-existing"
+    }
+  }
 }
