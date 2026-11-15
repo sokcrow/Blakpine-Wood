@@ -3,6 +3,7 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
+const vm=require('node:vm');
 const Prefabs=require('./fh-construction-prefabs.js');
 const Geometry=require('./fh-style-property.js');
 const Rooms=require('./fh-construction-rooms.js');
@@ -358,6 +359,29 @@ test('cada enchufe se monta en un muro estructural del mismo piso',()=>{
   assert.ok(Geometry.roomContains(room,p),'Enchufe orientado fuera de habitación: '+socket.id);
  }
  assert.ok(count>=4);
+});
+test('contrato compartido real: mapa v1 válido y escalera transitable',()=>{
+ // Ejecuta las funciones reales de ForestShared embebidas en el editor.
+ const html=fs.readFileSync(path.resolve(__dirname,'../../index.html'),'utf8');
+ const begin=html.indexOf('const ForestShared=(()=>{'),end=html.indexOf('\n})();',begin);
+ assert.ok(begin>=0&&end>begin);
+ const Shared=vm.runInNewContext(html.slice(begin,end+6)+';ForestShared');
+ const {m,p,result}=make('apartamentos',2,35,28);
+ assert.equal(result.ok,true);
+ const checked=Shared.validate(m);
+ assert.equal(checked.ok,true,JSON.stringify(checked.errors||[]));
+ const stair=m.floors[0].items.find(it=>it.type==='stairs');
+ assert.ok(stair);
+ const first=Shared.stairPointAt(stair,-.7),second=Shared.stairPointAt(stair,.1);
+ assert.equal(Shared.stairAutoTriggerAt(stair,first.x,first.y,second.x,second.y,1,false),true);
+ const landing=Shared.stairDownMarker(stair);
+ assert.equal(landing.w,1);assert.equal(landing.h,1);
+ assert.ok(Shared.stairOnRun(stair,stair.x,stair.y,1));
+ for(const floor of m.floors)for(const socket of floor.items.filter(it=>it.type==='power_outlet')){
+  const mounted=Shared.switchWallMount(floor.items,{x:socket.x,y:socket.y},
+   {wallId:socket.wallId,maxDistance:.1,rotation:socket.rotation});
+  assert.ok(mounted,'Enchufe estructural no reconocible por el motor: '+socket.id);
+ }
 });
 test('cargar prefabs no modifica mapas antiguos ni crea propiedades espontáneas',()=>{
  const m=map(),before=JSON.stringify(m);
