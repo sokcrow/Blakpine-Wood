@@ -11,7 +11,7 @@
   },
   "statsNamespace": "moon-system",
   "extensions": {
-    "ia4-combat-scope-v1": {
+    "blakpine.combat-scope.v1": {
       "combatResolution": "coins-planned",
       "generalSkills": "legacy-existing-independent"
     }
