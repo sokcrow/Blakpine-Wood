@@ -9,5 +9,11 @@
     "id": "combat.moon-system",
     "contract": "blakpine-combat-adapter-v1"
   },
-  "statsNamespace": "moon-system"
+  "statsNamespace": "moon-system",
+  "extensions": {
+    "blakpine.combat-scope.v1": {
+      "combatResolution": "coins-planned",
+      "generalSkills": "legacy-existing-independent"
+    }
+  }
 }

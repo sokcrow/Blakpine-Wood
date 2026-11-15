@@ -4,5 +4,11 @@
   "id": "legacy",
   "label": "Legacy — Blakpine Wood (sistema actual)",
   "domain": "combat",
-  "status": "planned"
+  "status": "planned",
+  "extensions": {
+    "blakpine.combat-scope.v1": {
+      "combatResolution": "legacy-existing",
+      "generalSkills": "legacy-existing"
+    }
+  }
 }
