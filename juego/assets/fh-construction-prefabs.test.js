@@ -227,6 +227,23 @@ test('niveles creados tienen metadatos compatibles con el editor',()=>{
   assert.ok(m.floors[i].items.some(it=>it.type==='stairs'&&it.targetFloorId===next.id));
  }
 });
+
+test('generar desde Piso 1 reutiliza la planta contigua a su altura real y añade solo las faltantes',()=>{
+ for(const [heights,stories,expected] of [
+  [[0,10],2,[0,10]],[[0,12],2,[0,12]],[[0,8,10],2,[0,8]],[[0,12],3,[0,12,22]]
+ ]){
+  const m=map();
+  m.floors=heights.map((elevationFt,i)=>({id:'p'+i,elevationFt,items:[]}));
+  const result=Prefabs.placeArea(m,'p0',{x:4,y:4},{x:26,y:26},'apartamentos',{stories,catalog,zones:Zones});
+  assert.equal(result.ok,true);
+  assert.deepEqual(result.floorIds.map(id=>m.floors.find(f=>f.id===id).elevationFt),expected);
+  for(let i=0;i<stories-1;i++){
+   const stair=m.floors[i].items.find(it=>it.type==='stairs');
+   assert.equal(stair.targetFloorId,result.floorIds[i+1]);
+   assert.equal(stair.heightFt,expected[i+1]-expected[i]);
+  }
+ }
+});
 test('el tamaño máximo del preset no puede superarse al crear la parcela',()=>{
  for(const preset of ['ayuntamiento','casas','apartamentos','tienda']){
   const [maxW,maxH]=Prefabs.TARGET[preset],units={columns:120,rows:120,feetPerCell:5};
@@ -414,4 +431,38 @@ test('auditar un giro ocupado no crea una parcela',()=>{
   {catalog,zones:Zones,turns:1});
  assert.equal(review.code,'occupied');
  assert.equal(JSON.stringify(m),before);
+});
+
+test('en 22 × 22 las viviendas y el pasillo cubren toda la planta en cada orientación',()=>{
+ for(const turns of [0,1,2,3]){
+  const m=map();
+  const result=Prefabs.placeArea(m,'f1',{x:10,y:10},{x:32,y:32},'apartamentos',
+   {catalog,zones:Zones,turns,stories:2});
+  assert.equal(result.ok,true);
+  for(const floor of m.floors){
+   const corridor=floor.items.find(i=>i.commonArea);
+   const units=m.properties.filter(p=>p.propertyRole==='apartment'&&p.floorId===floor.id);
+   for(let x=10.125;x<32;x+=.5)for(let y=10.125;y<32;y+=.5){
+    const inHall=Geometry.roomContains(corridor,{x,y});
+    const homes=units.filter(p=>Zones.inside({x,y},p.polygon)).length;
+    assert.equal(Number(inHall)+homes,1);
+   }
+  }
+ }
+});
+
+test('muros, aberturas y recintos de todos los presets comparten vértices de casilla',()=>{
+ const point=p=>assert.ok(Number.isInteger(p.x)&&Number.isInteger(p.y),JSON.stringify(p));
+ const bounds=r=>{point(r);point({x:r.x+r.w,y:r.y+r.h});};
+ for(const preset of Object.keys(Prefabs.MIN))for(const turns of [0,1,2,3]){
+  const m=map(),[minW,minH]=Prefabs.MIN[preset],w=minW+3,h=minH+1;
+  const placed=Prefabs.placeArea(m,'f1',{x:5,y:9},{x:5+(turns%2?h:w),y:9+(turns%2?w:h)},
+   preset,{turns,catalog,zones:Zones,stories:3});
+  assert.equal(placed.ok,true);
+  for(const floor of m.floors)for(const item of floor.items){
+   if(item.a&&item.b){point(item.a);point(item.b);}
+   if(item.type==='room'){bounds(item);for(const span of item.spans||[])bounds(span);}
+  }
+  for(const prop of m.properties)prop.polygon.forEach(point);
+ }
 });

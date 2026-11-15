@@ -137,12 +137,13 @@
   if(!Number.isInteger(count)||count<1||count>3)return failure('invalid_stories');
   const requestedFloors=[base],createdFloors=[],floorsSorted=[...project.floors].sort((a,b)=>a.elevationFt-b.elevationFt);
   if(!number(base.elevationFt))return failure('levels_conflict');
+  if(count>1&&floorsSorted.some((floor,i)=>!number(floor.elevationFt)||
+   (i>0&&floor.elevationFt-floorsSorted[i-1].elevationFt<EPS)))return failure('levels_conflict');
+  const baseIndex=floorsSorted.indexOf(base);
   for(let level=1;level<count;level++){
-   const elev=base.elevationFt+10*level;
-   const matched=floorsSorted.find(f=>Math.abs(f.elevationFt-elev)<EPS);
-   if(matched){requestedFloors.push(matched);continue}
-   if(floorsSorted.some(f=>f.elevationFt>base.elevationFt&&f.elevationFt<elev+10-EPS))
-    return failure('levels_conflict');
+   const upper=floorsSorted[baseIndex+level];
+   if(upper){requestedFloors.push(upper);continue}
+   const elev=requestedFloors[level-1].elevationFt+10;
    const id='floor_'+property.id+'_'+level;
    if(project.floors.some(f=>f.id===id)||createdFloors.some(f=>f.id===id))return failure('levels_conflict');
    const newFloor={id,name:'Piso '+(level+1)+' · '+(LABELS[preset]||'Edificio'),
@@ -331,33 +332,33 @@
   }
   const boxesByLevel=[];
   function apartments(f,level){
-   const X=rect.x,Y=rect.y,R=X+rect.w,B=Y+rect.h,hall=3.5,stair=3.5;
-   const depth=(rect.h-hall)/2;
-   if(depth<9)return failure('small_parcel');
-   const usable=rect.w-stair;
-   const columns=Math.min(5,Math.floor(usable/7.5));
+   const X=rect.x,Y=rect.y,R=X+rect.w,B=Y+rect.h,hall=4;
+   const hallY=Y+Math.floor((rect.h-hall)/2);
+   if(hallY-Y<9)return failure('small_parcel');
+   const columns=Math.min(5,Math.floor(rect.w/8));
    if(columns<2)return failure('small_parcel');
-   const unitW=usable/columns;
+   // Compartir los límites entre vecinos evita huecos al repartir casillas sobrantes.
+   const edges=Array.from({length:columns+1},(_,c)=>X+Math.floor(c*rect.w/columns));
    const windows=[];
    for(let side=0;side<2;side++)for(let c=0;c<columns;c++){
-    const x=X+c*unitW,back=side===0?Y:B,windX=x+unitW-1.5;
-    windows.push({axis:side===0?'top':'bottom',at:Math.floor(windX)});
+    windows.push({axis:side===0?'top':'bottom',at:edges[c+1]-2});
    }
-   exterior(f,rect,level===0?'left':null,Math.floor(Y+depth+1),windows);
+   exterior(f,rect,level===0?'left':null,hallY+1,windows);
    const waiting=[];
    const hallRoom=room(f,'Pasillo común · piso '+(level+1),
-    box(X,Y+depth,rect.w,hall),'','comun',{commonArea:true,blocksViewOutside:false});
+    box(X,hallY,rect.w,hall),'','comun',{commonArea:true,blocksViewOutside:false});
    // 1×2 tiles dentro del corredor: cada planta tiene llegada y, si procede, subida.
    // Alternar bandas transversales impide que dos tramos se solapen en pisos intermedios.
-   const stairPoint={x:round(R-1.75),y:round(Y+depth+(level%2===0?0.85:2.65))};
+   const stairPoint={x:R-2,y:hallY+(level%2===0?1:3)};
    for(let side=0;side<2;side++){
-    const top=side===0,unitY=top?Y:Y+depth+hall;
-    const outerY=top?Y:B,insideY=top?Y+depth:Y+depth+hall;
+    const top=side===0,unitY=top?Y:hallY+hall;
+    const depth=top?hallY-Y:B-unitY;
+    const outerY=top?Y:B,insideY=top?hallY:unitY;
     const corridorDoors=[];
     for(let c=0;c<columns;c++){
-     const x=X+c*unitW,w=unitW,unitNumber=level*columns*2+side*columns+c+1;
+     const x=edges[c],w=edges[c+1]-x,unitNumber=level*columns*2+side*columns+c+1;
      const aptId=prefix+'_vivienda_'+(level+1)+'_'+(side*columns+c+1),name='Depto. '+unitNumber;
-     const bathW=2.7,bathH=2.8,bedH=4.15;
+     const bathW=3,bathH=3,bedH=4;
      const bath=box(x,top?outerY:outerY-bathH,bathW,bathH);
      const bed=box(x+bathW,top?outerY:outerY-bedH,w-bathW,bedH);
      const livingY=top?outerY+bedH:unitY,livH=depth-bedH;
@@ -385,7 +386,7 @@
       roomIds:[bathSpace.roomId,bedSpace.roomId,living.roomId],
       doorIds:[],private:true});
     }
-    line(f,'h',insideY,X,X+usable,corridorDoors,false);
+    line(f,'h',insideY,X,R,corridorDoors,false);
    }
    // Las puertas del corredor ya existen: el mobiliario respeta sus radios de acceso.
    for(const [livingRoom,kind] of waiting)furnish(f,livingRoom,kind);
@@ -402,7 +403,7 @@
    const X=rect.x,Y=rect.y,R=X+rect.w,B=Y+rect.h;
    exterior(f,rect,level===0?'bottom':null,Math.floor(X+rect.w/2),
     [{axis:'top',at:Math.floor(X+rect.w*.55)}]);
-   const bathW=3,bathH=3,bedW=Math.max(5,Math.min(7,rect.w*.4)),bedH=4.5;
+   const bathW=3,bathH=3,bedW=Math.max(5,Math.min(7,Math.round(rect.w*.4))),bedH=5;
    const bathRect=box(X,Y,bathW,bathH);
    const sleepRect=box(R-bedW,Y,bedW,bedH);
    const centerY=Y+Math.max(bathH,bedH);
@@ -420,7 +421,7 @@
    const mainKind=preset==='tienda'?'ventas':preset==='ayuntamiento'?'oficina':upperHouse?'dormitorio':'cocina';
    const main=room(f,preset==='tienda'?'Área de ventas':preset==='ayuntamiento'?'Vestíbulo y oficinas':upperHouse?'Recámara superior':'Sala y cocina',
     social,'',mainKind,upperHouse?{privateRoom:true}:{});
-   if(level<count-1)reserve(f,'stairs',{x:round(R-(level%2===0?1.5:3.1)),y:round(B-1.5),
+   if(level<count-1)reserve(f,'stairs',{x:R-(level%2===0?1.5:3.5),y:B-2,
     w:1,h:2,rotation:0,heightFt:requestedFloors[level+1].elevationFt-f.elevationFt,
     blocksMovement:false,
     stairDirection:'up',targetFloorId:requestedFloors[level+1].id,
