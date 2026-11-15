@@ -266,7 +266,7 @@
     const x=X+c*unitW,back=side===0?Y:B,windX=x+unitW-1.5;
     windows.push({axis:side===0?'top':'bottom',at:Math.floor(windX)});
    }
-   exterior(f,rect,'left',Math.floor(Y+depth+1),windows);
+   exterior(f,rect,level===0?'left':null,Math.floor(Y+depth+1),windows);
    const waiting=[];
    const hallRoom=room(f,'Pasillo común · piso '+(level+1),
     box(X,Y+depth,rect.w,hall),'','comun',{commonArea:true,blocksViewOutside:false});
