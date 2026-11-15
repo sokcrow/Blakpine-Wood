@@ -18,6 +18,33 @@
    {x:item.x+.01,y:item.y+item.h-.01},{x:item.x+item.w-.01,y:item.y+item.h-.01}];
   return at.every(p=>style.canEditAt(p));
  }
+ // Sin reemplazar instancias existentes: el inspector y los enlaces usan sus referencias.
+ function commitRebuild(result){
+  const previous=new Map(env.current().items.map(it=>[String(it.id),it]));
+  const updated=new Set(result.updated.map(it=>String(it.id)));
+  const next=result.items.map(it=>{
+   const old=previous.get(String(it.id));
+   if(updated.has(String(it.id)))it.label=T().labels?.[it.drainage.kind]||it.label;
+   if(!old||!Draw().isAuto(it))return it;
+   if(updated.has(String(it.id))){
+    old.rotation=it.rotation;
+    old.drainage.kind=it.drainage.kind;
+    old.drainage.flowTo=it.drainage.flowTo;
+    old.label=it.label;
+   }
+   return old;
+  });
+  env.current().items=next;
+  if(result.updated.length)env.inspect();
+ }
+ function autoAllowed(result){
+  if(result.updated.some(it=>!editAllowed(it))){env.toast(T().blocked);return false;}
+  return true;
+ }
+ function overlapsSection(item){
+  return env.current().items.some(it=>it!==item&&R().isSection(it)&&
+   it.x<item.x+item.w&&it.x+it.w>item.x&&it.y<item.y+item.h&&it.y+it.h>item.y);
+ }
  function place(tool,at,drag=false,start=null){
   if(!tools.includes(tool))return false;
   if(tool==='drain_draw'||tool==='drain_small_draw'){
@@ -27,8 +54,8 @@
     const result=Draw().applyPath(env.current().items,from,at,kind,env.project().units,env.newId);
     const changed=new Set([...result.added,...result.updated].map(it=>String(it.id)));
     if(result.items.some(it=>changed.has(String(it.id))&&!editAllowed(it))){env.toast(T().blocked);return true;}
-    for(const it of result.items)if(changed.has(String(it.id)))it.label=T().labels?.[it.drainage.kind]||it.label;
-    env.current().items=result.items;env.anchor(null);
+    if(changed.size)commitRebuild(result);
+    env.anchor(null);
     if(changed.size){env.record();env.render();env.toast(T().pathPlaced);}else{env.render();env.toast(T().pathExists);}
    }catch(error){env.toast(error.message);}
    return true;
@@ -50,7 +77,11 @@
     x.x<item.x+item.w&&x.x+x.w>item.x&&x.y<item.y+item.h&&x.y+x.h>item.y)){
     env.toast(T().overlap);return true;
    }
-   env.current().items.push(item);
+   if(section){
+    const rebuilt=Draw().rebuild([...env.current().items,item]);
+    if(!autoAllowed(rebuilt))return true;
+    commitRebuild(rebuilt);
+   }else env.current().items.push(item);
    env.record();env.render();env.toast(T().place);
   }catch(error){env.toast(error.message);}
   return true;
@@ -83,7 +114,15 @@
    [item.w,item.h]=[item.h,item.w];item.x=cx-item.w/2;item.y=cy-item.h/2;
    if(!editAllowed(item)){[item.w,item.h]=[item.h,item.w];item.x=cx-item.w/2;item.y=cy-item.h/2;env.toast(T().blocked);return true;}
   }
-  try{R().validate(item,env.project().units);}catch(error){Object.assign(item,previous);env.toast(error.message);return true;}
+  try{
+   R().validate(item,env.project().units);
+   if(R().isSection(item)){
+    if(overlapsSection(item))throw Error(T().overlap);
+    const rebuilt=Draw().rebuild(env.current().items);
+    if(!editAllowed(item)||!autoAllowed(rebuilt)){Object.assign(item,previous);return true;}
+    commitRebuild(rebuilt);
+   }
+  }catch(error){Object.assign(item,previous);env.toast(error.message);return true;}
   env.record();env.render();env.inspect();return true;
  }
  function report(){
@@ -155,6 +194,18 @@
   const audit=createEl('button',T().audit);audit.type='button';audit.onclick=report;fields.append(audit);
   return true;
  }
+ // El puntero ya movió la pieza manual; validar antes de que index.html registre el cambio.
+ function afterMove(item){
+  if(!R().isSection(item)||Draw()?.isAuto(item))return true;
+  try{
+   R().validate(item,env.project().units);
+   if(overlapsSection(item))throw Error(T().overlap);
+   const result=Draw().rebuild(env.current().items);
+   if(!editAllowed(item)||!autoAllowed(result)){env.toast(T().blocked);return false;}
+   commitRebuild(result);
+   return true;
+  }catch(error){env.toast(error.message);return false;}
+ }
  function canRemove(item){
   if(!R().isSection(item)||!Draw())return true;
   const result=Draw().rebuild(env.current().items.filter(it=>it!==item));
@@ -164,14 +215,12 @@
  function afterRemove(item){
   if(!R().isSection(item)||!Draw())return;
   const result=Draw().rebuild(env.current().items);
-  const updated=new Set(result.updated.map(it=>String(it.id)));
-  for(const it of result.items)if(updated.has(String(it.id)))it.label=T().labels?.[it.drainage.kind]||it.label;
-  env.current().items=result.items;
+  commitRebuild(result);
  }
  root.FHDrainageEditor=Object.freeze({
   install(args){env=args;},
   isTool:t=>tools.includes(t),place,
   choose(t){if(t!=='drain_audit')return false;report();return true;},
-  inspector,rotate,report,beforeRemove,canRemove,afterRemove
+  inspector,rotate,report,beforeRemove,canRemove,afterRemove,afterMove
  });
 })(typeof globalThis!=='undefined'?globalThis:this);
