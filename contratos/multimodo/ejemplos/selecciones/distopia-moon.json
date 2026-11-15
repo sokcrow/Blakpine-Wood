@@ -1,0 +1,6 @@
+{
+  "kind": "blakpine-mode-selection-v1",
+  "version": 1,
+  "worldProfile": "contratos/multimodo/ejemplos/mundos/distopia.json",
+  "rulesetManifest": "contratos/multimodo/ejemplos/reglas/moon-system.json"
+}

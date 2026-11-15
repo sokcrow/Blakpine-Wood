@@ -1,0 +1,18 @@
+{
+  "kind": "blakpine-world-profile-v1",
+  "version": 1,
+  "id": "distopia",
+  "label": "Ciudad distópica",
+  "environment": {
+    "archetype": "dystopian-city",
+    "layoutProfile": "dystopian-urban",
+    "infrastructureProfiles": [
+      "streets-connected",
+      "sewers-dystopian"
+    ],
+    "tags": [
+      "urban",
+      "dystopian"
+    ]
+  }
+}
