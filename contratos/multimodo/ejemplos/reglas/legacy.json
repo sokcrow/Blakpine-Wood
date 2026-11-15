@@ -6,7 +6,7 @@
   "domain": "combat",
   "status": "planned",
   "extensions": {
-    "ia4-combat-scope-v1": {
+    "blakpine.combat-scope.v1": {
       "combatResolution": "legacy-existing",
       "generalSkills": "legacy-existing"
     }
