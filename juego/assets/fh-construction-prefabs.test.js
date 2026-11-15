@@ -368,6 +368,7 @@ test('contrato compartido real: mapa v1 válido y escalera transitable',()=>{
  const Shared=vm.runInNewContext(html.slice(begin,end+6)+';ForestShared');
  const {m,p,result}=make('apartamentos',2,35,28);
  assert.equal(result.ok,true);
+ m.title='Prueba de planta multifamiliar';
  const checked=Shared.validate(m);
  assert.equal(checked.ok,true,JSON.stringify(checked.errors||[]));
  const stair=m.floors[0].items.find(it=>it.type==='stairs');
