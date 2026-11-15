@@ -227,6 +227,23 @@ test('niveles creados tienen metadatos compatibles con el editor',()=>{
   assert.ok(m.floors[i].items.some(it=>it.type==='stairs'&&it.targetFloorId===next.id));
  }
 });
+
+test('generar desde Piso 1 reutiliza la planta contigua a su altura real y añade solo las faltantes',()=>{
+ for(const [heights,stories,expected] of [
+  [[0,10],2,[0,10]],[[0,12],2,[0,12]],[[0,8,10],2,[0,8]],[[0,12],3,[0,12,22]]
+ ]){
+  const m=map();
+  m.floors=heights.map((elevationFt,i)=>({id:'p'+i,elevationFt,items:[]}));
+  const result=Prefabs.placeArea(m,'p0',{x:4,y:4},{x:26,y:26},'apartamentos',{stories,catalog,zones:Zones});
+  assert.equal(result.ok,true);
+  assert.deepEqual(result.floorIds.map(id=>m.floors.find(f=>f.id===id).elevationFt),expected);
+  for(let i=0;i<stories-1;i++){
+   const stair=m.floors[i].items.find(it=>it.type==='stairs');
+   assert.equal(stair.targetFloorId,result.floorIds[i+1]);
+   assert.equal(stair.heightFt,expected[i+1]-expected[i]);
+  }
+ }
+});
 test('el tamaño máximo del preset no puede superarse al crear la parcela',()=>{
  for(const preset of ['ayuntamiento','casas','apartamentos','tienda']){
   const [maxW,maxH]=Prefabs.TARGET[preset],units={columns:120,rows:120,feetPerCell:5};

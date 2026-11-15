@@ -137,12 +137,13 @@
   if(!Number.isInteger(count)||count<1||count>3)return failure('invalid_stories');
   const requestedFloors=[base],createdFloors=[],floorsSorted=[...project.floors].sort((a,b)=>a.elevationFt-b.elevationFt);
   if(!number(base.elevationFt))return failure('levels_conflict');
+  if(count>1&&floorsSorted.some((floor,i)=>!number(floor.elevationFt)||
+   (i>0&&floor.elevationFt-floorsSorted[i-1].elevationFt<EPS)))return failure('levels_conflict');
+  const baseIndex=floorsSorted.indexOf(base);
   for(let level=1;level<count;level++){
-   const elev=base.elevationFt+10*level;
-   const matched=floorsSorted.find(f=>Math.abs(f.elevationFt-elev)<EPS);
-   if(matched){requestedFloors.push(matched);continue}
-   if(floorsSorted.some(f=>f.elevationFt>base.elevationFt&&f.elevationFt<elev+10-EPS))
-    return failure('levels_conflict');
+   const upper=floorsSorted[baseIndex+level];
+   if(upper){requestedFloors.push(upper);continue}
+   const elev=requestedFloors[level-1].elevationFt+10;
    const id='floor_'+property.id+'_'+level;
    if(project.floors.some(f=>f.id===id)||createdFloors.some(f=>f.id===id))return failure('levels_conflict');
    const newFloor={id,name:'Piso '+(level+1)+' · '+(LABELS[preset]||'Edificio'),
