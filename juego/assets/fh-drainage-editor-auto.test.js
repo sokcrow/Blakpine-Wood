@@ -147,4 +147,6 @@ test('index.html invoca la validación de movimiento antes de registrar',()=>{
  const html=fs.readFileSync(path.join(__dirname,'../../index.html'),'utf8');
  assert.ok(html.includes('window.FHDrainageEditor?.afterMove(it)===false'));
  assert.ok(html.includes('Object.assign(it,a.original);render();return'));
+ assert.ok(html.indexOf('window.FHStyleEditor.canEditItem(it)')<html.indexOf('window.FHDrainageEditor?.afterMove(it)===false'),
+  'los permisos del editor se validan antes de recalcular las conexiones');
 });
