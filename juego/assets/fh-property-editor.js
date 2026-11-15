@@ -182,24 +182,31 @@
   }
  }
  function openPrefabPlacement(a,b){
-  const area=Z().rectangle(a,b,project.units.columns,project.units.rows);
-  if(!area){toast(PT().errors.invalid_parcel);return;}
-  const opts=C().PRESETS.filter(v=>v!=='personalizado')
-   .map(v=>'<option value="'+v+'">'+escape(T().presets[v])+'</option>').join('');
-  modal('<h2>'+escape(PT().modalTitle)+'</h2><p>'+escape(PT().modalHelp)+'</p>'+
-   '<label>'+escape(T().preset)+'<select id="fhNewPrefabKind">'+opts+'</select></label>'+
-   '<label>'+escape(PT().floors)+'<select id="fhNewPrefabStories"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></label>'+
-   '<label><input type="checkbox" id="fhNewPrefabSimulated"> '+escape(T().simulated)+'</label>'+
+  const selected=PF().limitFootprint(a,b,prefabKind,project.units);
+  if(!selected)return;
+  if(!selected.valid){
+   start=selected.a;live=selected.b;prefabPreview=null;render();
+   toast(PT().belowMinimum);return;
+  }
+  // La vista previa sigue en el mapa hasta confirmar o cancelar.
+  prefabPreview=selected;start=null;live=null;render();
+  const preset=prefabKind,stories=prefabStories,simulated=prefabSimulated;
+  const r=selected.rect,ft=Number(project.units.feetPerCell)||5;
+  const size=r.w+' × '+r.h+' '+PT().tileUnit+' · '+
+   Math.round(r.w*ft)+' × '+Math.round(r.h*ft)+' '+PT().feetUnit;
+  modal('<h2>'+escape(PT().modalTitle)+' · '+escape(T().presets[preset])+'</h2>'+
+   '<p>'+escape(PT().confirmFootprint)+'</p>'+
+   '<p><strong>'+escape(PT().footprint)+': '+escape(size)+'</strong></p>'+
+   '<p><small>'+escape(PT().margin)+'</small></p>'+
+   '<p>'+escape(PT().floors)+': '+stories+'</p>'+
    '<div class="actions"><button class="primary" id="fhNewPrefabConfirm">'+escape(PT().confirm)+'</button>'+
    '<button id="fhNewPrefabCancel">'+escape(PT().cancel)+'</button></div>',()=>{
-   const kindEl=document.getElementById('fhNewPrefabKind'),storiesEl=document.getElementById('fhNewPrefabStories');
-   kindEl.value='apartamentos';storiesEl.value='2';
-   kindEl.onchange=()=>{storiesEl.value=kindEl.value==='apartamentos'?'2':'1';};
-   document.getElementById('fhNewPrefabCancel').onclick=closeModal;
+   document.getElementById('fhNewPrefabCancel').onclick=()=>{
+    prefabPreview=null;closeModal();render();
+   };
    const confirm=document.getElementById('fhNewPrefabConfirm');
    confirm.onclick=async()=>{
     if(root.FHStyleEditor?.hasActor()){toast(PT().dmOnly);return;}
-    const preset=kindEl.value,stories=Number(storiesEl.value),simulated=document.getElementById('fhNewPrefabSimulated').checked;
     const floorId=current().id,images=new Map(project.floors.map((floor,i)=>[floor.id,loadedImgs[i]]));
     confirm.disabled=true;confirm.textContent=PT().busy;
     try{
@@ -207,13 +214,15 @@
      if(!response.ok)throw Error('catalog_http');
      const catalog=await response.json();
      if(catalog.schema!=='forest-horror-furniture-catalog-v1')throw Error('catalog_schema');
-     const result=PF().placeArea(project,floorId,a,b,preset,{
-      zones:Z(),catalog,stories,modelRules:root.FHFurnitureRules,shared:ForestShared
-     });
+     const result=PF().placeArea(project,floorId,
+      {x:r.x,y:r.y},{x:r.x+r.w,y:r.y+r.h},preset,{
+       zones:Z(),catalog,stories,modelRules:root.FHFurnitureRules,shared:ForestShared
+      });
      if(!result.ok){toast(PT().errors[result.code]||PT().errors.invalid_catalog);return;}
      C().plan(result.property,preset,simulated,{stories});
      loadedImgs=project.floors.map(floor=>images.get(floor.id)||null);
      floorIndex=project.floors.findIndex(floor=>floor.id===floorId);
+     prefabPreview=null;
      recalcAllSpaces();record();refreshFloorTabs();closeModal();
      toast(PT().success+' · '+result.property.name+' · '+result.apartments+' '+PT().homes);render();
     }catch(error){console.error('[Construcción 04]',error);toast(PT().errors.missing_catalog);}
@@ -428,7 +437,22 @@
   e.preventDefault();e.stopImmediatePropagation();
   const p=point(e);
   document.getElementById('coords').textContent='Casilla '+p.x.toFixed(2)+', '+p.y.toFixed(2);
-  if(gesture?.id===e.pointerId&&['property_zone','prefab_zone','location_exterior','location_common'].includes(gesture.tool)){const distance=Math.hypot(local(e).x-gesture.screen.x,local(e).y-gesture.screen.y);if(start||distance>7){live=p;if(!start)start=gesture.a;render();}}
+  if(gesture?.id===e.pointerId&&['property_zone','prefab_zone','location_exterior','location_common'].includes(gesture.tool)){
+   const distance=Math.hypot(local(e).x-gesture.screen.x,local(e).y-gesture.screen.y);
+   if(start||distance>7){
+    if(gesture.tool==='prefab_zone'){
+     const limited=PF().limitFootprint(start||gesture.a,p,prefabKind,project.units);
+     if(limited){
+      start=limited.a;live=limited.b;
+      document.getElementById('stageHint').textContent=limited.limited?PT().atMaximum:PT().sizeHint;
+     }
+    }else{live=p;if(!start)start=gesture.a;}
+    render();
+   }
+  }else if(start&&activeTool==='prefab_zone'&&!gesture){
+   const limited=PF().limitFootprint(start,p,prefabKind,project.units);
+   if(limited){live=limited.b;render();}
+  }
  },true);
  target.addEventListener('pointerup',e=>{
   if(!isPropertyTool())return;
@@ -437,6 +461,12 @@
   const g=gesture;gesture=null;const p=point(e);
   const drag=Math.hypot(e.clientX-g.screen.x-target.getBoundingClientRect().left,e.clientY-g.screen.y-target.getBoundingClientRect().top)>7;
   if(['property_zone','prefab_zone','location_exterior','location_common'].includes(g.tool)){
+   if(g.tool==='prefab_zone'){
+    if(drag){add(start||g.a,p,g.tool);return;}
+    if(!start){const selected=PF().limitFootprint(g.a,g.a,prefabKind,project.units);
+     start=selected?.a||g.a;live=null;toast('Primera esquina marcada. Toca la esquina opuesta.');render();return;}
+    add(start,p,g.tool);return;
+   }
    if(drag){add(start||g.a,p,g.tool);return}
    if(!start){start=g.a;live=null;toast('Primera esquina marcada. Toca la esquina opuesta.');render();return}
    add(start,p,g.tool);return;
@@ -449,5 +479,5 @@
   else toast('Las propiedades heredadas dependen de paredes amarillas y no se borran desde esta capa.');
  },true);
  target.addEventListener('pointercancel',e=>{if(!isPropertyTool())return;e.stopImmediatePropagation();gesture=null;live=null;start=null;render();},true);
- root.addEventListener('keydown',e=>{if(e.key==='Escape'&&layer()){start=null;live=null;gesture=null;extendZoneId='';render();}});
+ root.addEventListener('keydown',e=>{if(e.key==='Escape'&&layer()){start=null;live=null;gesture=null;prefabPreview=null;extendZoneId='';render();}});
 })(window);
