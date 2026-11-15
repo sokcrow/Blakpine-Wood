@@ -438,7 +438,8 @@
    }
   }catch(error){
    const code=String(error.message||'').startsWith('missing_model:')?'missing_model':
-    String(error.message||'').startsWith('no_furniture_space:')?'furniture_no_space':'invalid_catalog';
+    String(error.message||'').startsWith('no_furniture_space:')?'furniture_no_space':
+    String(error.message||'').startsWith('no_structural_outlet_wall:')?'outlet_no_wall':'invalid_catalog';
    return failure(code,{detail:String(error.message||error)});
   }
   const parcels=units.map(u=>({id:u.id,name:u.name,floorId:u.floorId,
