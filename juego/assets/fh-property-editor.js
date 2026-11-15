@@ -12,8 +12,10 @@
  const props=()=>P().properties(project,current().id);
  const locations=()=>Z().locations(project,current().id);
  const sourceAt=p=>{
-  const properties=props().filter(prop=>Z().inside(p,prop.polygon));
-  if(properties.length===1)return {kind:'property',zone:properties[0]};
+  const property=P().propertyAt(project,current().id,p);
+  if(property)return {kind:'property',zone:property};
+  const container=props().filter(prop=>prop.propertyRole==='building'&&Z().inside(p,prop.polygon));
+  if(container.length===1)return {kind:'property',zone:container[0]};
   const zones=locations().filter(zone=>Z().zoneContains(zone,p));
   return zones.length===1?{kind:'location',zone:zones[0]}:null;
  };
