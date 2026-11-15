@@ -389,3 +389,29 @@ test('cargar prefabs no modifica mapas antiguos ni crea propiedades espontáneas
  assert.equal(Prefabs.outline({},m.units),null);
  assert.equal(JSON.stringify(m),before);
 });
+test('revisar y girar apartamentos conserva accesos, instalaciones y el mapa original',()=>{
+ for(const turns of [0,1,2,3]){
+  const m=map(),a={x:5,y:6},b={x:5+(turns%2?28:64),y:6+(turns%2?64:28)};
+  const options={turns,catalog,zones:Zones,stories:2,id:'obra'};
+  const before=JSON.stringify(m);
+  const review=Prefabs.prepareArea(m,'f1',a,b,'apartamentos',options);
+  assert.equal(review.ok,true);
+  assert.equal(JSON.stringify(m),before);
+  const result=Prefabs.placeArea(m,'f1',a,b,'apartamentos',options);
+  assert.equal(result.ok,true);
+  assert.deepEqual(m.floors.map(f=>f.items),review.draft.levels.map(f=>f.items));
+  const audit=Rooms.inspectParcel(m,result.property,{geometry:Geometry});
+  assert.deepEqual(audit.issues,[]);
+  const entry=m.floors[0].items.find(i=>i.doorRole==='entrance'&&i.roofBoundary);
+  assert.ok([entry.a.x===a.x,entry.a.y===a.y,entry.a.x===b.x,entry.a.y===b.y][turns]);
+ }
+});
+test('auditar un giro ocupado no crea una parcela',()=>{
+ const m=map();
+ m.floors[0].items.push({type:'room',x:7,y:22,w:2,h:2});
+ const before=JSON.stringify(m);
+ const review=Prefabs.prepareArea(m,'f1',{x:4,y:4},{x:20,y:26},'tienda',
+  {catalog,zones:Zones,turns:1});
+ assert.equal(review.code,'occupied');
+ assert.equal(JSON.stringify(m),before);
+});
