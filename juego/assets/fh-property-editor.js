@@ -3,7 +3,7 @@
  'use strict';
  const P=()=>root.FHStyleProperty,Z=()=>root.FHPropertyZones,C=()=>root.FHConstruction,T=()=>root.FH_CONSTRUCTION_TEXT,R=()=>root.FHConstructionRooms,RT=()=>root.FH_CONSTRUCTION_ROOMS_TEXT,PF=()=>root.FHConstructionPrefabs,PT=()=>root.FH_CONSTRUCTION_PREFABS_TEXT;
  const escape=s=>String(s??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[ch]));
- const types=new Set(['property_zone','location_exterior','location_common','property_select','property_erase']);
+ const types=new Set(['property_zone','prefab_zone','location_exterior','location_common','property_select','property_erase']);
  let start=null,gesture=null,live=null,extendZoneId='';
  const local=e=>{const r=canvas.getBoundingClientRect();return {x:e.clientX-r.left,y:e.clientY-r.top}};
  const point=e=>getPoint(local(e));
@@ -74,10 +74,10 @@
   }
   for(const zone of locations())drawLocation(c,zone,cam);
   if(start&&live){const rect=Z().rectangle(start,live,project.units.columns,project.units.rows);
-   if(rect)drawOutline(c,Z().polygon(rect),true,true,activeTool==='property_zone'?'#e6bd43':(locations().find(z=>z.id===extendZoneId)?Z().colorOf(locations().find(z=>z.id===extendZoneId)):'#8bbcf0'));}
+   if(rect)drawOutline(c,Z().polygon(rect),true,true,activeTool==='property_zone'?'#e6bd43':activeTool==='prefab_zone'?'#80c7df':(locations().find(z=>z.id===extendZoneId)?Z().colorOf(locations().find(z=>z.id===extendZoneId)):'#8bbcf0'));}
   c.restore();
  };
- TOOL_GROUPS.property=[['property_zone','Delimitar propiedad','▱'],['location_exterior','Zona exterior','♧'],['location_common','Zona común','▥'],['property_select','Editar zona','☞'],['property_erase','Eliminar zona','⌫'],['pan','Mover mapa','✋']];
+ TOOL_GROUPS.property=[['prefab_zone',PT().tool,'⌂'],['property_zone','Delimitar propiedad','▱'],['location_exterior','Zona exterior','♧'],['location_common','Zona común','▥'],['property_select','Editar zona','☞'],['property_erase','Eliminar zona','⌫'],['pan','Mover mapa','✋']];
  const oldLayerForCategory=layerForCategory;
  layerForCategory=function(cat){return cat==='property'?'property':oldLayerForCategory(cat)};
  const tab=document.createElement('button');tab.type='button';tab.dataset.layer='property';tab.textContent='▱ Zonas';tab.onclick=()=>setCategory('property');document.getElementById('layerSwitch').append(tab);
@@ -92,6 +92,7 @@
  changeFloor=function(i){start=null;live=null;gesture=null;extendZoneId='';return priorFloorChange(i)};
  const oldChooseTool=chooseTool;
  chooseTool=function(tool){if(types.has(tool)){start=null;live=null;extendZoneId='';}oldChooseTool(tool);
+  if(tool==='prefab_zone')document.getElementById('stageHint').textContent=PT().hint;
   if(tool==='property_zone')document.getElementById('stageHint').textContent='Dibuja una propiedad reclamable; conserva sus permisos existentes.';
   if(tool==='location_exterior')document.getElementById('stageHint').textContent='Delimita un jardín, patio o zona exterior; no altera permisos.';
   if(tool==='location_common')document.getElementById('stageHint').textContent='Delimita un pasillo, vestíbulo o zona común de edificio.';
@@ -100,6 +101,7 @@
  };
  function add(a,b,tool){
   if(root.FHStyleEditor?.hasActor()){start=null;live=null;toast('Solo el DM puede crear zonas.');render();return}
+  if(tool==='prefab_zone'){start=null;live=null;openPrefabPlacement(a,b);render();return;}
   const isLocation=tool==='location_exterior'||tool==='location_common';
   const id=(isLocation?'location_':'parcel_')+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8);
   const selected=extendZoneId?locations().find(z=>z.id===extendZoneId):null;
@@ -328,7 +330,7 @@
   e.preventDefault();e.stopImmediatePropagation();
   const p=point(e);
   document.getElementById('coords').textContent='Casilla '+p.x.toFixed(2)+', '+p.y.toFixed(2);
-  if(gesture?.id===e.pointerId&&['property_zone','location_exterior','location_common'].includes(gesture.tool)){const distance=Math.hypot(local(e).x-gesture.screen.x,local(e).y-gesture.screen.y);if(start||distance>7){live=p;if(!start)start=gesture.a;render();}}
+  if(gesture?.id===e.pointerId&&['property_zone','prefab_zone','location_exterior','location_common'].includes(gesture.tool)){const distance=Math.hypot(local(e).x-gesture.screen.x,local(e).y-gesture.screen.y);if(start||distance>7){live=p;if(!start)start=gesture.a;render();}}
  },true);
  target.addEventListener('pointerup',e=>{
   if(!isPropertyTool())return;
@@ -336,7 +338,7 @@
   if(!gesture||gesture.id!==e.pointerId)return;
   const g=gesture;gesture=null;const p=point(e);
   const drag=Math.hypot(e.clientX-g.screen.x-target.getBoundingClientRect().left,e.clientY-g.screen.y-target.getBoundingClientRect().top)>7;
-  if(['property_zone','location_exterior','location_common'].includes(g.tool)){
+  if(['property_zone','prefab_zone','location_exterior','location_common'].includes(g.tool)){
    if(drag){add(start||g.a,p,g.tool);return}
    if(!start){start=g.a;live=null;toast('Primera esquina marcada. Toca la esquina opuesta.');render();return}
    add(start,p,g.tool);return;
