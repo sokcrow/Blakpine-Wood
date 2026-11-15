@@ -157,7 +157,7 @@
    const entry=models.get(modelId);
    if(!entry||!number(entry.widthFt)||!number(entry.depthFt))throw Error('missing_model:'+modelId);
    const width=entry.widthFt/feet,depth=entry.depthFt/feet;
-   const site=roomBox(r),obstacles=f.items.filter(it=>it.roomId===r.roomId&&it.modelId);
+   const site=roomBox(r),obstacles=f.items.filter(it=>it.roomId===r.roomId&&(it.modelId||it.type==='stairs'));
    const doors=f.items.filter(it=>it.type==='door'&&it.a&&it.b);
    const windows=f.items.filter(it=>it.type==='window'&&it.a&&it.b);
    function clear(candidate,front){
@@ -182,9 +182,9 @@
      front=box(cx-iw/2,cy+ih/2,iw,FRONT);}
     if(side==='south'){cx=site.x+along;cy=site.y+site.h-ROOM_MARGIN-ih/2;rotation=180;
      front=box(cx-iw/2,cy-ih/2-FRONT,iw,FRONT);}
-    if(side==='west'){cx=site.x+ROOM_MARGIN+iw/2;cy=site.y+along;rotation=90;
+    if(side==='west'){cx=site.x+ROOM_MARGIN+iw/2;cy=site.y+along;rotation=270;
      front=box(cx+iw/2,cy-ih/2,FRONT,ih);}
-    if(side==='east'){cx=site.x+site.w-ROOM_MARGIN-iw/2;cy=site.y+along;rotation=270;
+    if(side==='east'){cx=site.x+site.w-ROOM_MARGIN-iw/2;cy=site.y+along;rotation=90;
      front=box(cx-iw/2-FRONT,cy-ih/2,FRONT,ih);}
     const candidate=box(cx-iw/2,cy-ih/2,iw,ih);
     if(!clear(candidate,front))continue;
@@ -263,7 +263,7 @@
    const waiting=[];
    const hallRoom=room(f,'Pasillo común · piso '+(level+1),
     box(X,Y+depth,rect.w,hall),'','comun',{commonArea:true,blocksViewOutside:false});
-   const stairPoint={x:round(R-1.7),y:round(Y+depth+hall/2)};
+   const stairPoint={x:round(R-(level%2===0?1.2:2.5)),y:round(Y+depth+hall/2)};
    for(let side=0;side<2;side++){
     const top=side===0,unitY=top?Y:Y+depth+hall;
     const outerY=top?Y:B,insideY=top?Y+depth:Y+depth+hall;
@@ -310,7 +310,7 @@
   }
   function simple(f,level){
    const X=rect.x,Y=rect.y,R=X+rect.w,B=Y+rect.h;
-   exterior(f,rect,'bottom',Math.floor(X+rect.w/2),
+   exterior(f,rect,level===0?'bottom':null,Math.floor(X+rect.w/2),
     [{axis:'top',at:Math.floor(X+rect.w*.55)}]);
    const bathW=3,bathH=3,bedW=Math.max(5,Math.min(7,rect.w*.4)),bedH=4.5;
    const bathRect=box(X,Y,bathW,bathH);
@@ -326,11 +326,17 @@
     secondKind,secondKind==='almacen'?{}:{privateRoom:true});
    line(f,'h',Y+bedH,R-bedW,R,[door(Math.floor(R-bedW+bedW/2))],false);
    line(f,'v',R-bedW,Y,Y+bedH,[],false);
-   const main=room(f,preset==='tienda'?'Área de ventas':preset==='ayuntamiento'?'Vestíbulo y oficinas':'Sala y cocina',
-    social,'',preset==='tienda'?'ventas':preset==='ayuntamiento'?'oficina':'cocina');
+   const upperHouse=preset==='casas'&&level>0;
+   const mainKind=preset==='tienda'?'ventas':preset==='ayuntamiento'?'oficina':upperHouse?'dormitorio':'cocina';
+   const main=room(f,preset==='tienda'?'Área de ventas':preset==='ayuntamiento'?'Vestíbulo y oficinas':upperHouse?'Recámara superior':'Sala y cocina',
+    social,'',mainKind,upperHouse?{privateRoom:true}:{});
+   if(level<count-1)reserve(f,'stairs',{x:round(R-(level%2===0?1.2:2.5)),y:round(B-2),
+    w:.5,h:3.5,rotation:0,heightFt:10,blocksMovement:false,
+    stairDirection:'up',targetFloorId:requestedFloors[level+1].id,
+    roomId:main.roomId,label:'Escalera al piso '+(level+2)},'estructura');
    furnish(f,bath,'bano');
    if(secondKind!=='almacen')furnish(f,bedroom,secondKind);
-   furnish(f,main,preset==='tienda'?'ventas':preset==='ayuntamiento'?'oficina':'cocina');
+   furnish(f,main,mainKind);
    return {ok:true,apartments:0};
   }
   try{
