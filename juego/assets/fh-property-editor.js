@@ -4,7 +4,8 @@
  const P=()=>root.FHStyleProperty,Z=()=>root.FHPropertyZones,C=()=>root.FHConstruction,T=()=>root.FH_CONSTRUCTION_TEXT,R=()=>root.FHConstructionRooms,RT=()=>root.FH_CONSTRUCTION_ROOMS_TEXT,PF=()=>root.FHConstructionPrefabs,PT=()=>root.FH_CONSTRUCTION_PREFABS_TEXT;
  const escape=s=>String(s??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[ch]));
  const types=new Set(['property_zone','prefab_zone','location_exterior','location_common','property_select','property_erase']);
- let start=null,gesture=null,live=null,extendZoneId='';
+ let start=null,gesture=null,live=null,extendZoneId='',prefabPreview=null;
+ let prefabKind='apartamentos',prefabStories=2,prefabSimulated=false;
  const local=e=>{const r=canvas.getBoundingClientRect();return {x:e.clientX-r.left,y:e.clientY-r.top}};
  const point=e=>getPoint(local(e));
  const layer=()=>activeLayer==='property';
@@ -73,8 +74,30 @@
    c.font=10/cam.scale+'px system-ui';c.strokeText(owner+construction,center.x,center.y+8/cam.scale);c.fillText(owner+construction,center.x,center.y+8/cam.scale);c.restore();
   }
   for(const zone of locations())drawLocation(c,zone,cam);
-  if(start&&live){const rect=Z().rectangle(start,live,project.units.columns,project.units.rows);
-   if(rect)drawOutline(c,Z().polygon(rect),true,true,activeTool==='property_zone'?'#e6bd43':activeTool==='prefab_zone'?'#80c7df':(locations().find(z=>z.id===extendZoneId)?Z().colorOf(locations().find(z=>z.id===extendZoneId)):'#8bbcf0'));}
+  if(activeTool==='prefab_zone'){
+   const preview=prefabPreview||(start&&live?PF().limitFootprint(start,live,prefabKind,project.units):null);
+   if(preview&&preview.rect.w>0&&preview.rect.h>0){
+    const r=preview.rect,parcel={x:r.x-1,y:r.y-1,w:r.w+2,h:r.h+2};
+    drawOutline(c,Z().polygon(parcel),false,false,'#789fb4');
+    drawOutline(c,Z().polygon(r),false,true,preview.valid?'#59d4df':'#efa46e');
+    const feet=Number(project.units.feetPerCell)||5;
+    const size=r.w+' × '+r.h+' '+PT().tileUnit+' · '+Math.round(r.w*feet)+' × '+Math.round(r.h*feet)+' '+PT().feetUnit;
+    const center=toPixel({x:r.x+r.w/2,y:r.y+r.h/2});
+    c.save();c.font='700 '+13/view.scale+'px system-ui';c.textAlign='center';c.textBaseline='middle';
+    c.lineWidth=4/view.scale;c.strokeStyle='#101e2a';c.fillStyle='#fff';
+    c.strokeText(size,center.x,center.y);c.fillText(size,center.x,center.y);
+    if(r.w===preview.maximum[0]||r.h===preview.maximum[1]){
+     const top=toPixel({x:r.x+r.w/2,y:r.y});
+     c.strokeText(PT().atMaximum,top.x,top.y-10/view.scale);
+     c.fillText(PT().atMaximum,top.x,top.y-10/view.scale);
+    }
+    c.restore();
+   }
+  }else if(start&&live){
+   const rect=Z().rectangle(start,live,project.units.columns,project.units.rows);
+   if(rect)drawOutline(c,Z().polygon(rect),true,true,activeTool==='property_zone'?'#e6bd43':
+    (locations().find(z=>z.id===extendZoneId)?Z().colorOf(locations().find(z=>z.id===extendZoneId)):'#8bbcf0'));
+  }
   c.restore();
  };
  TOOL_GROUPS.property=[['prefab_zone',PT().tool,'⌂'],['property_zone','Delimitar propiedad','▱'],['location_exterior','Zona exterior','♧'],['location_common','Zona común','▥'],['property_select','Editar zona','☞'],['property_erase','Eliminar zona','⌫'],['pan','Mover mapa','✋']];
@@ -83,22 +106,53 @@
  const tab=document.createElement('button');tab.type='button';tab.dataset.layer='property';tab.textContent='▱ Zonas';tab.onclick=()=>setCategory('property');document.getElementById('layerSwitch').append(tab);
  const cat=document.createElement('button');cat.type='button';cat.dataset.cat='property';cat.textContent='▱ Zonas';cat.onclick=()=>setCategory('property');document.getElementById('categories').append(cat);
  const priorCategory=setCategory;
- setCategory=function(category){if(category!=='property'){start=null;live=null;extendZoneId='';}priorCategory(category);if(category==='property'){
+ setCategory=function(category){if(category!=='property'){start=null;live=null;prefabPreview=null;extendZoneId='';}priorCategory(category);if(category==='property'){
   const panel=document.getElementById('tools');
   const manage=document.createElement('button');manage.type='button';manage.className='accent';manage.textContent='▱ Administrar zonas';manage.onclick=openManager;panel.prepend(manage);
   document.getElementById('stageHint').textContent='Delimita propiedades, jardines y zonas comunes. No se crean paredes ni colisiones.';
+  if(activeTool==='prefab_zone')showPrefabSettings();
  }};
  const priorFloorChange=changeFloor;
- changeFloor=function(i){start=null;live=null;gesture=null;extendZoneId='';return priorFloorChange(i)};
+ changeFloor=function(i){start=null;live=null;gesture=null;prefabPreview=null;extendZoneId='';return priorFloorChange(i)};
  const oldChooseTool=chooseTool;
- chooseTool=function(tool){if(types.has(tool)){start=null;live=null;extendZoneId='';}oldChooseTool(tool);
-  if(tool==='prefab_zone')document.getElementById('stageHint').textContent=PT().hint;
+ chooseTool=function(tool){if(types.has(tool)){start=null;live=null;prefabPreview=null;extendZoneId='';}oldChooseTool(tool);
+  if(tool==='prefab_zone'){showPrefabSettings();document.getElementById('stageHint').textContent=PT().sizeHint;}
   if(tool==='property_zone')document.getElementById('stageHint').textContent='Dibuja una propiedad reclamable; conserva sus permisos existentes.';
   if(tool==='location_exterior')document.getElementById('stageHint').textContent='Delimita un jardín, patio o zona exterior; no altera permisos.';
   if(tool==='location_common')document.getElementById('stageHint').textContent='Delimita un pasillo, vestíbulo o zona común de edificio.';
   if(tool==='property_select')document.getElementById('stageHint').textContent='Toca una zona para editar su nombre o, en propiedades, su propietario.';
   if(tool==='property_erase')document.getElementById('stageHint').textContent='Toca la zona que quieras eliminar; se pedirá confirmación.';
  };
+ function showPrefabSettings(){
+  const tools=document.getElementById('tools');
+  if(!tools||document.getElementById('fhPrefabSettings'))return;
+  const panel=document.createElement('fieldset');panel.id='fhPrefabSettings';
+  const choices=C().PRESETS.filter(kind=>kind!=='personalizado')
+   .map(kind=>'<option value="'+kind+'">'+escape(T().presets[kind])+'</option>').join('');
+  panel.innerHTML='<legend>'+escape(PT().chooseFirst)+'</legend>'+
+   '<label>'+escape(T().preset)+'<select id="fhPrefabPreset">'+choices+'</select></label>'+
+   '<label>'+escape(PT().floors)+'<select id="fhPrefabFloors">'+
+   '<option value="1">1</option><option value="2">2</option><option value="3">3</option></select></label>'+
+   '<label><input id="fhPrefabSimulated" type="checkbox"> '+escape(T().simulated)+'</label>'+
+   '<p><small id="fhPrefabSizeInfo"></small></p>';
+  tools.prepend(panel);
+  const kind=panel.querySelector('#fhPrefabPreset'),floors=panel.querySelector('#fhPrefabFloors'),
+   simulated=panel.querySelector('#fhPrefabSimulated'),info=panel.querySelector('#fhPrefabSizeInfo');
+  kind.value=prefabKind;floors.value=String(prefabStories);simulated.checked=prefabSimulated;
+  const describe=()=>{
+   const [minW,minH]=PF().MIN[prefabKind],[maxW,maxH]=PF().TARGET[prefabKind];
+   const feet=Number(project.units.feetPerCell)||5;
+   info.textContent=PT().maximum+': '+maxW+' × '+maxH+' '+PT().tileUnit+
+    ' ('+Math.round(maxW*feet)+' × '+Math.round(maxH*feet)+' '+PT().feetUnit+')'+
+    ' · '+PT().minimum+': '+minW+' × '+minH+'. '+PT().margin;
+  };
+  kind.onchange=()=>{prefabKind=kind.value;start=null;live=null;prefabPreview=null;
+   if(prefabKind==='apartamentos'&&prefabStories===1){prefabStories=2;floors.value='2';}
+   describe();render();};
+  floors.onchange=()=>{prefabStories=Number(floors.value);};
+  simulated.onchange=()=>{prefabSimulated=simulated.checked;};
+  describe();
+ }
  function add(a,b,tool){
   if(root.FHStyleEditor?.hasActor()){start=null;live=null;toast('Solo el DM puede crear zonas.');render();return}
   if(tool==='prefab_zone'){start=null;live=null;openPrefabPlacement(a,b);render();return;}
@@ -128,24 +182,31 @@
   }
  }
  function openPrefabPlacement(a,b){
-  const area=Z().rectangle(a,b,project.units.columns,project.units.rows);
-  if(!area){toast(PT().errors.invalid_parcel);return;}
-  const opts=C().PRESETS.filter(v=>v!=='personalizado')
-   .map(v=>'<option value="'+v+'">'+escape(T().presets[v])+'</option>').join('');
-  modal('<h2>'+escape(PT().modalTitle)+'</h2><p>'+escape(PT().modalHelp)+'</p>'+
-   '<label>'+escape(T().preset)+'<select id="fhNewPrefabKind">'+opts+'</select></label>'+
-   '<label>'+escape(PT().floors)+'<select id="fhNewPrefabStories"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></label>'+
-   '<label><input type="checkbox" id="fhNewPrefabSimulated"> '+escape(T().simulated)+'</label>'+
+  const selected=PF().limitFootprint(a,b,prefabKind,project.units);
+  if(!selected)return;
+  if(!selected.valid){
+   start=selected.a;live=selected.b;prefabPreview=null;render();
+   toast(PT().belowMinimum);return;
+  }
+  // La vista previa sigue en el mapa hasta confirmar o cancelar.
+  prefabPreview=selected;start=null;live=null;render();
+  const preset=prefabKind,stories=prefabStories,simulated=prefabSimulated;
+  const r=selected.rect,ft=Number(project.units.feetPerCell)||5;
+  const size=r.w+' × '+r.h+' '+PT().tileUnit+' · '+
+   Math.round(r.w*ft)+' × '+Math.round(r.h*ft)+' '+PT().feetUnit;
+  modal('<h2>'+escape(PT().modalTitle)+' · '+escape(T().presets[preset])+'</h2>'+
+   '<p>'+escape(PT().confirmFootprint)+'</p>'+
+   '<p><strong>'+escape(PT().footprint)+': '+escape(size)+'</strong></p>'+
+   '<p><small>'+escape(PT().margin)+'</small></p>'+
+   '<p>'+escape(PT().floors)+': '+stories+'</p>'+
    '<div class="actions"><button class="primary" id="fhNewPrefabConfirm">'+escape(PT().confirm)+'</button>'+
    '<button id="fhNewPrefabCancel">'+escape(PT().cancel)+'</button></div>',()=>{
-   const kindEl=document.getElementById('fhNewPrefabKind'),storiesEl=document.getElementById('fhNewPrefabStories');
-   kindEl.value='apartamentos';storiesEl.value='2';
-   kindEl.onchange=()=>{storiesEl.value=kindEl.value==='apartamentos'?'2':'1';};
-   document.getElementById('fhNewPrefabCancel').onclick=closeModal;
+   document.getElementById('fhNewPrefabCancel').onclick=()=>{
+    prefabPreview=null;closeModal();render();
+   };
    const confirm=document.getElementById('fhNewPrefabConfirm');
    confirm.onclick=async()=>{
     if(root.FHStyleEditor?.hasActor()){toast(PT().dmOnly);return;}
-    const preset=kindEl.value,stories=Number(storiesEl.value),simulated=document.getElementById('fhNewPrefabSimulated').checked;
     const floorId=current().id,images=new Map(project.floors.map((floor,i)=>[floor.id,loadedImgs[i]]));
     confirm.disabled=true;confirm.textContent=PT().busy;
     try{
@@ -153,13 +214,15 @@
      if(!response.ok)throw Error('catalog_http');
      const catalog=await response.json();
      if(catalog.schema!=='forest-horror-furniture-catalog-v1')throw Error('catalog_schema');
-     const result=PF().placeArea(project,floorId,a,b,preset,{
-      zones:Z(),catalog,stories,modelRules:root.FHFurnitureRules,shared:ForestShared
-     });
+     const result=PF().placeArea(project,floorId,
+      {x:r.x,y:r.y},{x:r.x+r.w,y:r.y+r.h},preset,{
+       zones:Z(),catalog,stories,modelRules:root.FHFurnitureRules,shared:ForestShared
+      });
      if(!result.ok){toast(PT().errors[result.code]||PT().errors.invalid_catalog);return;}
      C().plan(result.property,preset,simulated,{stories});
      loadedImgs=project.floors.map(floor=>images.get(floor.id)||null);
      floorIndex=project.floors.findIndex(floor=>floor.id===floorId);
+     prefabPreview=null;
      recalcAllSpaces();record();refreshFloorTabs();closeModal();
      toast(PT().success+' · '+result.property.name+' · '+result.apartments+' '+PT().homes);render();
     }catch(error){console.error('[Construcción 04]',error);toast(PT().errors.missing_catalog);}
@@ -374,7 +437,22 @@
   e.preventDefault();e.stopImmediatePropagation();
   const p=point(e);
   document.getElementById('coords').textContent='Casilla '+p.x.toFixed(2)+', '+p.y.toFixed(2);
-  if(gesture?.id===e.pointerId&&['property_zone','prefab_zone','location_exterior','location_common'].includes(gesture.tool)){const distance=Math.hypot(local(e).x-gesture.screen.x,local(e).y-gesture.screen.y);if(start||distance>7){live=p;if(!start)start=gesture.a;render();}}
+  if(gesture?.id===e.pointerId&&['property_zone','prefab_zone','location_exterior','location_common'].includes(gesture.tool)){
+   const distance=Math.hypot(local(e).x-gesture.screen.x,local(e).y-gesture.screen.y);
+   if(start||distance>7){
+    if(gesture.tool==='prefab_zone'){
+     const limited=PF().limitFootprint(start||gesture.a,p,prefabKind,project.units);
+     if(limited){
+      start=limited.a;live=limited.b;
+      document.getElementById('stageHint').textContent=limited.limited?PT().atMaximum:PT().sizeHint;
+     }
+    }else{live=p;if(!start)start=gesture.a;}
+    render();
+   }
+  }else if(start&&activeTool==='prefab_zone'&&!gesture){
+   const limited=PF().limitFootprint(start,p,prefabKind,project.units);
+   if(limited){live=limited.b;render();}
+  }
  },true);
  target.addEventListener('pointerup',e=>{
   if(!isPropertyTool())return;
@@ -383,6 +461,12 @@
   const g=gesture;gesture=null;const p=point(e);
   const drag=Math.hypot(e.clientX-g.screen.x-target.getBoundingClientRect().left,e.clientY-g.screen.y-target.getBoundingClientRect().top)>7;
   if(['property_zone','prefab_zone','location_exterior','location_common'].includes(g.tool)){
+   if(g.tool==='prefab_zone'){
+    if(drag){add(start||g.a,p,g.tool);return;}
+    if(!start){const selected=PF().limitFootprint(g.a,g.a,prefabKind,project.units);
+     start=selected?.a||g.a;live=null;toast('Primera esquina marcada. Toca la esquina opuesta.');render();return;}
+    add(start,p,g.tool);return;
+   }
    if(drag){add(start||g.a,p,g.tool);return}
    if(!start){start=g.a;live=null;toast('Primera esquina marcada. Toca la esquina opuesta.');render();return}
    add(start,p,g.tool);return;
@@ -395,5 +479,5 @@
   else toast('Las propiedades heredadas dependen de paredes amarillas y no se borran desde esta capa.');
  },true);
  target.addEventListener('pointercancel',e=>{if(!isPropertyTool())return;e.stopImmediatePropagation();gesture=null;live=null;start=null;render();},true);
- root.addEventListener('keydown',e=>{if(e.key==='Escape'&&layer()){start=null;live=null;gesture=null;extendZoneId='';render();}});
+ root.addEventListener('keydown',e=>{if(e.key==='Escape'&&layer()){start=null;live=null;gesture=null;prefabPreview=null;extendZoneId='';render();}});
 })(window);

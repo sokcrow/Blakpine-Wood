@@ -115,11 +115,11 @@ test('varios pisos de casa: escaleras enlazadas y recámaras superiores',()=>{
 });
 test('dibujar preset crea parcela automáticamente y nombre consecutivo',()=>{
  const m=map(80,80);
- let r=Prefabs.placeArea(m,'f1',{x:1,y:1},{x:30,y:30},'apartamentos',
+ let r=Prefabs.placeArea(m,'f1',{x:1,y:1},{x:30,y:28},'apartamentos',
   {zones:Zones,catalog,stories:1,id:'zone1'});
  assert.equal(r.ok,true);assert.equal(r.property.name,'Apartamentos 1');
  assert.equal(m.properties.length,1);
- r=Prefabs.placeArea(m,'f1',{x:39,y:1},{x:70,y:30},'apartamentos',
+ r=Prefabs.placeArea(m,'f1',{x:39,y:1},{x:70,y:28},'apartamentos',
   {zones:Zones,catalog,stories:1,id:'zone2'});
  assert.equal(r.ok,true);assert.equal(r.property.name,'Apartamentos 2');
  assert.equal(m.properties.length,2);
@@ -224,6 +224,57 @@ test('niveles creados tienen metadatos compatibles con el editor',()=>{
   const next=m.floors[i+1];
   assert.ok(m.floors[i].items.some(it=>it.type==='stairs'&&it.targetFloorId===next.id));
  }
+});
+test('el tamaño máximo del preset no puede superarse al crear la parcela',()=>{
+ for(const preset of ['ayuntamiento','casas','apartamentos','tienda']){
+  const [maxW,maxH]=Prefabs.TARGET[preset],units={columns:120,rows:120,feetPerCell:5};
+  const a={x:5,y:6},max={x:5+maxW,y:6+maxH};
+  const measured=Prefabs.measureFootprint(a,max,preset,units);
+  assert.equal(measured.ok,true,preset);
+  assert.equal(measured.rect.w,maxW);
+  assert.equal(measured.rect.h,maxH);
+  assert.equal(Prefabs.measureFootprint(a,{x:max.x+1,y:max.y},preset,units).code,'oversized');
+  assert.equal(Prefabs.measureFootprint(a,{x:max.x,y:max.y+1},preset,units).code,'oversized');
+  const clipped=Prefabs.limitFootprint(a,{x:110,y:110},preset,units);
+  assert.equal(clipped.limited,true);
+  assert.deepEqual(clipped.rect,{x:5,y:6,w:maxW,h:maxH});
+  assert.equal(clipped.valid,true);
+  const backwards=Prefabs.limitFootprint({x:90,y:90},{x:0,y:0},preset,units);
+  assert.ok(backwards.rect.w<=maxW&&backwards.rect.h<=maxH);
+  assert.ok(backwards.rect.x>=1&&backwards.rect.y>=1);
+ }
+});
+test('el edificio ocupa la huella elegida sin recortarla silenciosamente',()=>{
+ const project=map(100,100),a={x:4,y:5},b={x:30,y:30};
+ const result=Prefabs.placeArea(project,'f1',a,b,'apartamentos',
+  {zones:Zones,catalog,stories:1,id:'parcel_selection'});
+ assert.equal(result.ok,true);
+ assert.deepEqual(result.rect,{x:4,y:5,w:26,h:25});
+ assert.deepEqual(Prefabs.outline(result.property,project.units),result.rect);
+ assert.equal(result.property.polygon[0].x,3);
+ assert.equal(result.property.polygon[0].y,4);
+ assert.equal(result.property.polygon[2].x,31);
+ assert.equal(result.property.polygon[2].y,31);
+ assert.ok(result.items>0);
+});
+test('no modifica el mapa cuando el contorno supera el máximo',()=>{
+ const project=map(100,100);
+ const before=JSON.stringify(project);
+ const [w,h]=Prefabs.TARGET.apartamentos;
+ const result=Prefabs.placeArea(project,'f1',{x:2,y:2},{x:3+w,y:2+h},
+  'apartamentos',{zones:Zones,catalog,stories:1,id:'too_large'});
+ assert.equal(result.ok,false);
+ assert.equal(result.code,'oversized');
+ assert.equal(JSON.stringify(project),before);
+});
+test('el contorno respeta los bordes del mapa y el mínimo del preset',()=>{
+ const units={columns:40,rows:40,feetPerCell:5};
+ const selected=Prefabs.limitFootprint({x:39,y:39},{x:100,y:100},'casas',units);
+ assert.ok(selected.rect.x+selected.rect.w<=39);
+ assert.ok(selected.rect.y+selected.rect.h<=39);
+ const min=Prefabs.MIN.casas;
+ assert.equal(Prefabs.measureFootprint({x:2,y:2},{x:2+min[0]-1,y:2+min[1]},'casas',units).code,'small_parcel');
+ assert.equal(Prefabs.measureFootprint({x:0,y:0},{x:15,y:12},'casas',units).code,'invalid_parcel');
 });
 test('cargar prefabs no modifica mapas antiguos ni crea propiedades espontáneas',()=>{
  const m=map(),before=JSON.stringify(m);

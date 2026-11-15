@@ -66,14 +66,52 @@
   const w=Math.min(available.w,mw),h=Math.min(available.h,mh);
   return box(available.x+Math.floor((available.w-w)/2),available.y+Math.floor((available.h-h)/2),w,h);
  }
+ // El rectángulo seleccionado representa el edificio, no una parcela recortada después.
+ // Un tile equivale a la medida del proyecto; solo las paredes se ajustan a la rejilla.
+ function measureFootprint(a,b,preset,units){
+  if(!MIN[preset])return failure('unknown_preset');
+  if(!a||!b||![a.x,a.y,b.x,b.y].every(number))return failure('invalid_parcel');
+  const cols=Number(units?.columns),rows=Number(units?.rows);
+  if(!Number.isFinite(cols)||!Number.isFinite(rows)||cols<4||rows<4)return failure('invalid_parcel');
+  const ax=Math.round(a.x),ay=Math.round(a.y),bx=Math.round(b.x),by=Math.round(b.y);
+  const rect=box(Math.min(ax,bx),Math.min(ay,by),Math.abs(ax-bx),Math.abs(ay-by));
+  if(rect.x<1||rect.y<1||rect.x+rect.w>cols-1||rect.y+rect.h>rows-1)
+   return failure('invalid_parcel');
+  const [mw,mh]=TARGET[preset];
+  if(rect.w>mw||rect.h>mh)return failure('oversized',{maximum:[mw,mh]});
+  const [minW,minH]=MIN[preset];
+  if(rect.w<minW||rect.h<minH)return failure('small_parcel',{minimum:[minW,minH]});
+  return {ok:true,rect,maximum:[mw,mh]};
+ }
+ function limitFootprint(a,b,preset,units){
+  if(!TARGET[preset]||!a||!b||![a.x,a.y,b.x,b.y].every(number))return null;
+  const cols=Number(units?.columns),rows=Number(units?.rows);
+  if(!Number.isFinite(cols)||!Number.isFinite(rows)||cols<4||rows<4)return null;
+  const bound=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
+  const start={x:bound(Math.round(a.x),1,cols-1),y:bound(Math.round(a.y),1,rows-1)};
+  const [mw,mh]=TARGET[preset],ex=Math.round(b.x),ey=Math.round(b.y);
+  const end={x:bound(ex,Math.max(1,start.x-mw),Math.min(cols-1,start.x+mw)),
+   y:bound(ey,Math.max(1,start.y-mh),Math.min(rows-1,start.y+mh))};
+  const rect=box(Math.min(start.x,end.x),Math.min(start.y,end.y),
+   Math.abs(end.x-start.x),Math.abs(end.y-start.y));
+  const [minW,minH]=MIN[preset];
+  return {a:start,b:end,rect,maximum:[mw,mh],minimum:[minW,minH],
+   limited:end.x!==ex||end.y!==ey,valid:rect.w>=minW&&rect.h>=minH};
+ }
  function newName(project,preset){
   const base=LABELS[preset]||'Edificio',taken=new Set((project?.properties||[]).map(p=>p.name));
   let n=1;while(taken.has(base+' '+n))n++;
   return base+' '+n;
  }
  function areaProject(project,floorId,a,b,preset,zones,id){
-  if(!MIN[preset])return failure('unknown_preset');
-  const created=zones.create(project,floorId,a,b,project.units.columns,project.units.rows,id);
+  const checked=measureFootprint(a,b,preset,project?.units);
+  if(!checked.ok)return checked;
+  const r=checked.rect;
+  // La propiedad se extiende una casilla alrededor, solo para preservar el
+  // margen arquitectónico. El edificio usa exactamente el rectángulo elegido.
+  const topLeft={x:r.x-1,y:r.y-1},bottomRight={x:r.x+r.w+1,y:r.y+r.h+1};
+  const created=zones.create(project,floorId,topLeft,bottomRight,
+   project.units.columns,project.units.rows,id);
   if(!created.ok)return failure('invalid_parcel',{detail:created.reason});
   created.zone.name=newName(project,preset);
   created.zone.claimable=false;
@@ -397,5 +435,5 @@
   if(!result.ok){project.properties=project.properties.filter(p=>p!==property);return result;}
   return {...result,property};
  }
- return Object.freeze({MIN,TARGET,outline,footprintFor,newName,plan,place,placeArea});
+ return Object.freeze({MIN,TARGET,outline,footprintFor,measureFootprint,limitFootprint,newName,plan,place,placeArea});
 });
