@@ -159,6 +159,7 @@
      if(!result.ok){toast(PT().errors[result.code]||PT().errors.invalid_catalog);return;}
      C().plan(result.property,preset,simulated,{stories});
      loadedImgs=project.floors.map(floor=>images.get(floor.id)||null);
+     floorIndex=project.floors.findIndex(floor=>floor.id===floorId);
      recalcAllSpaces();record();refreshFloorTabs();closeModal();
      toast(PT().success+' · '+result.property.name+' · '+result.apartments+' '+PT().homes);render();
     }catch(error){console.error('[Construcción 04]',error);toast(PT().errors.missing_catalog);}
@@ -227,6 +228,7 @@
       prop.ownerId=document.getElementById('fhParcelOwner').value.trim().slice(0,80);
       C().plan(prop,preset,simulated,{stories});
       loadedImgs=project.floors.map(floor=>images.get(floor.id)||null);
+      floorIndex=project.floors.findIndex(floor=>floor.id===prop.floorId);
       recalcAllSpaces();record();refreshFloorTabs();closeModal();toast(PT().success);render();
      }catch(error){
       console.error('[Construcción 04]',error);
