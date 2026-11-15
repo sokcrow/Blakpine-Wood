@@ -105,7 +105,8 @@
    const id='floor_'+property.id+'_'+level;
    if(project.floors.some(f=>f.id===id)||createdFloors.some(f=>f.id===id))return failure('levels_conflict');
    const newFloor={id,name:'Piso '+(level+1)+' · '+(LABELS[preset]||'Edificio'),
-    elevationFt:elev,ceilingHeightFt:10,lightingManual:true,items:[]};
+    elevationFt:elev,ceilingHeightFt:10,lightingManual:true,
+    reference:{name:'',data:'',width:1,height:1,opacity:.73},items:[]};
    requestedFloors.push(newFloor);createdFloors.push(newFloor);
   }
   const clearTypes=new Set(['outside','grass','dirt']);
