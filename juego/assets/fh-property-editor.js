@@ -144,7 +144,7 @@
    const feet=Number(project.units.feetPerCell)||5;
    info.textContent=PT().maximum+': '+maxW+' × '+maxH+' '+PT().tileUnit+
     ' ('+Math.round(maxW*feet)+' × '+Math.round(maxH*feet)+' '+PT().feetUnit+')'+
-    ' · Mín. '+minW+' × '+minH+'. '+PT().margin;
+    ' · '+PT().minimum+': '+minW+' × '+minH+'. '+PT().margin;
   };
   kind.onchange=()=>{prefabKind=kind.value;start=null;live=null;prefabPreview=null;
    if(prefabKind==='apartamentos'&&prefabStories===1){prefabStories=2;floors.value='2';}
