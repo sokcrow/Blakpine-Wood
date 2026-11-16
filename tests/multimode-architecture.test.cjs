@@ -2,8 +2,9 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { readFileSync, readdirSync } = require('node:fs');
-const { resolve, sep } = require('node:path');
+const { readFileSync, readdirSync, cpSync, mkdtempSync, mkdirSync, writeFileSync, rmSync, symlinkSync } = require('node:fs');
+const { resolve, sep, join, dirname } = require('node:path');
+const { tmpdir } = require('node:os');
 const { spawnSync } = require('node:child_process');
 
 const root = resolve(__dirname, '..');
@@ -79,6 +80,39 @@ const spatialFields = new Set([
   'navigation', 'visibility', 'position', 'positions', 'coordinates', 'transform',
   'transforms', 'layout', 'mesh', 'meshes', 'structure', 'structures', 'spatial'
 ]);
+
+// Ensaya el validador oficial contra copias temporales: nunca modifica el checkout.
+function runNegativeFixture(changes) {
+  const tempRoot = mkdtempSync(join(tmpdir(), 'blakpine-multimode-'));
+  try {
+    mkdirSync(resolve(tempRoot, 'contratos'), { recursive: true });
+    cpSync(resolve(root, contracts), resolve(tempRoot, contracts), { recursive: true });
+    const mapFile = resolve(tempRoot, 'forest-horror/maps/DEMO_Interacciones.json');
+    mkdirSync(dirname(mapFile), { recursive: true });
+    writeFileSync(mapFile, JSON.stringify({ schema: 'forest-horror-map-v1' }));
+    const modify = (path, edit) => {
+      const filename = resolve(tempRoot, path);
+      const document = JSON.parse(readFileSync(filename, 'utf8'));
+      edit(document);
+      writeFileSync(filename, JSON.stringify(document, null, 2) + '\n');
+    };
+    changes({ modify, tempRoot });
+    return spawnSync(process.execPath, [resolve(tempRoot, contracts, 'validar-contratos.mjs')], {
+      cwd: tempRoot, encoding: 'utf8', timeout: 15000
+    });
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true });
+  }
+}
+
+function assertNegativeFixture(file, change, reason, expectedDiagnostic) {
+  assert.ok(expectedDiagnostic instanceof RegExp, reason + ': falta diagnóstico esperado');
+  const result = runNegativeFixture(({ modify }) => modify(file, change));
+  if (result.error) throw result.error;
+  assert.notEqual(result.status, 0, reason + ': caso inválido aceptado');
+  assert.match(result.stderr, expectedDiagnostic,
+    reason + ': fallo por causa distinta a la condición que se pretende probar');
+}
 
 test('existen exactamente tres mundos, tres manifiestos y tres selecciones oficiales', () => {
   assert.deepEqual(jsonNames(worldDir), worldFiles);
@@ -192,4 +226,66 @@ test('el validador oficial aprueba los contratos y referencias de las nueve comb
   if (result.error) throw result.error;
   assert.equal(result.status, 0, `${result.stdout || ''}\n${result.stderr || ''}`);
   assert.match(result.stdout, /PASS:.*3 mundos, 3 reglamentos y 9 combinaciones/);
+});
+
+test('la copia de prueba sin mutaciones pasa el validador oficial', () => {
+  const result = runNegativeFixture(() => {});
+  if (result.error) throw result.error;
+  assert.equal(result.status, 0, `${result.stdout || ''}\n${result.stderr || ''}`);
+  assert.match(result.stdout, /PASS:.*3 mundos, 3 reglamentos y 9 combinaciones/);
+});
+
+test('rechaza rutas relativas con traversal, rutas absolutas y segmentos inválidos', () => {
+  const file = `${selectionDir}/moderno-dnd.json`;
+  for (const value of ['../outside.json', '/tmp/outside.json', 'contratos/../outside.json',
+    'contratos//multimodo/ejemplos/mundos/ciudad-moderna.json', 'C:\\\\outside.json']) {
+    assertNegativeFixture(file, data => { data.worldProfile = value; },
+      value, /worldProfile: patrón inválido/);
+  }
+  assertNegativeFixture(`${worldDir}/ciudad-moderna.json`,
+    data => { data.map.path = 'forest-horror/maps/../maps/DEMO_Interacciones.json'; },
+    'map.path con traversal', /map\.path: patrón inválido/);
+});
+
+test('rechaza rutas simbólicas que escapan del repositorio', () => {
+  const externalRoot = mkdtempSync(join(tmpdir(), 'blakpine-external-map-'));
+  try {
+    const externalMap = join(externalRoot, 'external-map.json');
+    writeFileSync(externalMap, JSON.stringify({ schema: 'forest-horror-map-v1' }));
+    const result = runNegativeFixture(({ tempRoot }) => {
+      const mapFile = resolve(tempRoot, 'forest-horror/maps/DEMO_Interacciones.json');
+      rmSync(mapFile);
+      symlinkSync(externalMap, mapFile);
+    });
+    if (result.error) throw result.error;
+    assert.notEqual(result.status, 0, 'se aceptó un symlink fuera del checkout');
+    assert.match(result.stderr, /Enlace fuera del repositorio/,
+      'se rechazó por otra razón: falso positivo de seguridad');
+  } finally {
+    rmSync(externalRoot, { recursive: true, force: true });
+  }
+});
+
+test('rechaza capacidades de mundo con tipos, duplicados o identificadores inválidos', () => {
+  const file = `${worldDir}/ciudad-moderna.json`;
+  assertNegativeFixture(file,
+    data => { data.extensions['blakpine.world-capabilities.v1'].architecture = 'not-an-array'; },
+    'architecture no es una lista', /architecture: tipo incorrecto/);
+  assertNegativeFixture(file,
+    data => { data.extensions['blakpine.world-capabilities.v1'].services.push('potable-water'); },
+    'services duplicados', /services: repetidos/);
+  assertNegativeFixture(file,
+    data => { data.extensions['blakpine.world-capabilities.v1'].paths.push('Invalid_Path'); },
+    'identificador paths inválido', /paths\[\d+\]: patrón inválido/);
+  assertNegativeFixture(file,
+    data => { delete data.extensions['blakpine.world-capabilities.v1'].materials; },
+    'falta grupo materials', /falta materials/);
+});
+
+test('rechaza colisiones de identidad entre reglamentos distintos', () => {
+  const file = `${rulesDir}/moon-system.json`;
+  assertNegativeFixture(file, data => { data.statsNamespace = 'dnd'; },
+    'statsNamespace reutilizado', /statsNamespace duplicado entre dnd y moon-system/);
+  assertNegativeFixture(file, data => { data.adapter.id = 'combat.dnd'; },
+    'adapter.id reutilizado', /ID de adaptador duplicado entre dnd y moon-system/);
 });
