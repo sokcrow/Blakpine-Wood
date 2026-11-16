@@ -1,21 +1,30 @@
 #!/usr/bin/env node
 // Validador estático de contratos multimodo. Sin paquetes externos ni arranque del juego.
-import { readFileSync, existsSync, readdirSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync, realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve, relative, isAbsolute, sep } from 'node:path';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
+const realRepoRoot = realpathSync(repoRoot);
 let checks = 0;
 function assert(condition, message) {
   if (!condition) throw new Error(message);
   checks++;
 }
+function isInsideRoot(root, target) {
+  const result = relative(root, target);
+  return result !== '..' && !result.startsWith('..' + sep) && !isAbsolute(result);
+}
 function safePath(path) {
   assert(typeof path === 'string' && path.length > 0, 'Ruta vacía');
   assert(!isAbsolute(path) && !path.includes('\\'), 'Ruta absoluta o separador inválido: ' + path);
-  assert(path.split('/').every(p => p !== '..' && p !== '.' && p !== ''), 'Ruta fuera de repositorio: ' + path);
+  assert(path.split('/').every(p => /^[A-Za-z0-9_-][A-Za-z0-9_.-]*$/.test(p)),
+    'Segmento de ruta inválido: ' + path);
   const absolute = resolve(repoRoot, path);
-  assert(!relative(repoRoot, absolute).startsWith('..' + sep), 'Ruta externa: ' + path);
+  assert(isInsideRoot(repoRoot, absolute), 'Ruta fuera de repositorio: ' + path);
+  if (existsSync(absolute)) {
+    assert(isInsideRoot(realRepoRoot, realpathSync(absolute)), 'Enlace fuera del repositorio: ' + path);
+  }
   return absolute;
 }
 function load(path) {
@@ -81,6 +90,14 @@ for (const obsolete of ['reglas/tercer-sistema-pendiente.json', 'selecciones/med
   assert(!existsSync(safePath(examplesRoot + obsolete)), 'Referencia obsoleta: ' + obsolete);
 }
 const ids = new Set();
+const adapterIds = new Map();
+const statsNamespaces = new Map();
+function assertUniqueRuleIdentity(registry, value, ruleId, description) {
+  if (value == null) return;
+  assert(!registry.has(value),
+    description + ' duplicado entre ' + registry.get(value) + ' y ' + ruleId + ': ' + value);
+  registry.set(value, ruleId);
+}
 for (const path of [...worlds, ...rulesets]) {
   const doc = load(path);
   validate(doc, refs[doc.kind], path);
@@ -95,6 +112,8 @@ for (const path of [...worlds, ...rulesets]) {
     }
   }
   if (doc.kind === 'blakpine-ruleset-manifest-v1') {
+    assertUniqueRuleIdentity(adapterIds, doc.adapter?.id, doc.id, 'ID de adaptador');
+    assertUniqueRuleIdentity(statsNamespaces, doc.statsNamespace, doc.id, 'statsNamespace');
     assert(ruleIds.includes(doc.id) && path.endsWith('/' + doc.id + '.json'),
       'ID de reglamento ajeno a Legacy, DnD y Moon: ' + path);
     assert(doc.status === 'planned', 'Integración multimodo sin implementación verificada: ' + doc.id);
