@@ -190,7 +190,7 @@ test('fotograma ensamblado: movimiento, cámara y render deben terminar antes de
    lastBatteryNotice:false,visibilityDirty:false,flashlightSpot:{position:new THREE.Vector3(),target:{position:new THREE.Vector3()}},
    occupiedShaft:()=>null,floorElev:[0],currentFloor:0,user:{x:4,z:4,face:1},flashDir:{x:0,z:-1},
    updateRoomLighting:noop,fhHorrorLightsFail:()=>false,fhHorror:{tick:()=>{}},$:()=>({hidden:true}),fhSurvival:null,fhWeather:null,fhWeatherRenderer:null,fhGroundFog:null,fhWeatherAudio:null,fhNatural:null,
-   fhDecorationTick:noop,fhDeliveryUiActive:false,moveUpdate:()=>step('movement'),fhDeliveryNpcTick:noop,
+   fhDecorationTick:noop,fhDeliveryUiActive:false,moveUpdate:()=>step('movement'),fhDeliveryNpcTick:noop,fhLegacySession:{tick:noop},
    playerPose:{state:{phase:'standing'},update:()=>null},playerPoseItem:null,GameState:{hidden:false},GameEvents:{},
    cameraUpdate:()=>step('camera'),updateCabinIsolation:noop,updateAdjacentVisibility:noop,updateCameraCutaway:noop,
    stairTravel:null,stairSupportHeight:()=>0,hero:sprite(),shadow:sprite(),saveProgress:noop,
@@ -241,8 +241,8 @@ function actorStartup(){
  const THREE=require('./vendor/three.min.js');
  const scene=new THREE.Scene(),stories=[new THREE.Group()];scene.add(stories[0]);
  let playerHeight;
- const runtime=vm.createContext({THREE,scene,stories,floorElev:[0],MAX_X:24,MAX_Z:24,DATA:{},CELL:1.524,
-  sightUniform:{value:null},URL,console,Promise,window:{addEventListener(){},FHShadowVisuals:{createManager(options){
+ const runtime=vm.createContext({THREE,scene,stories,floorElev:[0],MAX_X:24,MAX_Z:24,DATA:{},GameState:{},CELL:1.524,
+  sightUniform:{value:null},URL,console,Promise,window:{FHLegacyEngineSession:require('../core/fh-legacy-engine-session.js'),addEventListener(){},FHShadowVisuals:{createManager(options){
    playerHeight=options.playerHeight;
    return require('./fh-shadow-visuals.js').createManager(options);
   }}}});
@@ -272,7 +272,7 @@ test('cableado exterior instala FOW antes de crear hero y shadow',()=>{
  const THREE=require('./vendor/three.min.js'),scene=new THREE.Scene(),stories=[new THREE.Group()];
  scene.add(stories[0]);
  const env=vm.createContext({THREE,scene,stories,MAX_X:24,MAX_Z:24,sightUniform:{value:null},
-  window:{addEventListener(){}},URL,DATA:{},CELL:1.524,floorElev:[0],
+  window:{FHLegacyEngineSession:require('../core/fh-legacy-engine-session.js'),addEventListener(){}},URL,DATA:{},GameState:{},CELL:1.524,floorElev:[0],
   exterior:require('./fh-exterior-visuals.js'),service:{exteriorGrid:{nodes:[],panelLinks:()=>[],links:()=>[{
    from:{f:0,id:'a',it:{x:0,y:0,modelId:'caja_distribucion_exterior'}},
    to:{f:0,id:'b',it:{x:2,y:0,modelId:'caja_distribucion_exterior'}}
