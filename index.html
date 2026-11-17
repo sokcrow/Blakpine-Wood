@@ -3409,6 +3409,9 @@ function prepare3DSaveSession(profile) {
   rulesetVersion:choice.rulesetVersion,saveId:choice.saveId};
  const adapter=window.FHMultimodeSaveAdapters?.[identity.rulesetId];
  if(!window.FHMultimodePersistence?.supportedAdapter(adapter,identity.rulesetId))throw Error('SAVE_ADAPTER_UNAVAILABLE');
+ const combat=window.FHMultimodeCombatAdapters?.[identity.rulesetId];
+ if(combat?.status!=='implemented'||combat?.contract!=='blakpine-combat-adapter-v1'||
+    combat?.rulesetId!==identity.rulesetId||typeof combat?.evaluate!=='function')throw Error('SAVE_COMBAT_ADAPTER_UNAVAILABLE');
  const token=globalThis.crypto?.randomUUID?.()||
   ('preview-'+Date.now()+'-'+(++previewSaveSequence)+'-'+Math.random().toString(36).slice(2));
  let storage=null;try{storage=window.localStorage}catch{}
