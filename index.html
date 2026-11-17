@@ -3401,6 +3401,7 @@ function preview3DError(message,reported=false){
 }
 let previewSaveSession=null,previewSaveSequence=0;
 function prepare3DSaveSession(profile) {
+ previewSaveSession?.close();previewSaveSession=null;
  const choice=window.FHMultimodeSaveSelection;
  if(choice===null||choice===undefined)return null; // El recorrido Legacy no cambia.
  const mapId=typeof project.createdAt==='string'?project.createdAt:'';
@@ -3421,6 +3422,8 @@ function prepare3DSaveSession(profile) {
 }
 function makeCurrent3DProject(){
  const fhProfile=window.FHCharacterCreation?.current?.()||null;
+ if(previewSaveSession&&(previewSaveSession.identity.characterId!==fhProfile?.id||
+   previewSaveSession.identity.mapId!==project.createdAt))throw Error('SAVE_CONTEXT_CHANGED');
  const fhRawSave=previewSaveSession?null:readStorage(ForestShared.gameSaveKey(project));
  const fhMapSave=fhProfile?window.FHCharacterCreation.selectMapSave(fhRawSave,fhProfile.id):fhRawSave;
  const units={...project.units,metersPerCell:Number(project.units.feetPerCell||5)*.3048};
@@ -5085,6 +5088,7 @@ async function start3DPreview(){
  if(preview3DActive)return;
  // Si el celular se giró durante la selección de personaje, no cargar en vertical.
  if(window.FHMobileCamera?.isPhone?.(innerWidth,innerHeight,!!window.matchMedia?.('(pointer: coarse)')?.matches)&&innerWidth<=innerHeight){
+  previewSaveSession?.close();previewSaveSession=null;
   show3DLandscapeGate();return;
  }
  closeInspector();closeModal();anchor=null;preview=null;
@@ -5230,10 +5234,18 @@ window.addEventListener('message',e=>{
   preview3DRunning=true;stop3DWatchdog();if(e.data.unverified)show3DStatus(PREVIEW_TEXT.diagnosticPartial);else if(preview3DArchitectureError)show3DStatus(preview3DArchitectureError);else play3DState.classList.add('hide');
  } else if(e.data.type==='FOREST_MULTIMODE_SAVE'){
    if(!previewSaveSession)return;
+   if(previewSaveSession.identity.characterId!==window.FHCharacterCreation?.current?.()?.id||
+      previewSaveSession.identity.mapId!==project.createdAt){
+    close3DPreview();toast(window.FH_MULTIMODE_SAVE_TEXT.saveInvalid);return;
+   }
    try{previewSaveSession.accept(e.data)}
    catch(error){console.error('[Blakpine guardado rechazado]',error);preview3DError(window.FH_MULTIMODE_SAVE_TEXT.saveInvalid)}
   } else if(e.data.type==='FOREST_MULTIMODE_DEATH'){
    if(!previewSaveSession||e.data.sessionId!==previewSaveSession.sessionId)return;
+   if(previewSaveSession.identity.characterId!==window.FHCharacterCreation?.current?.()?.id||
+      previewSaveSession.identity.mapId!==project.createdAt){
+    close3DPreview();toast(window.FH_MULTIMODE_SAVE_TEXT.saveInvalid);return;
+   }
    close3DPreview();toast(window.FH_MULTIMODE_SAVE_TEXT.characterDead);
   } else if(e.data.type==='FOREST_CHARACTER_DEATH'){
    if(previewSaveSession)return;
