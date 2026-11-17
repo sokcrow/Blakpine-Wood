@@ -1,12 +1,4 @@
-/* Preparación y enlace operativo Legacy; no instala el puerto privado del motor.
- * Contrato IA 1 leído: PR #205, commit 1b175ae0b4ac6ba3c9dfd209b96394e89a98f748.
- * Corte verificado en main 4e69a954: fh-shadow-ai.js:306–307, antes de attack.
- * BLOQUEO A1/B1: ese runtime solo expone tick/dispose/read. bindLegacyCombat
- * rechaza el motor actual con LEGACY_ENGINE_PORT_UNAVAILABLE; ni globals ni
- * combat:damage son sustitutos. Exponer connectCombat/contexto/revisión requiere
- * intervención posterior del motor; index/iframe/Base64 requieren diff y autorización
- * del Director. Este cambio no los modifica y no declara conexión jugable.
- */
+/* Enlace operativo Legacy mediante capacidades del runtime de Sombras. */
 (function (root, factory) {
   'use strict';
   const api = factory(() => typeof module === 'object' && module.exports
@@ -47,7 +39,6 @@
      * readContext debe demostrar sesión activa/generación, personaje y revisión
      * desde el cierre real. La capacidad del motor revalida contacto, actor y
      * elegibilidad antes de llamar al attack original, sin await ni otro resolutor.
-     * Mientras ese puerto no exista, esta ruta se mantiene bloqueada en juego.
      * Solo criatura -> jugador. Estructuras conservan un puerto independiente.
      */
     function bindLegacyCombat({ sessionId, playerId, shadowRuntime, readContext } = {}) {
@@ -134,8 +125,8 @@
         throw new LegacyBindingError('LEGACY_ENGINE_CONNECTION_FAILED', cause);
       }
       return Object.freeze({
-        // Ni un puerto simulado ni prepared:true acreditan conexión con el juego real.
-        getStatus: () => Object.freeze({ connected: false, closed }),
+        // Estado de la conexión instalada; no acredita adaptadores multimodo.
+        getStatus: () => Object.freeze({ connected: !closed, closed }),
         close() {
           if (closed) return;
           closed = true; bridge.close();

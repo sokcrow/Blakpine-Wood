@@ -1,8 +1,7 @@
 'use strict';
 /* Enlace modular probado con puerto SINTÉTICO y propietario FHSurvival real.
- * NO es tick real -> coordinador -> ataque privado real: connectCombat no existe.
+ * Las pruebas del motor ensamblado viven en legacy-real-engine.test.cjs.
  * Contrato IA 1: PR #205 @ 1b175ae0b4ac6ba3c9dfd209b96394e89a98f748.
- * A1/B1 en juego: BLOQUEADOS hasta autorización/intervención del motor.
  */
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
@@ -32,18 +31,10 @@ function fixture() {
     counts: () => ({ calls, closes, critical }) };
 }
 
-test('puerto real de Sombras ausente bloquea la conexión antes de cualquier efecto', () => {
-  let choices = 0, rng = 0;
-  const runtime = shadows.createRuntime({
-    state: {}, spawn: () => 'shadow', move: () => true, despawn() {}, canWalk: () => true,
-    route: (a, b) => [a, b], chooseAttack() { choices++; return 'normal'; }, random() { rng++; return 0; }
-  });
-  assert.equal(typeof runtime.connectCombat, 'undefined');
-  assert.throws(() => create().bindLegacyCombat({ sessionId: 'session', playerId: 'hero',
-    shadowRuntime: runtime, readContext: () => { throw Error('no debe leer contexto ficticio'); }
-  }), error => error.code === 'LEGACY_ENGINE_PORT_UNAVAILABLE');
-  assert.equal(choices, 0); assert.equal(rng, 0);
-  runtime.dispose();
+test('runtime deshabilitado bloquea el puerto antes de cualquier efecto', () => {
+  const runtime = shadows.createRuntime({config:{enabled:false}});
+  assert.throws(() => create().bindLegacyCombat({sessionId:'session',playerId:'hero',
+    shadowRuntime:runtime,readContext:()=>null}),error=>error.code==='LEGACY_ENGINE_PORT_UNAVAILABLE');
 });
 
 test('enlace sintético reutiliza puente real, comparte promesa y aplica PG/crítico una sola vez', async () => {
@@ -56,7 +47,7 @@ test('enlace sintético reutiliza puente real, comparte promesa y aplica PG/crí
   assert.equal(f.state.character.resources.pg, 0);
   assert.equal(f.state.character.resources.pe, 7);
   assert.deepEqual(f.counts(), { calls: 1, closes: 0, critical: 1 });
-  assert.deepEqual(f.binding.getStatus(), { connected: false, closed: false });
+  assert.deepEqual(f.binding.getStatus(), { connected: true, closed: false });
 });
 
 test('SP usa propietario real sin descontar PG/PE; sin usar combat:damage como entrada', async () => {
@@ -191,5 +182,3 @@ test('sin selección conserva arranque Legacy; planned no pasa por evaluate ni e
   assert.deepEqual(await session.prepare(null), { kind: 'legacy' }); assert.equal(reads, 0);
   await rejects(session.prepare({}), 'RULESET_NOT_IMPLEMENTED');
 });
-
-test.todo('A1/B1 bloqueados: tick real -> coordinador -> attack original -> consumidor real; verificar PE/RNG/cooldown y PG/SP únicos tras exponer el puerto con autorización');

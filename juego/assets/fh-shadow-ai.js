@@ -34,6 +34,8 @@
   if(!nightSpawns.byKind||typeof nightSpawns.byKind!=='object')nightSpawns.byKind={};
   const active=new Map();
   let previousPlayer=null,movementRemainder=0;
+  let combat=null,disposed=false,epoch=0,actionSequence=0;
+  const pending=new Set();
   function event(name,payload){
    if(name==='blocked'){state.lastBlocked=payload.reason;state.blockedCount=(state.blockedCount||0)+1;}
    options.onEvent?.(name,payload);
@@ -266,7 +268,54 @@
    event('attack',{id:actor.id,kind:actor.kind,category:'Sombras',resource:actor.kind==='la_nina'?'sp':'pg',
     damage,dice:power?2:1,peSpent:power?1:0,pe:actor.pe,minute});
   }
+  // Capabilities remain private to this runtime; no costs occur at dispatch.
+  function connectCombat(port){
+   if(disposed||combat)throw Error('LEGACY_CONNECTION_UNAVAILABLE');
+   if(!port||typeof port.sessionId!=='string'||!port.sessionId.trim()||
+    typeof port.playerId!=='string'||!port.playerId.trim()||
+    typeof port.readContext!=='function'||typeof port.requestAttack!=='function')
+    throw Error('LEGACY_CONNECTION_INVALID');
+   const connection={...port,closed:false};combat=connection;
+   return Object.freeze({close(){connection.closed=true;pending.clear();}});
+  }
+  function dispatchAttack(actor,player,minute){
+   if(!combat){attack(actor,player,minute);return;}
+   const connection=combat;
+   if(connection.closed||pending.has(actor))return;
+   const context=connection.readContext(),generation=epoch;
+   if(!context)return;
+   let consumed=false;
+   const intent=Object.freeze({sessionId:connection.sessionId,rulesetId:'legacy',
+    actionId:connection.sessionId+':shadow-attack:'+(++actionSequence),revision:context.revision,
+    action:'attack',actor:Object.freeze({kind:'creature',id:actor.id}),
+    target:Object.freeze({kind:'player',id:connection.playerId})});
+   function live(){
+    if(consumed||disposed||connection.closed||epoch!==generation||active.get(actor.id)!==actor)return null;
+    const value=connection.readContext(),p=value?.player;
+    if(!value||value.sessionId!==intent.sessionId||value.playerId!==intent.target.id||
+     value.rulesetId!=='legacy'||value.revision!==intent.revision||!Number.isSafeInteger(value.revision)||
+     value.revision<0||!finite(value.minute)||value.minute!==minute||!p||
+     !Number.isInteger(p.floor)||!finite(p.x)||!finite(p.z)||p.sleeping||p.inactive||p.outside||p.inElevator||
+     currentNight(value.minute)===null||value.minute>=actor.expiresAt||
+     value.minute-actor.lastHit<cfg.attackCooldown||!inside(p.floor,p.x,p.z)||!contactClear(actor,p))return null;
+    return value;
+   }
+   const operation=Object.freeze({authorize:()=>!!live(),execute(){
+    const value=live();
+    if(!value)throw Error('LEGACY_ACTION_REVOKED');
+    consumed=true;
+    attack(actor,value.player,value.minute);
+    return null;
+   }});
+   pending.add(actor);
+   const release=()=>pending.delete(actor);
+   try{Promise.resolve(connection.requestAttack(intent,operation)).then(release,release);}
+   catch(error){release();} // Never fall back to the direct attack after dispatch.
+  }
   function tick(minute,dt,player){
+   if(disposed)return;
+   epoch++;
+
    if(!finite(minute)||!player||!Number.isInteger(player.floor)||!finite(player.x)||!finite(player.z))return;
    // Accumulate sub-frame steps: movement detection must work equally at 30, 60 or 240 FPS.
    const sameFloor=previousPlayer!==null&&previousPlayer.floor===player.floor;
@@ -304,16 +353,16 @@
      event('nightmare',{id:actor.id,kind:actor.kind,minute});
     }
     if(!player.sleeping&&moved&&near&&minute-actor.lastHit>=cfg.attackCooldown&&contactClear(actor,player))
-     attack(actor,player,minute);
+     dispatchAttack(actor,player,minute);
    }
   }
-  function dispose(){for(const actor of [...active.values()])remove(actor,'cierre');}
+  function dispose(){disposed=true;if(combat)combat.closed=true;pending.clear();for(const actor of [...active.values()])remove(actor,'cierre');}
   function read(){return {enabled:true,nextAt:null,nightSpawns:JSON.parse(JSON.stringify(nightSpawns)),
    lastAttempt:state.lastAttempt??null,lastSpawn:state.lastSpawn??null,
    lastBlocked:state.lastBlocked??null,spawnCount:state.spawnCount||0,blockedCount:state.blockedCount||0,
    active:[...active.values()].map(a=>({id:a.id,category:'Sombras',kind:a.kind,
     floor:a.floor,x:a.x,z:a.z,pe:a.pe,mode:a.mode,expiresAt:a.expiresAt}))};}
-  return Object.freeze({tick,dispose,read});
+  return Object.freeze({tick,dispose,read,connectCombat});
  }
  return Object.freeze({TYPES,DEFAULTS,createRuntime});
 });
