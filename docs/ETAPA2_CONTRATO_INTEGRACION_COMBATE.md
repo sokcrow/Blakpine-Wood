@@ -1,7 +1,7 @@
 # Etapa 2 — Contrato de integración del combate Legacy
 
 **Responsable:** IA 1, arquitectura de integración del motor. **Destinataria:** IA 4.
-**Fecha:** 16 de noviembre de 2026 (America/Ciudad_Juarez).
+**Fecha:** 17 de noviembre de 2026 (America/Ciudad_Juarez).
 **Base comprobada:** `main`, commit `4e69a954150b2c9fa104fa26d827ec9eed3e955f`.
 **Entrega exclusiva:** este documento; ninguna modificación ejecutable.
 
