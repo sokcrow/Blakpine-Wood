@@ -16,6 +16,12 @@
     }
     once('const SAVE_KEY=ForestShared.gameSaveKey(DATA);\nlet localSave=null;try{localSave=window.localStorage}catch{}',
       `let localSave=null;try{localSave=window.localStorage}catch{}
+const fhCombatAdapter=DATA.__multimodeSave?
+ window.FHMultimodeCombatAdapters?.[DATA.__multimodeSave.identity.rulesetId]:null;
+if(DATA.__multimodeSave&&(fhCombatAdapter?.status!=='implemented'||
+ fhCombatAdapter?.contract!=='blakpine-combat-adapter-v1'||
+ fhCombatAdapter?.rulesetId!==DATA.__multimodeSave.identity.rulesetId||
+ typeof fhCombatAdapter?.evaluate!=='function'))throw Error('SAVE_COMBAT_ADAPTER_UNAVAILABLE');
 const fhMultimode=DATA.__multimodeSave?window.FHMultimodePersistence.create({
  role:'frame',identity:DATA.__multimodeSave.identity,
  sessionId:DATA.__multimodeSave.sessionId,
