@@ -5239,7 +5239,7 @@ window.addEventListener('message',e=>{
     close3DPreview();toast(window.FH_MULTIMODE_SAVE_TEXT.saveInvalid);return;
    }
    try{previewSaveSession.accept(e.data)}
-   catch(error){console.error('[Blakpine guardado rechazado]',error);preview3DError(window.FH_MULTIMODE_SAVE_TEXT.saveInvalid)}
+   catch(error){console.error('[Blakpine guardado rechazado]',error);close3DPreview();toast(window.FH_MULTIMODE_SAVE_TEXT.saveInvalid)}
   } else if(e.data.type==='FOREST_MULTIMODE_DEATH'){
    if(!previewSaveSession||e.data.sessionId!==previewSaveSession.sessionId)return;
    if(previewSaveSession.identity.characterId!==window.FHCharacterCreation?.current?.()?.id||
