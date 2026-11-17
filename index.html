@@ -5131,12 +5131,12 @@ async function start3DPreview(){
    }
    if(window.FHCCTVEngine?.patch)architectureDoc=window.FHCCTVEngine.patch(architectureDoc);
    if(window.FHForestEngine?.patch)architectureDoc=window.FHForestEngine.patch(architectureDoc);
-   play3DFrame.srcdoc=window.FHMultimodeSaveHook.patch(architectureDoc,document.baseURI);
+   play3DFrame.srcdoc=previewSaveSession?window.FHMultimodeSaveHook.patch(architectureDoc,document.baseURI):architectureDoc;
   }catch(architectureError){
    console.error('[Forest Arquitectura] Falló la integración visual:',architectureError);
    preview3DDiagnostics?.record({kind:'resource',stage:'adapter',message:architectureError.message,stack:architectureError.stack});
    preview3DArchitectureError=window.FH_ARCHITECTURE_TEXT.patchFailure;
-   play3DFrame.srcdoc=window.FHMultimodeSaveHook.patch(fhEngineDoc,document.baseURI);
+   play3DFrame.srcdoc=previewSaveSession?window.FHMultimodeSaveHook.patch(fhEngineDoc,document.baseURI):fhEngineDoc;
   }
   preview3DTimer=setTimeout(()=>{if(preview3DActive&&!preview3DRunning)preview3DError(PREVIEW_TEXT.timeout)},30000);
  }catch(error){console.error('[Forest Horror 3D]',error);preview3DDiagnostics?.record({kind:'fatal',stage:'adapter',message:error.message,stack:error.stack});preview3DError(error.message,true);}
