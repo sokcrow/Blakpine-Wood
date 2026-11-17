@@ -16,7 +16,7 @@
 | Muerte | `FOREST_CHARACTER_DEATH` → `markDead` Legacy | Guardado validado y `FOREST_MULTIMODE_DEATH`; NO muta perfil Legacy |
 | Cierre | Funciones originales | Se revoca sesión ligada; mensajes atrasados carecen de autorización |
 
-El motor sigue empaquetado en `engine-00.js` a `engine-12.js`. Se modifica el documento **real** ya ensamblado en memoria, después de sus hooks, mediante `FHMultimodeSaveHook.patch`, también en el recorrido de recuperación visual. No se modifica el Base64 ni se crea una copia de motor fuera del juego.
+El motor sigue empaquetado en `engine-00.js` a `engine-12.js`. Solo si hay sesión multimodo se modifica el documento **real** ya ensamblado en memoria, después de sus hooks, mediante `FHMultimodeSaveHook.patch`, también en el recorrido de recuperación visual. Legacy continúa ejecutando su documento 3D original sin el parche multimodo. No se modifica el Base64 ni se crea una copia de motor fuera del juego.
 
 ## Identidad durable y separación de versiones
 
