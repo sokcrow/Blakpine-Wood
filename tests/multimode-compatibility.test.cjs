@@ -128,7 +128,8 @@ test('scripts reales: selección, rechazo y preparación no leen ni escriben gua
           worldProfile:'contratos/multimodo/ejemplos/mundos/'+world+'.json',
           rulesetManifest:'contratos/multimodo/ejemplos/reglas/'+rule+'.json'};
         await officialReader(input);
-        await assert.rejects(official.prepare(input), {code:'RULESET_NOT_IMPLEMENTED'});
+        await assert.rejects(official.prepare(input), {code:rule==='dnd'?
+          'RULES_ADAPTER_MISSING':'RULESET_NOT_IMPLEMENTED'});
       }
     }
     for (const rule of ['dnd','moon-system']) {

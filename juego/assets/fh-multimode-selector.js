@@ -84,7 +84,7 @@
   }
   return Object.freeze({load,world,rule,canStart,prepare});
  }
- function mount({validateMap,launchLegacyWorld,launchLegacyCurrent}={}){
+ function mount({validateMap,launchLegacyWorld,launchLegacyCurrent,launchDndWorld}={}){
   const d=document,t=globalThis.FH_MULTIMODE_TEXT;
   const trigger=d.getElementById('fhModesBtn'),overlay=d.getElementById('fhModesOverlay'),
    closeButton=d.getElementById('fhModesClose'),status=d.getElementById('fhModesStatus'),
@@ -94,6 +94,9 @@
    typeof launchLegacyCurrent!=='function'||typeof validateMap!=='function')return null;
   const registry=globalThis.FHModeAdapterRegistry.create();
   registry.registerNativeLegacy(launchLegacyWorld);
+  if(typeof launchDndWorld==='function'&&globalThis.FHDndCombat?.status==='implemented'){
+   registry.register({adapter:globalThis.FHDndCombat,start:launchDndWorld});
+  }
   globalThis.FHMultimodeAdapters=registry;
   let runtime=null,loaded=false,busy=false,selectedWorld='ciudad-moderna',selectedRule='legacy';
   function setStatus(message){status.textContent=message;}

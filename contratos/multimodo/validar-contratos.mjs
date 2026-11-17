@@ -116,7 +116,8 @@ for (const path of [...worlds, ...rulesets]) {
     assertUniqueRuleIdentity(statsNamespaces, doc.statsNamespace, doc.id, 'statsNamespace');
     assert(ruleIds.includes(doc.id) && path.endsWith('/' + doc.id + '.json'),
       'ID de reglamento ajeno a Legacy, DnD y Moon: ' + path);
-    assert(doc.status === 'planned', 'Integración multimodo sin implementación verificada: ' + doc.id);
+    assert(doc.status === (doc.id === 'dnd' ? 'implemented' : 'planned'),
+      'Estado de implementación no autorizado: ' + doc.id);
     if (doc.id === 'legacy') {
       assert(!Object.hasOwn(doc, 'adapter'), 'Legacy no tiene adaptador multimodo implementado');
     } else {
@@ -151,5 +152,6 @@ for (const worldProfile of worlds) for (const rulesetManifest of rulesets) {
   });
 }
 console.log('PASS: ' + checks + ' aserciones estructurales; 3 mundos, 3 reglamentos y 9 combinaciones.');
-console.log('LEGACY: comportamiento actual conservado sin configuración multimodo; no existe adaptador Legacy verificado.');
-console.log('PENDIENTE: adaptadores multimodo Legacy, DnD y Moon. No se ejecutó el juego ni se probaron nueve modos jugables.');
+console.log('LEGACY: combate nativo conservado; manifiesto declarativo planned.');
+console.log('DND: contrato implementado para combate y persistencia; no equivale a nueve modos jugables.');
+console.log('PENDIENTE: Moon System y mundos sin mapa.');

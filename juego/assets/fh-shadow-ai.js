@@ -275,7 +275,9 @@
     typeof port.playerId!=='string'||!port.playerId.trim()||
     typeof port.readContext!=='function'||typeof port.requestAttack!=='function')
     throw Error('LEGACY_CONNECTION_INVALID');
-   const connection={...port,closed:false};combat=connection;
+   if(port.rulesetId!==undefined&&!['legacy','dnd'].includes(port.rulesetId))
+    throw Error('COMBAT_RULESET_INVALID');
+   const connection={...port,rulesetId:port.rulesetId||'legacy',closed:false};combat=connection;
    return Object.freeze({close(){connection.closed=true;pending.clear();}});
   }
   function dispatchAttack(actor,player,minute){
@@ -285,7 +287,7 @@
    const context=connection.readContext(),generation=epoch;
    if(!context)return;
    let consumed=false;
-   const intent=Object.freeze({sessionId:connection.sessionId,rulesetId:'legacy',
+   const intent=Object.freeze({sessionId:connection.sessionId,rulesetId:connection.rulesetId,
     actionId:connection.sessionId+':shadow-attack:'+(++actionSequence),revision:context.revision,
     action:'attack',actor:Object.freeze({kind:'creature',id:actor.id}),
     target:Object.freeze({kind:'player',id:connection.playerId})});
@@ -293,7 +295,7 @@
     if(consumed||disposed||connection.closed||epoch!==generation||active.get(actor.id)!==actor)return null;
     const value=connection.readContext(),p=value?.player;
     if(!value||value.sessionId!==intent.sessionId||value.playerId!==intent.target.id||
-     value.rulesetId!=='legacy'||value.revision!==intent.revision||!Number.isSafeInteger(value.revision)||
+     value.rulesetId!==intent.rulesetId||value.revision!==intent.revision||!Number.isSafeInteger(value.revision)||
      value.revision<0||!finite(value.minute)||value.minute!==minute||!p||
      !Number.isInteger(p.floor)||!finite(p.x)||!finite(p.z)||p.sleeping||p.inactive||p.outside||p.inElevator||
      currentNight(value.minute)===null||value.minute>=actor.expiresAt||
@@ -304,7 +306,8 @@
     const value=live();
     if(!value)throw Error('LEGACY_ACTION_REVOKED');
     consumed=true;
-    attack(actor,value.player,value.minute);
+    if(connection.rulesetId==='dnd')actor.lastHit=value.minute;
+    else attack(actor,value.player,value.minute);
     return null;
    }});
    pending.add(actor);
@@ -356,13 +359,24 @@
      dispatchAttack(actor,player,minute);
    }
   }
+  // Usa exactamente contactClear() del motor de Sombras, sin nueva colisión.
+  function canPlayerAttack(id,player){
+   if(disposed||!player||player.inactive||player.sleeping||player.inElevator)return false;
+   const actor=active.get(id);
+   return !!actor&&actor.floor===player.floor&&contactClear(actor,player);
+  }
+  function defeat(id){
+   const actor=active.get(id);
+   if(!disposed&&actor){remove(actor,'dnd-defeated');return true;}
+   return false;
+  }
   function dispose(){disposed=true;if(combat)combat.closed=true;pending.clear();for(const actor of [...active.values()])remove(actor,'cierre');}
   function read(){return {enabled:true,nextAt:null,nightSpawns:JSON.parse(JSON.stringify(nightSpawns)),
    lastAttempt:state.lastAttempt??null,lastSpawn:state.lastSpawn??null,
    lastBlocked:state.lastBlocked??null,spawnCount:state.spawnCount||0,blockedCount:state.blockedCount||0,
    active:[...active.values()].map(a=>({id:a.id,category:'Sombras',kind:a.kind,
     floor:a.floor,x:a.x,z:a.z,pe:a.pe,mode:a.mode,expiresAt:a.expiresAt}))};}
-  return Object.freeze({tick,dispose,read,connectCombat});
+  return Object.freeze({tick,dispose,read,connectCombat,canPlayerAttack,defeat});
  }
  return Object.freeze({TYPES,DEFAULTS,createRuntime});
 });

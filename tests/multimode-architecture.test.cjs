@@ -172,7 +172,7 @@ test('los manifiestos se limitan al combate, sin cambios de geometría ni colisi
       assert.deepEqual(Object.keys(scope).sort(), ['combatResolution', 'generalSkills'], file);
       for (const value of Object.values(scope)) assert.equal(typeof value, 'string', file);
     }
-    assert.equal(data.status, 'planned', `${file}: integración aún no implementada`);
+    assert.equal(data.status, data.id === 'dnd' ? 'implemented' : 'planned', file);
     if (data.id === 'legacy') {
       assert.equal(data.adapter, undefined, 'Legacy no debe anunciar un adaptador nuevo');
     } else {

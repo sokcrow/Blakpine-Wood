@@ -4,7 +4,7 @@
   "id": "dnd",
   "label": "DnD",
   "domain": "combat",
-  "status": "planned",
+  "status": "implemented",
   "adapter": {
     "id": "combat.dnd",
     "contract": "blakpine-combat-adapter-v1"
@@ -12,8 +12,8 @@
   "statsNamespace": "dnd",
   "extensions": {
     "blakpine.combat-scope.v1": {
-      "combatResolution": "d20-planned",
-      "generalSkills": "legacy-existing"
+      "combatResolution": "d20-configurable",
+      "generalSkills": "legacy-existing-unchanged"
     }
   }
 }
