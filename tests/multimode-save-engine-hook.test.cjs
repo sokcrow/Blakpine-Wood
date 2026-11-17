@@ -29,7 +29,9 @@ test('el padre separa envío, confirmación, muerte y sincronización Legacy', (
   assert.ok(index.includes("combat?.contract!=='blakpine-combat-adapter-v1'"));
   assert.ok(index.includes('FHMultimodeSaveHook.patch(architectureDoc,document.baseURI)'));
   assert.ok(index.includes('FHMultimodeSaveHook.patch(fhEngineDoc,document.baseURI)'));
-  assert.ok(index.includes('__runtimeSave:previewSaveSession?null:fhMapSave'));
+  assert.ok(index.includes('__runtimeSave:session?null:fhMapSave'));
+  assert.ok(index.includes('if(preview3DSelectedMap){'));
+  assert.ok(index.includes('...(session?{__multimodeSave:session}:{})'));
   assert.ok(index.includes('backupRaw:previewSaveSession.readRaw()'));
   assert.ok(index.includes("e.data.type==='FOREST_MULTIMODE_SAVE'"));
   assert.ok(index.includes("e.data.type==='FOREST_MULTIMODE_DEATH'"));
@@ -38,8 +40,8 @@ test('el padre separa envío, confirmación, muerte y sincronización Legacy', (
   assert.ok(index.includes('previewSaveSession?.close();previewSaveSession=null;'));
   assert.ok(index.includes('play3DFrame.srcdoc=previewSaveSession?window.FHMultimodeSaveHook.patch('));
   assert.ok(index.includes("throw Error('SAVE_CONTEXT_CHANGED')"));
-  assert.ok(index.includes('previewSaveSession.identity.mapId!==project.createdAt'));
-  assert.ok(index.includes('previewSaveSession.identity.characterId!==window.FHCharacterCreation?.current?.()?.id'));
+  assert.ok(index.includes('previewSaveSession.identity.mapId===preview3DCurrentMapId()'));
+  assert.ok(index.includes('previewSaveSession.identity.characterId===window.FHCharacterCreation?.current?.()?.id'));
 });
 
 const fixtureDoc = `<!doctype html><html><head></head><body><script>

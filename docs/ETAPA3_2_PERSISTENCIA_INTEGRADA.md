@@ -20,9 +20,11 @@ El motor sigue empaquetado en `engine-00.js` a `engine-12.js`. Solo si hay sesi�
 
 ## Identidad durable y separación de versiones
 
-La identidad fija del guardado es `{mapId,characterId,rulesetId,rulesetVersion,saveId}`. En este editor, `mapId` se liga a `project.createdAt` (ID estable del mapa) y se rechaza una selección cuyo `mapId` no coincida. `saveId` identifica cada ranura por separado. `sessionId` es un token por ejecución, nunca se escribe en la identidad durable. El contrato del sobre exige `formatVersion:1` y `rulesetVersion:1`, validadores síncronos y `rulesetId` concordante.
+La identidad fija del guardado es `{mapId,characterId,rulesetId,rulesetVersion,saveId}`. El ID de mapa se liga al `createdAt` del mapa realmente seleccionado (borrador actual del editor o mapa de demostración de IA 3), y se rechaza una selección cuyo `mapId` no coincida. `saveId` identifica cada ranura por separado. `sessionId` es un token por ejecución, nunca se escribe en la identidad durable. El contrato del sobre exige `formatVersion:1` y `rulesetVersion:1`, validadores síncronos y `rulesetId` concordante.
 
 Las claves existentes `fh_game_v1_<hash>` y `blakpine_character_active_v1` **no se migran ni se reescriben**. DnD/Moon usan exclusivamente claves `blakpine_multimode_save_v1:` calculadas por `FHMultimodeSaveIdentity`. El lector Legacy no recibe sobres multimodo; las estadísticas y los recursos exclusivos del adaptador no se envían a `FHCharacterCore`. Si hay datos locales incompatibles, se rechaza la restauración y **no** se sustituye por un respaldo o una partida Legacy.
+
+El selector de Etapa 3.3 conserva intactos sus dos arranques Legacy: el mapa del editor con sus partidas existentes y la copia de sesión del mapa de demostración, incluida su aparición temporal cuando el mapa no contiene spawn. Una selección Legacy limpia toda selección multimodo previa; DnD y Moon siguen declarados como pendientes en los manifiestos.
 
 ## Contrato para futuros adaptadores reales
 
@@ -39,7 +41,7 @@ Un adaptador de guardado multimodo debe declararse en `window.FHMultimodeSaveAda
 
 Pruebas añadidas: `tests/multimode-save-runtime.test.cjs` (8 casos) y `tests/multimode-save-engine-hook.test.cjs` (ensamblado real, arranque del padre, simulaciones de guardado Legacy y multimodo, muerte). Los casos cubren claves antiguas, mismo mapa/personaje con reglamentos diferentes, mapa/personaje/slot distintos, cierre/reapertura, muerte y restauración, mensajes repetidos/viejos, datos y versiones incompatibles, ausencia de sobrescritura y modo bloqueado sin adaptador.
 
-Validación ejecutada directamente durante la integración: sintaxis del script principal de `index.html`, 8 pruebas lógicas de persistencia en VM de JavaScript, compilación del hook inyectado y 4 comprobaciones dirigidas de Legacy, multimodo y bloqueo sin adaptador: **12/12 PASS**, sin fallos. Son verificaciones aisladas; **no sustituyen** `node --test` completo, un navegador real ni WebGL. El test de ensamblado real se dejó en el repositorio para ejecución con Node en un entorno con la copia del proyecto.
+Validación ejecutada directamente durante la integración: sintaxis del script principal de `index.html`, 8 pruebas lógicas de persistencia en VM de JavaScript, compilación del hook inyectado y comprobaciones dirigidas de Legacy, multimodo y bloqueo sin adaptador: **13/13 PASS**, sin fallos (versión inicial anterior al merge con IA 3). Además se reconstruyó el motor real desde sus 13 fragmentos y se verificó que los puntos originales de guardado aparecieran exactamente una vez. Son verificaciones aisladas; **no sustituyen** `node --test` completo, un navegador real ni WebGL. El test de ensamblado real se dejó en el repositorio para ejecución con Node en un entorno con la copia del proyecto.
 
 Comandos reproducibles en un checkout del repositorio:
 
