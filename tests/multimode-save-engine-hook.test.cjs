@@ -36,6 +36,10 @@ test('el padre separa envío, confirmación, muerte y sincronización Legacy', (
   assert.ok(index.includes("e.data.type==='FOREST_GAMESTATE_SAVE'){\n   if(previewSaveSession)return;"));
   assert.ok(index.includes("e.data.type==='FOREST_CHARACTER_DEATH'){\n   if(previewSaveSession)return;"));
   assert.ok(index.includes('previewSaveSession?.close();previewSaveSession=null;'));
+  assert.ok(index.includes('play3DFrame.srcdoc=previewSaveSession?window.FHMultimodeSaveHook.patch('));
+  assert.ok(index.includes("throw Error('SAVE_CONTEXT_CHANGED')"));
+  assert.ok(index.includes('previewSaveSession.identity.mapId!==project.createdAt'));
+  assert.ok(index.includes('previewSaveSession.identity.characterId!==window.FHCharacterCreation?.current?.()?.id'));
 });
 
 const fixtureDoc = `<!doctype html><html><head></head><body><script>
