@@ -104,11 +104,12 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
 <link rel="stylesheet" href="./juego/assets/fh-game-ui.css?v=20261113-single-item-frame-1">
 <link rel="stylesheet" href="./juego/assets/fh-mobile-menus.css?v=20261107-mobile-ui-75">
 <link rel="stylesheet" href="./juego/assets/fh-editor-layout.css?v=20261113-layout1">
+<link rel="stylesheet" href="./juego/assets/fh-multimode-selector.css?v=20261117-33">
 </head>
 <body>
 <div id="app">
  <header id="head"><div id="brand"><strong>FOREST HORROR</strong><small>EDITOR DE MAPAS · CUADRÍCULA LIBRE</small></div><div id="headActions"><button id="fileBtn" title="Poner una imagen como plantilla">▧ Imagen</button><button id="editorLandscapeBtn" title="Solicitar pantalla completa horizontal">⛶ Horizontal</button><button id="menuBtn" class="primary">☰ Proyecto</button><button id="helpBtn" aria-label="Ayuda">?</button></div></header>
- <div id="subbar"><div id="floorTabs"><button id="floor1Btn" class="selected">Piso 1</button><button id="floor2Btn">Piso 2</button></div><button id="addFloorBtn" title="Crear piso arriba o sótano abajo">+ Nivel</button><button id="editFloorBtn" title="Administrar niveles y planta principal">⚙ Niveles</button><div id="quickGrid" aria-label="Editar cuadrícula"><label for="quickColumns">Columnas<input id="quickColumns" type="number" inputmode="numeric" min="1" max="500" step="1" aria-label="Número de columnas"></label><label for="quickRows">Filas<input id="quickRows" type="number" inputmode="numeric" min="1" max="500" step="1" aria-label="Número de filas"></label><button id="applyQuickGrid" aria-label="Aplicar columnas y filas" title="Aplicar cuadrícula">✓</button></div><span id="floorElevation">Altura: 0 pies</span><button id="undoBtn" title="Deshacer">↶</button><button id="redoBtn" title="Rehacer">↷</button><button id="fitBtn">⛶ Ajustar</button><button id="gridBtn" class="active">▦ Cuadrícula</button><button id="jointsBtn" class="active" title="Mostrar uniones de paredes y extremos abiertos">◎ Uniones</button><button id="roomsBtn" title="Lista para renombrar habitaciones">⌂ Cuartos</button><button id="copyFloorWallsBtn" title="Copiar perímetro rojo, paredes y accesos al piso superior, respetando muros existentes">▥ Copiar muros ↑</button><button id="spawnQuickBtn" title="Poner punto de aparición">📍 Spawn</button><button id="testBtn" title="Probar este mismo mapa con el sprite en 3D">▶ Probar 3D</button><button id="previewDiagnosticToggle" type="button" aria-expanded="false" aria-controls="previewDiagnosticOptions">▾</button><button id="gridDimensionsBtn" title="Ajustes avanzados de cuadrícula">⚙ Cuadrícula</button><button id="parkingConfigBtn" title="Configurar medidas y símbolos de marcas de estacionamiento">▤ Marcas</button><button id="optionsBtn">⚙ Escala</button></div>
+ <div id="subbar"><div id="floorTabs"><button id="floor1Btn" class="selected">Piso 1</button><button id="floor2Btn">Piso 2</button></div><button id="addFloorBtn" title="Crear piso arriba o sótano abajo">+ Nivel</button><button id="editFloorBtn" title="Administrar niveles y planta principal">⚙ Niveles</button><div id="quickGrid" aria-label="Editar cuadrícula"><label for="quickColumns">Columnas<input id="quickColumns" type="number" inputmode="numeric" min="1" max="500" step="1" aria-label="Número de columnas"></label><label for="quickRows">Filas<input id="quickRows" type="number" inputmode="numeric" min="1" max="500" step="1" aria-label="Número de filas"></label><button id="applyQuickGrid" aria-label="Aplicar columnas y filas" title="Aplicar cuadrícula">✓</button></div><span id="floorElevation">Altura: 0 pies</span><button id="undoBtn" title="Deshacer">↶</button><button id="redoBtn" title="Rehacer">↷</button><button id="fitBtn">⛶ Ajustar</button><button id="gridBtn" class="active">▦ Cuadrícula</button><button id="jointsBtn" class="active" title="Mostrar uniones de paredes y extremos abiertos">◎ Uniones</button><button id="roomsBtn" title="Lista para renombrar habitaciones">⌂ Cuartos</button><button id="copyFloorWallsBtn" title="Copiar perímetro rojo, paredes y accesos al piso superior, respetando muros existentes">▥ Copiar muros ↑</button><button id="spawnQuickBtn" title="Poner punto de aparición">📍 Spawn</button><button id="testBtn" title="Probar este mismo mapa con el sprite en 3D">▶ Probar 3D</button><button id="fhModesBtn" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="fhModesOverlay">Mundos y combate</button><button id="previewDiagnosticToggle" type="button" aria-expanded="false" aria-controls="previewDiagnosticOptions">▾</button><button id="gridDimensionsBtn" title="Ajustes avanzados de cuadrícula">⚙ Cuadrícula</button><button id="parkingConfigBtn" title="Configurar medidas y símbolos de marcas de estacionamiento">▤ Marcas</button><button id="optionsBtn">⚙ Escala</button></div>
  <div id="previewDiagnosticOptions" hidden><label><input id="previewDiagnosticEnabled" type="checkbox"><span id="previewDiagnosticLabel"></span></label><span id="previewDiagnosticHint"></span></div>
  <main id="stage"><canvas id="map" aria-label="Editor de mapa con cuadrícula"></canvas><div id="wifiCoverageLegend" role="status" aria-live="polite" hidden></div><div id="stageHint">Pared: toca inicio y final, o arrastra. Usa Imán en Esquina para colocar exacto. Cierra paredes y coloca una puerta: el cuarto se reconoce solo. Entra a la puerta para marcarla como entrada de apartamento.</div><div id="stageBadge">● Piso 1</div><div id="coords">Casilla —, —</div><div id="zoomControls"><button id="plusBtn" aria-label="Acercar">+</button><div id="zoomLabel">100%</div><button id="minusBtn" aria-label="Alejar">−</button></div></main>
  <section id="palette"><div id="layerSwitch" aria-label="Capas de edición"><button type="button" data-layer="architecture" class="active">▥ Plano</button><button type="button" data-layer="furniture">▣ Muebles</button><button type="button" data-layer="lighting">⚡ Electricidad</button></div><div id="circuitTools" hidden><label for="circuitChooser">Circuito</label><select id="circuitChooser" aria-label="Circuito activo"></select><label for="circuitColor">Color</label><input type="color" id="circuitColor" value="#dc5656" aria-label="Color del circuito"><label class="circuit-all"><input type="checkbox" id="circuitShowAll"> Todos</label><button type="button" id="circuitAudit" title="Verificar habitaciones y dispositivos conectados">▤ Conexiones</button><span id="circuitStatus" role="status" aria-live="polite">Crea un breaker</span></div><div id="categories"><button data-cat="structure" class="active">▥ Estructura</button><button data-cat="furniture">▧ Muebles</button><button data-cat="lighting">⚡ Electricidad</button><button data-cat="water">◉ Agua</button><button data-cat="network">⌁ Redes</button><button data-cat="areas">◇ Áreas y accesos</button><button data-cat="roads">⇄</button><button data-cat="parking_marks">▤ Estacionamiento</button><button data-cat="navigate">✋ Editar / mover</button></div><div id="tools"></div><div id="paletteFoot"><label><input id="snapCheck" type="checkbox" checked> Imán</label><div class="snapModes"><button id="snap1Btn" class="active" type="button">Esquina</button><button id="snapHalfBtn" type="button">½</button><button id="snapQuarterBtn" type="button">¼</button></div><label><input id="axisCheck" type="checkbox" checked> Recto H/V</label><span id="autosave">Borrador local</span></div></section>
@@ -123,6 +124,21 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
  <div id="playRight"><button id="playAction" disabled>Sin acción</button><div id="playHelp">Puertas, escaleras y obstáculos reales</div></div>
 </div>
 <div id="overlay"><div class="dialog" id="dialog"></div></div>
+<div id="fhModesOverlay" class="fh-modes-overlay" hidden>
+ <section class="fh-modes-panel" role="dialog" aria-modal="true" aria-labelledby="fhModesTitle" aria-describedby="fhModesStatus">
+  <header class="fh-modes-head">
+   <div><p class="fh-modes-kicker">BLAKPINE WOOD / SELECCIÓN DE PARTIDA</p>
+    <h2 id="fhModesTitle">Elige tu mundo</h2><p>Un motor 3D. Distintos mundos y reglamentos.</p></div>
+   <button id="fhModesClose" class="fh-modes-close" type="button" aria-label="Cerrar selector">✕</button>
+  </header>
+  <p id="fhModesStatus" class="fh-modes-status" role="status" aria-live="polite">Comprobando perfiles y mapas reales…</p>
+  <fieldset><legend>Mundo</legend><div id="fhWorldOptions" class="fh-modes-options"></div></fieldset>
+  <fieldset><legend>Reglamento</legend><div id="fhRulesOptions" class="fh-modes-options"></div></fieldset>
+  <div class="fh-modes-actions"><button id="fhModesStart" type="button" disabled>Iniciar partida</button>
+   <button id="fhModesLegacyLocal" type="button">Legacy · Mapa del editor</button></div>
+  <p class="fh-modes-foot">La prueba del editor conserva la entrada Legacy original, también sin conexión.</p>
+ </section>
+</div>
 <div id="toast" role="status"></div>
 <input id="imageInput" type="file" accept="image/*" hidden>
 <input id="jsonInput" type="file" accept=".json,application/json" hidden>
@@ -141,6 +157,14 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
   </div>
  </div>
 </div>
+<script src="./juego/core/fh-multimode-schema-validator.js?v=20261117-33"></script>
+<script src="./juego/core/fh-multimode-resource-reader.js?v=20261117-33"></script>
+<script src="./juego/core/fh-mode-selection.js?v=20261117-33"></script>
+<script src="./juego/worlds/fh-world-profile-loader.js?v=20261117-33"></script>
+<script src="./juego/core/fh-session-coordinator.js?v=20261117-33"></script>
+<script src="./juego/core/fh-mode-adapter-registry.js?v=20261117-33"></script>
+<script src="./juego/assets/fh-multimode-strings.js?v=20261117-33"></script>
+<script src="./juego/assets/fh-multimode-selector.js?v=20261117-33"></script>
 <script src="./juego/assets/fh-preview-strings.js?v=20261113-door-safety"></script>
 <script src="./juego/assets/fh-preview-diagnostics.js?v=20261109-diag2"></script>
 <script src="./juego/assets/fh-mobile-camera.js?v=20261108-landscape20"></script>
@@ -3357,7 +3381,7 @@ function playPaint(){const c=playCtx,w=playCanvas.clientWidth,h=playCanvas.clien
  document.querySelector('#playCoords').textContent=`X ${playState.x.toFixed(1)} · Y ${playState.y.toFixed(1)} · ${Math.round(playState.x*project.units.feetPerCell)} / ${Math.round(playState.y*project.units.feetPerCell)} pies`;
 }
 function playStickPoint(e){const el=document.querySelector('#playJoystick'),r=el.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,rad=r.width*.31,dx=e.clientX-cx,dy=e.clientY-cy,len=Math.hypot(dx,dy);const scale=Math.min(1,rad/Math.max(len,.01));const px=dx*scale,py=dy*scale;playState.stick={x:px/rad,y:py/rad};document.querySelector('#playKnob').style.transform=`translate(calc(-50% + ${px}px),calc(-50% + ${py}px))`}
-function setupPlayMode(){$('#testBtn').onclick=launch3DPreview;document.querySelector('#spawnQuickBtn').onclick=()=>{setCategory('areas');chooseTool('spawn');toast('Punto inicial: toca la casilla donde aparecerá el jugador.');const b=document.querySelector('#tools button[data-tool="spawn"]');b?.scrollIntoView({inline:'center',block:'nearest'})};document.querySelector('#playClose').onclick=stopPlay;document.querySelector('#playReset').onclick=()=>{const spawn=playFloor().items.find(it=>it.type==='spawn');if(spawn)playSetFloor(playState.floorIndex,spawn);else playSetFloor(playState.floorIndex,{x:playState.x,y:playState.y})};document.querySelector('#playVision').onclick=()=>{playState.vision=!playState.vision;document.querySelector('#playVision').textContent=playState.vision?'Visión: limitada':'Visión: libre'};document.querySelector('#playAction').onclick=playAction;
+function setupPlayMode(){$('#testBtn').onclick=()=>{preview3DSelectedMap=null;launch3DPreview()};document.querySelector('#spawnQuickBtn').onclick=()=>{setCategory('areas');chooseTool('spawn');toast('Punto inicial: toca la casilla donde aparecerá el jugador.');const b=document.querySelector('#tools button[data-tool="spawn"]');b?.scrollIntoView({inline:'center',block:'nearest'})};document.querySelector('#playClose').onclick=stopPlay;document.querySelector('#playReset').onclick=()=>{const spawn=playFloor().items.find(it=>it.type==='spawn');if(spawn)playSetFloor(playState.floorIndex,spawn);else playSetFloor(playState.floorIndex,{x:playState.x,y:playState.y})};document.querySelector('#playVision').onclick=()=>{playState.vision=!playState.vision;document.querySelector('#playVision').textContent=playState.vision?'Visión: limitada':'Visión: libre'};document.querySelector('#playAction').onclick=playAction;
  const joy=document.querySelector('#playJoystick');joy.addEventListener('pointerdown',e=>{e.preventDefault();joy.setPointerCapture(e.pointerId);playState.stickPointer=e.pointerId;playStickPoint(e)});joy.addEventListener('pointermove',e=>{if(playState.stickPointer===e.pointerId){e.preventDefault();playStickPoint(e)}});const release=e=>{if(playState.stickPointer===e.pointerId){playState.stickPointer=null;playState.stick={x:0,y:0};document.querySelector('#playKnob').style.transform='translate(-50%,-50%)'}};joy.addEventListener('pointerup',release);joy.addEventListener('pointercancel',release);
  window.addEventListener('resize',playResize);window.addEventListener('keydown',e=>{if(!playState.running)return;const k=e.key.toLowerCase();if(['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d','e','escape'].includes(k)){e.preventDefault();e.stopImmediatePropagation();if(k==='escape')stopPlay();else if(k==='e'&&!e.repeat)playAction();else playState.keys.add(k)}},true);window.addEventListener('keyup',e=>{if(playState.running){playState.keys.delete(e.key.toLowerCase());if(['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d'].includes(e.key.toLowerCase()))e.preventDefault()}},true);window.addEventListener('blur',()=>{playState.keys.clear();playState.stick={x:0,y:0}});
 }
@@ -3386,6 +3410,7 @@ window.FHPreviewDiagnostics?.configureEditor?.({
  hint:document.getElementById('previewDiagnosticHint'),onToggle:resize
 });
 let preview3DActive=false,preview3DSent=false,preview3DRunning=false,preview3DTimer=null,preview3DArchitectureError='';
+let preview3DSelectedMap=null;
 let preview3DDiagnostics=null,preview3DDiagnosticFailed=false;
 function stop3DWatchdog(){if(preview3DTimer!==null){clearTimeout(preview3DTimer);preview3DTimer=null}}
 function preview3DError(message,reported=false){
@@ -3396,6 +3421,28 @@ function preview3DError(message,reported=false){
  show3DStatus(PREVIEW_TEXT.errorPrefix+String(message||PREVIEW_TEXT.unknown));
 }
 function makeCurrent3DProject(){
+ if(preview3DSelectedMap){
+  // Solo la copia de sesión: el JSON del mundo y el borrador del editor no se alteran.
+  const loaded=clone(preview3DSelectedMap);
+  if(!loaded.floors.some(f=>f.items?.some(it=>it.type==='spawn'))){
+   const floor=loaded.floors.find(f=>f.id===loaded.mainFloorId)||loaded.floors[0];
+   const items=floor.items||[],width=loaded.units.columns,height=loaded.units.rows;
+   const blocked=(x,y)=>ForestShared.solidAt(x,y,{
+    width,height,radius:.19,wallPad:.045,doorPad:.045,objectMode:'circle',
+    walls:items.filter(it=>PLAY_SOLID_SEGMENTS.has(it.type)),
+    doors:items.filter(it=>PLAY_DOORS.has(it.type)),
+    objects:items.filter(it=>PLAY_SOLID_OBJECTS.has(it.type)&&it.blocksMovement!==false)
+   });
+   let position=null;
+   for(let y=1.5;y<height-1&&!position;y++)for(let x=1.5;x<width-1;x++){
+    if(!blocked(x,y)){position={x,y};break;}
+   }
+   if(!position)throw Error('El mapa no contiene una posición segura de aparición.');
+   items.push({id:'fh-mode-runtime-spawn',type:'spawn',...position});
+  }
+  const character=window.FHCharacterCreation?.current?.()||null;
+  return {...loaded,__runtimeSave:null,__runtimeCharacter:character?clone(character):null};
+ }
  const fhProfile=window.FHCharacterCreation?.current?.()||null;
  const fhRawSave=readStorage(ForestShared.gameSaveKey(project));
  const fhMapSave=fhProfile?window.FHCharacterCreation.selectMapSave(fhRawSave,fhProfile.id):fhRawSave;
@@ -5036,7 +5083,7 @@ function floorSightThroughOpening(f,at,target,openings){
 let fhCharacterLaunchPending=false;
 async function start3DPreview(){
  if(preview3DActive||fhCharacterLaunchPending)return;
- const spawn=project.floors.findIndex(f=>f.items.some(it=>it.type==='spawn'));
+ const spawn=preview3DSelectedMap?0:project.floors.findIndex(f=>f.items.some(it=>it.type==='spawn'));
  if(spawn<0){setCategory('areas');chooseTool('spawn');toast('Coloca primero 📍 Spawn en el mapa que estás editando.');return}
  fhCharacterLaunchPending=true;
  try{
@@ -5107,6 +5154,7 @@ function close3DPreview(){
  play3DLayer.classList.remove('show','fh-menu-live');play3DLayer.setAttribute('aria-hidden','true');
  play3DFrame.contentWindow?.FHLegacyCombatSession?.close();
  play3DFrame.removeAttribute('srcdoc');play3DFrame.src='about:blank';
+ preview3DSelectedMap=null;
  show3DStatus(PREVIEW_TEXT.preparing);render();
 }
 const play3DLandscapeGate=document.getElementById('play3dLandscapeGate');
@@ -5140,7 +5188,7 @@ function hide3DLandscapeGate(){
  }
 }
 function cancel3DLandscapeGate(){
- hide3DLandscapeGate();
+ hide3DLandscapeGate();preview3DSelectedMap=null;
  if(document.fullscreenElement===play3DLayer&&document.exitFullscreen)void document.exitFullscreen();
 }
 function launch3DPreview(){
@@ -5172,7 +5220,7 @@ async function confirm3DLandscape(){
 function handle3DPreviewOrientation(){
  if(!preview3DIsPhone())return;
  if(!preview3DIsLandscape()){
-  if(preview3DActive){close3DPreview();show3DLandscapeGate()}
+  if(preview3DActive){const world=preview3DSelectedMap;close3DPreview();preview3DSelectedMap=world;show3DLandscapeGate()}
   else if(!play3DLandscapeGate.hidden)play3DLandscapeMessage.textContent=PREVIEW_TEXT.landscapeRotate;
  }else if(preview3DGateAuthorized)continue3DPreviewInLandscape();
 }
@@ -5236,6 +5284,18 @@ document.getElementById('play3dBack').addEventListener('click',close3DPreview);
 
 setupPlayMode();
 init();
+// Puerta opcional: si faltan módulos o se abre el HTML antiguo, Legacy continúa igual.
+window.FHMultimodeSelector?.mount({
+ validateMap:map=>ForestShared.validate(map).ok,
+ launchLegacyWorld:description=>{
+  preview3DSelectedMap=description.scenario.data;
+  launch3DPreview();
+ },
+ launchLegacyCurrent:()=>{
+  preview3DSelectedMap=null;
+  launch3DPreview();
+ }
+});
 </script>
 <link rel="stylesheet" href="./juego/assets/fh-character-help.css?v=20261107-help">
 <script src="./juego/assets/fh-character-help-strings.js?v=20261107-help"></script>
