@@ -151,7 +151,7 @@
   function open(){
    if(!overlay.hidden)return;
    overlay.hidden=false;trigger.setAttribute('aria-expanded','true');
-   setStatus(loaded?(runtime?.canStart('ciudad-moderna','legacy')?t.ready:t.offline):t.loading);
+   setStatus(!loaded?t.loading:location.protocol!=='https:'?t.offline:runtime?.canStart('ciudad-moderna','legacy')?t.ready:t.failed);
    render();closeButton.focus();
    void load();
   }
