@@ -31,6 +31,7 @@
   function create({ sessionId, playerId, authorize, playerAttack, structureAttack } = {}) {
     if (!text(sessionId) || !text(playerId)) throw new LegacyBridgeError('LEGACY_SESSION_INVALID');
     const actions = new Map();
+    let closed = false;
     const prepared = typeof authorize === 'function' && typeof playerAttack === 'function' &&
       typeof structureAttack === 'function';
 
@@ -75,11 +76,15 @@
         if (previous.fingerprint !== fingerprint) return Promise.reject(new LegacyBridgeError('LEGACY_ACTION_CONFLICT'));
         return previous.promise;
       }
+      if (closed) return Promise.reject(new LegacyBridgeError('LEGACY_SESSION_CLOSED'));
       // Registrar antes de invocar cualquier callback, incluso ante concurrencia/reentrada.
       const promise = Promise.resolve().then(async () => {
         try {
+          if (closed) throw new LegacyBridgeError('LEGACY_SESSION_CLOSED');
           if (await authorize(intent) !== true) throw new Error('AUTHORIZATION_REJECTED');
         } catch (cause) { throw new LegacyBridgeError('LEGACY_NOT_AUTHORIZED', cause); }
+        // authorize puede esperar: cerrar la sesión durante esa espera revoca la operación.
+        if (closed) throw new LegacyBridgeError('LEGACY_SESSION_CLOSED');
         const operation = intent.target.kind === 'player' ? playerAttack : structureAttack;
         try {
           const result = await operation(intent);
@@ -99,6 +104,10 @@
       contract: 'blakpine-combat-adapter-v1',
       rulesetId: 'legacy',
       getStatus: () => Object.freeze({ prepared, connected: false }),
+      // Permite al enlace registrar solo sobres válidos sin ejecutar ni evaluar efectos.
+      validateIntent: value => readIntent(value).intent,
+      // Revoca pendientes; conserva el registro de resultados/fallos y nunca reintenta.
+      close() { closed = true; },
       // attack() modifica PE/RNG/cooldown: no es un evaluador puro exportado hoy.
       async evaluate() { throw new LegacyBridgeError('LEGACY_PURE_RESOLVER_UNAVAILABLE'); },
       executeOnce
