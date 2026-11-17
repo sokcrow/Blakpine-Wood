@@ -141,6 +141,10 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
   </div>
  </div>
 </div>
+<script src="./juego/core/fh-multimode-save-identity.js?v=20261117-persist32"></script>
+<script src="./juego/core/fh-multimode-persistence.js?v=20261117-persist32"></script>
+<script src="./juego/core/fh-multimode-save-hook.js?v=20261117-persist32"></script>
+<script src="./juego/core/fh-multimode-save-strings.js?v=20261117-persist32"></script>
 <script src="./juego/assets/fh-preview-strings.js?v=20261113-door-safety"></script>
 <script src="./juego/assets/fh-preview-diagnostics.js?v=20261109-diag2"></script>
 <script src="./juego/assets/fh-mobile-camera.js?v=20261108-landscape20"></script>
@@ -3395,9 +3399,26 @@ function preview3DError(message,reported=false){
  play3DLayer.classList.remove('fh-menu-live');
  show3DStatus(PREVIEW_TEXT.errorPrefix+String(message||PREVIEW_TEXT.unknown));
 }
+let previewSaveSession=null,previewSaveSequence=0;
+function prepare3DSaveSession(profile) {
+ const choice=window.FHMultimodeSaveSelection;
+ if(choice===null||choice===undefined)return null; // El recorrido Legacy no cambia.
+ const mapId=typeof project.createdAt==='string'?project.createdAt:'';
+ if(!mapId||choice?.mapId!==mapId)throw Error('SAVE_MAP_ID_MISMATCH');
+ const identity={mapId,characterId:profile?.id,rulesetId:choice.rulesetId,
+  rulesetVersion:choice.rulesetVersion,saveId:choice.saveId};
+ const adapter=window.FHMultimodeSaveAdapters?.[identity.rulesetId];
+ if(!window.FHMultimodePersistence?.supportedAdapter(adapter,identity.rulesetId))throw Error('SAVE_ADAPTER_UNAVAILABLE');
+ const token=globalThis.crypto?.randomUUID?.()||
+  ('preview-'+Date.now()+'-'+(++previewSaveSequence)+'-'+Math.random().toString(36).slice(2));
+ let storage=null;try{storage=window.localStorage}catch{}
+ return window.FHMultimodePersistence.create({
+  role:'parent',identity,sessionId:token,adapter,storage
+ });
+}
 function makeCurrent3DProject(){
  const fhProfile=window.FHCharacterCreation?.current?.()||null;
- const fhRawSave=readStorage(ForestShared.gameSaveKey(project));
+ const fhRawSave=previewSaveSession?null:readStorage(ForestShared.gameSaveKey(project));
  const fhMapSave=fhProfile?window.FHCharacterCreation.selectMapSave(fhRawSave,fhProfile.id):fhRawSave;
  const units={...project.units,metersPerCell:Number(project.units.feetPerCell||5)*.3048};
  const main=project.floors.findIndex(f=>f.id===project.mainFloorId);
@@ -3406,7 +3427,12 @@ function makeCurrent3DProject(){
  const slabsByLevel=project.floors.slice(1).map((_,i)=>i+1<=mainIndex?clone(empty):clone(buildingSlabs(i)));
  const basementSlabs=window.FHBasement?.resolveSlabs(project,i=>buildingSlabs(i))||project.floors.map((_,i)=>i<mainIndex?clone(buildingSlabs(i)):null);
  // Excluir únicamente imágenes de referencia de varios MB; geometría 3D proviene de items.
- return {schema:SCHEMA,version:project.version||1,mainFloorId:project.mainFloorId||undefined,styleSystem:project.styleSystem||0,buildingOwnerId:project.buildingOwnerId||'',buildingOwners:clone(project.buildingOwners||{}),buildingNames:clone(project.buildingNames||{}),properties:clone(project.properties||[]),locationZones:clone(project.locationZones||[]),patterns:clone(project.patterns||[]),title:project.title||'Forest Horror',createdAt:project.createdAt,itemDefs:clone(project.itemDefs||[]),initialGameState:clone(project.initialGameState||{}),weather:clone(project.weather||{enabled:false}),...(project.environment?{environment:clone(project.environment)}:{}),elevatorEvents:clone(project.elevatorEvents||{}),__runtimeSave:fhMapSave,__runtimeCharacter:fhProfile?clone(fhProfile):null,units,buildingSlabs:clone(buildingSlabs(mainIndex)),slabsByLevel,basementSlabs,roofSlabsByFloor:project.floors.map((_,i)=>clone(buildingSlabs(i))),
+ return {schema:SCHEMA,version:project.version||1,mainFloorId:project.mainFloorId||undefined,styleSystem:project.styleSystem||0,buildingOwnerId:project.buildingOwnerId||'',buildingOwners:clone(project.buildingOwners||{}),buildingNames:clone(project.buildingNames||{}),properties:clone(project.properties||[]),locationZones:clone(project.locationZones||[]),patterns:clone(project.patterns||[]),title:project.title||'Forest Horror',createdAt:project.createdAt,itemDefs:clone(project.itemDefs||[]),initialGameState:clone(project.initialGameState||{}),weather:clone(project.weather||{enabled:false}),...(project.environment?{environment:clone(project.environment)}:{}),elevatorEvents:clone(project.elevatorEvents||{}),__runtimeSave:previewSaveSession?null:fhMapSave,
+  __runtimeCharacter:previewSaveSession?null:(fhProfile?clone(fhProfile):null),
+  __multimodeSave:previewSaveSession?{
+   identity:previewSaveSession.identity,sessionId:previewSaveSession.sessionId,
+   backupRaw:previewSaveSession.readRaw()
+  }:null,units,buildingSlabs:clone(buildingSlabs(mainIndex)),slabsByLevel,basementSlabs,roofSlabsByFloor:project.floors.map((_,i)=>clone(buildingSlabs(i))),
   floors:project.floors.map(f=>({id:f.id,name:f.name,elevationFt:f.elevationFt,
    ceilingHeightFt:f.ceilingHeightFt,roof:f.roof?clone(f.roof):undefined,lightingManual:!!f.lightingManual,items:clone(courtyardFloorItems(window.FHAreaMerge?.forEngine(f.items)||f.items,project.floors.indexOf(f))),apartments:clone(f.apartments||[])}))};
 }
@@ -5043,6 +5069,14 @@ async function start3DPreview(){
   if(!window.FHCharacterCreation?.ensureCharacter)throw Error(window.FH_CHARACTER_TEXT?.missingEngine||'Creador no disponible.');
   const profile=await window.FHCharacterCreation.ensureCharacter();
   if(!profile)return;
+  try{previewSaveSession=prepare3DSaveSession(profile)}
+  catch(error){
+   console.error('[Blakpine guardados multimodo]',error);
+   toast(error.message==='SAVE_MAP_ID_MISMATCH'?window.FH_MULTIMODE_SAVE_TEXT.mapMissing:
+     error.message==='SAVE_ADAPTER_UNAVAILABLE'?window.FH_MULTIMODE_SAVE_TEXT.adapterUnavailable:
+     window.FH_MULTIMODE_SAVE_TEXT.saveInvalid);
+   return;
+  }
  }catch(err){console.error('[Blakpine personaje]',err);toast(err.message||window.FH_CHARACTER_TEXT?.storageError);return}
  finally{fhCharacterLaunchPending=false}
  if(preview3DActive)return;
@@ -5090,12 +5124,12 @@ async function start3DPreview(){
    }
    if(window.FHCCTVEngine?.patch)architectureDoc=window.FHCCTVEngine.patch(architectureDoc);
    if(window.FHForestEngine?.patch)architectureDoc=window.FHForestEngine.patch(architectureDoc);
-   play3DFrame.srcdoc=architectureDoc;
+   play3DFrame.srcdoc=window.FHMultimodeSaveHook.patch(architectureDoc,document.baseURI);
   }catch(architectureError){
    console.error('[Forest Arquitectura] Falló la integración visual:',architectureError);
    preview3DDiagnostics?.record({kind:'resource',stage:'adapter',message:architectureError.message,stack:architectureError.stack});
    preview3DArchitectureError=window.FH_ARCHITECTURE_TEXT.patchFailure;
-   play3DFrame.srcdoc=fhEngineDoc;
+   play3DFrame.srcdoc=window.FHMultimodeSaveHook.patch(fhEngineDoc,document.baseURI);
   }
   preview3DTimer=setTimeout(()=>{if(preview3DActive&&!preview3DRunning)preview3DError(PREVIEW_TEXT.timeout)},30000);
  }catch(error){console.error('[Forest Horror 3D]',error);preview3DDiagnostics?.record({kind:'fatal',stage:'adapter',message:error.message,stack:error.stack});preview3DError(error.message,true);}
@@ -5103,6 +5137,7 @@ async function start3DPreview(){
 function close3DPreview(){
  if(!preview3DActive)return;
  stop3DWatchdog();preview3DActive=false;preview3DSent=false;preview3DRunning=false;preview3DArchitectureError='';
+ previewSaveSession?.close();previewSaveSession=null;
  preview3DDiagnostics?.dispose();preview3DDiagnostics=null;
  play3DLayer.classList.remove('show','fh-menu-live');play3DLayer.setAttribute('aria-hidden','true');
  play3DFrame.contentWindow?.FHLegacyCombatSession?.close();
@@ -5190,7 +5225,15 @@ window.addEventListener('message',e=>{
  } else if(e.data.type==='FOREST_PREVIEW_RUNNING'){
   if(preview3DDiagnosticFailed)return;
   preview3DRunning=true;stop3DWatchdog();if(e.data.unverified)show3DStatus(PREVIEW_TEXT.diagnosticPartial);else if(preview3DArchitectureError)show3DStatus(preview3DArchitectureError);else play3DState.classList.add('hide');
- } else if(e.data.type==='FOREST_CHARACTER_DEATH'){
+ } else if(e.data.type==='FOREST_MULTIMODE_SAVE'){
+   if(!previewSaveSession)return;
+   try{previewSaveSession.accept(e.data)}
+   catch(error){console.error('[Blakpine guardado rechazado]',error);preview3DError(window.FH_MULTIMODE_SAVE_TEXT.saveInvalid)}
+  } else if(e.data.type==='FOREST_MULTIMODE_DEATH'){
+   if(!previewSaveSession||e.data.sessionId!==previewSaveSession.sessionId)return;
+   close3DPreview();toast(window.FH_MULTIMODE_SAVE_TEXT.characterDead);
+  } else if(e.data.type==='FOREST_CHARACTER_DEATH'){
+   if(previewSaveSession)return;
   if(window.FHCharacterCreation?.markDead(String(e.data.characterId||''))){
    close3DPreview();toast(window.FH_CHARACTER_TEXT?.dead||'Tu personaje ha muerto. Debes crear otro.');
   }
@@ -5204,6 +5247,7 @@ window.addEventListener('message',e=>{
  } else if(e.data.type==='FOREST_PREVIEW_ERROR'){
   console.error('[Forest Horror 3D]',e.data.message);preview3DError(e.data.message);
  } else if(e.data.type==='FOREST_GAMESTATE_SAVE'){
+   if(previewSaveSession)return;
   if(typeof e.data.key==='string'&&e.data.key===ForestShared.gameSaveKey(project)&&typeof e.data.json==='string'){
    const id=window.FHCharacterCreation?.current?.()?.id;
    if(id&&window.FHCharacterCreation.selectMapSave(e.data.json,id)){
