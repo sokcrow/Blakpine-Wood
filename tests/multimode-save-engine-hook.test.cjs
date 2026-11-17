@@ -26,6 +26,7 @@ test('el hook se instala en el documento REAL del motor ensamblado, no en un mó
 test('el padre separa envío, confirmación, muerte y sincronización Legacy', () => {
   const index = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
   assert.ok(index.includes('previewSaveSession=prepare3DSaveSession(profile)'));
+  assert.ok(index.includes("combat?.contract!=='blakpine-combat-adapter-v1'"));
   assert.ok(index.includes('FHMultimodeSaveHook.patch(architectureDoc,document.baseURI)'));
   assert.ok(index.includes('FHMultimodeSaveHook.patch(fhEngineDoc,document.baseURI)'));
   assert.ok(index.includes('__runtimeSave:previewSaveSession?null:fhMapSave'));
@@ -60,7 +61,8 @@ const makeStore = () => { const values = new Map(); return {
 function boot(data, adapter) {
   const store=makeStore(),messages=[];
   const window={ DATA:data,localStorage:store,parent:{postMessage:m=>messages.push(m)},
-    FHMultimodePersistence:saves,FHMultimodeSaveAdapters:adapter?{dnd:adapter}:{} };
+    FHMultimodePersistence:saves,FHMultimodeSaveAdapters:adapter?{dnd:adapter}:{},
+    FHMultimodeCombatAdapters:adapter?{dnd:{status:'implemented',contract:'blakpine-combat-adapter-v1',rulesetId:'dnd',evaluate(){}}}:{} };
   const context=vm.createContext({window,ForestShared:{gameSaveKey:()=> 'fh_game_v1_aabb'},
     readGameSave:(store,key,backup)=>{const raw=store?.getItem?.(key)||backup;return raw?JSON.parse(raw).state:null;},
     writeGameSave:(store,key,state)=>{const json=JSON.stringify({version:1,state});store?.setItem(key,json);return {json};},
