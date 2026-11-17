@@ -80,11 +80,12 @@ test('lector controla dependencias, fallos IO/JSON, documentos y validaciÃ³n asÃ
   }
 });
 
-test('reglas oficiales planned fallan antes del cargador y sin fallback', async () => {
+test('reglas oficiales se preparan solamente con adaptador real; Legacy/Moon permanecen declarativas', async () => {
   let calls = 0;
   for (const rule of ['legacy', 'dnd', 'moon-system']) {
     const selection = { ...base, rulesetManifest: `contratos/multimodo/ejemplos/reglas/${rule}.json` };
-    await rejectsCode(create({ readSelection: reader, worldLoader: { prepare() { calls++; } } }).prepare(selection), 'RULESET_NOT_IMPLEMENTED');
+    await rejectsCode(create({ readSelection: reader, worldLoader: { prepare() { calls++; } } }).prepare(selection),
+      rule === 'dnd' ? 'RULES_ADAPTER_MISSING' : 'RULESET_NOT_IMPLEMENTED');
   }
   assert.equal(calls, 0);
 });

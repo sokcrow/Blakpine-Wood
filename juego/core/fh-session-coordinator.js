@@ -135,8 +135,83 @@
         }
       });
     }
+    /**
+     * DnD: una sola autoridad para dados, costes y daño. El propietario del motor
+     * autoriza contacto y aplica recursos; este puerto no modifica geometría.
+     */
+    function bindDndCombat({sessionId,playerId,rulesAdapter,readContext,readWorld,apply,roll}={}){
+      const fail=code=>{throw new SessionPreparationError(code);};
+      if(typeof sessionId!=='string'||!sessionId.trim()||
+       typeof playerId!=='string'||!playerId.trim()||
+       rulesAdapter?.id!=='combat.dnd'||rulesAdapter?.rulesetId!=='dnd'||
+       rulesAdapter?.contract!=='blakpine-combat-adapter-v1'||
+       typeof rulesAdapter.evaluate!=='function'||typeof readContext!=='function'||
+       typeof readWorld!=='function'||typeof apply!=='function'||typeof roll!=='function'){
+        fail('DND_BINDING_INVALID');
+      }
+      const actions=new Map();let closed=false;
+      function requestAttack(intent,operation){
+       if(closed)fail('DND_SESSION_CLOSED');
+       let action;
+       try{action=copyDescription(intent);}catch{fail('DND_INTENT_INVALID');}
+       if(!action||action.sessionId!==sessionId||action.rulesetId!=='dnd'||
+        action.action!=='attack'||typeof action.actionId!=='string'||!action.actionId.trim()||
+        !Number.isSafeInteger(action.revision)||action.revision<0||
+        !action.actor||!action.target||
+        !['player','creature'].includes(action.actor.kind)||
+        !['player','creature'].includes(action.target.kind)||
+        action.actor.kind===action.target.kind||
+        typeof action.actor.id!=='string'||!action.actor.id.trim()||
+        typeof action.target.id!=='string'||!action.target.id.trim()||
+        (action.actor.kind==='player'?action.actor.id!==playerId:action.target.id!==playerId)||
+        !operation||typeof operation.authorize!=='function'||
+        typeof operation.execute!=='function')fail('DND_INTENT_INVALID');
+       const fingerprint=JSON.stringify([action.sessionId,action.rulesetId,action.actionId,
+        action.revision,action.action,action.actor.kind,action.actor.id,
+        action.target.kind,action.target.id]);
+       const previous=actions.get(action.actionId);
+       if(previous){
+        if(previous.fingerprint!==fingerprint)fail('DND_ACTION_CONFLICT');
+        if(previous.running)fail('DND_ACTION_PENDING');
+        if(previous.error)throw previous.error;
+        return previous.result;
+       }
+       const entry={fingerprint,running:true,error:null,result:null};
+       actions.set(action.actionId,entry); // Antes de callbacks o RNG.
+       try{
+        const before=readContext();
+        if(closed||before?.sessionId!==sessionId||before.playerId!==playerId||
+         before.rulesetId!=='dnd'||before.revision!==action.revision||
+         !Number.isFinite(before.minute)||operation.authorize()!==true){
+          fail('DND_NOT_AUTHORIZED');
+        }
+        const world=copyDescription(readWorld(action));
+        const rules=copyDescription(before.state);
+        if(!world?.actor||!world.target||!Number.isSafeInteger(world.actor.hitDie)||
+         !Number.isSafeInteger(world.actor.damageDie)||
+         world.actor.energy<world.actor.energyCost)fail('DND_ACTION_UNAVAILABLE');
+        const dice={hit:roll(world.actor.hitDie),damage:roll(world.actor.damageDie)};
+        const proposal=copyDescription(rulesAdapter.evaluate({...action,dice},world,rules));
+        if(!proposal||proposal.rulesetId!=='dnd'||proposal.actionId!==action.actionId||
+         proposal.actorId!==action.actor.id||proposal.targetId!==action.target.id||
+         !Number.isSafeInteger(proposal.cost)||proposal.cost<0||
+         !Number.isSafeInteger(proposal.damage)||proposal.damage<0)fail('DND_RESULT_INVALID');
+        const current=readContext();
+        if(closed||current?.sessionId!==sessionId||current.playerId!==playerId||
+         current.rulesetId!=='dnd'||current.revision!==action.revision||
+         current.minute!==before.minute||operation.authorize()!==true)fail('DND_ACTION_REVOKED');
+        // Se reclama la acción en el actor del motor antes de cualquier escritura.
+        if(operation.execute()!==null)fail('DND_CAPABILITY_INVALID');
+        apply(proposal,action); // Único escritor de recursos DnD, nunca Legacy.
+        entry.result=proposal;entry.running=false;
+        return proposal;
+       }catch(error){entry.error=error;entry.running=false;throw error;}
+      }
+      return Object.freeze({requestAttack,close(){closed=true;},getStatus:()=>Object.freeze({closed})});
+    }
     return Object.freeze({
       bindLegacyCombat,
+      bindDndCombat,
       async prepare(selection) {
         // Devolver el control al arranque heredado, sin fabricar otra sesión Legacy.
         if (selection == null) return Object.freeze({ kind: 'legacy' });

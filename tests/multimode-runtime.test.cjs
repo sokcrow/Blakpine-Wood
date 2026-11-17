@@ -144,5 +144,5 @@ test('sesiones DnD y Moon intercaladas no comparten descripciones, manifiestos n
   assert.equal(moon.mode.rulesetManifest.statsNamespace, 'moon-system');
   assert.notEqual(dnd.worldDescription.scenario.data, moon.worldDescription.scenario.data);
   assert.throws(() => { dnd.mode.rulesetManifest.statsNamespace = 'moon-system'; }, TypeError);
-  assert.equal((await read(binding('ciudad-moderna', 'dnd'))).rulesetManifest.status, 'planned');
+  assert.equal((await read(binding('ciudad-moderna', 'dnd'))).rulesetManifest.status, 'implemented');
 });

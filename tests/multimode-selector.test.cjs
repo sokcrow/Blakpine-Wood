@@ -126,7 +126,7 @@ test('referencias no autorizadas en perfil se rechazan antes de activar',async t
  assert.equal(api.world('ciudad-moderna').error?.code,'RESOURCE_REFERENCE_NOT_AUTHORIZED');
 });
 
-test('registro evita suplantes; DnD y Moon siguen cerrados con manifiestos planned',async()=>{
+test('registro evita suplantes; DnD solo habilitado con adaptador registrado y Moon bloqueado',async()=>{
  const {api,registry}=runtime();
  for(const id of ['dnd','moon-system']){
   registry.register({adapter:{
@@ -138,10 +138,11 @@ test('registro evita suplantes; DnD y Moon siguen cerrados con manifiestos plann
   id:'combat.dnd',rulesetId:'dnd',contract:'blakpine-combat-adapter-v1',evaluate(){}
  },start(){}}),/MODE_ADAPTER_INVALID/);
  await api.load();
- for(const id of ['dnd','moon-system']){
-  assert.equal(api.rule(id).manifest.status,'planned');
-  assert.equal(api.canStart('ciudad-moderna',id),false);
- }
+ assert.equal(api.rule('dnd').manifest.status,'implemented');
+ assert.equal(api.canStart('ciudad-moderna','dnd'),true);
+ assert.equal((await api.prepare('ciudad-moderna','dnd')).entry.kind,'adapter');
+ assert.equal(api.rule('moon-system').manifest.status,'planned');
+ assert.equal(api.canStart('ciudad-moderna','moon-system'),false);
 });
 
 class Element {

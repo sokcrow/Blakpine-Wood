@@ -164,7 +164,11 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
 <script src="./juego/core/fh-session-coordinator.js?v=20261117-33"></script>
 <script src="./juego/core/fh-mode-adapter-registry.js?v=20261117-33"></script>
 <script src="./juego/assets/fh-multimode-strings.js?v=20261117-33"></script>
-<script src="./juego/assets/fh-multimode-selector.js?v=20261117-33"></script>
+<script src="./juego/rules/dnd/fh-dnd-combat.js?v=20261117-dnd34"></script>
+<script src="./juego/rules/dnd/fh-dnd-save-adapter.js?v=20261117-dnd34"></script>
+<script>window.FHMultimodeCombatAdapters=Object.freeze({dnd:window.FHDndCombat});
+window.FHMultimodeSaveAdapters=Object.freeze({dnd:window.FHDndSaveAdapter});</script>
+<script src="./juego/assets/fh-multimode-selector.js?v=20261117-dnd34"></script>
 <script src="./juego/core/fh-multimode-save-identity.js?v=20261117-persist32"></script>
 <script src="./juego/core/fh-multimode-persistence.js?v=20261117-persist32"></script>
 <script src="./juego/core/fh-multimode-save-hook.js?v=20261117-persist32"></script>
@@ -5358,6 +5362,14 @@ window.FHMultimodeSelector?.mount({
  launchLegacyWorld:description=>{
   window.FHMultimodeSaveSelection=null;
   preview3DSelectedMap=description.scenario.data;
+  launch3DPreview();
+ },
+ launchDndWorld:(prepared,mode)=>{
+  if(mode.rulesetManifest.id!=='dnd'||prepared.kind!=='prepared')throw Error('DND_PREPARATION_INVALID');
+  const map=prepared.worldDescription?.scenario?.data;
+  if(!map||typeof map.createdAt!=='string'||!map.createdAt)throw Error('DND_MAP_ID_MISSING');
+  window.FHMultimodeSaveSelection={mapId:map.createdAt,rulesetId:'dnd',rulesetVersion:1,saveId:'principal'};
+  preview3DSelectedMap=map;
   launch3DPreview();
  },
  launchLegacyCurrent:()=>{
