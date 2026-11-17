@@ -164,7 +164,7 @@
  floorTabs.addEventListener('click',e=>{if(e.target.closest('button'))closePanels(true);});
  // La barra principal prioriza las acciones de navegación y prueba que ya existen.
  const subbar=$('subbar');
- const essentials=[floorPicker,$('undoBtn'),$('redoBtn'),$('fitBtn'),$('testBtn')];
+ const essentials=[floorPicker,$('undoBtn'),$('redoBtn'),$('fitBtn'),$('testBtn'),$('fhModesBtn')];
  subbar.prepend(...essentials);
  $('undoBtn').setAttribute('aria-label',T.undo);$('redoBtn').setAttribute('aria-label',T.redo);
  $('headActions').prepend($('menuBtn'));
