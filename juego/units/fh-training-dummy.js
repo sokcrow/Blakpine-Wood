@@ -65,7 +65,8 @@
     if(!Number.isFinite(item.x)||!Number.isFinite(item.y))throw new TypeError('TRAINING_DUMMY_POSITION_INVALID');
     const unit=create({id,rulesetId});
     const model=makeMarker();
-    model.position.set(item.x*cell,floorElev[f],item.y*cell);
+    // stories[f] ya incluye la elevación del piso; no duplicarla.
+    model.position.set(item.x*cell,0,item.y*cell);
     stories[f].add(model);
     units.set(id,unit);visuals.set(id,model);
    });
