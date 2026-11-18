@@ -1,5 +1,7 @@
 # Blakpine Wood — Etapa 3.4: DnD operativo
 
+> **NOTA CORRECTIVA DEL DIRECTOR (18-11-2026): documentación histórica, NO arquitectura aprobada.** Este informe describe cómo el prototipo de PR #215/#216 llegó a atacar Sombras dentro de DnD. **Ese enlace es un error de integración:** las Sombras, su IA/GOAP, apariciones y recursos son exclusivos de Blakpine Wood (`legacy`) y **no pueden migrar a DnD**. No usar este documento como permiso para trasladar enemigos ni para declarar jugable el bestiario DnD. Fuente rectora: [`REGLAS_MODO_DND.md`](./REGLAS_MODO_DND.md), sección 8. El runtime todavía requiere desacoplar el puente DnD ↔ `FHShadowAI` sin alterar Legacy.
+
 ## Entrada jugable
 
 Desde el editor en un origen **HTTPS**, abrir **Mundos y combate**, elegir
