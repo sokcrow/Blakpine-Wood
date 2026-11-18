@@ -15,6 +15,8 @@
 
 **Ningún modo es variante, extensión o fallback de otro.** Los ejemplos de selección multimodo del repositorio son antecedentes técnicos, no permiso para cruzar reglamentos.
 
+**Exclusividad de unidades (APROBADA):** las Sombras, su IA/GOAP, comportamiento, habilidades, recursos, aparición, botín y condiciones de ataque son **contenido exclusivo de Blakpine Wood** (`legacy`). No se transfieren a DnD ni a Moon aunque ambos usen las capacidades del mismo motor físico. Los NPC y enemigos de cada modo deben pertenecer a su catálogo autorizado. Compartir movimiento, contacto, visión o pathfinding **no** permite trasladar entidades concretas; no transformar una Sombra en criatura DnD cambiando estadísticas. Toda excepción narrativa debe autorizarla expresamente el Director.
+
 ## 2. Responsabilidades propias de Blakpine
 
 ### Estadísticas y recursos
