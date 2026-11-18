@@ -65,3 +65,14 @@ Registrar cada regla con: **nombre, fuente autorizada o decisión del Director, 
 Usar estados `PENDIENTE`, `APROBADA` e `IMPLEMENTADA Y PROBADA` por separado. La ausencia de una decisión es un límite explícito, **nunca un permiso para importar mecánicas**.
 
 **Orden permanente:** Moon System mantiene reglas, estadísticas y resolución independientes y únicamente comparte el motor físico/natural.
+
+## 7. Investigación correctiva de combate (18-11-2026)
+
+La **especificación implementable en estado de propuesta** está en [MOON_SYSTEM_ESPECIFICACION_COMBATE_PROPUESTA.md](./MOON_SYSTEM_ESPECIFICACION_COMBATE_PROPUESTA.md).
+
+- **Investigado (fuentes externas, NO reglas aprobadas):** Base Power, Coin Power positivo/negativo, lanzamiento ordenado de múltiples monedas, enfrentamientos sucesivos con pérdida de monedas y empates, ataque separado tras el choque, efectos y disparadores por moneda, resistencias físicas/afinidades, niveles ofensivos/defensivos, Sanity, estados, recursos de afinidad/E.G.O, defensas, velocidad y economía de turnos.
+- **Documentado como propuesta:** fórmulas candidatas diferenciadas de observaciones de Limbus, algoritmos y excepciones, 10 ejemplos numéricos, contrato técnico de estados/eventos, 25 casos de prueba diseñados y decisiones D-01 a D-14 que se someten al Director. Los ejemplos **no son implementación ni validación del juego**.
+- **Pendiente de decisión:** nivel de fidelidad a Limbus, reglas de monedas y Sanity, tratamiento de empates y monedas inquebrantables, daño/redondeo, estados, recursos, defensas, orden/velocidad, selección de objetivos, unidades y catálogo Moon, persistencia y versión.
+- **Regla estricta de unidades:** compartir geometría, colisión, navegación y visibilidad **no** autoriza traer Sombras, criaturas DnD o NPC de otro modo. Enemigos, fichas, comportamientos y aparición pertenecen al catálogo **Moon autorizado**, todavía por definir.
+- **Estado real del runtime:** sigue sin `juego/rules/moon-system/` funcional; el manifiesto **continúa `planned`**, el selector no habilita Moon y el coordinador todavía carece de un puerto Moon. No usar `FHSkills`, `bindDndCombat` ni cálculos Legacy para simularlo.
+- **Condición para programar:** el Director aprueba explícitamente el subconjunto y su contrato. Solo entonces se implementa con adaptador propio y extensión autorizada del coordinador; las mejoras comprobadas se integran a `main` sin PR dependientes. No declarar `implemented` ni jugable hasta contar con implementación y pruebas reales.
