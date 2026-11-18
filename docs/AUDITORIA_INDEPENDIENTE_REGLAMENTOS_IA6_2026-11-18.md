@@ -148,3 +148,22 @@ No crear workflows ni esperar checks verdes. Este informe es **auditoría de tra
 4. **H4 se amplía:** las pruebas de `receiveHit` son útiles para un blanco de pruebas, **pero no comprueban** que las reglas de impacto, choque, daño o turnos funcionen desde las rutas reales del jugador. Añadir pruebas de conexión y de no mezcla de estadísticas por modo.
 
 **Acción de entrega:** registrar TD-01 a TD-05 dentro de **PR #217** y sus pruebas si se trabaja esa unidad. No fusionar decisiones de edición DnD ni fórmulas Moon no aprobadas; no exigir que otro PR sin relación resuelva esos pendientes. Esta sección es una **ampliación documental** de la auditoría IA 6, no una implementación del Dummy ni una fusión automática del PR.
+
+## 7. Aclaración vinculante del Director — Dummy en blanco, NO Sombras como fixture (18-11-2026)
+
+**APROBADA (decisión del Director):** el **Training Dummy** es el **blanco neutro de pruebas para iniciar la integración** de los distintos modos; no hace falta asignarle las Sombras ni tomar sus mecánicas. Las Sombras son enemigas exclusivas de Blakpine Wood y **por ahora no funcionan como contenido integrable DnD/Moon**: no convertirles habilidades, estadísticas, daño, GOAP, recursos ni comportamiento. Esto **no** exige que el Dummy sea un NPC ni implica una ficha de combate completa para cada modo.
+
+**Lectura correcta de [PR #217](https://github.com/sokcrow/Blakpine-Wood/pull/217):** su interfaz `receiveHit`, inmovilidad y resistencia a destrucción conforman un **prototipo de instrumento de test**, no un adversario. Los campos `hp:1`, `maxHp:1` y `speed:0` propuestos describen invariantes técnicas del Dummy y **no** aprueban los atributos, categorías o reglas de las fichas de DnD/Moon. La copia de `customStats` sin filtrar sigue siendo riesgo de contaminación de namespaces (TD-04). No usar el Dummy como prueba de daño real hasta que exista enlace de ataque por coordinador, validado y ejecutado.
+
+**Matriz de aceptación para próximas entregas:**
+
+| Caso | Aceptación | Estado |
+| --- | --- | --- |
+| TDB-01 · DnD sin Sombras | DnD alcanza a un Training Dummy autorizado usando solo posición/contacto comunes. Cero actores `FHShadowAI` / GOAP Legacy en el encuentro. | **APROBADA** la frontera; **PENDIENTE** implementación y test |
+| TDB-02 · Resultado DnD | `fh-dnd-combat` o sustituto autorizado produce una propuesta de ataque; el Dummy registra acierto/fallo y daño **reportado**, sin resolverlo por su cuenta ni heredar PE Legacy. | **PROTOTIPO** fórmula DnD; **PENDIENTE** enlace y test |
+| TDB-03 · Moon sin préstamos | Monedas/choques/Power **aprobados por el Director** alimentan la propuesta al Dummy; nunca se llama `FHSkills.roll`, `bindDndCombat` ni Shadow. | **PENDIENTE** fórmulas Moon/implementación |
+| TDB-04 · Aislamiento | Stats, identificadores, eventos y persistencia de la prueba no trasladan enemigos ni recursos de otro modo. | **APROBADA** frontera; **PENDIENTE** pruebas reales |
+| TDB-05 · Una aplicación | Repetir `actionId`, muerte/interrupción de escena o cambios de sesión no registran doble golpe ni doble coste. | **APROBADA** coordinación; **PENDIENTE** test Dummy |
+| TDB-06 · Legacy sin regresiones | Sombras conservan en **Legacy** su ataque/drain/GOAP; pruebas de Dummy no alteran las suites de Sombras. | **APROBADA** exclusividad; **PENDIENTE** regresión ejecutada |
+
+**Impacto sobre el informe:** H1 sigue siendo un **incumplimiento del runtime DnD**, pero la salida permitida para validar el adaptador **antes de contar con un bestiario autorizado** es el **Dummy de pruebas**, no fabricar monstruos ni trasladar Sombras. La ruta de PR #217 y la aplicación futura del adaptador pertenecen a sus entregas responsables. Este cambio documenta la orden sin tocar lógica de combate, habilitación Moon, selector o persistencia.
