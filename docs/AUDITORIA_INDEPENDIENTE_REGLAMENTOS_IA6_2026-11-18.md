@@ -8,9 +8,9 @@
 
 **Fuentes rectoras, en orden por ámbito, sin fusionarlas:**
 
-- **R-L:** [`docs/REGLAS_MODO_BLAKPINE_WOOD.md`](./REGLAS_MODO_BLAKPINE_WOOD.md): identificador `legacy`; `FHSkills` y Sombras **propios**; PG/PS/PE Legacy; conservar combate real y motor espacial compartido. Sombras exclusivas (`1); las fórmulas individuales requieren trazabilidad antes de ampliarse (`2 y `6).
+- **R-L:** [`docs/REGLAS_MODO_BLAKPINE_WOOD.md`](./REGLAS_MODO_BLAKPINE_WOOD.md): identificador `legacy`; `FHSkills` y Sombras **propios**; PG/PS/PE Legacy; conservar combate real y motor espacial compartido. Sombras exclusivas (§1); las fórmulas individuales requieren trazabilidad antes de ampliarse (`2 y `6).
 - **R-D:** [`docs/REGLAS_MODO_DND.md`](./REGLAS_MODO_DND.md): identificador `dnd`; prototipo parametrizable D20/D4 **no equivale** a edición aprobada; ningún PE/cooldown por comodidad; la IA y unidades de Sombras **prohibidas en DnD** (`1, `2, `4, `8); edición/turnos/críticos/muerte pendientes.
-- **R-M:** [`docs/REGLAS_MODO_MOON_SYSTEM.md`](./REGLAS_MODO_MOON_SYSTEM.md): identificador `moon-system`; Power, Coin Power y choques en investigación, pero **ninguna fórmula aprobada** (`2); no reutilizar FHSkills, DnD ni Legacy; manifiesto `planned` (`5, `7). [Propuesta investigativa](./MOON_SYSTEM_ESPECIFICACION_COMBATE_PROPUESTA.md) **no modifica la autoridad** del Director.
+- **R-M:** [`docs/REGLAS_MODO_MOON_SYSTEM.md`](./REGLAS_MODO_MOON_SYSTEM.md): identificador `moon-system`; Power, Coin Power y choques en investigación, pero **ninguna fórmula aprobada** (`2); no reutilizar FHSkills, DnD ni Legacy; manifiesto `planned` (§5, §7). [Propuesta investigativa](./MOON_SYSTEM_ESPECIFICACION_COMBATE_PROPUESTA.md) **no modifica la autoridad** del Director.
 
 **Cuatro etiquetas de esta matriz, que no son sinónimos:**
 
@@ -122,3 +122,29 @@ No crear workflows ni esperar checks verdes. Este informe es **auditoría de tra
 5. **DnD/Moon:** no anunciar reglamentos completos hasta aprobación de edición/fórmulas/estados, implementación y ejecución comprobada de pruebas.
 
 **Dictamen final:** **APROBADA** la separación de reglamentos y contenido como arquitectura objetivo; **PROTOTIPO** la fórmula de combate DnD y odds Legacy en lo no autorizado como regla universal; **PENDIENTE** la implementación Moon y la edición DnD; **IMPLEMENTADA Y PROBADA** no se concede a funciones nuevas por simple existencia de tests sin correrlos. **No conforme** la ruta actual de enemigos DnD y la persistencia del estado de Sombras; **no verificado** el uso de una única autoridad física por **tres modos operativos** (Moon no existe).
+
+
+## 6. Rectificación de alcance: Training Dummy de pruebas — PR #217
+
+**Referencia inspeccionada:** [PR #217: `feat(units): Training Dummy inmóvil e indestructible (1/1 PG)`](https://github.com/sokcrow/Blakpine-Wood/pull/217), **ABIERTO y NO FUSIONADO** en la comprobación del 18-11-2026. Sus archivos pertenecen a la **rama del PR**, no al `main` base de esta auditoría. No contabilizarlo como código productivo de `main` ni como enemigo ya integrado en el combate jugable.
+
+**Clasificación:** **PROTOTIPO (PR ABIERTO)** de objetivo/unidad de entrenamiento. El concepto de **blanco de pruebas universal** es distinto de importar bestiarios o IA hostiles: no debe interpretar la regla de exclusividad de Sombras como prohibición de un objeto de entrenamiento común. La **aprobación precisa** de su integración al ataque de cada modo, las estadísticas especiales y su comportamiento de guardado deben quedar trazados; un PR abierto no prueba el cumplimiento de esas condiciones.
+
+### Matriz complementaria de trazabilidad
+
+| ID | Fuente / comportamiento declarado | Implementación y ubicación en PR #217 | Test existente en la rama | Estado y dictamen |
+| --- | --- | --- | --- | --- |
+| TD-01 | Blanco de práctica, sin IA de ataque, 1/1 vida, MOV 0 e indestructible; descripción del PR y `juego/units/README.md` | `juego/units/fh-training-dummy.js` L10–40: `HP=1`, `movement:0`, `indestructible:true`, `receiveHit` impone `hp:1` / `damageApplied:0` / `defeated:false` / `reward:false` | `tests/training-dummy.test.cjs` casos de invariantes y 1000 impactos repetidos | **PROTOTIPO** con tests escritos; pruebas no reejecutadas aquí; comportamiento real de combate pendiente |
+| TD-02 | Disponible como objeto en editor y prueba 3D, compatible con mapa v1 según PR | `index.html` añade `training_dummy` como punto de mapa, herramienta `Áreas`, script y parche del motor; `createRuntime` instancia una marca Three.js y expone `get/list/receiveHit` | Test de posición, pisos, inyección de ancla y recepción directa | **PROTOTIPO**; sin verificación WebGL ni sprite definitivo; el asset de Imgur consta como pendiente en PR |
+| TD-03 | Cada modo debe lanzar y resolver su ataque propio; ni Sombras ni FHSkills reciclados | **No conectado:** `FHTrainingDummyRuntime.receiveHit` no aparece como destino en los adaptadores de ataque; DnD aún selecciona actores de `FHShadowAI` | Test llama `receiveHit` directamente: **no** simula ataque por coordinador real ni golpe desde HUD | **PENDIENTE**; prohibido declarar que se puede atacar al Dummy desde el gameplay |
+| TD-04 | Separación semántica de estadísticas y recursos por reglamento (R-L, R-D, R-M) | `stats(rulesetId,custom)` L12–23 copia `{...custom}` y luego fija `PG/PGMax/MOV` para Legacy o `hp/maxHp/speed` para DnD/Moon. **Riesgo concreto:** en DnD una entrada `{PG:999,MOV:25}` persiste como claves Legacy adicionales, aunque `hp=1, speed=0`; y el esquema de fichas Moon todavía no está aprobado | El test de invariantes aporta `{hp:999,PG:999,speed:25,MOV:25}` a **todos** los modos pero solo verifica los tres campos propios, **no** ausencia de claves cruzadas | **PROTOTIPO / AISLAMIENTO NO DEMOSTRADO**. Corregir en PR #217 con validación de atributos por modo y tests de exclusión, sin inventar esquema Moon |
+| TD-05 | Datos persistentes del Dummy y contador de impactos no deben mutar guardados de otro modo | `createRuntime` L54–85 mantiene las unidades en un `Map` privado; la documentación del PR no declara adaptador de persistencia ni reconexión al guardado multimodo | No hay prueba de serializar/restaurar `hitsReceived` tras recarga ni de su ausencia de contaminación cruzada | **PENDIENTE** la política de persistencia: decidir si el Dummy es efímero de pruebas o se guarda, sin cambiar esquema sin autorización |
+
+### Consecuencia para hallazgos H1–H4
+
+1. **H1 permanece:** el Dummy NO justifica reutilizar Sombras como adversarios de DnD. Una unidad de prueba neutral puede tener representación física común, pero su resultado de impacto debe provenir del adaptador autorizado **Legacy, DnD o Moon**, no de la IA Shadow.
+2. **H2 permanece:** el Dummy no resuelve la fuga semántica de `GameState.horror` al estado global DnD. Su propio contador y catálogo requieren política de persistencia independiente si se decide guardarlos.
+3. **H3 permanece:** colocar `training_dummy` como ítem de mundo y admitir `rulesetId:'moon-system'` en `create()` **no habilita Moon**, ni concede autorización de combinaciones de mundos y reglamentos.
+4. **H4 se amplía:** las pruebas de `receiveHit` son útiles para un blanco de pruebas, **pero no comprueban** que las reglas de impacto, choque, daño o turnos funcionen desde las rutas reales del jugador. Añadir pruebas de conexión y de no mezcla de estadísticas por modo.
+
+**Acción de entrega:** registrar TD-01 a TD-05 dentro de **PR #217** y sus pruebas si se trabaja esa unidad. No fusionar decisiones de edición DnD ni fórmulas Moon no aprobadas; no exigir que otro PR sin relación resuelva esos pendientes. Esta sección es una **ampliación documental** de la auditoría IA 6, no una implementación del Dummy ni una fusión automática del PR.
