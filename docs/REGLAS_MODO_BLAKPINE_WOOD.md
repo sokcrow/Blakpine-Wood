@@ -77,3 +77,11 @@ Cada nueva regla aprobada debe indicar: **nombre y versión, alcance, disparador
 - Validar guardados y regresiones del modo al incorporar nuevas reglas.
 
 **Orden permanente:** preservar la identidad de Blakpine, su gameplay existente y el motor natural universal; no mezclar reglamentos.
+
+## 7. Orden del Director — Dummy de entrenamiento y exclusividad de Sombras (18-11-2026)
+
+**APROBADO:** las Sombras continúan siendo **enemigos exclusivos de Blakpine Wood**. No servirán de objetivos prestados, referencias de IA, fichas, habilidades, daño o recursos para construir ni probar DnD ni Moon.
+
+El **Training Dummy** se contempla como **instancia neutra en blanco para pruebas de integración de combate**, no como una Sombra, un enemigo hostil ni un bestiario importado. El propietario del reglamento activo resuelve el ataque; el Dummy recibe la propuesta de resultado, permite inspeccionar trazas y conserva solo las invariantes de entrenamiento expresamente autorizadas. Que el Dummy sea accesible desde varios modos no transfiere **PG/PS/PE, FHSkills, GOAP ni daño Legacy** a DnD/Moon.
+
+**Estado técnico:** el diseño del Dummy está propuesto en [PR #217](https://github.com/sokcrow/Blakpine-Wood/pull/217), aún sin conexión de ataques reales comprobada. No considerar una API aislada de recepción de golpes prueba suficiente del combate de ninguno de los tres reglamentos.
