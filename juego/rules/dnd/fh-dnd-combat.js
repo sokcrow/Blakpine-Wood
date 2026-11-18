@@ -9,7 +9,7 @@
  const defaults=Object.freeze({
   hitDie:20,damageDie:4,energyCost:0,playerHp:20,playerEnergy:6,
   creatureHp:8,creatureEnergy:4,defense:10,resistance:0,
-  attackBonus:0,damageBonus:0,playerAttackCooldownMinutes:1
+  attackBonus:0,damageBonus:0
  });
  const integer=(n,lo,hi)=>Number.isSafeInteger(n)&&n>=lo&&n<=hi;
  const text=s=>typeof s==='string'&&s.trim().length>0;

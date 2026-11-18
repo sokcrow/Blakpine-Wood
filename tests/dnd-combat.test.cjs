@@ -45,6 +45,7 @@ test('D20: límites de dados, modificadores, coste e inputs maliciosos',()=>{
   {actor:{...world.actor,energy:0,energyCost:1},target:world.target},state);
  assert.equal(withoutEnergy.hit,true);
  assert.equal(withoutEnergy.cost,0,'los campos DnD v1 no condicionan ataques');
+ assert.equal(combat.defaults.playerAttackCooldownMinutes,undefined,'sin cooldown artificial');
 });
 test('coordinador: efecto único, rechazos y revocación de sesión',()=>{
  const state=combat.initialState(),enemy=combat.combatant({hp:8,energy:4,defense:10});
