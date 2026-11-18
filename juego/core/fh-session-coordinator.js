@@ -189,7 +189,7 @@
         const rules=copyDescription(before.state);
         if(!world?.actor||!world.target||!Number.isSafeInteger(world.actor.hitDie)||
          !Number.isSafeInteger(world.actor.damageDie)||
-         world.actor.energy<world.actor.energyCost)fail('DND_ACTION_UNAVAILABLE');
+         world.actor.hitDie<2||world.actor.damageDie<2)fail('DND_ACTION_UNAVAILABLE');
         const dice={hit:roll(world.actor.hitDie),damage:roll(world.actor.damageDie)};
         const proposal=copyDescription(rulesAdapter.evaluate({...action,dice},world,rules));
         if(!proposal||proposal.rulesetId!=='dnd'||proposal.actionId!==action.actionId||

@@ -8,17 +8,19 @@ Desde el editor en un origen **HTTPS**, abrir **Mundos y combate**, elegir
 Se exige el personaje del creador actual para la identidad durable del guardado;
 sus estadísticas Legacy no se trasladan ni se modifican.
 
-En el iframe de juego, el panel **Combate DnD** muestra puntos de vida y energía.
+En el iframe de juego, el panel **Combate DnD** muestra vida DnD.
 Al estar junto a una Sombra, pulsar **Atacar** o **F**. Las Sombras continúan
 apareciendo y recorriendo el mundo por su propio sistema nocturno y GOAP;
 sus ataques entran en el mismo coordinador DnD, sin llamar al daño Legacy.
-El usuario puede perder puntos de vida DnD y derrotar a las Sombras.
+El usuario puede perder puntos de vida DnD y derrotar a las Sombras. Los ataques básicos no consumen energía; esto aún no constituye un controlador DnD de turnos.
 
 ## Resolución de prueba — parametrizable, no edición de DnD
 
 - Dado de ataque de 20 caras por defecto; `tirada + bonus >= defensa` acierta.
 - Daño por defecto 1D4, con `max(0, dado + bonus - resistencia)`.
-- Coste de energía DnD por ataque, incluso fallido, por defecto 1.
+- Ataque básico sin coste de energía: coste 0 tanto si acierta como si falla.
+- Retirado el cooldown artificial de un minuto; **la economía de acciones e iniciativa DnD sigue pendiente de implementación y de definir edición/contrato**.
+- Campos `energy`, `energyCost` y `lastPlayerMinute` conservados solo por compatibilidad de guardados DnD v1: ya no regulan ataques ni aparecen como recurso del HUD.
 - Estado privado por sesión: HP, defensa, resistencia, bonus, energía, actores,
   revisión y último ataque del jugador, todo persistido bajo `dnd`.
 - El coordinador reclama cada `actionId` antes de ejecutar callbacks,
@@ -28,7 +30,7 @@ El usuario puede perder puntos de vida DnD y derrotar a las Sombras.
 
 Valores iniciales en `juego/rules/dnd/fh-dnd-combat.js`:
 jugador 20 HP / 6 energía, Sombra 8 HP / 4 energía,
-defensa 10, resistencia 0, D20, D4, coste 1.
+defensa 10, resistencia 0, D20, D4, coste 0.
 No se incluyen críticos automáticos, ventajas, iniciativa, clases,
 atributos permanentes ni reglas de ninguna edición de DnD: pendientes de acuerdo.
 

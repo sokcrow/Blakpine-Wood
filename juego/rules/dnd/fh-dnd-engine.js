@@ -55,10 +55,8 @@
   function apply(result,intent){
    const attacking=intent.actor.kind==='player'?state.player:state.actors[intent.actor.id];
    const receiving=intent.target.kind==='player'?state.player:state.actors[intent.target.id];
-   if(!attacking||!receiving||attacking.energy<result.cost)throw Error('DND_APPLY_INVALID');
-   attacking.energy-=result.cost;
+   if(!attacking||!receiving||result.cost!==0)throw Error('DND_APPLY_INVALID');
    receiving.hp=Math.max(0,receiving.hp-result.damage);
-   if(intent.actor.kind==='player')state.lastPlayerMinute=readMinute();
    state.revision++;
    if(result.defeated&&intent.target.kind==='creature')shadowRuntime.defeat(intent.target.id);
    try{save();}catch(error){ // Efectos consumidos: la acción jamás puede repetirse.
@@ -74,12 +72,10 @@
    readContext:context,requestAttack:session.requestAttack});
   function playerAttack(targetId){
    if(closed)return null;
-   const now=readMinute(),p=player(),t=globalThis.FH_DND_TEXT;
-   if(p.inactive||p.sleeping||p.inElevator||state.player.hp===0||
-    now-state.lastPlayerMinute<combat.defaults.playerAttackCooldownMinutes){
+   const p=player(),t=globalThis.FH_DND_TEXT;
+   if(p.inactive||p.sleeping||p.inElevator||state.player.hp===0){
     notice(t?.unavailable||'',1500);return null;
    }
-   if(state.player.energy<state.player.energyCost){notice(t?.noEnergy||'',1500);return null;}
    const targets=targetId?[targetId]:currentActors().map(view=>view.id);
    const id=targets.find(value=>shadowRuntime.canPlayerAttack(value,p));
    if(!id){notice(t?.empty||'',1500);return null;}
@@ -87,17 +83,15 @@
     revision:state.revision,action:'attack',actor:{kind:'player',id:playerId},
     target:{kind:'creature',id}};
    try{return session.requestAttack(intent,{
-    authorize:()=>!closed&&readMinute()===now&&shadowRuntime.canPlayerAttack(id,player())&&
-     state.player.hp>0&&readMinute()-state.lastPlayerMinute>=combat.defaults.playerAttackCooldownMinutes,
+    authorize:()=>!closed&&shadowRuntime.canPlayerAttack(id,player())&&state.player.hp>0,
     execute:()=>null
    });}catch(error){notice(t?.unknown||'',1500);return null;}
   }
   function updateHud(){
    if(!hud)return;
    const t=globalThis.FH_DND_TEXT;
-   hud.status.textContent=t?.status(state.player.hp,state.player.maxHp,
-    state.player.energy,state.player.maxEnergy)||'';
-   hud.button.disabled=closed||state.player.hp===0||state.player.energy<state.player.energyCost;
+   hud.status.textContent=t?.status(state.player.hp,state.player.maxHp)||'';
+   hud.button.disabled=closed||state.player.hp===0;
   }
   function onKey(event){
    if(event.key?.toLowerCase()!=='f'||event.repeat||event.altKey||event.ctrlKey||
