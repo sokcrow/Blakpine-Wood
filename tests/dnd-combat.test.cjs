@@ -22,10 +22,10 @@ test('D20: acierto, fallo, bonificaciones, defensa, resistencia y daño acotado'
  const intent={rulesetId:'dnd',action:'attack',actionId:'a',
   actor:{kind:'player',id:'hero'},target:{kind:'creature',id:'shadow'},dice:{hit:10,damage:8}};
  const hit=combat.evaluate(intent,{actor:a,target:b},state);
- assert.equal(hit.total,12);assert.equal(hit.hit,true);
+ assert.equal(hit.total,12);assert.equal(hit.hit,true);assert.equal(hit.cost,0);
  assert.equal(hit.damage,5);assert.equal(hit.defeated,true);
  const miss=combat.evaluate({...intent,dice:{hit:9,damage:8}},{actor:a,target:b},state);
- assert.equal(miss.hit,false);assert.equal(miss.damage,0);assert.equal(miss.cost,1);
+ assert.equal(miss.hit,false);assert.equal(miss.damage,0);assert.equal(miss.cost,0);
  const resisted=combat.evaluate({...intent,dice:{hit:10,damage:2}},
   {actor:a,target:{...b,resistance:100}},state);
  assert.equal(resisted.hit,true);assert.equal(resisted.damage,0);
@@ -41,8 +41,10 @@ test('D20: límites de dados, modificadores, coste e inputs maliciosos',()=>{
   actor:{kind:'player',id:'hero'},target:{kind:'creature',id:'enemy'},dice:{hit:21,damage:4}};
  assert.throws(()=>combat.evaluate(intent,world,state),/DND_DICE_OUT_OF_RANGE/);
  assert.throws(()=>combat.evaluate({...intent,dice:{hit:20,damage:0}},world,state),/DND_DICE_OUT_OF_RANGE/);
- assert.throws(()=>combat.evaluate({...intent,dice:{hit:20,damage:1}},
-  {actor:{...world.actor,energy:0},target:world.target},state),/DND_ACTION_UNAVAILABLE/);
+ const withoutEnergy=combat.evaluate({...intent,dice:{hit:20,damage:1}},
+  {actor:{...world.actor,energy:0,energyCost:1},target:world.target},state);
+ assert.equal(withoutEnergy.hit,true);
+ assert.equal(withoutEnergy.cost,0,'los campos DnD v1 no condicionan ataques');
 });
 test('coordinador: efecto único, rechazos y revocación de sesión',()=>{
  const state=combat.initialState(),enemy=combat.combatant({hp:8,energy:4,defense:10});
@@ -102,7 +104,7 @@ test('no se aceptan sobres DnD corruptos ni claves de otros modos',()=>{
  storage.setItem(frame.key,JSON.stringify(raw));
  assert.throws(()=>frame.restore({initialGameState:{}}),/SAVE_STATE_INCOMPATIBLE/);
 });
-test('motor compartido real de Sombras: criatura ataca, jugador falla/acierta y gasta energía una vez',()=>{
+test('motor compartido real de Sombras: DnD acierta, no gasta energía v1 y conserva contacto',()=>{
  const state={nightSpawns:{firstNight:0,byKind:{la_nina:{lastSpawnNight:0}}}};
  const removed=[];
  const shadow=shadows({state,config:{baseChancePercent:100,dailyIncreasePercent:0,
@@ -120,20 +122,21 @@ test('motor compartido real de Sombras: criatura ataca, jugador falla/acierta y 
  minute=1321;x=20.07;session.tick(.016);
  const actor=shadow.read().active[0];
  assert.ok(game.dnd.revision>=1,'ataque de Sombras se enruta por DnD');
- assert.equal(game.dnd.actors[actor.id].energy,3,'coste DnD al enemigo');
+ assert.equal(game.dnd.actors[actor.id].energy,4,'sin coste de energía para la Sombra DnD');
  assert.equal(shadow.read().active[0].pe,6,'PE Legacy de la Sombra no se gasta por DnD');
  const previousWrites=writes;
  const attack=session.attack(actor.id);
  assert.equal(attack.hit,true);
  assert.equal(attack.damage,4);
  assert.equal(game.dnd.actors[actor.id].hp,4);
- assert.equal(game.dnd.player.energy,5);
- assert.equal(writes,previousWrites+1);
- assert.equal(session.attack(actor.id),null,'cooldown no duplica ataque');
+ assert.equal(game.dnd.player.energy,6,'sin gasto de energía DnD');
  assert.equal(writes,previousWrites+1);
  minute=1323;
  const finish=session.attack(actor.id);
  assert.equal(finish.defeated,true);
+ assert.equal(finish.cost,0);
+ assert.equal(game.dnd.player.energy,6);
+ assert.equal(writes,previousWrites+2);
  assert.equal(shadow.read().active.length,0);
  assert.ok(removed.includes(actor.id),'el motor elimina al actor derrotado');
  const hp=game.dnd.player.hp;

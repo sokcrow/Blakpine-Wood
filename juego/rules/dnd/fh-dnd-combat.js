@@ -7,7 +7,7 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
  'use strict';
  const defaults=Object.freeze({
-  hitDie:20,damageDie:4,energyCost:1,playerHp:20,playerEnergy:6,
+  hitDie:20,damageDie:4,energyCost:0,playerHp:20,playerEnergy:6,
   creatureHp:8,creatureEnergy:4,defense:10,resistance:0,
   attackBonus:0,damageBonus:0,playerAttackCooldownMinutes:1
  });
@@ -60,17 +60,18 @@
    !validState(state)||!plain(world)||!validCombatant(world.actor)||!validCombatant(world.target)||
    !plain(intent.dice))throw Error('DND_INTENT_INVALID');
   const attacker=world.actor,target=world.target;
-  if(attacker.hp===0||target.hp===0||attacker.energy<attacker.energyCost)throw Error('DND_ACTION_UNAVAILABLE');
+  if(attacker.hp===0||target.hp===0)throw Error('DND_ACTION_UNAVAILABLE');
   if(!integer(intent.dice.hit,1,attacker.hitDie)||
     !integer(intent.dice.damage,1,attacker.damageDie))throw Error('DND_DICE_OUT_OF_RANGE');
   const total=intent.dice.hit+attacker.attackBonus;
   // Sin críticos automáticos, ventajas ni clases: decisiones pendientes de reglamento.
+  // energy/energyCost permanecen para leer guardados DnD v1: el ataque básico no los consume.
   const hit=total>=target.defense;
   const amount=hit?Math.min(target.hp,Math.max(0,intent.dice.damage+attacker.damageBonus-target.resistance)):0;
   return Object.freeze({
    rulesetId:'dnd',actionId:intent.actionId,actorId:intent.actor.id,targetId:intent.target.id,
    hit,roll:intent.dice.hit,total,defense:target.defense,damageRoll:intent.dice.damage,
-   resistance:target.resistance,damage:amount,cost:attacker.energyCost,
+   resistance:target.resistance,damage:amount,cost:0,
    defeated:target.hp>0&&amount>=target.hp
   });
  }
