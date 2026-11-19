@@ -3,6 +3,14 @@ import { S } from './strings.js';
 import { makeInvitationCode, cleanInvitationCode, campaignName, availableRuleset } from './campaign-model.js';
 
 const app = document.querySelector('#app');
+function upgradeBrandImage(img) {
+  const original = img.getAttribute('src');
+  const hires = img.dataset.hires;
+  if (!hires || !original) return;
+  img.addEventListener('error', () => { img.src = original; }, {once:true});
+  img.src = hires;
+}
+document.querySelectorAll('img[data-hires]').forEach(upgradeBrandImage);
 const nav = document.querySelector('#nav');
 const notice = document.querySelector('#notice');
 document.title = S.title;
@@ -82,7 +90,7 @@ function home() {
       '<div class="hero-copy">'+
         '<p class="kicker">'+S.phase+' / '+S.scope+'</p>'+
         '<div class="hero-title-line">'+
-          '<img class="hero-mark" src="./assets/lumen-logo.webp" width="160" height="160" alt="">'+
+          '<img class="hero-mark" src="./assets/lumen-logo.webp" data-hires="https://i.imgur.com/c0Cf2Yc.png" width="160" height="160" alt="">'+
           '<h1 id="portal-title">LUMEN</h1>'+
         '</div>'+
         '<p class="hero-subtitle">'+S.hero+'</p>'+
@@ -126,6 +134,7 @@ function home() {
         '<a class="home-campaign-tile" href="'+entry+'"><span aria-hidden="true" class="tile-symbol">♟</span><strong>'+S.memberships+'</strong><small>'+S.homeJoinedHint+'</small><span class="tile-arrow" aria-hidden="true">→</span></a>'+
       '</div>'+
     '</section>';
+  app.querySelectorAll('img[data-hires]').forEach(upgradeBrandImage);
 }
 function authForm(mode) {
   const reset=mode==='recuperar', signup=mode==='registro';
