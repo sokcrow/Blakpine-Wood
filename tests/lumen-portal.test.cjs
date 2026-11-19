@@ -68,3 +68,29 @@ test('Editor intacto en la raíz con vía explícita de entrada',()=>{
  const legacyEntry=fs.readFileSync(path.join(base,'juego/index.html'),'utf8');
  assert.match(legacyEntry,/searchParams\.set\('editor', '1'\)/);
 });
+
+test('LUMEN: portada editorial, acciones de campaña y navegación accesible',()=>{
+ const html=fs.readFileSync(path.join(base,'portal/index.html'),'utf8');
+ const app=fs.readFileSync(path.join(base,'portal/app.js'),'utf8');
+ const css=fs.readFileSync(path.join(base,'portal/portal.css'),'utf8');
+ assert.match(html,/class="brand-symbol"/);
+ assert.match(html,/aria-label="Navegación principal"/);
+ assert.match(app,/class="hero"/);
+ assert.match(app,/class="workflow"/);
+ assert.match(app,/class="workspace-head"/);
+ assert.match(app,/class="empty-state"/);
+ assert.match(app,/form id="create"/);
+ assert.match(app,/form id="join"/);
+ assert.match(css,/:focus-visible\s*\{/);
+ assert.match(css,/@media\(max-width:720px\)/);
+ assert.match(css, /prefers-reduced-motion/);
+});
+test('Textos del portal disponibles desde el módulo de cadenas',async()=>{
+ const {S}=await import('../portal/strings.js');
+ for(const key of ['workspaceKicker','workspaceIntro','workflowTitle','workflowOne',
+   'workflowTwo','workflowThree','workflowFoot','workflowRight','modesTitle',
+   'modesSubtitle','modeReady','modePrototype','modePending','reset']){
+   assert.equal(typeof S[key],'string',key);
+   assert.ok(S[key].trim(),key);
+ }
+});
