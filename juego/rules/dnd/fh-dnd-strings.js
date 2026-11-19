@@ -2,8 +2,8 @@
 (function(root){
  'use strict';
  root.FH_DND_TEXT=Object.freeze({
-  title:'Combate DnD',attack:'Atacar (F)',empty:'Acércate a una criatura para atacar.',
-  hint:'F para atacar · Debes estar junto al objetivo.',
+  title:'Combate DnD · Prototipo',attack:'Atacar (F)',empty:'Acércate a un Training Dummy para probar el ataque.',
+  hint:'F para probar un ataque D20 · Debes tener contacto y visión del blanco.',
   status:(hp,max)=>'Vida '+hp+'/'+max,
   hit:(roll,total,damage)=>'D20 '+roll+' (total '+total+'): golpe acertado. Daño '+damage+'.',
   miss:(roll,total)=>'D20 '+roll+' (total '+total+'): ataque fallido.',
