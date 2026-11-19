@@ -2,8 +2,9 @@ name: Portal y permisos
 on:
   pull_request:
     paths: ['portal/**', 'supabase/**', 'tests/portal*', 'index.html', 'package*.json', '.github/workflows/portal.yml']
-  push:
-    branches: ['feat/etapa-4-1-portal-campanas']
+concurrency:
+  group: portal-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:

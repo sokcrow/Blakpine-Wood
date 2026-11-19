@@ -33,6 +33,7 @@ async function login(client,prefix){return (await unwrap(client.auth.signInWithP
   assert.equal((await unwrap(member.from('bw_campaigns').select('id').eq('id',id))).length,1);
   const revoked=await member.rpc('bw_join_campaign',{p_code:invite.code});assert.match(revoked.error?.message||'',/BW_INVITATION_INVALID/);
   const fresh=await unwrap(dm.rpc('bw_create_invitation',{p_campaign:id}));
+  assert.equal(await unwrap(member.rpc('bw_join_campaign',{p_code:fresh.code})),id);
   await unwrap(dm.rpc('bw_expel_member',{p_campaign:id,p_user:player.id}));
   assert.equal((await unwrap(member.from('bw_campaigns').select('id').eq('id',id))).length,0);
   for(const code of [invite.code,fresh.code])assert.ok((await member.rpc('bw_join_campaign',{p_code:code})).error);

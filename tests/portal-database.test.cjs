@@ -67,6 +67,7 @@ test('PostgreSQL: persistencia, RLS, invitaciones y expulsión por cuenta',async
   await denied(()=>rpc(OTHER,'bw_join_campaign',[invite.code]),/BW_INVITATION_INVALID/);
   assert.equal((await as(MEMBER,'select * from public.bw_campaigns')).rows.length,1);
   second=await rpc(DM,'bw_create_invitation',[campaign]);assert.notEqual(second.code,invite.code);
+  assert.equal(await rpc(MEMBER,'bw_join_campaign',[second.code]),campaign);
  });
  await t.test('expulsión retira acceso RLS y bloquea el mismo código y códigos nuevos',async()=>{
   await rpc(DM,'bw_expel_member',[campaign,MEMBER]);
