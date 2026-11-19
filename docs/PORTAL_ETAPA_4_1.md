@@ -45,10 +45,12 @@ Blakpine Wood conserva su editor y Probar 3D. DnD se presenta como prototipo D20
 
 La aceptación final exige además repetir el recorrido real en la interfaz con dos contextos de navegador y comprobar Probar 3D. No fusionar a `main` sin esa evidencia.
 
-También se ejecutaron localmente **64/64 PASS** de regresión Legacy y guardados (cinco archivos de la CI) y **14/14 PASS** de layout del editor. `npm audit --omit=dev --audit-level=high` no encontró vulnerabilidades.
+También se ejecutaron localmente y en CI **64/64 PASS** de regresión Legacy y guardados (cinco archivos de la CI) y **14/14 PASS** de layout del editor. `npm audit --omit=dev --audit-level=high` no encontró vulnerabilidades.
 
-El test amplio `editor-responsive-browser.cjs` falla en CI al seleccionar un objeto (`selection=null`, línea 134 del recorrido). El portal sí abre el editor, encuentra su lienzo y conserva el centinela de almacenamiento en su prueba de navegador. Se añade a CI una reproducción del test amplio con el HTML original de `main` para determinar su relación con el punto de entrada; no se presenta ese recorrido amplio como aprobado.
+El test amplio `editor-responsive-browser.cjs` falla en CI al seleccionar un objeto (`selection=null`, línea 134 del recorrido). El portal sí abre el editor, encuentra su lienzo y conserva el centinela de almacenamiento en su prueba de navegador. La reproducción en CI con el HTML original de `main` también falla en la misma aserción (línea 134): es un fallo previo en ese recorrido bajo Chromium de CI. No se presenta el test amplio como aprobado ni se oculta su salida roja. Evidencia: [ejecución comparativa](https://github.com/sokcrow/Blakpine-Wood/actions/runs/44504451645).
 
 ## Regresión inicial observada
 
 En `b89b48b`, antes de este cambio, dos pruebas fallan con `SAVE_ENGINE_HOOK_MISMATCH`: la integración real en `tests/dnd-combat.test.cjs` y `tests/multimode-save-engine-hook.test.cjs`. Se reprodujeron en un worktree limpio del mismo commit de `main`. La selección de ocho archivos de regresión dio 87 PASS / 2 FAIL tanto atribuibles a esos dos casos preexistentes. No se modifica el hook ni los motores para resolverlos dentro de esta etapa.
+
+Comprobación adicional: eliminando únicamente las dos líneas de entrada nuevas, el HTML del editor coincide exactamente con `main`. `git diff main -- juego forest-horror contratos` está vacío. La revisión de corrección y seguridad y la de arquitectura se completaron sin introducir cambios en sistemas ajenos; la aceptación de producción sigue pendiente del backend y las cuentas reales.
