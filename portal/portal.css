@@ -85,10 +85,13 @@ button.danger{border-color:#c36c6c;color:var(--bad)}
   display:grid;grid-template-columns:minmax(0,1.15fr) minmax(285px,.68fr);
   align-items:center;gap:clamp(20px,4vw,70px);
   min-height:490px;padding:47px 24px 55px;
-  background:
-    radial-gradient(ellipse at 55% 58%,#aa682328,transparent 35%),
-    radial-gradient(ellipse at 76% 17%,#86603726,transparent 47%),
-    linear-gradient(180deg,#0b0a09ce,#0b0908ea);
+  background-color:#0b0a09;
+  background-image:
+    linear-gradient(90deg,#080706f0 0%,#090706db 37%,#0b0908b0 68%,#0b0908a6 100%),
+    url("./assets/lumen-hero.webp");
+  background-position:center,center 50%;
+  background-size:cover;
+  background-repeat:no-repeat;
   border-bottom:1px solid var(--line);overflow:hidden;
 }
 .hero::before{
@@ -103,7 +106,7 @@ button.danger{border-color:#c36c6c;color:var(--bad)}
 .hero::after{content:"✦";position:absolute;right:20%;top:12%;color:#f3d49172;font-size:90px;opacity:.25;pointer-events:none}
 .hero-copy{min-width:0;z-index:1}
 .hero-title-line{display:flex;gap:20px;align-items:center;margin-bottom:8px}
-.hero-mark{width:clamp(84px,12vw,168px);height:clamp(105px,15vw,201px);object-fit:contain;flex:none;filter:drop-shadow(0 0 16px #a66b1d35)}
+.hero-mark{width:clamp(54px,6vw,82px);height:clamp(68px,7.5vw,104px);object-fit:contain;flex:none;filter:drop-shadow(0 0 16px #a66b1d35)}
 .hero-copy h1{
   margin:0;color:var(--gold-hi);font-variant:small-caps;
   font-size:clamp(57px,7.5vw,117px);text-shadow:0 1px 16px #ad783c5c;
@@ -229,7 +232,7 @@ footer{padding:22px 36px;color:var(--muted);font-size:12px;border-top:1px solid 
   .hero{padding:28px 3px}
   .hero-title-line{gap:7px}
   .hero-copy h1{font-size:clamp(42px,12vw,68px)}
-  .hero-mark{width:72px;height:100px}
+  .hero-mark{width:54px;height:68px}
   .workflow{padding:22px}
   .rules,.grid{grid-template-columns:1fr}
   .rules article{min-height:235px}
@@ -244,12 +247,6 @@ footer{padding:22px 36px;color:var(--muted);font-size:12px;border-top:1px solid 
  *,*::before,*::after{transition-duration:0s!important;animation-duration:0s!important}
 }
 
-/* Artwork is HTML/SVG, independently scalable and text-free. */
-.hero-illustration {
-  position:absolute;z-index:-1;pointer-events:none;
-  width:clamp(300px,39vw,520px);height:auto;left:37%;bottom:2%;
-  opacity:.58;filter:drop-shadow(0 0 36px #e9ab423b);
-}
 .home-campaigns{padding:15px 0 55px}
 .home-campaign-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
 .home-campaign-tile{
