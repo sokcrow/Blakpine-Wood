@@ -65,4 +65,6 @@ test('Editor intacto en la raíz con vía explícita de entrada',()=>{
  assert.match(entry,/editor/);
  const editor=fs.readFileSync(path.join(base,'index.html'),'utf8');
  assert.match(editor,/\.\/portal\/entry\.js/);
+ const legacyEntry=fs.readFileSync(path.join(base,'juego/index.html'),'utf8');
+ assert.match(legacyEntry,/searchParams\.set\('editor', '1'\)/);
 });
