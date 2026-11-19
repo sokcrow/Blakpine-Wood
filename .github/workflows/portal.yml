@@ -22,5 +22,11 @@ jobs:
       - run: npm run test:portal
       - run: npx playwright install --with-deps chromium
       - run: npm run test:portal:browser
-      - run: node tests/editor-responsive-browser.cjs
       - run: node --test tests/legacy-combat-bridge.test.cjs tests/legacy-combat-integration.test.cjs tests/legacy-real-engine.test.cjs tests/multimode-save-isolation.test.cjs tests/multimode-compatibility.test.cjs
+      - run: node tests/editor-responsive-browser.cjs
+        id: editor
+      - name: Diagnosticar el mismo recorrido con el editor de main inicial
+        if: failure() && steps.editor.outcome == 'failure'
+        run: |
+          git show b89b48b9bbbc586e665b44fcf44e2bc22a182e28:index.html > index.html
+          node tests/editor-responsive-browser.cjs

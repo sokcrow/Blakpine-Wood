@@ -6,7 +6,7 @@ Estado: **NEEDS WORK para aceptación real**. La implementación y las pruebas l
 
 La raíz dirige a `portal/`. `index.html?editor=1` abre el editor original en la misma ruta y origen. Solo se añade un script de entrada al `<head>`; no se mueven su código, assets o almacenamiento. `juego/` sigue disponible. No hay migración, lectura ni escritura de guardados Legacy desde el portal. Los cuatro tests de navegador existentes que abren la raíz usan ahora el parámetro del editor.
 
-La dirección visual propuesta para el portal usa fondo oscuro de bosque, tipografía serif del sistema para títulos, texto marfil y controles rectos con foco visible. No cambia el HUD del juego. La revisión visual y accesible de navegador debe completarse antes de aprobar producción.
+La dirección visual propuesta para el portal usa fondo oscuro de bosque, tipografía serif del sistema para títulos, texto marfil y controles rectos con foco visible. No cambia el HUD del juego. Las comprobaciones automáticas de navegador cubren navegación y desbordamiento móvil/escritorio. La revisión visual y accesible manual debe completarse antes de aprobar producción.
 
 ## Integración elegida: Supabase
 
@@ -36,14 +36,18 @@ Blakpine Wood conserva su editor y Probar 3D. DnD se presenta como prototipo D20
 
 ## Pruebas
 
-- `npm run test:portal`: PostgreSQL real mediante PGlite + pgcrypto, RLS, privilegios, invitaciones, miembros persistentes y expulsión. **10/10 PASS ejecutados localmente**. La función `auth.uid()` y las identidades son fixtures de prueba, no Supabase Auth real.
-- `npm run test:portal:browser`: navegador con SDK oficial y transporte interceptado exclusivamente en el test. Comprueba pantallas, envío de operaciones, navegación, móvil/escritorio, preservación del editor y estados. No acredita el registro real.
+- `npm run test:portal`: PostgreSQL real mediante PGlite + pgcrypto, RLS, privilegios, invitaciones, miembros persistentes y expulsión. **10/10 PASS ejecutados localmente y en CI**. La función `auth.uid()` y las identidades son fixtures de prueba, no Supabase Auth real.
+- `npm run test:portal:browser`: navegador con SDK oficial y transporte interceptado exclusivamente en el test. Comprueba pantallas, envío de operaciones, navegación, móvil/escritorio, preservación del editor y estados. No acredita el registro real. **PASS en GitHub Actions**: entrada, servicio inactivo, editor/almacenamiento y todo el contrato UI con fixtures.
 - `.github/workflows/portal.yml`: bundle reproducible, SQL, navegador, layout del editor y regresión de Legacy. Chromium no puede arrancar en el sandbox local (`socket() ... Operation not permitted`); se usa CI para comprobar el navegador.
 - `npm run test:portal:live`: prueba sin mocks contra el proyecto y dos cuentas autorizadas, usando solo clave pública y credenciales de esas cuentas en variables privadas. Falla con salida 2 cuando faltan, sin mostrar secretos.
 - Para la fase de registro del runner se usan dos correos nuevos controlados por el equipo y `BW_REGISTER_TEST_ACCOUNTS=1`; Auth debe aceptar ambas altas. Con confirmación de correo activa, el equipo confirma esos correos y después se ejecuta la fase de acceso sin esa variable. Esa segunda fase verifica creación, ingreso, relogin de ambos, permisos, revocación, expulsión y rechazo por código. La prueba deja su campaña de aceptación y el historial de expulsión; no altera partidas Legacy.
 - Variables del runner real: `BW_SUPABASE_URL`, `BW_SUPABASE_PUBLISHABLE_KEY`, `BW_DM_EMAIL`, `BW_DM_PASSWORD`, `BW_MEMBER_EMAIL`, `BW_MEMBER_PASSWORD`. No se incluyen valores de ejemplo ni cuentas inventadas.
 
 La aceptación final exige además repetir el recorrido real en la interfaz con dos contextos de navegador y comprobar Probar 3D. No fusionar a `main` sin esa evidencia.
+
+También se ejecutaron localmente **64/64 PASS** de regresión Legacy y guardados (cinco archivos de la CI) y **14/14 PASS** de layout del editor. `npm audit --omit=dev --audit-level=high` no encontró vulnerabilidades.
+
+El test amplio `editor-responsive-browser.cjs` falla en CI al seleccionar un objeto (`selection=null`, línea 134 del recorrido). El portal sí abre el editor, encuentra su lienzo y conserva el centinela de almacenamiento en su prueba de navegador. Se añade a CI una reproducción del test amplio con el HTML original de `main` para determinar su relación con el punto de entrada; no se presenta ese recorrido amplio como aprobado.
 
 ## Regresión inicial observada
 
