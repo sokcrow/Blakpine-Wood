@@ -9,6 +9,11 @@
   function patch(documentHtml, baseURL) {
     if (typeof documentHtml !== 'string') throw Error('SAVE_ENGINE_DOCUMENT_MISSING');
     let doc = documentHtml;
+    // También instalar el Dummy en el fallback 3D sin capa de arquitectura.
+    if(!doc.includes('window.FHTrainingDummyRuntime=')&&
+     typeof globalThis.FHTrainingDummy?.patchEngineDoc==='function'){
+      doc=globalThis.FHTrainingDummy.patchEngineDoc(doc);
+    }
     function once(before, after) {
       const count = doc.split(before).length - 1;
       if (count !== 1) throw Error('SAVE_ENGINE_HOOK_MISMATCH:' + count + ':' + before.slice(0, 52));
@@ -48,6 +53,10 @@ const SAVE_KEY=fhMultimode?fhMultimode.key:ForestShared.gameSaveKey(DATA);`);
       'rules/dnd/fh-dnd-combat.js','rules/dnd/fh-dnd-save-adapter.js',
       'rules/dnd/fh-dnd-strings.js','rules/dnd/fh-dnd-engine.js']
       .map(file => '<script src="' + new URL('./juego/' + file + '?v=20261117-persist32', baseURL).href + '"></' + 'script>').join('');
+    if(doc.includes('GameState.horror=structuredClone(restored?.horror||DATA.initialGameState?.horror||{});')){
+      once('GameState.horror=structuredClone(restored?.horror||DATA.initialGameState?.horror||{});',
+       "if(DATA.__multimodeSave?.identity.rulesetId!=='dnd')GameState.horror=structuredClone(restored?.horror||DATA.initialGameState?.horror||{});");
+    }
     if(doc.includes('const fhLegacySession=window.FHLegacyEngineSession.create({')){
        // No crear ni activar la IA de Sombras al iniciar una sesión DnD.
        once('const fhHorror=window.FHShadowAI?.createRuntime({',
