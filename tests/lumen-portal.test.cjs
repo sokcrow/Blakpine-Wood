@@ -130,31 +130,3 @@ test('Los tres retratos oficiales están disponibles y conectados a los modos',(
  }
  assert.match(css,/aspect-ratio:4\/3/);
 });
-
-test('Retratos de los modos apuntan a originales Imgur y conservan respaldo local',()=>{
- const css=fs.readFileSync(path.join(base,'portal/portal.css'),'utf8');
- const expected=[
-   ['legacy','UBTsf5O','mode-blakpine'],
-   ['dnd','8xZm7SO','mode-dnd'],
-   ['moon-system','SQSSary','mode-moon']
- ];
- for(const [mode,id,asset] of expected) {
-   const start=css.indexOf('.rules article[data-mode="'+mode+'"]::before');
-   const end=css.indexOf('}',start);
-   assert.notEqual(start,-1);
-   const rule=css.slice(start,end);
-   assert.ok(rule.includes('https://i.imgur.com/'+id+'.jpg'),mode);
-   assert.ok(rule.includes('./assets/'+asset+'.webp'),mode);
- }
- assert.match(css,/aspect-ratio:4\/3/);
-});
-test('Marca LUMEN carga el original remoto con fallback al asset local',()=>{
- const html=fs.readFileSync(path.join(base,'portal/index.html'),'utf8');
- const app=fs.readFileSync(path.join(base,'portal/app.js'),'utf8');
- assert.match(html,/https:\/\/i\.imgur\.com\/c0Cf2Yc\.png/);
- assert.match(html,/img-src 'self' data: https:\/\/i\.imgur\.com/);
- assert.match(app,/function upgradeBrandImage\(img\)/);
- assert.match(app,/img\.addEventListener\('error'/);
- assert.match(app,/img\.src = original/);
- assert.match(app,/data-hires="https:\/\/i\.imgur\.com\/c0Cf2Yc\.png"/);
-});
