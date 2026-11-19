@@ -1,4 +1,4 @@
-/* Puente DnD al mismo runtime de Sombras: el motor conserva contacto y movimiento. */
+/* DnD PROTOTIPO: combate contra blancos neutros, nunca actores Legacy. */
 (function(root,factory){
  'use strict';
  const coordinator=typeof module==='object'&&module.exports
@@ -10,56 +10,59 @@
  else root.FHDndEngine=api;
 })(typeof globalThis!=='undefined'?globalThis:this,function(coordinator,combat){
  'use strict';
- function create({shadowRuntime,gameState,identity,sessionId,readPlayer,readMinute,
+ function create({targetPort,gameState,identity,sessionId,readPlayer,readMinute,
   save,notice,document:doc=typeof document!=='undefined'?document:null,
   random=Math.random}={}){
-  if(!shadowRuntime||typeof shadowRuntime.connectCombat!=='function'||
-   typeof shadowRuntime.canPlayerAttack!=='function'||typeof shadowRuntime.defeat!=='function'||
-   !gameState||typeof readPlayer!=='function'||typeof readMinute!=='function'||
+  if(!targetPort||typeof targetPort.read!=='function'||
+   typeof targetPort.list!=='function'||typeof targetPort.canAttack!=='function'||
+   typeof targetPort.receiveHit!=='function'||!gameState||
+   typeof readPlayer!=='function'||typeof readMinute!=='function'||
    typeof save!=='function'||typeof notice!=='function'||
    typeof identity?.characterId!=='string'||identity.rulesetId!=='dnd'||
-   typeof sessionId!=='string'||!sessionId||!coordinator?.create)throw Error('DND_ENGINE_INVALID');
+   typeof sessionId!=='string'||!sessionId||!coordinator?.create)
+   throw Error('DND_ENGINE_INVALID');
   if(!gameState.dnd)gameState.dnd=combat.initialState();
   if(!combat.validState(gameState.dnd))throw Error('DND_STATE_INVALID');
   const state=gameState.dnd,playerId=identity.characterId;
-  let closed=false,connection=null,hud=null,sequence=0;
-  function player(){return {...readPlayer(),inactive:state.player.hp===0||readPlayer().inactive===true};}
+  let closed=false,hud=null,sequence=0;
+  function player(){
+   const value=readPlayer()||{};
+   return {...value,inactive:state.player.hp===0||value.inactive===true};
+  }
   function context(){
    return {sessionId,playerId,rulesetId:'dnd',revision:state.revision,minute:readMinute(),
     player:player(),state};
   }
-  function currentActors(){return shadowRuntime.read().active;}
-  function actor(id){
-   const view=currentActors().find(item=>item.id===id);
-   if(!view)return null;
-   if(!Object.hasOwn(state.actors,id)){
-    state.actors[id]=combat.combatant({hp:combat.defaults.creatureHp,energy:combat.defaults.creatureEnergy});
-   }
-   return state.actors[id].hp?{view,stats:state.actors[id]}:null;
-  }
   function world(intent){
-   const creatureId=intent.actor.kind==='creature'?intent.actor.id:intent.target.id;
-   const enemy=actor(creatureId);
-   if(!enemy)return null;
-   return {actor:intent.actor.kind==='player'?state.player:enemy.stats,
-    target:intent.target.kind==='player'?state.player:enemy.stats};
+   if(intent.actor.kind!=='player'||intent.target.kind!=='training_dummy')return null;
+   const target=targetPort.read(intent.target.id);
+   if(!target)return null;
+   // Defensa 10 y resistencia 0 son valores del PROTOTIPO DnD, no una ficha de monstruo.
+   return {actor:state.player,target:{type:'training_dummy',hp:1,maxHp:1,
+    defense:combat.defaults.defense,resistance:combat.defaults.resistance}};
+  }
+  function updateHud(){
+   if(!hud)return;
+   const t=globalThis.FH_DND_TEXT;
+   hud.status.textContent=t?.status(state.player.hp,state.player.maxHp)||'';
+   hud.button.disabled=closed||state.player.hp===0;
   }
   function show(result){
    if(closed)return;
    const t=globalThis.FH_DND_TEXT;
    const message=result.hit?t?.hit(result.roll,result.total,result.damage):t?.miss(result.roll,result.total);
    if(message)notice(message,2400);
-   if(result.defeated)notice(result.targetId===playerId?t?.lost:t?.defeated,2600);
    updateHud();
   }
   function apply(result,intent){
-   const attacking=intent.actor.kind==='player'?state.player:state.actors[intent.actor.id];
-   const receiving=intent.target.kind==='player'?state.player:state.actors[intent.target.id];
-   if(!attacking||!receiving||result.cost!==0)throw Error('DND_APPLY_INVALID');
-   receiving.hp=Math.max(0,receiving.hp-result.damage);
+   if(closed||intent.actor.kind!=='player'||intent.target.kind!=='training_dummy'||
+    result.targetId!==intent.target.id||result.cost!==0||result.defeated!==false)
+    throw Error('DND_APPLY_INVALID');
+   // El puerto es el único escritor del Dummy; nunca descontar HP ni invocar defeat().
+   targetPort.receiveHit(intent.target.id,result);
    state.revision++;
-   if(result.defeated&&intent.target.kind==='creature')shadowRuntime.defeat(intent.target.id);
-   try{save();}catch(error){ // Efectos consumidos: la acción jamás puede repetirse.
+   try{save();}catch(error){
+    // La acción ya fue aplicada: nunca reintentar por fallo de persistencia.
     console.error('[DnD] No se pudo guardar el combate:',error);
    }
    show(result);
@@ -68,30 +71,23 @@
   const session=coordinator.create().bindDndCombat({sessionId,playerId,rulesAdapter:combat,
    readContext:context,readWorld:world,apply,
    roll:sides=>combat.rollDie(sides,random)});
-  connection=shadowRuntime.connectCombat({sessionId,playerId,rulesetId:'dnd',
-   readContext:context,requestAttack:session.requestAttack});
   function playerAttack(targetId){
    if(closed)return null;
    const p=player(),t=globalThis.FH_DND_TEXT;
    if(p.inactive||p.sleeping||p.inElevator||state.player.hp===0){
     notice(t?.unavailable||'',1500);return null;
    }
-   const targets=targetId?[targetId]:currentActors().map(view=>view.id);
-   const id=targets.find(value=>shadowRuntime.canPlayerAttack(value,p));
-   if(!id){notice(t?.empty||'',1500);return null;}
+   const candidate=targetId?[targetPort.read(targetId)].filter(Boolean):targetPort.list(p);
+   const target=candidate.find(value=>targetPort.canAttack(value.id,p));
+   if(!target){notice(t?.empty||'',1500);return null;}
+   const targetIdChosen=target.id;
    const intent={sessionId,rulesetId:'dnd',actionId:sessionId+':player:'+(++sequence),
     revision:state.revision,action:'attack',actor:{kind:'player',id:playerId},
-    target:{kind:'creature',id}};
+    target:{kind:'training_dummy',id:targetIdChosen}};
    try{return session.requestAttack(intent,{
-    authorize:()=>!closed&&shadowRuntime.canPlayerAttack(id,player())&&state.player.hp>0,
+    authorize:()=>!closed&&state.player.hp>0&&targetPort.canAttack(targetIdChosen,player()),
     execute:()=>null
    });}catch(error){notice(t?.unknown||'',1500);return null;}
-  }
-  function updateHud(){
-   if(!hud)return;
-   const t=globalThis.FH_DND_TEXT;
-   hud.status.textContent=t?.status(state.player.hp,state.player.maxHp)||'';
-   hud.button.disabled=closed||state.player.hp===0;
   }
   function onKey(event){
    if(event.key?.toLowerCase()!=='f'||event.repeat||event.altKey||event.ctrlKey||
@@ -112,10 +108,10 @@
    hud={box,status,button};updateHud();
   }
   return Object.freeze({
-   tick(dt){if(closed)return;shadowRuntime.tick(readMinute(),dt,player());updateHud();},
+   tick(){if(!closed)updateHud();},
    attack:playerAttack,
-   getStatus:()=>Object.freeze({connected:!closed,closed,rulesetId:'dnd'}),
-   close(){if(closed)return;closed=true;session.close();connection?.close();
+   getStatus:()=>Object.freeze({connected:!closed,closed,rulesetId:'dnd',prototype:true}),
+   close(){if(closed)return;closed=true;session.close();
     if(hud){hud.box.remove();doc.removeEventListener('keydown',onKey);}}
   });
  }
