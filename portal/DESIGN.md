@@ -1,16 +1,16 @@
 # LUMEN — Identidad visual y portal
 
-**Identidad aprobada por el Director (19-11-2026):** negro y dorado, atmósfera de fantasía oscura, emblema original dorado de LUMEN, vela sobre libro, ornamentación cuidada y sensación de plataforma de rol. El boceto visual compartido es la referencia de composición, **no un archivo para colocar como imagen de fondo**. Esta entrega recrea su jerarquía y controles en HTML/CSS/SVG.
+**Identidad aprobada por el Director (19-11-2026):** negro y dorado, atmósfera de fantasía oscura, emblema original dorado de LUMEN, ilustración independiente como fondo del recuadro principal, ornamentación cuidada y sensación de plataforma de rol. El boceto visual compartido es la referencia de composición, **no un archivo para colocar como imagen de fondo**. Esta entrega recrea su jerarquía y controles en HTML/CSS/SVG.
 
 ## Identidad
 
 - **Marca:** LUMEN — Lienzo Unificado de Mundos, Escenas y Narrativas. El emblema oficial, originalmente suministrado por el Director, se incorpora como `portal/assets/lumen-logo.webp` (miniatura web optimizada y transparente).
 - **Colores:** negro `#090909`, negro profundo `#050505`, panel bronce `#130f0b`, dorado `#d9ad61`, reflejo oro `#f4d493`, bordes oro tenue `#9e7842`, texto marfil `#f0e6d3`.
-- **Composición:** cabecera sobria con logo oficial; portada con título LUMEN, libro y vela dibujados en SVG decorativo; panel del flujo DM; tarjetas de tres sistemas; accesos a Mis partidas. Los controles son HTML, nunca clics falsos en un bitmap.
+- **Composición:** cabecera sobria con logo oficial; portada con título LUMEN, símbolo oficial discreto y arte de fondo separado; panel del flujo DM; tarjetas de tres sistemas; accesos a Mis partidas. Los controles son HTML, nunca clics falsos en un bitmap.
 - **Tipografía:** Georgia como serif editorial local y system-ui para datos y formularios. Sin fuentes externas.
 - **Componentes:** bordes dobles de oro oscuro, bajos contrastes decorativos detrás del contenido y acentos dorados sobre negro. Acciones principales con oro lleno; secundarias con contorno.
 - **Accesibilidad:** enlaces reales, iconografía decorativa oculta a lectores de pantalla, foco visible, media queries móviles, soporte `prefers-reduced-motion`.
-- **Rendimiento:** sin frameworks UI ni efectos animados. Logo original optimizado a WebP; escenas recreadas con CSS y SVG livianos.
+- **Rendimiento:** sin frameworks UI ni efectos animados. Logo original optimizado a WebP; ilustración de portada local y estilos CSS sin SVG de libro abierto.
 
 ## Identidad de los modos
 
@@ -39,6 +39,6 @@ El Director proporcionó estos cuatro recursos originales y se incorporaron como
 - Blakpine Wood: `portal/assets/mode-blakpine.webp` (fuente: https://imgur.com/UBTsf5O).
 - DnD: `portal/assets/mode-dnd.webp` (fuente: https://imgur.com/8xZm7SO).
 - Moon System: `portal/assets/mode-moon.webp` (fuente: https://imgur.com/SQSSary).
-- Logotipo LUMEN: `portal/assets/lumen-logo.webp` (fuente: https://imgur.com/c0Cf2Yc).
+- Fondo de la portada LUMEN: `portal/assets/lumen-hero.webp` (fuente: https://imgur.com/c0Cf2Yc).\n- Logotipo de LUMEN: `portal/assets/lumen-logo.webp`, restaurado del emblema dorado oficial suministrado anteriormente por el Director.
 
-Los cuatro originales se descargaron y validaron en GitHub Actions, se convirtieron a WebP de calidad alta y se confirmaron en la rama `main`. La página los consume mediante sus rutas locales existentes. Se retiró automáticamente el workflow temporal utilizado para esta única importación. No se mantienen dependencias de imágenes remotas.
+Las tres escenas de modos y la ilustración de portada se descargaron mediante GitHub Actions y quedaron como WebP en `main`. El emblema dorado oficial se restauró del archivo original del historial de Git. La página los consume mediante sus rutas locales existentes. Se retiró automáticamente el workflow temporal utilizado para esta única importación. No se mantienen dependencias de imágenes remotas.
