@@ -54,15 +54,46 @@ function wireAction(id, handler) {
   });
 }
 function home() {
-  app.innerHTML='<p class="kicker">'+S.phase+' · '+S.scope+'</p><h1>'+S.hero+'</h1>'+
-    '<p class="intro">'+S.intro+'</p>'+
-    (!configured?'<p class="setup">'+S.setup+'</p>':'')+
-    (initError?'<p class="setup">'+S.error+'</p>':'')+
-    '<div class="actions">'+link(user?S.games:S.signup,user?'#partidas':'#registro','button primary')+
-    link(S.editor,'../index.html?editor=1','button')+'</div><p class="muted">'+S.noMulti+'</p>'+
-    '<section class="rules" aria-label="'+S.ruleset+'">'+
-    [['legacy',S.legacyStatus],['dnd',S.dndStatus],['moon-system',S.moonStatus]]
-      .map(([id,desc])=>'<article><h2>'+names[id]+'</h2><p>'+desc+'</p></article>').join('')+'</section>';
+  const modeRows=[
+    ['legacy','01',S.legacyStatus,S.modeReady],
+    ['dnd','02',S.dndStatus,S.modePrototype],
+    ['moon-system','03',S.moonStatus,S.modePending]
+  ];
+  app.innerHTML=
+    '<section class="hero" aria-labelledby="portal-title">'+
+      '<div class="hero-copy">'+
+        '<p class="kicker">'+S.phase+' / '+S.scope+'</p>'+
+        '<h1 id="portal-title">'+S.hero+'</h1>'+
+        '<p class="intro">'+S.intro+'</p>'+
+        (!configured?'<p class="setup">'+S.setup+'</p>':'')+
+        (initError?'<p class="setup">'+S.error+'</p>':'')+
+        '<div class="actions">'+
+          link(user?S.games:S.signup,user?'#partidas':'#registro','button primary')+
+          link(S.editor,'../index.html?editor=1','button')+
+        '</div>'+
+        '<p class="hero-note">'+S.noMulti+'</p>'+
+      '</div>'+
+      '<aside class="workflow" aria-label="'+S.workflowTitle+'">'+
+        '<div class="workflow-head"><strong>'+S.workflowTitle+'</strong><span>01—03</span></div>'+
+        '<ol class="workflow-list">'+
+          '<li><span>01</span>'+S.workflowOne+'</li>'+
+          '<li><span>02</span>'+S.workflowTwo+'</li>'+
+          '<li><span>03</span>'+S.workflowThree+'</li>'+
+        '</ol>'+
+        '<div class="workflow-foot"><span>'+S.workflowFoot+'</span><span>'+S.workflowRight+'</span></div>'+
+      '</aside>'+
+    '</section>'+
+    '<section class="mode-section" aria-label="'+S.ruleset+'">'+
+      '<div class="section-head"><h2>'+S.modesTitle+'</h2><p>'+S.modesSubtitle+'</p></div>'+
+      '<div class="rules">'+modeRows.map(([id,number,desc,status])=>
+        '<article data-mode="'+esc(id)+'">'+
+          '<span class="mode-id">/ '+number+'</span>'+
+          '<h3>'+esc(names[id])+'</h3>'+
+          '<p>'+esc(desc)+'</p>'+
+          '<span class="mode-status">'+esc(status)+'</span>'+
+        '</article>'
+      ).join('')+'</div>'+
+    '</section>';
 }
 function authForm(mode) {
   const reset=mode==='recuperar', signup=mode==='registro';
@@ -146,20 +177,40 @@ async function games(ticket) {
   if(ticket!==epoch)return;
   const latest=(a,b)=>(b.createdAt?.toMillis?.()||0)-(a.createdAt?.toMillis?.()||0);
   owned.sort(latest);joined.sort(latest);
-  app.innerHTML='<h1>'+S.games+'</h1><p class="account">'+esc(user.email)+'</p>'+
-    '<div class="grid"><section class="panel"><h2>'+S.create+'</h2><form id="create">'+
-    input('name',S.campaignName,'text','maxlength="80"')+
-    '<label for="ruleset">'+S.ruleset+'</label><select id="ruleset" name="ruleset">'+
-    '<option value="legacy">'+S.legacy+'</option><option value="dnd">'+S.dnd+' — Prototipo</option>'+
-    '<option value="moon-system" disabled>'+S.moon+' — En desarrollo</option></select>'+
-    '<button type="submit" class="primary">'+S.createAction+'</button></form></section>'+
-    '<section class="panel"><h2>'+S.join+'</h2><form id="join">'+
-    input('code',S.code,'text','pattern="[A-Fa-f0-9]{48}" maxlength="48" minlength="48" autocomplete="off" spellcheck="false"')+
-    '<button type="submit">'+S.joinAction+'</button></form></section></div>'+
-    '<div class="grid"><section><h2>'+S.created+'</h2>'+
-    (owned.map(campaignCard).join('')||'<p>'+S.emptyOwned+'</p>')+'</section>'+
-    '<section><h2>'+S.memberships+'</h2>'+
-    (joined.map(campaignCard).join('')||'<p>'+S.emptyJoined+'</p>')+'</section></div>'+
+  app.innerHTML=
+    '<section class="workspace-head">'+
+      '<div><p class="kicker">'+S.workspaceKicker+'</p>'+
+      '<h1>'+S.games+'</h1><p class="workspace-intro">'+S.workspaceIntro+'</p></div>'+
+      '<p class="account">'+esc(user.email)+'</p>'+
+    '</section>'+
+    '<div class="grid">'+
+      '<section class="panel"><p class="panel-eyebrow">01 / '+S.create+'</p><h2>'+S.create+'</h2>'+
+        '<form id="create">'+
+          input('name',S.campaignName,'text','maxlength="80"')+
+          '<label for="ruleset">'+S.ruleset+'</label>'+
+          '<select id="ruleset" name="ruleset">'+
+            '<option value="legacy">'+S.legacy+'</option>'+
+            '<option value="dnd">'+S.dnd+' — '+S.modePrototype+'</option>'+
+            '<option value="moon-system" disabled>'+S.moon+' — '+S.modePending+'</option>'+
+          '</select>'+
+          '<button type="submit" class="primary">'+S.createAction+'</button>'+
+        '</form>'+
+      '</section>'+
+      '<section class="panel"><p class="panel-eyebrow">02 / '+S.join+'</p><h2>'+S.join+'</h2>'+
+        '<form id="join">'+
+          input('code',S.code,'text','pattern="[A-Fa-f0-9]{48}" maxlength="48" minlength="48" autocomplete="off" spellcheck="false"')+
+          '<button type="submit">'+S.joinAction+'</button>'+
+        '</form>'+
+      '</section>'+
+    '</div>'+
+    '<div class="grid">'+
+      '<section class="workspace-section"><h2>'+S.created+'</h2>'+
+        (owned.map(campaignCard).join('')||'<p class="empty-state">'+S.emptyOwned+'</p>')+
+      '</section>'+
+      '<section class="workspace-section"><h2>'+S.memberships+'</h2>'+
+        (joined.map(campaignCard).join('')||'<p class="empty-state">'+S.emptyJoined+'</p>')+
+      '</section>'+
+    '</div>'+
     button(S.refresh,'refresh');
   wireForm('create',async data=>{location.hash='dm/'+await createCampaign(data.get('name'),data.get('ruleset'));});
   wireForm('join',async data=>{location.hash='sala/'+await joinCampaign(data.get('code'));});
