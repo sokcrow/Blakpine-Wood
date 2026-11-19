@@ -1,6 +1,6 @@
 # LUMEN — Etapa 4.2 · Firebase Authentication y campañas
 
-**Estado:** NEEDS WORK para aceptación en el proyecto real `rol-serv`. El código del portal, las reglas de Firestore y las pruebas estructurales están en la rama del PR #219; no se ha desplegado Firebase desde este entorno y falta el `firebaseConfig` exacto de «LUMEN Web». **No se afirma que dos cuentas reales hayan usado el sistema**.
+**Estado:** NEEDS WORK para aceptación en el proyecto real `rol-serv`. El código del portal, las reglas de Firestore y las pruebas estructurales están en la rama del PR #219; no se ha desplegado Firebase desde este entorno y el `firebaseConfig` público de «LUMEN Web» fue proporcionado por el Director e integrado en `portal/config.js`. **No se afirma que dos cuentas reales hayan usado el sistema**.
 
 ## Qué integra
 
@@ -30,7 +30,7 @@
 ## Configuración del proyecto real (pendiente)
 
 1. Abrir Firebase Console → **rol-serv → Configuración del proyecto → Tus aplicaciones → LUMEN Web**, y obtener el `firebaseConfig` **exacto**.
-2. Publicar únicamente los campos públicos en `portal/config.js`: `apiKey`, `authDomain`, `projectId: 'rol-serv'`, `appId`, `messagingSenderId`. Los valores están vacíos salvo el ID que proporcionó el Director; hasta completarlos, el registro queda inactivo y lo comunica la UI. No inventar valores.
+2. **Configurado en el código:** `portal/config.js` contiene los campos públicos proporcionados por el Director, incluidos `storageBucket` y `measurementId`. Falta verificar su funcionamiento contra el proyecto real; no se incluyeron contraseñas ni credenciales administrativas.
 3. Desplegar en **Cloud Firestore** las reglas y el índice del repositorio, asociados al proyecto `rol-serv`. Firestore ya está en modo producción, pero **no se ha comprobado qué reglas están publicadas**.
 4. Configurar Firebase Authentication → Settings → **Authorized domains**: `sokcrow.github.io` si se sirve desde GitHub Pages, y cualquier dominio personalizado realmente usado. La lista debe incluir también `localhost` **solo** para pruebas locales autorizadas. Comprobar que el dominio `authDomain` sea exactamente el indicado por Firebase Console.
 5. Firebase Hosting es opcional en esta etapa. GitHub Pages puede servir el HTML estático, pero un sitio `file://` no es una prueba válida de Auth/Firestore.
@@ -53,7 +53,7 @@ Aceptación real **aún no ejecutada**:
 
 ## Límites
 
-Sin simulación DM-host, sincronización 3D, WebRTC, persistencia multijugador ni deployment Firebase. No hay contraseñas ni secretos de cuenta de servicio en el repositorio. La seguridad final depende de **las mismas reglas publicadas en el proyecto real**; publicar únicamente el cliente y dejar la base con políticas antiguas no cumple el objetivo.
+Sin simulación DM-host, sincronización 3D, WebRTC, persistencia multijugador ni deployment Firebase. **La configuración pública ya está incorporada, pero no equivale a Firebase conectado y probado.** No hay contraseñas ni secretos de cuenta de servicio en el repositorio. La seguridad final depende de **las mismas reglas publicadas en el proyecto real**; publicar únicamente el cliente y dejar la base con políticas antiguas no cumple el objetivo.
 
 ## Archivos de alcance
 
