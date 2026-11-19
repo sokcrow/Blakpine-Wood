@@ -1,43 +1,34 @@
-# LUMEN — Dirección visual del portal (propuesta)
+# LUMEN — Identidad visual y portal
 
-**Estado:** PROPUESTA DE DISEÑO, no identidad de marca aprobada por el Director. Implementada en el PR #219 para revisión visual. Se conserva la separación técnica de reglamentos, cuentas y mapa.
+**Identidad aprobada por el Director (19-11-2026):** negro y dorado, atmósfera de fantasía oscura, emblema original dorado de LUMEN, vela sobre libro, ornamentación cuidada y sensación de plataforma de rol. El boceto visual compartido es la referencia de composición, **no un archivo para colocar como imagen de fondo**. Esta entrega recrea su jerarquía y controles en HTML/CSS/SVG.
 
-## Producto y audiencia
+## Identidad
 
-LUMEN significa **Lienzo Unificado de Mundos, Escenas y Narrativas**. Es un espacio de trabajo para quienes dirigen campañas y para quienes se unen como jugadores. El usuario debe poder identificar sin esfuerzo tres tareas: **crear campaña**, **unirse con código** y **entrar a Mis partidas**.
+- **Marca:** LUMEN — Lienzo Unificado de Mundos, Escenas y Narrativas. El emblema oficial, originalmente suministrado por el Director, se incorpora como `portal/assets/lumen-logo.webp` (miniatura web optimizada y transparente).
+- **Colores:** negro `#090909`, negro profundo `#050505`, panel bronce `#130f0b`, dorado `#d9ad61`, reflejo oro `#f4d493`, bordes oro tenue `#9e7842`, texto marfil `#f0e6d3`.
+- **Composición:** cabecera sobria con logo oficial; portada con título LUMEN, libro y vela dibujados en SVG decorativo; panel del flujo DM; tarjetas de tres sistemas; accesos a Mis partidas. Los controles son HTML, nunca clics falsos en un bitmap.
+- **Tipografía:** Georgia como serif editorial local y system-ui para datos y formularios. Sin fuentes externas.
+- **Componentes:** bordes dobles de oro oscuro, bajos contrastes decorativos detrás del contenido y acentos dorados sobre negro. Acciones principales con oro lleno; secundarias con contorno.
+- **Accesibilidad:** enlaces reales, iconografía decorativa oculta a lectores de pantalla, foco visible, media queries móviles, soporte `prefers-reduced-motion`.
+- **Rendimiento:** sin frameworks UI ni efectos animados. Logo original optimizado a WebP; escenas recreadas con CSS y SVG livianos.
 
-El portal no es un juego de terror ni un editor 3D. Blakpine Wood, DnD y Moon System mantienen sus estéticas propias dentro del contenido, pero el contenedor LUMEN debe ser neutral y duradero.
+## Identidad de los modos
 
-## Lenguaje visual propuesto
+- **Blakpine Wood:** horror contemporáneo, oscuridad y calidez rojiza, con el editor y la prueba 3D existentes.
+- **DnD:** ilustración abstracta de combate y fuego; **solo prototipo**, nunca declarar 5e completa ni elección de edición.
+- **Moon System:** **ciudad industrial/distópica, arquitectura vertical, tecnología desgastada y estructuras corporativas**; visualmente distinta de una luna astronómica. La atmósfera remite a las obras de Project Moon sin copiar personajes, ilustraciones o marcas. El reglamento Moon permanece en especificación, el modo no es jugable y sus sistemas de monedas/Power/Coin Power no se implementan aquí.
 
-- **Personalidad:** editorial, sólida, directa, de herramienta de producción. Sin paneles «vidrio», degradados arbitrarios, fondos de bosque decorativos o efectos que compitan con las funciones.
-- **Color:** lona mineral `#f5f5f0`, papel `#fffefa`, tinta `#17251f`, texto secundario `#52635b`, verde profundo `#254d42`. Acento `#d1ed78` restringido al diagrama del recorrido; **no se asocia con ningún reglamento**.
-- **Tipografía:** familia del sistema, títulos sans compactos con jerarquía de tamaño y peso; etiquetas de flujo en monoespaciada para evidenciar pasos. No descarga fuentes ni bloquea primera pintura.
-- **Composición:** portada editorial con mensaje concreto a la izquierda y flujo funcional DM → invitación → grupo a la derecha. Sección de reglamentos claramente secundaria. Panel Mis partidas como área de trabajo, con acciones de creación e ingreso separadas y estados vacíos.
-- **Marca:** logotipo tipográfico LUMEN. y símbolo de cuatro celdas; identifica un lienzo modular, no invoca un bosque o una franquicia particular. Es un identificador provisional construido en CSS, no un logotipo final registrado.
-- **Interacción:** foco de teclado visible, controles de al menos 40–46 px, colores de estado diferenciados, mensajes de error legibles. Botones no operativos se mantienen deshabilitados con una explicación textual.
-- **Responsive:** columnas de portada y paneles se apilan a 720px; cabecera y navegación permiten dos filas; pantalla mínima 320px. Sin menú oculto sin implementación.
-- **Movimiento:** solo transiciones discretas en controles; respeta `prefers-reduced-motion`.
+La definición técnica de Moon procede de `docs/REGLAS_MODO_MOON_SYSTEM.md`, con perfil distópico urbano. La referencia temática del Director no cambia reglas de combate.
 
-## Principios de contenido
+## Pantallas cubiertas
 
-- No presentar Moon como jugable. DnD se comunica como prototipo de D20, no edición aprobada.
-- No presentar la sala DM-host como operativa antes de implementar el host.
-- No fabricar reseñas, estadísticas de uso, campañas falsas ni miembros de muestra en producción.
-- Todos los mensajes visibles del portal viven en `portal/strings.js`.
+1. **Inicio:** marca, registro, acceso, explicación breve, tres sistemas y tarjetas de navegación hacia Mis partidas.
+2. **Registro, inicio de sesión, recuperación:** conservan Firebase Authentication; reciben colores y estilo visual.
+3. **Mis partidas:** crear/unirse y campañas propias/de membresía conservan su contrato Firestore.
+4. **Panel DM y sala de espera:** estilo compartido, acciones de sesión 3D siguen deshabilitadas hasta existir integración.
 
-## Lista de verificación
+## Límites y pruebas
 
-### Comprobado mediante revisión del código
-- Semántica `header/nav/main`, encabezados y enlaces de navegación.
-- Clases de portada, área de trabajo y estados vacíos.
-- `:focus-visible`, media query móvil y `prefers-reduced-motion`.
-- Sin imports, SDK o componentes añadidos por esta tarea visual.
+No se cambia `firestore.rules`, `firebaseConfig`, las operaciones sensibles de Firebase, el editor ni los motores de juego.
 
-### Pendiente de validación en navegador
-- Revisión de 320, 390, 768, 1280 y 1440 px.
-- Acceso por teclado, mensajes de error de Firebase y flujos de formulario.
-- Contraste y captura visual comparativa en entorno real.
-- Aprobación de identidad y estilo por el Director.
-
-**Fuera de alcance:** reglas Firestore, flujo Auth, guardados, motores, combate y multijugador.
+Esta implementación visual requiere inspección manual de navegador en resoluciones 320, 390, 768, 1280 y 1440 px, teclado y contraste en UI real. Las comprobaciones estáticas y de lógica no equivalen a una aceptación visual ni al recorrido con dos cuentas reales. El PR #219 continúa abierto hasta completar las condiciones de la Etapa 4.2.
