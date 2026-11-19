@@ -5,7 +5,7 @@ const {createServer}=require('node:http'),fs=require('node:fs'),path=require('no
 const root=path.resolve(__dirname,'..'),mime={'.html':'text/html','.js':'text/javascript','.css':'text/css'};
 const server=createServer((req,res)=>{
  let file=path.resolve(root,'.'+new URL(req.url,'http://local').pathname);
- if(!file.startsWith(root+path.sep)){res.writeHead(403).end();return;}
+ if(file!==root&&!file.startsWith(root+path.sep)){res.writeHead(403).end();return;}
  if(fs.existsSync(file)&&fs.statSync(file).isDirectory())file=path.join(file,'index.html');
  if(!fs.existsSync(file)){res.writeHead(404).end();return;}
  res.setHeader('Content-Type',mime[path.extname(file)]||'application/octet-stream');res.end(fs.readFileSync(file));
@@ -50,7 +50,7 @@ let base;
  try{
   await new Promise(r=>server.listen(0,'127.0.0.1',r));base='http://127.0.0.1:'+server.address().port;
   browser=await chromium.launch({headless:true,...(process.env.CHROMIUM_PATH?{executablePath:process.env.CHROMIUM_PATH}:{}),args:['--no-sandbox']});
-  const page=await browser.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+  const page=await browser.newPage(),errors=[];page.setDefaultTimeout(20000);page.setDefaultNavigationTimeout(20000);page.on('pageerror',e=>errors.push(e.message));
   await page.goto(base+'/');await page.waitForURL('**/portal/');await page.getByRole('heading',{level:1}).waitFor();
   assert.match(await page.locator('main').innerText(),/no está configurado/);
   await page.getByRole('link',{name:'Crear cuenta',exact:true}).first().click();await page.locator('#email').waitFor();assert.equal(await page.locator('#email').isDisabled(),true);
@@ -62,7 +62,7 @@ let base;
   assert.equal(await page.locator('#play3DBtn').count()+await page.getByText('Probar 3D',{exact:false}).count()>0,true);
   console.log('PASS: entrada, servicio inactivo, móvil/escritorio, editor original y almacenamiento.');
   errors.length=0;
-  const a=await browser.newContext(),b=await browser.newContext();await fixture(a);await fixture(b);
+  const a=await browser.newContext(),b=await browser.newContext();for(const ctx of [a,b]){ctx.setDefaultTimeout(20000);ctx.setDefaultNavigationTimeout(20000);}await fixture(a);await fixture(b);
   const dmPage=await a.newPage(),player=await b.newPage();
   for(const p of [dmPage,player])p.on('pageerror',e=>errors.push(e.message));
   await player.goto(base+'/portal/#registro');await player.locator('#email').fill('member@example.test');await player.locator('#password').fill('fixture-password-only');await player.locator('button[type=submit]').click();await player.getByText(/revisa tu correo/).waitFor();
