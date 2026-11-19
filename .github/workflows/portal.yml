@@ -28,5 +28,6 @@ jobs:
       - name: Diagnosticar el mismo recorrido con el editor de main inicial
         if: failure() && steps.editor.outcome == 'failure'
         run: |
+          git fetch --depth=1 origin b89b48b9bbbc586e665b44fcf44e2bc22a182e28
           git show b89b48b9bbbc586e665b44fcf44e2bc22a182e28:index.html > index.html
           node tests/editor-responsive-browser.cjs
