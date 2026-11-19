@@ -109,7 +109,7 @@ test('Moon System es distopía urbana, sin luna literal ni disponibilidad falsa'
    css.indexOf('.rules article[data-mode="moon-system"]::before'),
    css.indexOf('.rules article[data-mode="moon-system"]::after')
  );
- assert.match(moonArt,/repeating-linear-gradient/);
+ assert.match(moonArt,/mode-moon\.webp/);
  assert.doesNotMatch(moonArt,/radial-gradient\(/);
 });
 test('Logo oficial de LUMEN está dentro del portal',()=>{
@@ -117,4 +117,16 @@ test('Logo oficial de LUMEN está dentro del portal',()=>{
  assert.ok(logo.length>1000);
  assert.equal(logo.toString('ascii',0,4),'RIFF');
  assert.equal(logo.toString('ascii',8,12),'WEBP');
+});
+
+
+test('Los tres retratos oficiales están disponibles y conectados a los modos',()=>{
+ const css=fs.readFileSync(path.join(base,'portal/portal.css'),'utf8');
+ for (const file of ['mode-blakpine.webp','mode-dnd.webp','mode-moon.webp']) {
+  const image=fs.readFileSync(path.join(base,'portal/assets',file));
+  assert.equal(image.toString('ascii',0,4),'RIFF');
+  assert.equal(image.toString('ascii',8,12),'WEBP');
+  assert.match(css,new RegExp(file.replace('.','\\.')));
+ }
+ assert.match(css,/aspect-ratio:4\/3/);
 });
