@@ -53,20 +53,20 @@ const SAVE_KEY=fhMultimode?fhMultimode.key:ForestShared.gameSaveKey(DATA);`);
        once('const fhHorror=window.FHShadowAI?.createRuntime({',
         "const fhHorror=DATA.__multimodeSave?.identity.rulesetId==='dnd'?null:window.FHShadowAI?.createRuntime({");
       once('const fhLegacySession=window.FHLegacyEngineSession.create({',
-        "const fhWorldClearTrainingLine=(a,b)=>{\\n"+
-         " if(a.floor!==b.floor)return false;\\n"+
-         " const distance=Math.hypot(b.x-a.x,b.z-a.z);\\n"+
-         " const steps=Math.max(1,Math.ceil(distance/.05));\\n"+
-         " for(let i=0;i<=steps;i++){const t=i/steps;\\n"+
-         "  if(!fhNpcCanWalk(a.floor,a.x+(b.x-a.x)*t,a.z+(b.z-a.z)*t,false))return false;\\n"+
-         " }return true;\\n"+
-         "};\\n"+
-         "const fhDndTargetPort=window.FHCombatTargetPort.create({\\n"+
-         " readRuntime:()=>window.FHTrainingDummyRuntime,\\n"+
-         " maxDistanceMeters:CELL,\\n"+
-         " canContact:fhWorldClearTrainingLine,canSee:fhWorldClearTrainingLine\\n"+
-         "});\\n"+
-         "const fhLegacySession=DATA.__multimodeSave?.identity.rulesetId==='dnd'?\\n"+
+        "const fhWorldClearTrainingLine=(a,b)=>{\n"+
+         " if(a.floor!==b.floor)return false;\n"+
+         " const distance=Math.hypot(b.x-a.x,b.z-a.z);\n"+
+         " const steps=Math.max(1,Math.ceil(distance/.05));\n"+
+         " for(let i=0;i<=steps;i++){const t=i/steps;\n"+
+         "  if(!fhNpcCanWalk(a.floor,a.x+(b.x-a.x)*t,a.z+(b.z-a.z)*t,false))return false;\n"+
+         " }return true;\n"+
+         "};\n"+
+         "const fhDndTargetPort=window.FHCombatTargetPort.create({\n"+
+         " readRuntime:()=>window.FHTrainingDummyRuntime,\n"+
+         " maxDistanceMeters:CELL,\n"+
+         " canContact:fhWorldClearTrainingLine,canSee:fhWorldClearTrainingLine\n"+
+         "});\n"+
+         "const fhLegacySession=DATA.__multimodeSave?.identity.rulesetId==='dnd'?\n"+
         "window.FHDndEngine.create({\n"+
         " targetPort:fhDndTargetPort,gameState:GameState,\n"+
         " identity:DATA.__multimodeSave.identity,sessionId:DATA.__multimodeSave.sessionId,\n"+
