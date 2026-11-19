@@ -51,7 +51,9 @@ test('Una unidad por ítem de mapa y altura sin duplicación de piso',()=>{
  const stories=[new Node(),new Node()];
  const project={floors:[{items:[]},{items:[{type:'training_dummy',id:'t1',x:2,y:3}]}]};
  const runtime=dummy.createRuntime({project,THREE,stories,floorElev:[0,3],cell:1.524,rulesetId:'dnd'});
- assert.equal(runtime.list().length,1);assert.equal(stories[1].children.length,1);
+ assert.equal(runtime.list().length,1);
+ assert.deepEqual(runtime.position('t1'),{floor:1,x:3.048,z:4.572});
+ assert.equal(runtime.position('missing'),null);assert.equal(stories[1].children.length,1);
  assert.deepEqual(stories[1].children[0].xyz,[3.048,0,4.572]);
  const received=runtime.receiveHit('t1',{hit:true,damage:18});
  assert.equal(received.unit.hp,1);assert.equal(runtime.get('t1').hitsReceived,1);

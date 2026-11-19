@@ -4,7 +4,7 @@
 - Se coloca desde **Áreas → Training Dummy** en el editor y se instancia en **Probar 3D**.
 - Atributos comunes: **PG máximo 1, PG mínimo 1, movimiento 0**, inmortal e inmóvil.
 - Cada modo de combate conserva estadísticas propias; `stats(rulesetId, custom)` impone únicamente esos invariantes. `moon-system` se mantiene como perfil preparado, no como combate habilitado.
-- `window.FHTrainingDummyRuntime.list/get/receiveHit` expone la referencia del blanco dentro del motor 3D. `receiveHit` registra el golpe nominal, devuelve daño aplicado **0** y nunca genera derrota ni recompensa.
+- `window.FHTrainingDummyRuntime.list/get/position/receiveHit` expone la referencia del blanco dentro del motor 3D. `receiveHit` registra el golpe nominal, devuelve daño aplicado **0** y nunca genera derrota ni recompensa.
 - La marca de práctica 3D es geometría provisional hasta incorporar el sprite original; no se hace pasar por la imagen definitiva.
 
 ## Asset solicitado
@@ -15,4 +15,6 @@ Origen: https://imgur.com/I9q0e61
 
 ## Integración de combate
 
-El blanco ya existe como unidad de mapa y objetivo con API para recibir golpes. La conexión concreta entre cada adaptador de ataque (Legacy/DnD/Moon) y esta API es un trabajo aparte: aquí no se alteraron fórmulas, coordinadores ni daño de criaturas. No asumir que el ataque jugable del jugador selecciona al Dummy hasta que se conecte su selección en el motor.
+**DnD PROTOTIPO conectado:** el HUD de DnD permite elegir un Training Dummy y atacarlo con botón o F. El recorrido utiliza `FHCombatTargetPort → FHSessionCoordinator.bindDndCombat → FHDndCombat.evaluate → FHTrainingDummyRuntime.receiveHit`, sin gastar recursos Legacy ni crear Sombras. El Dummy registra daño nominal, pero recibe daño real **0** y sigue indestructible. Ver [docs/ETAPA3_4_DND_TRAINING_DUMMY.md](../../docs/ETAPA3_4_DND_TRAINING_DUMMY.md).
+
+**PENDIENTE:** integración del Dummy con ataques de Legacy y con Moon (Moon permanece deshabilitado); edición y combate completo DnD no aprobados. El Dummy no incorpora IA ni estadísticas de monstruos.

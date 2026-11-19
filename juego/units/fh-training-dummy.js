@@ -40,7 +40,7 @@
  function createRuntime({project,THREE,stories,floorElev,cell,rulesetId='legacy'}={}){
   if(!Array.isArray(project?.floors)||!Array.isArray(stories)||!Array.isArray(floorElev)||
     !Number.isFinite(cell)||cell<=0||!THREE)throw new TypeError('TRAINING_DUMMY_WORLD_INVALID');
-  const units=new Map(),visuals=new Map();
+  const units=new Map(),visuals=new Map(),positions=new Map();
   // Marca geométrica provisional, NO sustituye el sprite original de Imgur.
   function makeMarker(){
    const group=new THREE.Group();
@@ -69,10 +69,12 @@
     model.position.set(item.x*cell,0,item.y*cell);
     stories[f].add(model);
     units.set(id,unit);visuals.set(id,model);
+    positions.set(id,Object.freeze({floor:f,x:item.x*cell,z:item.y*cell}));
    });
   });
   return Object.freeze({
    get(id){return units.get(id)||null;},
+   position(id){return positions.get(id)||null;},
    list(){return Array.from(units.values());},
    visual(id){return visuals.get(id)||null;},
    receiveHit(id,attack){
