@@ -176,7 +176,7 @@ No crear workflows ni esperar checks verdes. Este informe es **auditoría de tra
 | Hallazgo | Corrección comprobable en la nueva rama | Estado |
 | --- | --- | --- |
 | H1 (Sombras heredadas) | `fh-multimode-save-hook.js` omite crear `FHShadowAI` al seleccionar DnD; `fh-dnd-engine.js` usa únicamente `FHCombatTargetPort` hacia Dummy. | **IMPLEMENTADO como integración de entrenamiento, DnD completo PENDIENTE** |
-| H2 (guardados `horror`) | `fh-dnd-save-adapter.js` elimina `horror` al construir, restaurar y capturar estado DnD; conserva lectura v1 para limpiar guardados antiguos. | **IMPLEMENTADO;** falta validación de compatibilidad en partida real |
+| H2 (guardados `horror`) | `fh-dnd-save-adapter.js` elimina `horror` al construir, restaurar y capturar estado DnD; filtra actores históricos `fh-shadow-*` conservando otros actores v1; mantiene lectura de guardados antiguos. | **IMPLEMENTADO;** falta validación de compatibilidad en partida real |
 | H4 (tests positivos de DnD contra Sombras) | `tests/dnd-combat.test.cjs` reemplaza ese recorrido por acierto/fallo sobre Dummy, rechazo de Sombras, contacto, deduplicación, daño nominal, 30 impactos y guardado. | **Pruebas añadidas**; ver evidencia de ejecución y límites en el PR |
 | TD-03 (no se podía atacar al Dummy) | Nuevo selector en HUD y acción DnD → coordinador → `receiveHit`. | **IMPLEMENTADO PROTOTIPO**, no certifica edición |
 | TD-04 (stats personalizados no filtrados) | No se requieren ni transfieren `customStats` de otro reglamento durante el ataque DnD. El riesgo de la función genérica `stats(custom)` permanece pendiente como corrección focalizada independiente. | **PENDIENTE** del componente opcional, no se usa como ficha de monstruo |
