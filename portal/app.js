@@ -60,23 +60,6 @@ function home() {
     ['moon-system','03',S.moonStatus,S.modePending]
   ];
   const entry=user?'#partidas':'#acceso';
-  const illustration=`
-    <svg class="hero-illustration" viewBox="0 0 440 340" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <radialGradient id="lumen-glow"><stop stop-color="#f9c875" stop-opacity=".58"/><stop offset="1" stop-color="#f9c875" stop-opacity="0"/></radialGradient>
-        <linearGradient id="lumen-gilt" x1="0" y1="0" x2=".5" y2="1"><stop stop-color="#f5d898"/><stop offset="1" stop-color="#926332"/></linearGradient>
-      </defs>
-      <ellipse cx="222" cy="150" rx="147" ry="147" fill="url(#lumen-glow)"/>
-      <circle cx="222" cy="125" r="102" fill="none" stroke="#b68c51" stroke-width="1" opacity=".42"/>
-      <path d="M65 242 Q142 208 222 250 Q307 206 375 242 L381 296 Q303 275 222 314 Q139 277 60 296Z" fill="#1f1510" stroke="#d7ad6a" stroke-width="3"/>
-      <path d="M79 243 Q145 230 218 264 L219 301 Q154 265 72 284Z" fill="#594027" stroke="#e5bb77" stroke-width="1.5"/>
-      <path d="M365 243 Q298 228 226 264 L225 301 Q298 265 373 284Z" fill="#473321" stroke="#e5bb77" stroke-width="1.5"/>
-      <path d="M222 246 V140" stroke="#f4d18b" stroke-width="16" stroke-linecap="round"/>
-      <path d="M222 249 V138" stroke="#7a4829" stroke-width="2"/>
-      <path d="M222 65 C192 105 223 123 222 137 C255 103 238 83 222 65Z" fill="url(#lumen-gilt)" stroke="#f9d891" stroke-width="2"/>
-      <path d="M222 85 Q215 104 224 120" fill="none" stroke="#fff2c4" stroke-width="2"/>
-      <path d="M104 255 Q152 245 206 277 M340 255 Q297 243 239 277" fill="none" stroke="#cba566" stroke-width="1" opacity=".65"/>
-    </svg>`;
   app.innerHTML=
     '<section class="hero" aria-labelledby="portal-title">'+
       '<div class="hero-copy">'+
@@ -95,7 +78,6 @@ function home() {
         '</div>'+
         '<p class="hero-note">'+S.noMulti+'</p>'+
       '</div>'+
-      illustration+
       '<aside class="workflow" aria-label="'+S.workflowTitle+'">'+
         '<div class="workflow-head"><strong>'+S.workflowTitle+'</strong><span>01—03</span></div>'+
         '<ol class="workflow-list">'+
