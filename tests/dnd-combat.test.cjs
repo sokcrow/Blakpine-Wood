@@ -100,12 +100,19 @@ test('DnD v1 restaura sin Sombras y no guarda horror aunque exista en estado ant
  assert.equal(game.horror,undefined);
  const fromV1={runtime:{clock:{minutes:85},horror:{nightSpawns:{byKind:{la_nina:{}}}}}};
  assert.equal(saveAdapter.validateWorldState(fromV1),true,'lectura compatible con v1');
- const restored=saveAdapter.restore(fromV1,combat.initialState(),{initialGameState:{}});
+ const rulesV1=combat.initialState();
+ rulesV1.actors['fh-shadow-1']=combat.combatant({hp:7,energy:4});
+ rulesV1.actors['other-v1']=combat.combatant({hp:3,energy:4});
+ const restored=saveAdapter.restore(fromV1,rulesV1,{initialGameState:{}});
  assert.equal(restored.horror,undefined,'sin Sombras en el estado DnD activo');
  assert.equal(restored.clock.minutes,85);
+ assert.equal(restored.dnd.actors['fh-shadow-1'],undefined);
+ assert.equal(restored.dnd.actors['other-v1'].hp,3,'preservar otros datos v1');
  restored.horror={active:[{id:'sombra'}]};
  const captured=saveAdapter.capture(restored);
  assert.equal(captured.world.runtime.horror,undefined);
+ assert.equal(captured.rules.data.actors['fh-shadow-1'],undefined);
+ assert.equal(rulesV1.actors['fh-shadow-1'].hp,7,'no mutar guardado anterior');
  assert.equal(restored.horror.active.length,1,'capture no muta la entrada');
 });
 test('no se aceptan sobres DnD corruptos ni claves de otros modos',()=>{
