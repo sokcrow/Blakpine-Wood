@@ -105,9 +105,12 @@ test('Moon System es distopía urbana, sin luna literal ni disponibilidad falsa'
  assert.match(S.moonStatus,/distopía urbana e industrial/i);
  assert.match(S.moonStatus,/no jugable/i);
  const css=fs.readFileSync(path.join(base,'portal/portal.css'),'utf8');
- assert.match(css,/data-mode="moon-system"/);
- assert.match(css,/repeating-linear-gradient/);
- assert.doesNotMatch(css,/moon-system.*?radial-gradient\(circle/s);
+ const moonArt=css.slice(
+   css.indexOf('.rules article[data-mode="moon-system"]::before'),
+   css.indexOf('.rules article[data-mode="moon-system"]::after')
+ );
+ assert.match(moonArt,/repeating-linear-gradient/);
+ assert.doesNotMatch(moonArt,/radial-gradient\(/);
 });
 test('Logo oficial de LUMEN está dentro del portal',()=>{
  const logo=fs.readFileSync(path.join(base,'portal/assets/lumen-logo.webp'));
