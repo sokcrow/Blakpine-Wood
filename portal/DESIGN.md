@@ -33,14 +33,12 @@ No se cambia `firestore.rules`, `firebaseConfig`, las operaciones sensibles de F
 
 Esta implementación visual requiere inspección manual de navegador en resoluciones 320, 390, 768, 1280 y 1440 px, teclado y contraste en UI real. Las comprobaciones estáticas y de lógica no equivalen a una aceptación visual ni al recorrido con dos cuentas reales. El PR #219 continúa abierto hasta completar las condiciones de la Etapa 4.2.
 
-## Archivos gráficos finales (pendientes de importar al repositorio)
+## Ilustraciones definitivas de alta resolución
 
-El Director indicó estas cuatro fuentes como procedencia de la obra original:
-- Blakpine Wood: https://imgur.com/UBTsf5O
-- DnD: https://imgur.com/8xZm7SO
-- Moon System: https://imgur.com/SQSSary
-- LUMEN: https://imgur.com/c0Cf2Yc
+El Director proporcionó estos cuatro recursos originales y se incorporaron como archivos **locales** al repositorio:
+- Blakpine Wood: `portal/assets/mode-blakpine.webp` (fuente: https://imgur.com/UBTsf5O).
+- DnD: `portal/assets/mode-dnd.webp` (fuente: https://imgur.com/8xZm7SO).
+- Moon System: `portal/assets/mode-moon.webp` (fuente: https://imgur.com/SQSSary).
+- Logotipo LUMEN: `portal/assets/lumen-logo.webp` (fuente: https://imgur.com/c0Cf2Yc).
 
-La integración correcta exige **copias binarias alojadas dentro de `portal/assets/`**, no referencias CDN de Imgur. Las tres ilustraciones también están presentes como archivos adjuntos del chat con resolución 1536 × 1152 (4:3). Las miniaturas actuales `mode-*.webp` son respaldos de menor resolución; el logo local también puede sustituirse por el archivo original de mayor calidad.
-
-**Estado: PENDIENTE.** El entorno usado no pudo descargar desde Imgur ni transferir los adjuntos binarios al conector de GitHub. Los intentos de utilizar enlaces CDN se retiraron de `main` por compatibilidad con las condiciones de alojamiento de Imgur; no declarar completada la sustitución hasta que los binarios estén realmente presentes en GitHub y se haya revisado su aspecto en navegador.
+Los cuatro originales se descargaron y validaron en GitHub Actions, se convirtieron a WebP de calidad alta y se confirmaron en la rama `main`. La página los consume mediante sus rutas locales existentes. Se retiró automáticamente el workflow temporal utilizado para esta única importación. No se mantienen dependencias de imágenes remotas.
