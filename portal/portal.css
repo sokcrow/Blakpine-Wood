@@ -115,7 +115,7 @@ button.danger{color:var(--bad);border-color:var(--bad)}
 .rules article p{font-size:13px;color:var(--muted);margin:0;max-width:31ch}
 .rules article .mode-status{font-size:11px;color:var(--accent);font-weight:760;letter-spacing:.02em;margin-top:auto;padding-top:22px}
 .rules article[data-mode="moon-system"]{background:#eceee9}
-.rules article[data-mode="moon-system"] .mode-status{color:#65726a}
+.rules article[data-mode="moon-system"] .mode-status{color:#526159}
 /* Auth: generous whitespace, meaningful form states. */
 .auth{max-width:515px;margin:40px auto 65px;padding:30px 35px 38px;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface)}
 .auth h1{font-size:clamp(34px,4.5vw,48px);margin-bottom:24px}
