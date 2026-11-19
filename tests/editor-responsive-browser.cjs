@@ -72,7 +72,7 @@ async function main(){
    const context=await browser.newContext({viewport:{width,height},hasTouch:width<=1024});
    await context.addInitScript(()=>localStorage.setItem('fh_editor_help_seen_v2','1'));
    const page=await context.newPage(),errors=[];page.on('pageerror',err=>errors.push(err.message));
-   await page.goto(base+'/index.html');await page.waitForFunction(()=>!!window.FHEditorLayout);await settle(page);
+   await page.goto(base+'/index.html?editor=1');await page.waitForFunction(()=>!!window.FHEditorLayout);await settle(page);
    const g=await geometry(page);assert.equal(g.overflow,false);assert.deepEqual(g.clipped,[]);
    if(width===390){
     assert.equal(await page.locator('#fhOrientationNotice strong').textContent(),'Gira tu dispositivo para editar el mapa con mayor comodidad');

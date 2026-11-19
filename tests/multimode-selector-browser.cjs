@@ -48,7 +48,7 @@ async function openSelector(page){
   const context=await browser.newContext({viewport:{width:1440,height:900},hasTouch:true,ignoreHTTPSErrors:true});
   const page=await context.newPage();
   await routeRepository(page);
-  await page.goto(host+'index.html',{waitUntil:'load',timeout:90000});
+  await page.goto(host+'index.html?editor=1',{waitUntil:'load',timeout:90000});
   await openSelector(page);
   assert.equal(await page.locator('#fhWorldOptions [data-world="ciudad-moderna"]').isDisabled(),false);
   for(const id of ['distopia','villa-medieval']){
@@ -97,7 +97,7 @@ async function openSelector(page){
 
   const missing=await context.newPage();
   await routeRepository(missing,true);
-  await missing.goto(host+'index.html',{waitUntil:'load',timeout:90000});
+  await missing.goto(host+'index.html?editor=1',{waitUntil:'load',timeout:90000});
   await openSelector(missing);
   assert.equal(await missing.locator('#fhWorldOptions [data-world="ciudad-moderna"]').isDisabled(),true);
   assert.equal(await missing.locator('#fhModesStart').isDisabled(),true);

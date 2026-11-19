@@ -29,7 +29,7 @@ async function main(){
   const errors=[];
   page.on('pageerror',error=>errors.push(error.message));
   page.on('console',msg=>{if(msg.type()==='error'||msg.text().startsWith('[CCTV]'))errors.push(msg.text());});
-  await page.goto('http://127.0.0.1:'+server.address().port+'/index.html',{waitUntil:'load'});
+  await page.goto('http://127.0.0.1:'+server.address().port+'/index.html?editor=1',{waitUntil:'load'});
   await page.waitForFunction(()=>typeof prepareGLBEngineDoc==='function'&&!!window.FHCCTVEngine);
   await page.evaluate(()=>{
    project=newProject();project.title='Prueba CCTV';project.weather.enabled=false;
