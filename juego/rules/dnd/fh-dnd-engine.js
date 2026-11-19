@@ -45,6 +45,19 @@
    if(!hud)return;
    const t=globalThis.FH_DND_TEXT;
    hud.status.textContent=t?.status(state.player.hp,state.player.maxHp)||'';
+   const targets=targetPort.list(),key=targets.map(value=>value.id).join('\u0000');
+   if(key!==hud.targetsKey){
+    const previous=hud.select.value;
+    const options=targets.map(value=>{
+     const item=doc.createElement('option');
+     item.value=value.id;item.textContent=t?.target?.(value.id)||value.id;
+     return item;
+    });
+    hud.select.replaceChildren(...options);
+    if(targets.some(value=>value.id===previous))hud.select.value=previous;
+    hud.targetsKey=key;
+   }
+   hud.select.disabled=closed||targets.length===0;
    hud.button.disabled=closed||state.player.hp===0;
   }
   function show(result){
@@ -93,19 +106,21 @@
    if(event.key?.toLowerCase()!=='f'||event.repeat||event.altKey||event.ctrlKey||
     event.metaKey||/^(input|textarea|select)$/i.test(event.target?.tagName||''))return;
    if(event.target?.isContentEditable)return;
-   event.preventDefault();playerAttack();
+   event.preventDefault();playerAttack(hud?.select.value||undefined);
   }
   if(doc?.body&&typeof doc.createElement==='function'){
    const box=doc.createElement('aside'),title=doc.createElement('strong'),
-    status=doc.createElement('span'),button=doc.createElement('button'),help=doc.createElement('small');
+    status=doc.createElement('span'),select=doc.createElement('select'),
+    button=doc.createElement('button'),help=doc.createElement('small');
    const t=globalThis.FH_DND_TEXT||{};
    box.setAttribute('aria-label',t.title||'Combate DnD');
    box.style.cssText='position:fixed;right:12px;bottom:92px;z-index:201;background:#15181de8;color:#fff;border:1px solid #ccc;padding:10px;display:grid;gap:5px;max-width:245px;font:13px system-ui';
    title.textContent=t.title||'Combate DnD';button.type='button';button.textContent=t.attack||'Atacar';
-   help.textContent=t.hint||'';box.append(title,status,button,help);doc.body.append(box);
-   button.addEventListener('click',()=>playerAttack());
+   help.textContent=t.hint||'';select.setAttribute('aria-label',t.selectTarget||'Seleccionar blanco');
+   box.append(title,status,select,button,help);doc.body.append(box);
+   button.addEventListener('click',()=>playerAttack(select.value||undefined));
    doc.addEventListener('keydown',onKey);
-   hud={box,status,button};updateHud();
+   hud={box,status,select,button,targetsKey:null};updateHud();
   }
   return Object.freeze({
    tick(){if(!closed)updateHud();},
