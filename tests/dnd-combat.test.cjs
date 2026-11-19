@@ -235,7 +235,8 @@ test('integración: el hook de guardado instala combate DnD sobre el motor REAL 
  assert.match(patched,/FHCombatTargetPort\.create/);
  assert.match(patched,/fhWorldClearTrainingLine/);
  assert.match(patched,/FHShadowAI\?\.createRuntime/);
- assert.doesNotMatch(patched,/shadowRuntime:fhHorror,gameState:GameState/);
+ assert.match(patched,/targetPort:fhDndTargetPort,gameState:GameState/);
+ assert.match(patched,/identity.rulesetId==='dnd'\?null:window.FHShadowAI/);
  assert.match(patched,/window\.FHLegacyEngineSession\.create/);
  assert.match(patched,/fhLegacySession\.tick\(dt\)/);
  assert.match(patched,/window\.FHMultimodePersistence\.create/);
