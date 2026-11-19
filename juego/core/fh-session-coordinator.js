@@ -159,7 +159,8 @@
         !Number.isSafeInteger(action.revision)||action.revision<0||
         !action.actor||!action.target||
         !['player','creature'].includes(action.actor.kind)||
-        !['player','creature'].includes(action.target.kind)||
+        !['player','creature','training_dummy'].includes(action.target.kind)||
+        (action.target.kind==='training_dummy'&&action.actor.kind!=='player')||
         action.actor.kind===action.target.kind||
         typeof action.actor.id!=='string'||!action.actor.id.trim()||
         typeof action.target.id!=='string'||!action.target.id.trim()||
