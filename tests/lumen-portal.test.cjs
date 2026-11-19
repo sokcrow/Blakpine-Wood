@@ -79,7 +79,8 @@ test('LUMEN: portada editorial, acciones de campaña y navegación accesible',()
  assert.match(app,/class="hero"/);
  assert.match(app,/class="workflow"/);
  assert.match(app,/class="home-campaign-grid"/);
- assert.match(app,/class="hero-illustration"/);
+ assert.doesNotMatch(app,/class="hero-illustration"/);
+ assert.match(css,/assets\/lumen-hero\.webp/);
  assert.match(app,/data-mode/);
  assert.match(app,/class="workspace-head"/);
  assert.match(app,/class="empty-state"/);
@@ -111,6 +112,20 @@ test('Moon System es distopía urbana, sin luna literal ni disponibilidad falsa'
  );
  assert.match(moonArt,/mode-moon\.webp/);
  assert.doesNotMatch(moonArt,/radial-gradient\(/);
+});
+test('Portada y símbolo oficial permanecen como recursos distintos',()=>{
+ const css=fs.readFileSync(path.join(base,'portal/portal.css'),'utf8');
+ const app=fs.readFileSync(path.join(base,'portal/app.js'),'utf8');
+ const background=fs.readFileSync(path.join(base,'portal/assets/lumen-hero.webp'));
+ const emblem=fs.readFileSync(path.join(base,'portal/assets/lumen-logo.webp'));
+ assert.match(css,/url\("\.\/assets\/lumen-hero\.webp"\)/);
+ assert.match(app,/class="hero-mark" src="\.\/assets\/lumen-logo\.webp"/);
+ assert.doesNotMatch(app,/hero-illustration/);
+ assert.equal(background.toString('ascii',0,4),'RIFF');
+ assert.equal(emblem.toString('ascii',0,4),'RIFF');
+ assert.notDeepEqual(background,emblem);
+ assert.ok(background.length>200000);
+ assert.ok(emblem.length>1000);
 });
 test('Logo oficial de LUMEN está dentro del portal',()=>{
  const logo=fs.readFileSync(path.join(base,'portal/assets/lumen-logo.webp'));
