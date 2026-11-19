@@ -1,103 +1,281 @@
-import { createClient } from './vendor/supabase.js';
-import { config } from './config.js';
+import { firebaseConfig, configured } from './config.js';
 import { S } from './strings.js';
+import { makeInvitationCode, cleanInvitationCode, campaignName, availableRuleset } from './campaign-model.js';
 
-const app=document.querySelector('#app'), nav=document.querySelector('#nav'), notice=document.querySelector('#notice');
-document.title=S.title;
-document.querySelector('#footer').textContent=S.footer;
-const ready=Boolean(/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(config.supabaseUrl) && config.publishableKey);
-const client=ready ? createClient(config.supabaseUrl,config.publishableKey,{auth:{storageKey:'bw-portal-auth',autoRefreshToken:true,persistSession:true,detectSessionInUrl:true},global:{fetch:(url,options={})=>fetch(url,{...options,signal:options.signal?AbortSignal.any([options.signal,AbortSignal.timeout(15000)]):AbortSignal.timeout(15000)})}}) : null;
-let session=null, epoch=0, busy=false;
-const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const date=value=>new Date(value).toLocaleString('es-MX');
-const rules={legacy:S.legacy,dnd:S.dnd,'moon-system':S.moon};
-const link=(text,href,css='')=>`<a class="${css}" href="${esc(href)}">${esc(text)}</a>`;
-const button=(text,id,disabled=false)=>`<button type="button" id="${id}" ${disabled?'disabled':''}>${esc(text)}</button>`;
-function message(text='',error=false){notice.textContent=text;notice.className=error?'error':'';}
-function errorText(error){return Object.entries(S.errors).find(([key])=>error?.message?.includes(key))?.[1]||S.error;}
-function field(name,label,type='text',extra=''){return `<label for="${name}">${esc(label)}</label><input id="${name}" name="${name}" type="${type}" required ${extra}>`;}
-async function rpc(name,args){const {data,error}=await client.rpc(name,args);if(error)throw error;return data;}
-function wireForm(id,action){
- document.getElementById(id)?.addEventListener('submit',async event=>{
-  event.preventDefault();if(busy)return;busy=true;message();
-  const form=event.currentTarget, submit=form.querySelector('button[type=submit]');submit.disabled=true;form.setAttribute('aria-busy','true');
-  try{await action(new FormData(form));}catch(error){message(errorText(error),true);}
-  finally{busy=false;submit.disabled=!ready;form.removeAttribute('aria-busy');}
- });
+const app = document.querySelector('#app');
+const nav = document.querySelector('#nav');
+const notice = document.querySelector('#notice');
+document.title = S.title;
+document.querySelector('#footer').textContent = S.footer;
+const names = { legacy: S.legacy, dnd: S.dnd, 'moon-system': S.moon };
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const link = (text, url, cls='') => '<a class="'+esc(cls)+'" href="'+esc(url)+'">'+esc(text)+'</a>';
+const button = (text, id, disabled=false) => '<button type="button" id="'+id+'" '+(disabled?'disabled':'')+'>'+esc(text)+'</button>';
+const date = v => { try { return (v?.toDate?.() ?? new Date(v)).toLocaleString('es-MX'); } catch { return ''; } };
+const input = (id, label, type='text', extra='') => '<label for="'+id+'">'+esc(label)+'</label><input id="'+id+'" name="'+id+'" type="'+type+'" required '+extra+'>';
+let fb=null, auth=null, db=null, user=null, initError=null, epoch=0, busy=false;
+
+function message(text='', bad=false) {
+  notice.textContent=text; notice.className=bad?'error':'';
 }
-function wireAction(id,action){document.getElementById(id)?.addEventListener('click',async event=>{
- if(busy)return;busy=true;event.currentTarget.disabled=true;message();
- try{await action();}catch(error){message(errorText(error),true);}
- finally{busy=false;if(event.target.isConnected)event.target.disabled=false;}
-});}
-function authForm(signup){
- app.innerHTML=`<section class="auth"><p class="kicker">${S.eyebrow}</p><h1>${signup?S.signup:S.login}</h1>${!ready?`<p class="setup">${S.setup}</p>`:''}<form id="auth"><fieldset ${!ready?'disabled':''}>${field('email',S.email,'email','autocomplete="email" maxlength="254"')}${field('password',S.password,'password',`autocomplete="${signup?'new-password':'current-password'}" ${signup?'minlength="12"':''} maxlength="128"`)}${signup?`<small>${S.passwordHint}</small>`:''}<button type="submit" class="primary">${signup?S.signup:S.login}</button></fieldset></form><p>${link(signup?S.login:S.signup,signup?'#acceso':'#registro')}</p></section>`;
- wireForm('auth',async data=>{
-  const credentials={email:String(data.get('email')).trim(),password:String(data.get('password'))};
-  const result=signup?await client.auth.signUp({...credentials,options:{emailRedirectTo:new URL('./',location.href).href.split('#')[0]}}):await client.auth.signInWithPassword(credentials);
-  if(result.error){message(signup?S.signupError:S.authError,true);return;}
-  if(result.data.session){session=result.data.session;location.hash='partidas';await render();}
-  else {document.querySelector('#auth').reset();message(S.confirm);}
- });
+function readableError(error) {
+  const c=error?.code || error?.message || '';
+  if (/permission-denied|unauthenticated/.test(c)) return 'Acceso denegado. Revisa tus permisos de campaña o la configuración de Firestore.';
+  if (/email-already-in-use/.test(c)) return 'Ya existe una cuenta con ese correo.';
+  if (/invalid-email/.test(c)) return 'El correo electrónico no es válido.';
+  if (/weak-password/.test(c)) return 'La contraseña no cumple los requisitos de Firebase.';
+  if (/invalid-credential|wrong-password|user-not-found/.test(c)) return S.authError;
+  if (/CAMPAIGN_NAME_INVALID/.test(c)) return 'El nombre debe tener entre 1 y 80 caracteres.';
+  if (/RULESET_NOT_AVAILABLE/.test(c)) return 'Ese reglamento no está habilitado.';
+  if (/INVITATION_INVALID|INVITE_/.test(c)) return 'Invitación inválida, revocada o caducada.';
+  if (/MEMBERSHIP_REMOVED/.test(c)) return 'Fuiste expulsado y no puedes reincorporarte con invitaciones.';
+  if (/failed-precondition/.test(c)) return 'Falta un índice de Firestore o una configuración de la base de datos.';
+  return S.error;
 }
-function home(){
- app.innerHTML=`<p class="kicker">${S.phase} · ${S.scope}</p><h1>${S.hero}</h1><p class="intro">${S.intro}</p>${!ready?`<p class="setup">${S.setup}</p>`:''}<div class="actions">${link(session?S.games:S.signup,session?'#partidas':'#registro','button primary')}${link(S.editor,'../index.html?editor=1','button')}</div><p class="muted">${S.noMulti}</p><section class="rules" aria-label="${S.ruleset}">${[['legacy',S.legacyStatus],['dnd',S.dndStatus],['moon-system',S.moonStatus]].map(([id,text])=>`<article><h2>${rules[id]}</h2><p>${text}</p></article>`).join('')}</section>`;
+function wireForm(id, handler) {
+  document.getElementById(id)?.addEventListener('submit', async event => {
+    event.preventDefault();
+    if (busy || !auth) return;
+    busy=true; message();
+    const form=event.currentTarget, submit=form.querySelector('button[type=submit]');
+    submit.disabled=true;form.setAttribute('aria-busy','true');
+    try { await handler(new FormData(form)); }
+    catch(error) { message(readableError(error),true); }
+    finally { busy=false; if(submit.isConnected)submit.disabled=false;form.removeAttribute('aria-busy'); }
+  });
 }
-function campaignCard(c,user){return `<article class="campaign"><h3>${link(c.name,`#${c.owner_id===user?'dm':'sala'}/${c.id}`)}</h3><p>${rules[c.ruleset]} · ${c.status==='active'?S.active:S.archived}</p><small>${S.createdAt}: ${date(c.created_at)}</small>${link(c.owner_id===user?S.dm:S.room,`#${c.owner_id===user?'dm':'sala'}/${c.id}`)}</article>`;}
-async function games(ticket,user){
- const {data,error}=await client.from('bw_campaigns').select('*').order('created_at',{ascending:false});if(error)throw error;if(ticket!==epoch)return;
- const owned=data.filter(c=>c.owner_id===user),joined=data.filter(c=>c.owner_id!==user);
- app.innerHTML=`<h1>${S.games}</h1><p class="account">${esc(session.user.email)}</p><div class="grid"><section class="panel"><h2>${S.create}</h2><form id="create">${field('name',S.campaignName,'text','maxlength="80"')}<label for="ruleset">${S.ruleset}</label><select id="ruleset" name="ruleset"><option value="legacy">${S.legacy}</option><option value="dnd">${S.dnd} — ${S.dndStatus}</option><option value="moon-system" disabled>${S.moon} — ${S.moonStatus}</option></select><button type="submit" class="primary">${S.createAction}</button></form></section><section class="panel"><h2>${S.join}</h2><form id="join">${field('code',S.code,'text','pattern="[0-9a-fA-F]{48}" minlength="48" maxlength="48" autocomplete="off" spellcheck="false"')}<button type="submit">${S.joinAction}</button></form></section></div><div class="grid"><section><h2>${S.created}</h2>${owned.map(c=>campaignCard(c,user)).join('')||`<p>${S.emptyOwned}</p>`}</section><section><h2>${S.memberships}</h2>${joined.map(c=>campaignCard(c,user)).join('')||`<p>${S.emptyJoined}</p>`}</section></div>${button(S.refresh,'refresh')}`;
- wireForm('create',async form=>{const id=await rpc('bw_create_campaign',{p_name:form.get('name'),p_ruleset:form.get('ruleset')});location.hash=`dm/${id}`;});
- wireForm('join',async form=>{const id=await rpc('bw_join_campaign',{p_code:String(form.get('code')).trim()});location.hash=`sala/${id}`;});
- wireAction('refresh',()=>render());
+function wireAction(id, handler) {
+  document.getElementById(id)?.addEventListener('click', async event => {
+    if (busy) return;
+    busy=true;message();const b=event.currentTarget;b.disabled=true;
+    try { await handler(); }
+    catch(error) { message(readableError(error),true); }
+    finally { busy=false;if(b.isConnected)b.disabled=false; }
+  });
 }
-async function campaign(ticket,id,user,requestedDM){
- if(!/^[0-9a-f-]{36}$/i.test(id)){app.textContent=S.noAccess;return;}
- const {data:c,error}=await client.from('bw_campaigns').select('*').eq('id',id).maybeSingle();if(error)throw error;if(ticket!==epoch)return;
- if(!c){app.textContent=S.noAccess;return;}
- const isDM=c.owner_id===user;
- if(requestedDM&&!isDM){app.textContent=S.noAccess;return;}
- let members=[],invites=[];
- if(isDM){
-  const results=await Promise.all([client.from('bw_memberships').select('*').eq('campaign_id',id).order('joined_at'),rpc('bw_list_invitations',{p_campaign:id})]);
-  if(results[0].error)throw results[0].error;members=results[0].data;invites=results[1];
- }
- if(ticket!==epoch)return;
- app.innerHTML=`${link(S.back,'#partidas')}<p class="kicker">${isDM?S.dm:S.room}</p><h1>${esc(c.name)}</h1><p>${rules[c.ruleset]} · ${c.status==='active'?S.active:S.archived}</p><p>${isDM?S.dmNotice:S.waiting}</p>${button(S.refresh,'refresh')}<small>${S.refreshNotice}</small>${isDM?`<div class="grid"><section class="panel"><h2>${S.members}</h2><ul class="list">${members.map((m,i)=>`<li><span class="account">${S.account}: ${esc(m.user_id)}</span><small>${S.joinedAt}: ${date(m.joined_at)}</small>${m.status==='active'?button(S.expel,`expel-${i}`):`<small>${S.expelled}: ${date(m.expelled_at)}</small>`}</li>`).join('')||`<li>${S.emptyMembers}</li>`}</ul></section><section class="panel"><h2>${S.invitations}</h2>${button(S.makeInvite,'invite',c.status!=='active')}<div id="new-invite" role="status"></div><ul class="list">${invites.map((v,i)=>`<li><span class="account">${esc(v.id)}</span><small>${S.expires}: ${date(v.expires_at)}</small>${v.revoked_at?`<small>${S.revoked}</small>`:new Date(v.expires_at)<=new Date()?`<small>${S.expired}</small>`:button(S.revoke,`revoke-${i}`)}</li>`).join('')||`<li>${S.emptyInvites}</li>`}</ul></section></div>`:''}<section class="pending"><h2>${S.inactive}</h2><p>${S.noMulti}</p><div class="actions">${button(S.launch,'launch',true)}${button(S.sync,'sync',true)}</div></section>`;
- wireAction('refresh',()=>render());
- wireAction('invite',async()=>{
-  const invite=await rpc('bw_create_invitation',{p_campaign:id});
-  await render();
-  if(ticket+1!==epoch)return;
-  const output=document.getElementById('new-invite');if(output)output.innerHTML=`<p>${S.inviteNotice}</p><code>${esc(invite.code)}</code><small>${S.expires}: ${date(invite.expires_at)}</small>`;
- });
- members.forEach((m,i)=>wireAction(`expel-${i}`,async()=>{if(confirm(S.confirmExpel)){await rpc('bw_expel_member',{p_campaign:id,p_user:m.user_id});await render();}}));
- invites.forEach((v,i)=>wireAction(`revoke-${i}`,async()=>{if(confirm(S.confirmRevoke)){await rpc('bw_revoke_invitation',{p_campaign:id,p_invitation:v.id});await render();}}));
+function home() {
+  app.innerHTML='<p class="kicker">'+S.phase+' · '+S.scope+'</p><h1>'+S.hero+'</h1>'+
+    '<p class="intro">'+S.intro+'</p>'+
+    (!configured?'<p class="setup">'+S.setup+'</p>':'')+
+    (initError?'<p class="setup">'+S.error+'</p>':'')+
+    '<div class="actions">'+link(user?S.games:S.signup,user?'#partidas':'#registro','button primary')+
+    link(S.editor,'../index.html?editor=1','button')+'</div><p class="muted">'+S.noMulti+'</p>'+
+    '<section class="rules" aria-label="'+S.ruleset+'">'+
+    [['legacy',S.legacyStatus],['dnd',S.dndStatus],['moon-system',S.moonStatus]]
+      .map(([id,desc])=>'<article><h2>'+names[id]+'</h2><p>'+desc+'</p></article>').join('')+'</section>';
 }
-async function render(){
- const ticket=++epoch;app.setAttribute('aria-busy','true');
- nav.innerHTML=`${link(S.home,'#inicio')}${session?link(S.games,'#partidas')+button(S.logout,'logout'):link(S.login,'#acceso')+link(S.signup,'#registro')}`;
- wireAction('logout',async()=>{const {error}=await client.auth.signOut();if(error)throw error;session=null;app.textContent='';location.hash='inicio';await render();message(S.signedOut);});
- const [route,id]=location.hash.slice(1).split('/');
- try{
-  if(['partidas','dm','sala'].includes(route)){
-   app.textContent=S.loading;
-   if(!client||!session){authForm(false);if(ready)message(S.authRequired);return;}
-   // La autorización final siempre se aplica por JWT + RLS/RPC en Supabase.
-   const {data,error}=await client.auth.getUser();if(ticket!==epoch)return;
-   if(error||!data.user){session=null;authForm(false);message(S.authError,true);return;}
-   if(route==='partidas')await games(ticket,data.user.id);else await campaign(ticket,id,data.user.id,route==='dm');
-  }else if(route==='registro'||route==='acceso'){if(session){location.hash='partidas';}else authForm(route==='registro');}
-  else home();
- }catch(error){if(ticket===epoch){app.textContent=S.error;message(errorText(error),true);}}
- finally{if(ticket===epoch){app.setAttribute('aria-busy','false');app.focus({preventScroll:true});}}
+function authForm(mode) {
+  const reset=mode==='recuperar', signup=mode==='registro';
+  const heading=reset?S.reset:signup?S.signup:S.login;
+  app.innerHTML='<section class="auth"><p class="kicker">'+S.eyebrow+'</p><h1>'+heading+'</h1>'+
+    (!configured?'<p class="setup">'+S.setup+'</p>':'')+
+    '<form id="auth"><fieldset '+(!auth?'disabled':'')+'>'+
+    input('email',S.email,'email','autocomplete="email" maxlength="254"')+
+    (reset?'':input('password',S.password,'password',
+      'autocomplete="'+(signup?'new-password':'current-password')+'" minlength="'+(signup?'12':'6')+'" maxlength="128"'))+
+    (signup?'<small>'+S.passwordHint+'</small>':'')+
+    '<button type="submit" class="primary">'+(reset?S.resetAction:heading)+'</button></fieldset></form>'+
+    '<p>'+link(S.login,'#acceso')+' · '+link(S.signup,'#registro')+
+    ' · '+link(S.reset,'#recuperar')+'</p></section>';
+  wireForm('auth',async data=>{
+    const email=String(data.get('email')).trim(), password=String(data.get('password')||'');
+    if(reset) {
+      await fb.auth.sendPasswordResetEmail(auth,email,{url:new URL('./',location.href).href});
+      message(S.resetSent);
+    } else if(signup) {
+      const result=await fb.auth.createUserWithEmailAndPassword(auth,email,password);
+      try { await fb.auth.sendEmailVerification(result.user);message(S.verifyEmail); }
+      catch { message(S.confirm); }
+      location.hash='partidas';
+    } else {
+      await fb.auth.signInWithEmailAndPassword(auth,email,password);
+      location.hash='partidas';
+    }
+  });
+}
+async function createCampaign(name,ruleset) {
+  const fs=fb.fs, ref=fs.doc(fs.collection(db,'campaigns'));
+  const batch=fs.writeBatch(db), now=fs.serverTimestamp();
+  batch.set(ref,{ownerId:user.uid,name:campaignName(name),ruleset:availableRuleset(ruleset),
+    status:'active',createdAt:now,updatedAt:now});
+  batch.set(fs.doc(db,'campaigns',ref.id,'members',user.uid),{
+    userId:user.uid,role:'dm',status:'active',joinedAt:now,
+    inviteCode:null,removedAt:null
+  });
+  await batch.commit();
+  return ref.id;
+}
+async function joinCampaign(value) {
+  const code=cleanInvitationCode(value), fs=fb.fs;
+  const invitation=fs.doc(db,'invitations',code);
+  return fs.runTransaction(db,async tx=>{
+    const snapshot=await tx.get(invitation);
+    if(!snapshot.exists())throw Error('INVITATION_INVALID');
+    const data=snapshot.data();
+    if(data.revoked!==false || data.expiresAt?.toMillis?.()<=Date.now())throw Error('INVITATION_INVALID');
+    const member=fs.doc(db,'campaigns',data.campaignId,'members',user.uid);
+    const previous=await tx.get(member);
+    if(previous.exists()) {
+      if(previous.data().status==='removed')throw Error('MEMBERSHIP_REMOVED');
+      return data.campaignId;
+    }
+    tx.set(member,{userId:user.uid,role:'member',status:'active',joinedAt:fs.serverTimestamp(),
+      inviteCode:code,removedAt:null});
+    return data.campaignId;
+  });
+}
+function campaignCard(c) {
+  const dm=c.ownerId===user.uid, place=dm?'dm':'sala';
+  return '<article class="campaign"><h3>'+link(c.name,'#'+place+'/'+c.id)+'</h3>'+
+    '<p>'+esc(names[c.ruleset])+' · '+(c.status==='active'?S.active:S.archived)+'</p>'+
+    '<small>'+S.createdAt+': '+date(c.createdAt)+'</small>'+
+    link(dm?S.dm:S.room,'#'+place+'/'+c.id)+'</article>';
+}
+async function games(ticket) {
+  const fs=fb.fs, uid=user.uid;
+  const [ownedDocs,membershipDocs]=await Promise.all([
+    fs.getDocs(fs.query(fs.collection(db,'campaigns'),fs.where('ownerId','==',uid))),
+    fs.getDocs(fs.query(fs.collectionGroup(db,'members'),fs.where('userId','==',uid)))
+  ]);
+  const owned=ownedDocs.docs.map(d=>({id:d.id,...d.data()}));
+  const eligible=membershipDocs.docs.filter(d=>d.data().role==='member'&&d.data().status==='active');
+  const joined=(await Promise.all(eligible.map(async m=>{
+    const campaign=await fs.getDoc(m.ref.parent.parent);
+    return campaign.exists()?{id:campaign.id,...campaign.data()}:null;
+  }))).filter(Boolean);
+  if(ticket!==epoch)return;
+  const latest=(a,b)=>(b.createdAt?.toMillis?.()||0)-(a.createdAt?.toMillis?.()||0);
+  owned.sort(latest);joined.sort(latest);
+  app.innerHTML='<h1>'+S.games+'</h1><p class="account">'+esc(user.email)+'</p>'+
+    '<div class="grid"><section class="panel"><h2>'+S.create+'</h2><form id="create">'+
+    input('name',S.campaignName,'text','maxlength="80"')+
+    '<label for="ruleset">'+S.ruleset+'</label><select id="ruleset" name="ruleset">'+
+    '<option value="legacy">'+S.legacy+'</option><option value="dnd">'+S.dnd+' — Prototipo</option>'+
+    '<option value="moon-system" disabled>'+S.moon+' — En desarrollo</option></select>'+
+    '<button type="submit" class="primary">'+S.createAction+'</button></form></section>'+
+    '<section class="panel"><h2>'+S.join+'</h2><form id="join">'+
+    input('code',S.code,'text','pattern="[A-Fa-f0-9]{48}" maxlength="48" minlength="48" autocomplete="off" spellcheck="false"')+
+    '<button type="submit">'+S.joinAction+'</button></form></section></div>'+
+    '<div class="grid"><section><h2>'+S.created+'</h2>'+
+    (owned.map(campaignCard).join('')||'<p>'+S.emptyOwned+'</p>')+'</section>'+
+    '<section><h2>'+S.memberships+'</h2>'+
+    (joined.map(campaignCard).join('')||'<p>'+S.emptyJoined+'</p>')+'</section></div>'+
+    button(S.refresh,'refresh');
+  wireForm('create',async data=>{location.hash='dm/'+await createCampaign(data.get('name'),data.get('ruleset'));});
+  wireForm('join',async data=>{location.hash='sala/'+await joinCampaign(data.get('code'));});
+  wireAction('refresh',()=>render());
+}
+async function campaign(ticket,id,dmRequested) {
+  if(!/^[A-Za-z0-9]{20}$/.test(id)){app.textContent=S.noAccess;return;}
+  const fs=fb.fs, snap=await fs.getDoc(fs.doc(db,'campaigns',id));
+  if(ticket!==epoch)return;
+  if(!snap.exists()){app.textContent=S.noAccess;return;}
+  const c=snap.data(), dm=c.ownerId===user.uid;
+  if(dmRequested&&!dm){app.textContent=S.noAccess;return;}
+  let members=[],invites=[];
+  if(dm){
+    const [m,i]=await Promise.all([
+      fs.getDocs(fs.collection(db,'campaigns',id,'members')),
+      fs.getDocs(fs.query(fs.collection(db,'invitations'),fs.where('campaignId','==',id)))
+    ]);
+    members=m.docs.map(d=>({id:d.id,...d.data()}));
+    invites=i.docs.map(d=>({id:d.id,...d.data()}));
+  }
+  if(ticket!==epoch)return;
+  app.innerHTML=link(S.back,'#partidas')+
+    '<p class="kicker">'+(dm?S.dm:S.room)+'</p><h1>'+esc(c.name)+'</h1>'+
+    '<p>'+esc(names[c.ruleset])+' · '+(c.status==='active'?S.active:S.archived)+'</p>'+
+    '<p>'+(dm?S.dmNotice:S.waiting)+'</p>'+
+    button(S.refresh,'refresh')+'<small>'+S.refreshNotice+'</small>'+
+    (dm?'<div class="grid"><section class="panel"><h2>'+S.members+'</h2><ul class="list">'+
+      members.map((m,i)=>'<li><span class="account">'+S.account+': '+esc(m.userId)+(m.role==='dm'?' (DM)':'')+
+      '</span><small>'+S.joinedAt+': '+date(m.joinedAt)+'</small>'+
+      (m.role==='member'&&m.status==='active'?button(S.expel,'expel-'+i):
+        m.status==='removed'?'<small>'+S.expelled+': '+date(m.removedAt)+'</small>':'')+'</li>').join('')+
+      '</ul></section><section class="panel"><h2>'+S.invitations+'</h2>'+
+      button(S.makeInvite,'invite',c.status!=='active')+
+      '<div id="new-invite" role="status"></div><ul class="list">'+
+      invites.map((v,i)=>'<li><small>'+S.expires+': '+date(v.expiresAt)+'</small>'+
+      (v.revoked?'<small>'+S.revoked+'</small>':
+        v.expiresAt?.toMillis?.()<=Date.now()?'<small>'+S.expired+'</small>':
+        button(S.revoke,'revoke-'+i))+'</li>').join('')+'</ul></section></div>':'')+
+    '<section class="pending"><h2>'+S.inactive+'</h2><p>'+S.noMulti+'</p>'+
+    '<div class="actions">'+button(S.launch,'launch',true)+button(S.sync,'sync',true)+'</div></section>';
+  wireAction('refresh',()=>render());
+  if(!dm)return;
+  wireAction('invite',async()=>{
+    const code=makeInvitationCode();
+    const expiry=fs.Timestamp.fromMillis(Date.now()+6*24*60*60*1000);
+    await fs.setDoc(fs.doc(db,'invitations',code),{
+      campaignId:id,createdBy:user.uid,createdAt:fs.serverTimestamp(),
+      expiresAt:expiry,revoked:false
+    });
+    await render();
+    const el=document.getElementById('new-invite');
+    if(el)el.innerHTML='<p>'+S.inviteNotice+'</p><code>'+esc(code)+'</code>'+
+      '<small>'+S.expires+': '+date(expiry)+'</small>';
+  });
+  members.forEach((m,i)=>{
+    if(m.role!=='member'||m.status!=='active')return;
+    wireAction('expel-'+i,async()=>{
+      if(!confirm(S.confirmExpel))return;
+      await fs.updateDoc(fs.doc(db,'campaigns',id,'members',m.id),{
+        status:'removed',removedAt:fs.serverTimestamp()
+      });
+      await render();
+    });
+  });
+  invites.forEach((v,i)=>{
+    if(v.revoked||v.expiresAt?.toMillis?.()<=Date.now())return;
+    wireAction('revoke-'+i,async()=>{
+      if(!confirm(S.confirmRevoke))return;
+      await fs.updateDoc(fs.doc(db,'invitations',v.id),{revoked:true});
+      await render();
+    });
+  });
+}
+async function render() {
+  const ticket=++epoch;
+  app.setAttribute('aria-busy','true');
+  nav.innerHTML=link(S.home,'#inicio')+
+    (user?link(S.games,'#partidas')+button(S.logout,'logout'):
+      link(S.login,'#acceso')+link(S.signup,'#registro'));
+  wireAction('logout',async()=>{
+    await fb.auth.signOut(auth); user=null;
+    location.hash='inicio';message(S.signedOut);await render();
+  });
+  const [route,id]=location.hash.slice(1).split('/');
+  try {
+    if(['partidas','dm','sala'].includes(route)){
+      app.textContent=S.loading;
+      if(!auth||!user){authForm('acceso');if(auth)message(S.authRequired);return;}
+      if(route==='partidas')await games(ticket);
+      else await campaign(ticket,id,route==='dm');
+    } else if(['registro','acceso','recuperar'].includes(route)) {
+      if(user){location.hash='partidas';return;}
+      authForm(route);
+    } else home();
+  } catch(error) {
+    if(ticket===epoch){app.textContent=S.error;message(readableError(error),true);}
+  } finally {
+    if(ticket===epoch){app.setAttribute('aria-busy','false');app.focus({preventScroll:true});}
+  }
 }
 window.addEventListener('hashchange',()=>{message();void render();});
-if(client){
- client.auth.onAuthStateChange((event,next)=>{
-  session=next;
-  if(event==='INITIAL_SESSION'||event==='SIGNED_OUT'||event==='SIGNED_IN'||event==='USER_UPDATED')setTimeout(()=>void render(),0);
- });
- app.textContent=S.loading;
-}else void render();
+async function initialize() {
+  if(!configured){await render();return;}
+  app.textContent=S.loading;
+  try{
+    const [appSdk, authSdk, fsSdk] = await Promise.all([
+      import('https://www.gstatic.com/firebasejs/13.3.0/firebase-app.js'),
+      import('https://www.gstatic.com/firebasejs/13.3.0/firebase-auth.js'),
+      import('https://www.gstatic.com/firebasejs/13.3.0/firebase-firestore.js')
+    ]);
+    const instance=appSdk.initializeApp(firebaseConfig);
+    fb={auth:authSdk,fs:fsSdk};auth=authSdk.getAuth(instance);db=fsSdk.getFirestore(instance);
+    authSdk.onAuthStateChanged(auth, next=>{user=next;void render();},error=>{
+      initError=error;user=null;void render();
+    });
+  }catch(error){initError=error;await render();message(S.error,true);}
+}
+void initialize();
