@@ -1,0 +1,19 @@
+{
+  "name": "blakpine-wood",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "build:portal": "esbuild portal/supabase-client.mjs --bundle --format=esm --minify --outfile=portal/vendor/supabase.js --legal-comments=linked",
+    "test:portal": "node --test tests/portal-database.test.cjs",
+    "test:portal:browser": "node tests/portal-browser.cjs",
+    "test:portal:live": "node tests/portal-live.cjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.119.1"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.16",
+    "esbuild": "0.27.0",
+    "playwright": "1.62.1"
+  }
+}

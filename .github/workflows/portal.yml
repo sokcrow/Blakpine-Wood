@@ -1,0 +1,25 @@
+name: Portal y permisos
+on:
+  pull_request:
+    paths: ['portal/**', 'supabase/**', 'tests/portal*', 'index.html', 'package*.json', '.github/workflows/portal.yml']
+  push:
+    branches: ['feat/etapa-4-1-portal-campanas']
+permissions:
+  contents: read
+jobs:
+  portal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build:portal && git diff --exit-code -- portal/vendor
+      - run: npm run test:portal
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:portal:browser
+      - run: node tests/editor-responsive-browser.cjs
+      - run: node --test tests/legacy-combat-bridge.test.cjs tests/legacy-combat-integration.test.cjs tests/legacy-real-engine.test.cjs tests/multimode-save-isolation.test.cjs tests/multimode-compatibility.test.cjs

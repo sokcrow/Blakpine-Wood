@@ -18,7 +18,7 @@ const server=http.createServer((req,res)=>{
   browser=await chromium.launch({headless:true,...(process.env.CHROMIUM_PATH?{executablePath:process.env.CHROMIUM_PATH}:{}),args:['--enable-webgl','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--disable-gpu-sandbox','--no-sandbox']});
   const page=await browser.newPage({viewport:{width:1000,height:750}}),errors=[];
   page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
-  await page.goto(base+'/index.html',{waitUntil:'load',timeout:60000});
+  await page.goto(base+'/index.html?editor=1',{waitUntil:'load',timeout:60000});
   await page.locator('#fhForestSettings').click();await page.locator('#fhForestEnabled').check();
   await page.locator('#fhForestPreview').click();assert.match(await page.locator('#fhForestSummary').innerText(),/árboles/);
   await page.locator('#fhForestSave').click();
