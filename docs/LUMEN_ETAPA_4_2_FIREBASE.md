@@ -4,7 +4,7 @@
 
 ## Qué integra
 
-- **Entrada:** `index.html` deriva a `portal/`; `index.html?editor=1` mantiene el editor íntegro en la misma URL, origen y almacenamiento. `juego/index.html` conserva su recorrido anterior.
+- **Entrada:** `index.html` deriva a `portal/`; `index.html?editor=1` mantiene el editor íntegro en la misma URL, origen y almacenamiento. `juego/index.html` conserva su enlace al editor añadiendo `?editor=1` en la redirección, sin ejecutar el portal accidentalmente.
 - **Identidad:** SDK modular oficial Firebase JS 13.3.0 por CDN Firebase; registro por correo y contraseña, envío de verificación, inicio/cierre de sesión y recuperación de contraseña. El SDK conserva la sesión del usuario; no se escribe ninguna contraseña en Firestore.
 - **Campañas:** `campaigns/{campaignId}` con ID automático Firestore, DM `ownerId`, nombre, reglamento (`legacy` o `dnd` provisional), estado y fechas. Moon no se puede crear.
 - **Membresías:** `campaigns/{campaignId}/members/{userId}` estable por UID. Crear como DM añade el registro del dueño en un solo `writeBatch`; ingresar como jugador usa `runTransaction`. El documento permanece y, si se expulsa, pasa a `removed`. No se elimina: ningún código permite readmisión accidental.
