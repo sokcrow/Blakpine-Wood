@@ -167,3 +167,21 @@ No crear workflows ni esperar checks verdes. Este informe es **auditoría de tra
 | TDB-06 · Legacy sin regresiones | Sombras conservan en **Legacy** su ataque/drain/GOAP; pruebas de Dummy no alteran las suites de Sombras. | **APROBADA** exclusividad; **PENDIENTE** regresión ejecutada |
 
 **Impacto sobre el informe:** H1 sigue siendo un **incumplimiento del runtime DnD**, pero la salida permitida para validar el adaptador **antes de contar con un bestiario autorizado** es el **Dummy de pruebas**, no fabricar monstruos ni trasladar Sombras. El PR #217 ya quedó fusionado; la conexión futura de adaptadores pertenece a sus entregas responsables. Este cambio documenta la orden sin tocar lógica de combate, habilitación Moon, selector o persistencia.
+
+
+## 8. Seguimiento correctivo IA 4 — DnD × Training Dummy (18-11-2026)
+
+**Esta sección actualiza el estado del código respecto de la auditoría histórica en el SHA indicado al comienzo; no borra los hallazgos originales.**
+
+| Hallazgo | Corrección comprobable en la nueva rama | Estado |
+| --- | --- | --- |
+| H1 (Sombras heredadas) | `fh-multimode-save-hook.js` omite crear `FHShadowAI` al seleccionar DnD; `fh-dnd-engine.js` usa únicamente `FHCombatTargetPort` hacia Dummy. | **IMPLEMENTADO como integración de entrenamiento, DnD completo PENDIENTE** |
+| H2 (guardados `horror`) | `fh-dnd-save-adapter.js` elimina `horror` al construir, restaurar y capturar estado DnD; conserva lectura v1 para limpiar guardados antiguos. | **IMPLEMENTADO;** falta validación de compatibilidad en partida real |
+| H4 (tests positivos de DnD contra Sombras) | `tests/dnd-combat.test.cjs` reemplaza ese recorrido por acierto/fallo sobre Dummy, rechazo de Sombras, contacto, deduplicación, daño nominal, 30 impactos y guardado. | **Pruebas añadidas**; ver evidencia de ejecución y límites en el PR |
+| TD-03 (no se podía atacar al Dummy) | Nuevo selector en HUD y acción DnD → coordinador → `receiveHit`. | **IMPLEMENTADO PROTOTIPO**, no certifica edición |
+| TD-04 (stats personalizados no filtrados) | No se requieren ni transfieren `customStats` de otro reglamento durante el ataque DnD. El riesgo de la función genérica `stats(custom)` permanece pendiente como corrección focalizada independiente. | **PENDIENTE** del componente opcional, no se usa como ficha de monstruo |
+| H3 (compatibilidad de perfiles) | Sin cambios en compatibilidad general del selector; Moon continúa `planned`. | **PENDIENTE**, fuera del alcance de integración Dummy |
+
+**Autoridad física:** la ruta DnD consulta `fhNpcCanWalk` del motor para verificar obstrucciones, en lugar de copiar `FHShadowAI.contactClear` o abrir nueva colisión. La visibilidad cubierta es **geométrica** (obstáculos), no una especificación nueva de iluminación DnD.
+
+**No elevar el estado a reglamento DnD completo.** La implementación mantiene su fórmula D20/D4 como **PROTOTIPO**. Se conserva la independencia del combate Legacy y Moon permanece deshabilitado.
