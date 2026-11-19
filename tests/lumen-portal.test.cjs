@@ -73,24 +73,45 @@ test('LUMEN: portada editorial, acciones de campaña y navegación accesible',()
  const html=fs.readFileSync(path.join(base,'portal/index.html'),'utf8');
  const app=fs.readFileSync(path.join(base,'portal/app.js'),'utf8');
  const css=fs.readFileSync(path.join(base,'portal/portal.css'),'utf8');
- assert.match(html,/class="brand-symbol"/);
+ assert.match(html,/class="brand-mark"/);
+ assert.match(html,/assets\/lumen-logo\.webp/);
  assert.match(html,/aria-label="Navegación principal"/);
  assert.match(app,/class="hero"/);
  assert.match(app,/class="workflow"/);
+ assert.match(app,/class="home-campaign-grid"/);
+ assert.match(app,/class="hero-illustration"/);
+ assert.match(app,/data-mode/);
  assert.match(app,/class="workspace-head"/);
  assert.match(app,/class="empty-state"/);
  assert.match(app,/form id="create"/);
  assert.match(app,/form id="join"/);
  assert.match(css,/:focus-visible\s*\{/);
- assert.match(css,/@media\(max-width:720px\)/);
+ assert.match(css,/@media\(max-width:650px\)/);
  assert.match(css, /prefers-reduced-motion/);
 });
 test('Textos del portal disponibles desde el módulo de cadenas',async()=>{
  const {S}=await import('../portal/strings.js');
  for(const key of ['workspaceKicker','workspaceIntro','workflowTitle','workflowOne',
    'workflowTwo','workflowThree','workflowFoot','workflowRight','modesTitle',
-   'modesSubtitle','modeReady','modePrototype','modePending','reset']){
+   'modesSubtitle','modeReady','modePrototype','modePending','reset',
+   'homeCreateHint','homeJoinHint','homeCreatedHint','homeJoinedHint']){
    assert.equal(typeof S[key],'string',key);
    assert.ok(S[key].trim(),key);
  }
+});
+
+test('Moon System es distopía urbana, sin luna literal ni disponibilidad falsa',async()=>{
+ const {S}=await import('../portal/strings.js');
+ assert.match(S.moonStatus,/distopía urbana e industrial/i);
+ assert.match(S.moonStatus,/no jugable/i);
+ const css=fs.readFileSync(path.join(base,'portal/portal.css'),'utf8');
+ assert.match(css,/data-mode="moon-system"/);
+ assert.match(css,/repeating-linear-gradient/);
+ assert.doesNotMatch(css,/moon-system.*?radial-gradient\(circle/s);
+});
+test('Logo oficial de LUMEN está dentro del portal',()=>{
+ const logo=fs.readFileSync(path.join(base,'portal/assets/lumen-logo.webp'));
+ assert.ok(logo.length>1000);
+ assert.equal(logo.toString('ascii',0,4),'RIFF');
+ assert.equal(logo.toString('ascii',8,12),'WEBP');
 });
