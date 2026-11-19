@@ -32,3 +32,13 @@ La definición técnica de Moon procede de `docs/REGLAS_MODO_MOON_SYSTEM.md`, co
 No se cambia `firestore.rules`, `firebaseConfig`, las operaciones sensibles de Firebase, el editor ni los motores de juego.
 
 Esta implementación visual requiere inspección manual de navegador en resoluciones 320, 390, 768, 1280 y 1440 px, teclado y contraste en UI real. Las comprobaciones estáticas y de lógica no equivalen a una aceptación visual ni al recorrido con dos cuentas reales. El PR #219 continúa abierto hasta completar las condiciones de la Etapa 4.2.
+
+## Fotografías de portada — fuentes externas (19-11-2026)
+
+El Director asignó las fuentes originales de Imgur:
+- Blakpine Wood: https://imgur.com/UBTsf5O
+- DnD: https://imgur.com/8xZm7SO
+- Moon System: https://imgur.com/SQSSary
+- Logotipo LUMEN: https://imgur.com/c0Cf2Yc
+
+El código intenta cargar sus rutas CDN `i.imgur.com` con los ID anteriores (`.jpg` para los modos, `.png` para el logotipo) y mantiene respaldos locales `portal/assets/mode-*.webp` y `lumen-logo.webp`. El CSP permite únicamente `https://i.imgur.com` además de archivos locales. **Los binarios originales no se descargaron al repositorio en este cambio**, ya que el acceso HTTP externo a Imgur no funcionó desde el entorno disponible. Las extensiones CDN son conjeturas convencionales y faltan verificar en navegador. No eliminar respaldos hasta confirmar cada imagen original y almacenar una copia autorizada en GitHub.
