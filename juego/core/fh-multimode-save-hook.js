@@ -44,14 +44,31 @@ const SAVE_KEY=fhMultimode?fhMultimode.key:ForestShared.gameSaveKey(DATA);`);
     once("if(window.parent!==window)window.parent.postMessage({type:'FOREST_CHARACTER_DEATH',characterId:GameState.characterId},'*');",
       "if(fhMultimode){fhMultimode.write(GameState,DATA);if(window.parent!==window)window.parent.postMessage({type:'FOREST_MULTIMODE_DEATH',sessionId:fhMultimode.sessionId},'*');}\n  else if(window.parent!==window)window.parent.postMessage({type:'FOREST_CHARACTER_DEATH',characterId:GameState.characterId},'*');");
     const scripts = ['core/fh-multimode-save-identity.js', 'core/fh-multimode-persistence.js',
+       'core/fh-combat-target-port.js',
       'rules/dnd/fh-dnd-combat.js','rules/dnd/fh-dnd-save-adapter.js',
       'rules/dnd/fh-dnd-strings.js','rules/dnd/fh-dnd-engine.js']
       .map(file => '<script src="' + new URL('./juego/' + file + '?v=20261117-persist32', baseURL).href + '"></' + 'script>').join('');
     if(doc.includes('const fhLegacySession=window.FHLegacyEngineSession.create({')){
+       // No crear ni activar la IA de Sombras al iniciar una sesión DnD.
+       once('const fhHorror=window.FHShadowAI?.createRuntime({',
+        "const fhHorror=DATA.__multimodeSave?.identity.rulesetId==='dnd'?null:window.FHShadowAI?.createRuntime({");
       once('const fhLegacySession=window.FHLegacyEngineSession.create({',
-        "const fhLegacySession=DATA.__multimodeSave?.identity.rulesetId==='dnd'?\n"+
+        "const fhWorldClearTrainingLine=(a,b)=>{\\n"+
+         " if(a.floor!==b.floor)return false;\\n"+
+         " const distance=Math.hypot(b.x-a.x,b.z-a.z);\\n"+
+         " const steps=Math.max(1,Math.ceil(distance/.05));\\n"+
+         " for(let i=0;i<=steps;i++){const t=i/steps;\\n"+
+         "  if(!fhNpcCanWalk(a.floor,a.x+(b.x-a.x)*t,a.z+(b.z-a.z)*t,false))return false;\\n"+
+         " }return true;\\n"+
+         "};\\n"+
+         "const fhDndTargetPort=window.FHCombatTargetPort.create({\\n"+
+         " readRuntime:()=>window.FHTrainingDummyRuntime,\\n"+
+         " maxDistanceMeters:CELL,\\n"+
+         " canContact:fhWorldClearTrainingLine,canSee:fhWorldClearTrainingLine\\n"+
+         "});\\n"+
+         "const fhLegacySession=DATA.__multimodeSave?.identity.rulesetId==='dnd'?\\n"+
         "window.FHDndEngine.create({\n"+
-        " shadowRuntime:fhHorror,gameState:GameState,\n"+
+        " targetPort:fhDndTargetPort,gameState:GameState,\n"+
         " identity:DATA.__multimodeSave.identity,sessionId:DATA.__multimodeSave.sessionId,\n"+
         " readMinute:()=>window.FHWeatherCore?.absoluteMinute(GameState.clock)??GameState.clock?.minutes,\n"+
         " readPlayer:()=>({floor:currentFloor,x:user.x,z:user.z,\n"+
