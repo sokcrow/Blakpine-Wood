@@ -203,6 +203,29 @@ test('DnD mantiene Dummy indestructible tras impactos repetidos y ningún monstr
  assert.equal(t.writes,30);
  t.session.close();
 });
+test('HUD DnD permite seleccionar Dummy y atacar mediante botón sin usar Sombras',()=>{
+ const t=trainingScene(),game={dnd:combat.initialState()};
+ const elements=[];
+ function element(tag){
+  const e={tagName:tag.toUpperCase(),style:{},value:'',disabled:false,textContent:'',
+   children:[],listeners:{},setAttribute(){},append(...kids){this.children.push(...kids)},
+   replaceChildren(...kids){this.children=kids;this.value=kids[0]?.value||'';},
+   addEventListener(type,fn){this.listeners[type]=fn;},remove(){}};
+  elements.push(e);return e;
+ }
+ const doc={body:{append(){}},createElement:element,addEventListener(){},
+  removeEventListener(){}};
+ const session=dndEngine({targetPort:t.port,gameState:game,identity:id,sessionId:'hud',
+  readPlayer:()=>({floor:0,x:3.1,z:3.048}),readMinute:()=>1320,
+  save:()=>{},notice:()=>{},random:()=>.99,document:doc});
+ const select=elements.find(e=>e.tagName==='SELECT'),button=elements.find(e=>e.tagName==='BUTTON');
+ assert.equal(select.value,'dummy-1');
+ assert.equal(select.children.length,1);
+ button.listeners.click();
+ assert.equal(t.runtime.get('dummy-1').hitsReceived,1);
+ assert.equal(t.runtime.get('dummy-1').hp,1);
+ session.close();
+});
 test('coordinador registra una sola vez impacto de Dummy con actionId repetido',()=>{
  const t=trainingScene(),state=combat.initialState();let revision=0,rolls=0;
  const coordinatorPort=coordinator().bindDndCombat({
