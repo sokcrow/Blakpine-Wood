@@ -16,7 +16,7 @@
   if(!plain(value))throw Error('DND_WORLD_INVALID');
   const result={};
   for(const [key,item] of Object.entries(value)){
-   if(excluded.has(key)||key==='__proto__')continue;
+   if(excluded.has(key)||key==='horror'||key==='__proto__')continue;
    if(item!==undefined)result[key]=copy(item);
   }
   return result;
@@ -32,7 +32,8 @@
  }
  function restore(world,rules,map){
   if(!validateWorldState(world)||!validateRulesetState(rules))throw Error('DND_SAVE_INVALID');
-  return {...initial(map),...copy(world.runtime),dnd:copy(rules)};
+  // Leer guardados DnD v1 antiguos sin conservar el estado de Sombras Legacy.
+   return {...initial(map),...worldRuntime(world.runtime),dnd:copy(rules)};
  }
  function capture(gameState){
   if(!plain(gameState)||!validateRulesetState(gameState.dnd))throw Error('DND_SAVE_INVALID');
