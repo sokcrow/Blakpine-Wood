@@ -1,11 +1,12 @@
 'use strict';
-/* Etapa 3.4: DnD real, coordinación, persistencia y Sombras del motor compartido. */
+/* DnD prototipo: entrenamiento neutral, coordinación y persistencia sin Sombras. */
 const {test}=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path');
 const combat=require('../juego/rules/dnd/fh-dnd-combat.js');
 const saveAdapter=require('../juego/rules/dnd/fh-dnd-save-adapter.js');
 const {create:coordinator}=require('../juego/core/fh-session-coordinator.js');
-const {createRuntime:shadows}=require('../juego/assets/fh-shadow-ai.js');
+const dummy=require('../juego/units/fh-training-dummy.js');
+const targetPort=require('../juego/core/fh-combat-target-port.js');
 const {create:dndEngine}=require('../juego/rules/dnd/fh-dnd-engine.js');
 const persistence=require('../juego/core/fh-multimode-persistence.js');
 const hook=require('../juego/core/fh-multimode-save-hook.js');
@@ -105,54 +106,141 @@ test('no se aceptan sobres DnD corruptos ni claves de otros modos',()=>{
  storage.setItem(frame.key,JSON.stringify(raw));
  assert.throws(()=>frame.restore({initialGameState:{}}),/SAVE_STATE_INCOMPATIBLE/);
 });
-test('motor compartido real de Sombras: DnD acierta, no gasta energía v1 y conserva contacto',()=>{
- const state={nightSpawns:{firstNight:0,byKind:{la_nina:{lastSpawnNight:0}}}};
- const removed=[];
- const shadow=shadows({state,config:{baseChancePercent:100,dailyIncreasePercent:0,
-  spawnDelayMin:0,spawnDelayMax:0,spawnMinDistance:.35,spawnMaxDistance:.35,
-  altoSpawnFt:1,detectFt:10,touchFt:10,attackCooldown:1,maxActors:1},
-  spawn:(kind,f,x,z,id)=>id,move:()=>true,despawn:id=>removed.push(id),
-  canWalk:()=>true,insideAt:()=>true,route:(from,to)=>[to],
-  random:()=>.1,chooseAttack:()=> 'normal'});
- const game={dnd:combat.initialState()};let minute=1320,x=20,writes=0;
- const session=dndEngine({shadowRuntime:shadow,gameState:game,identity:id,sessionId:'real',
-  readPlayer:()=>({floor:0,x,z:20,pg:20,pgMax:20,sp:20,spMax:20}),
-  readMinute:()=>minute,save:()=>writes++,notice:()=>{},random:()=>.99,document:null});
- session.tick(0);
- assert.equal(shadow.read().active.length,1);
- minute=1321;x=20.07;session.tick(.016);
- const actor=shadow.read().active[0];
- assert.ok(game.dnd.revision>=1,'ataque de Sombras se enruta por DnD');
- assert.equal(game.dnd.actors[actor.id].energy,4,'sin coste de energía para la Sombra DnD');
- assert.equal(shadow.read().active[0].pe,6,'PE Legacy de la Sombra no se gasta por DnD');
- const previousWrites=writes;
- const attack=session.attack(actor.id);
+function trainingScene(){
+ class Node {
+  constructor(){this.children=[];this.rotation={};this.position={set:(x,y,z)=>{this.xyz=[x,y,z]}};}
+  add(value){this.children.push(value);}
+ }
+ class Mesh extends Node{constructor(g,m){super();this.geometry=g;this.material=m;}}
+ class Data{constructor(x){this.value=x;}}
+ const THREE={Group:Node,Mesh,MeshLambertMaterial:Data,BoxGeometry:Data,
+  CylinderGeometry:Data,TorusGeometry:Data,SphereGeometry:Data};
+ const project={floors:[{items:[{type:'training_dummy',id:'dummy-1',x:2,y:2}]}]};
+ const runtime=dummy.createRuntime({project,THREE,stories:[new Node()],
+  floorElev:[0],cell:1.524,rulesetId:'dnd'});
+ const physics={contact:true,visible:true};
+ const port=targetPort.create({readRuntime:()=>runtime,maxDistanceMeters:1.524,
+  canContact:()=>physics.contact,canSee:()=>physics.visible});
+ return {runtime,port,physics};
+}
+function trainingEngine({random=()=>.99}={}){
+ const scene=trainingScene(),game=saveAdapter.initial({initialGameState:{
+  clock:{minutes:1320},horror:{nightSpawns:{firstNight:1}},stats:{hit:99}}});
+ const actor={floor:0,x:3.1,z:3.048};let writes=0;
+ const session=dndEngine({targetPort:scene.port,gameState:game,identity:id,sessionId:'train',
+  readPlayer:()=>actor,readMinute:()=>1320,save:()=>writes++,notice:()=>{},
+  random,document:null});
+ return {...scene,game,actor,session,get writes(){return writes;}};
+}
+test('DnD → coordinador → Training Dummy: impacto D20, daño nominal y PG intactos',()=>{
+ const t=trainingEngine();
+ assert.equal(t.port.read('dummy-1').type,'training_dummy');
+ const attack=t.session.attack('dummy-1');
  assert.equal(attack.hit,true);
- assert.equal(attack.damage,4);
- assert.equal(game.dnd.actors[actor.id].hp,4);
- assert.equal(game.dnd.player.energy,6,'sin gasto de energía DnD');
- assert.equal(writes,previousWrites+1);
- minute=1323;
- const finish=session.attack(actor.id);
- assert.equal(finish.defeated,true);
- assert.equal(finish.cost,0);
- assert.equal(game.dnd.player.energy,6);
- assert.equal(writes,previousWrites+2);
- assert.equal(shadow.read().active.length,0);
- assert.ok(removed.includes(actor.id),'el motor elimina al actor derrotado');
- const hp=game.dnd.player.hp;
- session.close();session.tick(0);
- assert.equal(game.dnd.player.hp,hp);
+ assert.equal(attack.roll,20);assert.equal(attack.damageRoll,4);
+ assert.equal(attack.damage,4);assert.equal(attack.defeated,false);
+ assert.equal(attack.cost,0);assert.equal(t.game.dnd.player.energy,6);
+ assert.equal(t.runtime.get('dummy-1').hitsReceived,1);
+ assert.equal(t.runtime.get('dummy-1').lastIncomingDamage,4);
+ assert.equal(t.runtime.get('dummy-1').hp,1);
+ assert.equal(t.runtime.get('dummy-1').maxHp,1);
+ assert.equal(t.runtime.get('dummy-1').indestructible,true);
+ assert.equal(t.writes,1);
+ assert.equal(t.game.horror,undefined,'no crear estado de Sombras con guardado DnD');
+ t.session.close();
+});
+test('DnD falla D20 contra Dummy sin aplicar impacto ni reducir PG',()=>{
+ const t=trainingEngine({random:()=>0});
+ const result=t.session.attack('dummy-1');
+ assert.equal(result.roll,1);assert.equal(result.hit,false);
+ assert.equal(result.damage,0);assert.equal(result.defeated,false);
+ assert.equal(t.runtime.get('dummy-1').hp,1);
+ assert.equal(t.runtime.get('dummy-1').hitsReceived,0);
+ assert.equal(t.writes,1);
+ t.session.close();
+});
+test('fuera de alcance, contacto bloqueado y falta de visibilidad impiden lanzar dados',()=>{
+ let rolls=0;
+ const t=trainingEngine({random:()=>{rolls++;return .99;}});
+ t.actor.x=80;
+ assert.equal(t.session.attack('dummy-1'),null);
+ t.actor.x=3.1;t.physics.contact=false;
+ assert.equal(t.session.attack('dummy-1'),null);
+ t.physics.contact=true;t.physics.visible=false;
+ assert.equal(t.session.attack('dummy-1'),null);
+ t.physics.visible=true;
+ assert.equal(t.session.attack('inexistente'),null);
+ assert.equal(rolls,0);assert.equal(t.writes,0);
+ assert.equal(t.runtime.get('dummy-1').hitsReceived,0);
+ t.session.close();
+});
+test('DnD mantiene Dummy indestructible tras impactos repetidos y ningún monstruo prestado',()=>{
+ const t=trainingEngine();
+ for(let i=0;i<30;i++){
+  const result=t.session.attack();
+  assert.equal(result.hit,true);assert.equal(result.defeated,false);
+ }
+ assert.equal(t.runtime.get('dummy-1').hp,1);
+ assert.equal(t.runtime.get('dummy-1').alive,true);
+ assert.equal(t.runtime.get('dummy-1').hitsReceived,30);
+ assert.equal(t.game.dnd.actors['dummy-1'],undefined);
+ assert.deepEqual(t.game.dnd.actors,{});
+ assert.equal(t.game.dnd.player.energy,6);
+ assert.equal(t.writes,30);
+ t.session.close();
+});
+test('coordinador registra una sola vez impacto de Dummy con actionId repetido',()=>{
+ const t=trainingScene(),state=combat.initialState();let revision=0,rolls=0;
+ const coordinatorPort=coordinator().bindDndCombat({
+  sessionId:'dedup',playerId:'hero',rulesAdapter:combat,
+  readContext:()=>({sessionId:'dedup',playerId:'hero',rulesetId:'dnd',revision,minute:50,state}),
+  readWorld:()=>({actor:state.player,target:{type:'training_dummy',hp:1,maxHp:1,defense:10,resistance:0}}),
+  roll:s=>{rolls++;return s;},
+  apply:(result,intent)=>{t.port.receiveHit(intent.target.id,result);revision++;}
+ });
+ const intent={sessionId:'dedup',rulesetId:'dnd',action:'attack',actionId:'same',
+  revision:0,actor:{kind:'player',id:'hero'},target:{kind:'training_dummy',id:'dummy-1'}};
+ const cap={authorize:()=>true,execute:()=>null};
+ const first=coordinatorPort.requestAttack(intent,cap),again=coordinatorPort.requestAttack(intent,cap);
+ assert.equal(first,again);assert.equal(rolls,2);
+ assert.equal(t.runtime.get('dummy-1').hitsReceived,1);
+ assert.equal(t.runtime.get('dummy-1').hp,1);
+ coordinatorPort.close();
+});
+test('prototipo de DnD calcula daño sin capar por el 1 PG del Dummy',()=>{
+ const state=combat.initialState(),attacker=combat.combatant({hp:20,energy:6,attackBonus:3,
+  damageBonus:2,damageDie:8});
+ const target={type:'training_dummy',hp:1,maxHp:1,defense:15,resistance:1};
+ const result=combat.evaluate({rulesetId:'dnd',action:'attack',actionId:'dmg',
+  actor:{kind:'player',id:'hero'},target:{kind:'training_dummy',id:'dummy-1'},
+  dice:{hit:12,damage:8}},{actor:attacker,target},state);
+ assert.equal(result.hit,true);assert.equal(result.total,15);
+ assert.equal(result.damage,9,'8 + 2 - 1; no capar por la vida 1 del Dummy');
+ assert.equal(result.defeated,false);
+});
+test('DnD rechaza Sombras y objetivos ajenos incluso con API aparente',()=>{
+ const t=trainingScene();
+ assert.equal(t.port.read('shadow-1'),null);
+ assert.equal(t.port.canAttack('shadow-1',{floor:0,x:3,z:3}),false);
+ assert.throws(()=>dndEngine({shadowRuntime:{read(){return {active:[{id:'shadow-1'}]}}},
+  gameState:{dnd:combat.initialState()},identity:id,sessionId:'invalid',
+  readPlayer:()=>({floor:0,x:3,z:3}),readMinute:()=>0,save:()=>{},notice:()=>{}}),
+  /DND_ENGINE_INVALID/);
 });
 test('integración: el hook de guardado instala combate DnD sobre el motor REAL ensamblado',()=>{
  const {html}=require('./helpers/forest-engine.cjs')();
  const patched=hook.patch(html,'https://example.test/');
  assert.match(patched,/const fhLegacySession=DATA.__multimodeSave\?\.identity.rulesetId==='dnd'\?/);
  assert.match(patched,/window\.FHDndEngine\.create/);
+ assert.match(patched,/FHCombatTargetPort\.create/);
+ assert.match(patched,/fhWorldClearTrainingLine/);
+ assert.match(patched,/FHShadowAI\?\.createRuntime/);
+ assert.doesNotMatch(patched,/shadowRuntime:fhHorror,gameState:GameState/);
  assert.match(patched,/window\.FHLegacyEngineSession\.create/);
  assert.match(patched,/fhLegacySession\.tick\(dt\)/);
  assert.match(patched,/window\.FHMultimodePersistence\.create/);
  assert.match(patched,/rules\/dnd\/fh-dnd-engine\.js/);
+ assert.match(patched,/core\/fh-combat-target-port\.js/);
  assert.match(patched,/if\(fhMultimode\?\.identity.rulesetId==='dnd'\)GameState.dnd/);
  assert.throws(()=>hook.patch(patched,'https://example.test/'),/SAVE_ENGINE_HOOK_MISMATCH/);
 });
