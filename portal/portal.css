@@ -242,3 +242,41 @@ footer{padding:22px 36px;color:var(--muted);font-size:12px;border-top:1px solid 
  html{scroll-behavior:auto}
  *,*::before,*::after{transition-duration:0s!important;animation-duration:0s!important}
 }
+
+/* Artwork is HTML/SVG, independently scalable and text-free. */
+.hero-illustration {
+  position:absolute;z-index:-1;pointer-events:none;
+  width:clamp(300px,39vw,520px);height:auto;left:37%;bottom:2%;
+  opacity:.58;filter:drop-shadow(0 0 36px #e9ab423b);
+}
+.home-campaigns{padding:15px 0 55px}
+.home-campaign-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.home-campaign-tile{
+  position:relative;display:flex;flex-direction:column;min-width:0;min-height:185px;
+  padding:23px 23px 22px;border:1px solid var(--gold-dim);
+  color:var(--gold-hi);text-decoration:none;
+  background:
+    radial-gradient(circle at 20% 95%,#6d421b30,transparent 57%),
+    linear-gradient(145deg,#21180e,#090909 84%);
+  box-shadow:inset 0 0 0 4px #080807,inset 0 0 0 5px #956a3380;
+}
+.home-campaign-tile:hover{border-color:var(--gold-hi);background:linear-gradient(150deg,#322113,#100c09)}
+.tile-symbol{font-size:30px;color:var(--gold);line-height:1;margin-bottom:16px}
+.home-campaign-tile strong{font-weight:500;font-size:clamp(17px,1.7vw,23px);line-height:1.18}
+.home-campaign-tile small{max-width:30ch;margin:10px 0 10px;color:var(--muted);font:12px/1.5 system-ui,sans-serif}
+.tile-arrow{position:absolute;bottom:13px;right:17px;color:var(--gold-hi);font-size:22px}
+@media(max-width:900px){
+ .hero-illustration{width:380px;left:35%;bottom:30%;opacity:.24}
+ .home-campaign-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:650px){
+ .hero-illustration{left:22%;top:6%;width:320px;opacity:.14}
+ .home-campaign-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ .home-campaign-tile{padding:18px 14px;min-height:192px}
+ .home-campaign-tile strong{font-size:17px}
+ .home-campaign-tile small{font-size:11px}
+}
+@media(max-width:390px){
+ .home-campaign-grid{grid-template-columns:1fr}
+ .home-campaign-tile{min-height:146px}
+}
