@@ -44,6 +44,13 @@
    Number.isFinite(state.lastPlayerMinute)&&validCombatant(state.player)&&plain(state.actors)&&
    Object.entries(state.actors).every(([id,actor])=>text(id)&&validCombatant(actor));
  }
+ // Blanco de entrenamiento: no es criatura DnD y no tiene recursos ni vida consumible.
+ function validTrainingTarget(v){
+  return plain(v)&&Object.keys(v).sort().join(',')===
+   ['type','hp','maxHp','defense','resistance'].sort().join(',')&&
+   v.type==='training_dummy'&&v.hp===1&&v.maxHp===1&&
+   integer(v.defense,0,1000)&&integer(v.resistance,0,1000);
+ }
  function rollDie(sides,random=Math.random){
   if(!integer(sides,2,100)||typeof random!=='function')throw Error('DND_DIE_INVALID');
   const value=random();
@@ -54,12 +61,14 @@
   if(!plain(intent)||intent.rulesetId!=='dnd'||intent.action!=='attack'||
    !text(intent.actionId)||!plain(intent.actor)||!plain(intent.target)||
    !['player','creature'].includes(intent.actor.kind)||
-   !['player','creature'].includes(intent.target.kind)||
+   !['player','creature','training_dummy'].includes(intent.target.kind)||
+    (intent.target.kind==='training_dummy'&&intent.actor.kind!=='player')||
    intent.actor.kind===intent.target.kind||
    !text(intent.actor.id)||!text(intent.target.id)||
-   !validState(state)||!plain(world)||!validCombatant(world.actor)||!validCombatant(world.target)||
+   !validState(state)||!plain(world)||!validCombatant(world.actor)||
+    !(intent.target.kind==='training_dummy'?validTrainingTarget(world.target):validCombatant(world.target))||
    !plain(intent.dice))throw Error('DND_INTENT_INVALID');
-  const attacker=world.actor,target=world.target;
+  const attacker=world.actor,target=world.target,dummy=intent.target.kind==='training_dummy';
   if(attacker.hp===0||target.hp===0)throw Error('DND_ACTION_UNAVAILABLE');
   if(!integer(intent.dice.hit,1,attacker.hitDie)||
     !integer(intent.dice.damage,1,attacker.damageDie))throw Error('DND_DICE_OUT_OF_RANGE');
@@ -67,15 +76,17 @@
   // Sin críticos automáticos, ventajas ni clases: decisiones pendientes de reglamento.
   // energy/energyCost permanecen para leer guardados DnD v1: el ataque básico no los consume.
   const hit=total>=target.defense;
-  const amount=hit?Math.min(target.hp,Math.max(0,intent.dice.damage+attacker.damageBonus-target.resistance)):0;
+  const rawDamage=hit?Math.max(0,intent.dice.damage+attacker.damageBonus-target.resistance):0;
+   // La vida real del Dummy no limita el valor registrado para pruebas.
+   const amount=dummy?rawDamage:Math.min(target.hp,rawDamage);
   return Object.freeze({
    rulesetId:'dnd',actionId:intent.actionId,actorId:intent.actor.id,targetId:intent.target.id,
    hit,roll:intent.dice.hit,total,defense:target.defense,damageRoll:intent.dice.damage,
    resistance:target.resistance,damage:amount,cost:0,
-   defeated:target.hp>0&&amount>=target.hp
+   defeated:!dummy&&target.hp>0&&amount>=target.hp
   });
  }
  return Object.freeze({id:'combat.dnd',contract:'blakpine-combat-adapter-v1',
   status:'implemented',rulesetId:'dnd',defaults,combatant,initialState,validState,
-  validCombatant,rollDie,evaluate});
+  validCombatant,validTrainingTarget,rollDie,evaluate});
 });
