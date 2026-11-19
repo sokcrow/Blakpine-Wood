@@ -94,6 +94,20 @@ test('guardado/restauración: estado DnD duradero sin recursos ni estadísticas 
  assert.equal(storage.getItem(oldLegacy),'NO_TOCAR');
  two.close();
 });
+test('DnD v1 restaura sin Sombras y no guarda horror aunque exista en estado anterior',()=>{
+ const game=saveAdapter.initial({initialGameState:{clock:{minutes:70},horror:{nightSpawns:{firstNight:1}},
+  character:{resources:{pg:80}},skills:{sigilo:3}}});
+ assert.equal(game.horror,undefined);
+ const fromV1={runtime:{clock:{minutes:85},horror:{nightSpawns:{byKind:{la_nina:{}}}}}};
+ assert.equal(saveAdapter.validateWorldState(fromV1),true,'lectura compatible con v1');
+ const restored=saveAdapter.restore(fromV1,combat.initialState(),{initialGameState:{}});
+ assert.equal(restored.horror,undefined,'sin Sombras en el estado DnD activo');
+ assert.equal(restored.clock.minutes,85);
+ restored.horror={active:[{id:'sombra'}]};
+ const captured=saveAdapter.capture(restored);
+ assert.equal(captured.world.runtime.horror,undefined);
+ assert.equal(restored.horror.active.length,1,'capture no muta la entrada');
+});
 test('no se aceptan sobres DnD corruptos ni claves de otros modos',()=>{
  const storage=memory(),frame=persistence.create({role:'frame',identity:id,
   sessionId:'s1',adapter:saveAdapter,storage,send:()=>{}});
