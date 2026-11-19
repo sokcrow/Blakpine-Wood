@@ -26,6 +26,14 @@
    Object.keys(world.runtime).every(key=>!excluded.has(key)&&key!=='__proto__');
  }
  function validateRulesetState(data){return combat.validState(data);}
+  // Los antiguos adversarios DnD eran actores de FHShadowAI, no bestiario DnD.
+  function cleanRulesetState(data){
+   const next=copy(data);
+   for(const id of Object.keys(next.actors)){
+    if(id.startsWith('fh-shadow-'))delete next.actors[id];
+   }
+   return next;
+  }
  function initial(map){
   return {...worldRuntime(plain(map?.initialGameState)?map.initialGameState:{}),
    dnd:combat.initialState()};
@@ -33,12 +41,12 @@
  function restore(world,rules,map){
   if(!validateWorldState(world)||!validateRulesetState(rules))throw Error('DND_SAVE_INVALID');
   // Leer guardados DnD v1 antiguos sin conservar el estado de Sombras Legacy.
-   return {...initial(map),...worldRuntime(world.runtime),dnd:copy(rules)};
+   return {...initial(map),...worldRuntime(world.runtime),dnd:cleanRulesetState(rules)};
  }
  function capture(gameState){
   if(!plain(gameState)||!validateRulesetState(gameState.dnd))throw Error('DND_SAVE_INVALID');
   return {world:{runtime:worldRuntime(gameState)},
-   rules:{rulesetId:'dnd',rulesetVersion:1,data:copy(gameState.dnd)}};
+   rules:{rulesetId:'dnd',rulesetVersion:1,data:cleanRulesetState(gameState.dnd)}};
  }
  return Object.freeze({status:'implemented',contract:'blakpine-save-adapter-v1',
   rulesetId:'dnd',validateWorldState,validateRulesetState,initial,restore,capture});
