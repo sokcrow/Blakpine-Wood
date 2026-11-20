@@ -5383,13 +5383,13 @@ if(typeof lumenCartridgeMode!=='undefined'&&lumenCartridgeMode){
    const defaults=newProject();
    project={...defaults,...clone(raw),units:{...defaults.units,...clone(raw.units)},
     floors:raw.floors.map((f,i)=>({...floorDefault(f.id,f.name,f.elevationFt,i),...clone(f)}))};
-   floorIndex=0;selection=null;history=[];historyIndex=-1;floorRefArchive.clear();rememberFloorRefs();
+   floorIndex=0;selection=null;history=[JSON.stringify(project)];historyIndex=0;floorRefArchive.clear();rememberFloorRefs();
    closeInspector();closeModal();loadedImgs=project.floors.map(()=>null);spaceCache=[];
    refreshFloorTabs();project.floors.forEach((_,i)=>setupImage(i));
    lumenEditorChanged=false;dirty=false;lumenEditorNotify=onChange;
    render();setTimeout(fitMap,140);
   },
-  read(){const out=clone(lumenEditorChanged?project:lumenEditorOriginal);validate(out);return out;},
+  read(){const out=clone(lumenEditorChanged?exportProject(true):lumenEditorOriginal);validate(out);return out;},
   changed:()=>lumenEditorChanged,
   saved(){dirty=false;status(window.LUMEN_CARTRIDGE_TEXT?.working||'LUMEN');},
  });

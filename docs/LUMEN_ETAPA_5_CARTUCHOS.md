@@ -19,7 +19,7 @@ Archivo portable `Nombre-de-Partida.lumen.json`, JSON UTF-8. No está cifrado ni
 | `connections` | Lista vacía reservada; futuras versiones podrán definir `sourceMapId`, salida, `targetMapId`, entrada, tipo y condiciones |
 | `worldState` | `{version:1,data:null}`; sin captura ficticia de NPCs o mundo |
 
-`project` conserva todo el JSON `forest-horror-map-v1`, incluidos campos desconocidos, referencias gráficas, pisos, puertas, circuitos, electricidad y servicios. Se valida una copia con `ForestShared.loadProject` y los validadores del editor; no se almacena su resultado migrado. La versión interna de mapa existente no cambia de esquema. Al abrir y devolver sin editar se devuelve exactamente el proyecto original. Al editar se emplean los comportamientos habituales del único editor; no se recortan propiedades para reducir tamaño. No se copian sesiones, tokens, contraseñas ni invitaciones al sobre del cartucho.
+`project` conserva todo el JSON `forest-horror-map-v1`, incluidos campos desconocidos, referencias gráficas, pisos, puertas, circuitos, electricidad y servicios. Se valida una copia con `ForestShared.loadProject` y los validadores del editor; no se almacena su resultado migrado. La versión interna de mapa existente no cambia de esquema. Al abrir y devolver sin editar se devuelve exactamente el proyecto original. Al editar se usa `exportProject(true)` del único editor para incluir imágenes y actualizar los datos derivados de geometría; no se recortan propiedades para reducir tamaño. No se copian sesiones, tokens, contraseñas ni invitaciones al sobre del cartucho.
 
 ## Flujo
 
@@ -45,9 +45,10 @@ Hay un aviso permanente mientras existen cambios pendientes de exportar o fallos
 
 Base inspeccionada: `main` `2fdaee383655afb7b4021055e22d58461cc6f4be`.
 
-- `node --test tests/lumen-*.test.cjs`: **36 PASS**, 1 prueba de navegador omitida explícitamente. Incluye módulos reales de datos y recuperación, puente real del editor ejecutado en VM, dos campañas/IDs, importación/exportación, retención de propiedades, autorización antes/después de lectura, corrupción, conflictos, cuota y permisos inyectados y ausencia de IndexedDB. El backend en memoria prueba la política de recuperación; no certifica IndexedDB nativo.
+- `node --test tests/lumen-*.test.cjs`: **37 PASS**, 1 prueba de navegador omitida explícitamente. Incluye módulos reales de datos y recuperación, puente real del editor ejecutado en VM, dos campañas/IDs, importación/exportación, retención de propiedades, autorización antes/después de lectura, corrupción, conflictos, cuota y permisos inyectados y ausencia de IndexedDB. El backend en memoria prueba la política de recuperación; no certifica IndexedDB nativo.
 - `TMPDIR=<scratch> node --test tests/multimode-*.test.cjs tests/legacy-*.test.cjs tests/mode-session.test.cjs`: **143/147 PASS**. Cuatro fallos preexistentes: tres expectativas DnD `RULES_ADAPTER_MISSING` en `multimode-runtime.test.cjs`, y `SAVE_ENGINE_HOOK_MISMATCH` en `multimode-save-engine-hook.test.cjs`. Se contrastan con el `index.html` original de main mediante precarga diagnóstica, sin modificar el checkout.
 - Primera regresión previa a editar `index.html`: **56/59 PASS**; tres fallos `preview3DSelectedMap is not defined` en fixtures de `fh-preview-boot.test.js`.
+- `node contratos/multimodo/validar-contratos.mjs`: **846 aserciones PASS**.
 - `node --check` de módulos nuevos; compilación `vm.Script` de scripts inline del editor; `git diff --check`.
 - Chromium local: no pudo arrancar por restricción de sockets del entorno (`Operation not permitted`). Navegador remoto: servidor local inaccesible (`ERR_CONNECTION_REFUSED`). No se acredita inspección visual, WebGL ni recuperación tras cerrar un navegador real.
 
