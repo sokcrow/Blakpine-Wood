@@ -42,3 +42,11 @@ El Director proporcionó estos cuatro recursos originales y se incorporaron como
 - Fondo de la portada LUMEN: `portal/assets/lumen-hero.webp` (fuente: https://imgur.com/c0Cf2Yc).\n- Logotipo de LUMEN: `portal/assets/lumen-logo.webp`, restaurado del emblema dorado oficial suministrado anteriormente por el Director.
 
 Las tres escenas de modos y la ilustración de portada se descargaron mediante GitHub Actions y quedaron como WebP en `main`. El emblema dorado oficial se restauró del archivo original del historial de Git. La página los consume mediante sus rutas locales existentes. Se retiró automáticamente el workflow temporal utilizado para esta única importación. No se mantienen dependencias de imágenes remotas.
+
+## Acceso, visibilidad de contraseña y persistencia
+
+- Registro e inicio de sesión: botón de revelado de contraseña, de tipo `button`, con `aria-pressed`, `aria-controls` y nombre accesible dinámico. La contraseña queda oculta al abrir el formulario.
+- «Recuérdame en este dispositivo»: casilla opcional **desmarcada** de forma predeterminada en el inicio de sesión. Antes de autenticar, Firebase Auth configura `browserLocalPersistence` si está marcada; en caso contrario usa `browserSessionPersistence`. El registro utiliza persistencia de pestaña.
+- La sesión restaurada se detecta mediante `onAuthStateChanged`. «Cerrar sesión» invoca `signOut`; no hay implementación propia de credenciales, ni almacenamiento de contraseñas en Firestore, cookies del proyecto, `localStorage` o `sessionStorage`.
+- Persistencia significa continuidad de autenticación en ese navegador y origen; **no** equivale a detectar presencia en tiempo real ni proporciona un sistema de sesiones del servidor distinto al de Firebase.
+- En dispositivos compartidos, activar «Recuérdame» expone la sesión a otras personas con acceso al navegador. Firebase Auth y las reglas de seguridad de Firestore siguen siendo responsables de autenticar y autorizar. No se ha hecho auditoría ofensiva, integración con dos cuentas reales ni pruebas de navegador de esta mejora.
