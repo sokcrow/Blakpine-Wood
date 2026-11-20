@@ -178,3 +178,30 @@ test('Recuérdame opt-in usa Firebase local, y por defecto se limita a la pesta�
  assert.match(app,/onAuthStateChanged/);
  assert.match(app,/signOut\(auth\)/);
 });
+
+
+test('Mis partidas no oculta los formularios cuando falla la consulta de membresías',()=>{
+ const app=fs.readFileSync(path.join(base,'portal/app.js'),'utf8');
+ const css=fs.readFileSync(path.join(base,'portal/portal.css'),'utf8');
+ assert.match(app,/const \[ownedResult,membershipResult\]=await Promise\.allSettled\(\[/);
+ assert.match(app,/const ownedError=ownedResult\.status==='rejected'/);
+ assert.match(app,/let joinedError=membershipResult\.status==='rejected'/);
+ assert.match(app,/ownedError\?queryFailure\(ownedError,S\.created\)/);
+ assert.match(app,/joinedError\?queryFailure\(joinedError,S\.memberships\)/);
+ assert.match(app,/form id="create"/);
+ assert.match(app,/form id="join"/);
+ assert.match(app,/role="alert"/);
+ assert.match(app,/url\.hostname==='console\.firebase\.google\.com'/);
+ assert.match(app,/url\.pathname\.startsWith\('\/project\/rol-serv\/'\)/);
+ assert.match(css,/\.query-warning/);
+});
+
+test('El índice de membresías declarado en GitHub es de campo único y ámbito de grupo',()=>{
+ const config=JSON.parse(fs.readFileSync(path.join(base,'firestore.indexes.json'),'utf8'));
+ assert.deepEqual(config.indexes,[]);
+ assert.deepEqual(config.fieldOverrides,[{
+  collectionGroup:'members',
+  fieldPath:'userId',
+  indexes:[{order:'ASCENDING',queryScope:'COLLECTION_GROUP'}]
+ }]);
+});
