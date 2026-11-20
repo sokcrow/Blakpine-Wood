@@ -1,5 +1,6 @@
 export const C = Object.freeze({
  previewUnavailable:'La prueba 3D del cartucho se habilitará al integrar la sesión del anfitrión. Puedes usar la prueba 3D del editor independiente.',
+ leaveUnsaved:'Hay cartuchos con cambios sin exportar o con errores de recuperación. ¿Cerrar sesión y descartar las copias de trabajo en memoria? Las recuperaciones que sí se guardaron seguirán en este navegador.',
  title:'Mapas del mundo', intro:'Biblioteca local del DM. Exporta el cartucho para llevarlo a otro equipo. La sala 3D todavía no sincroniza el mundo.',
  create:'Crear cartucho', open:'Abrir cartucho existente', add:'Crear mapa en el editor', importMap:'Importar mapa JSON',
  edit:'Editar', rename:'Cambiar nombre', save:'Guardar mapa en cartucho de trabajo', close:'Volver a la biblioteca',
@@ -30,4 +31,13 @@ export function cartridgeError(error) {
  if (/ACCESS|IDENTITY/.test(error?.message || '')) return C.access;
  if (/MAP_VALIDATOR|EDITOR/.test(error?.message || '')) return C.editorError;
  return C.invalid;
+}
+
+export function recoveryError(error) {
+ const code=error?.code||error?.message||'';
+ return /QUOTA/.test(code)?'Se agotó la cuota del navegador.':
+ /CONFLICT/.test(code)?'Otra pestaña guardó una revisión distinta. Exporta tu copia antes de abrir una recuperación.':
+ /PERMISSION/.test(code)?'El navegador denegó el acceso al almacenamiento.':
+ /BLOCKED/.test(code)?'Otra pestaña bloquea la apertura del almacenamiento.':
+ 'El almacenamiento del navegador no está disponible.';
 }

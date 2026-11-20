@@ -1,4 +1,5 @@
-import { mountMapLibrary, clearMapLibraries } from './map-library.js';
+import { campaignAccess } from './cartridge-access.js';
+import { mountMapLibrary, clearMapLibraries, confirmDiscardMapLibraries } from './map-library.js';
 import { C, cartridgeError } from './cartridge-strings.js';
 import { firebaseConfig, configured } from './config.js';
 import { S } from './strings.js';
@@ -43,6 +44,7 @@ function wirePasswordToggle() {
 let fb=null, auth=null, db=null, user=null, initError=null, epoch=0, busy=false, chosenName='', profileIssue='';
 let stopLobbyListeners=()=>{};
 let stopMapLibrary=()=>{};
+let activeMapHash=location.hash;
 const ownName=()=>visibleDisplayName(chosenName || user?.displayName,S.unnamed);
 
 function message(text='', bad=false) {
@@ -512,13 +514,9 @@ async function campaign(ticket,id,dmRequested) {
 async function mapLibrary(ticket,id) {
   const uid=user?.uid;
   async function verify(){
-    if(!uid||user?.uid!==uid||!auth?.currentUser||auth.currentUser.uid!==uid||!/^[A-Za-z0-9]{20}$/.test(id))throw Error('CARTRIDGE_ACCESS');
-    // Never trust the route or a cache-only campaign snapshot as authorization.
-    const snap=await fb.fs.getDocFromServer(fb.fs.doc(db,'campaigns',id));
-    if(!snap.exists()||user?.uid!==uid||ticket!==epoch)throw Error('CARTRIDGE_ACCESS');
-    const c=snap.data();
-    if(c.ownerId!==uid||c.ruleset!=='legacy'||c.status!=='active')throw Error('CARTRIDGE_ACCESS');
-    return {uid,ownerUid:c.ownerId,campaignId:id,rulesetId:c.ruleset,status:c.status,name:c.name};
+    return campaignAccess({uid,campaignId:id,
+      currentUid:()=>ticket===epoch&&user?.uid===auth?.currentUser?.uid?user?.uid:null,
+      readCampaign:cid=>fb.fs.getDocFromServer(fb.fs.doc(db,'campaigns',cid))});
   }
   try{
     const context=await verify();
@@ -529,7 +527,8 @@ async function mapLibrary(ticket,id) {
   }catch(error){if(ticket===epoch){app.textContent=cartridgeError(error);}}
 }
 async function render() {
-  stopMapLibrary();stopMapLibrary=()=>{};
+  if(stopMapLibrary()===false){history.replaceState(null,'',activeMapHash||'#inicio');return;}
+  stopMapLibrary=()=>{};activeMapHash=location.hash;
   const ticket=++epoch;
   stopLobbyListeners();stopLobbyListeners=()=>{};
   app.setAttribute('aria-busy','true');
@@ -537,6 +536,7 @@ async function render() {
     (user?link(S.games,'#partidas')+link(S.profile,'#perfil')+button(S.logout,'logout'):
       link(S.login,'#acceso')+link(S.signup,'#registro'));
   wireAction('logout',async()=>{
+    if(!confirmDiscardMapLibraries())return;
     await fb.auth.signOut(auth); user=null;clearMapLibraries();
     location.hash='inicio';message(S.signedOut);await render();
   });
