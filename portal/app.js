@@ -2,6 +2,7 @@ import { firebaseConfig, configured } from './config.js';
 import { S } from './strings.js';
 import { makeInvitationCode, cleanInvitationCode, campaignName, availableRuleset } from './campaign-model.js';
 import { cleanDisplayName, visibleDisplayName } from './profile-model.js';
+import { makeLobbyId, isWaitingLobby, isJoinedParticipant } from './lobby-model.js';
 
 const app = document.querySelector('#app');
 const nav = document.querySelector('#nav');
@@ -38,6 +39,7 @@ function wirePasswordToggle() {
 }
 
 let fb=null, auth=null, db=null, user=null, initError=null, epoch=0, busy=false, chosenName='', profileIssue='';
+let stopLobbyListeners=()=>{};
 const ownName=()=>visibleDisplayName(chosenName || user?.displayName,S.unnamed);
 
 function message(text='', bad=false) {
@@ -53,6 +55,7 @@ function readableError(error) {
   if (/auth\/unsupported-persistence|auth\/web-storage-unsupported/.test(c)) return S.sessionStorageError;
   if (/CAMPAIGN_NAME_INVALID/.test(c)) return 'El nombre debe tener entre 1 y 80 caracteres.';
   if (/DISPLAY_NAME_INVALID/.test(c)) return S.profileNameInvalid;
+  if (/LOBBY_/.test(c)) return S.lobbyActionError;
   if (/RULESET_NOT_AVAILABLE/.test(c)) return 'Ese reglamento no está habilitado.';
   if (/INVITATION_INVALID|INVITE_/.test(c)) return 'Invitación inválida, revocada o caducada.';
   if (/MEMBERSHIP_REMOVED/.test(c)) return 'Fuiste expulsado y no puedes reincorporarte con invitaciones.';
@@ -331,6 +334,82 @@ async function games(ticket) {
   wireForm('join',async data=>{location.hash='sala/'+await joinCampaign(data.get('code'));});
   wireAction('refresh',()=>render());
 }
+function watchCampaignLobby(ticket,campaignId,dm,archived,memberNames) {
+  const fs=fb.fs, panel=document.querySelector('#campaign-lobby');
+  if(!panel)return;
+  const roomRef=fs.doc(db,'campaigns',campaignId,'lobby','current');
+  const membersRef=fs.collection(db,'campaigns',campaignId,'lobbyParticipants');
+  const currentUid=user.uid;
+  let room=null,roster=[],roomLoaded=false,rosterLoaded=false,problem=null;
+  const active=()=>isWaitingLobby(room);
+  function paint() {
+    if(ticket!==epoch||!panel.isConnected)return;
+    let html='<h2>'+S.lobbyTitle+'</h2><p>'+S.lobbyIntro+'</p>';
+    if(problem) {
+      html+='<p class="query-warning" role="alert">'+esc(readableError(problem))+' '+S.lobbyRulesHelp+'</p>';
+    } else if(!roomLoaded||!rosterLoaded) {
+      html+='<p role="status">'+S.lobbyLoading+'</p>';
+    } else {
+      const waiting=active(),listed=waiting?roster.filter(p=>isJoinedParticipant(p,room.roomId)):[];
+      const enrolled=listed.some(p=>p.userId===currentUid);
+      html+='<p class="lobby-state" role="status">'+(waiting?S.lobbyOpen:S.lobbyClosed)+'</p>';
+      if(dm && !archived) {
+        html+='<div class="actions">'+(waiting?
+          '<button type="button" data-lobby-action="close">'+S.lobbyCloseAction+'</button>':
+          '<button type="button" class="primary" data-lobby-action="open">'+S.lobbyOpenAction+'</button>')+'</div>';
+      } else if(waiting && !archived) {
+        html+='<div class="actions">'+(enrolled?
+          '<button type="button" data-lobby-action="leave">'+S.lobbyLeaveAction+'</button>':
+          '<button type="button" class="primary" data-lobby-action="join">'+S.lobbyJoinAction+'</button>')+'</div>';
+      }
+      if(waiting) {
+        html+='<h3>'+S.lobbyRoster+' ('+listed.length+')</h3>';
+        html+='<ul class="lobby-roster">'+(listed.map(p=>
+          '<li>'+esc(p.userId===currentUid?ownName():(memberNames.get(p.userId)||S.unnamed))+'</li>'
+        ).join('')||'<li>'+S.lobbyNobody+'</li>')+'</ul>';
+      }
+      html+='<small class="lobby-disclaimer">'+S.lobbyPresence+'</small>';
+    }
+    panel.innerHTML=html;
+  }
+  panel.addEventListener('click',async event=>{
+    const target=event.target.closest('[data-lobby-action]');
+    if(!target||!panel.contains(target)||busy||ticket!==epoch||!roomLoaded||problem)return;
+    const action=target.dataset.lobbyAction;
+    if(!['open','close','join','leave'].includes(action))return;
+    if((action==='open'||action==='close')&&!dm)return;
+    if(archived)return;
+    busy=true;message();target.disabled=true;
+    try {
+      if(action==='open'){
+        const current=await fs.getDoc(roomRef);
+        if(current.exists()&&isWaitingLobby(current.data()))throw Error('LOBBY_ALREADY_OPEN');
+        await fs.setDoc(roomRef,{
+          hostId:currentUid,roomId:makeLobbyId(),status:'waiting',
+          openedAt:fs.serverTimestamp(),updatedAt:fs.serverTimestamp()
+        });
+      } else if(action==='close'){
+        await fs.updateDoc(roomRef,{status:'closed',updatedAt:fs.serverTimestamp()});
+      } else {
+        if(!active())throw Error('LOBBY_NOT_OPEN');
+        await fs.setDoc(fs.doc(membersRef,currentUid),{
+          userId:currentUid,roomId:room.roomId,
+          state:action==='join'?'joined':'left',updatedAt:fs.serverTimestamp()
+        });
+      }
+    } catch(error) {message(readableError(error),true);}
+    finally {busy=false;if(target.isConnected)target.disabled=false;}
+  });
+  const onError=error=>{problem=error;paint();};
+  const unsubscribeRoom=fs.onSnapshot(roomRef,snapshot=>{
+    room=snapshot.exists()?snapshot.data():null;roomLoaded=true;paint();
+  },onError);
+  const unsubscribeRoster=fs.onSnapshot(membersRef,snapshot=>{
+    roster=snapshot.docs.map(d=>d.data());rosterLoaded=true;paint();
+  },onError);
+  stopLobbyListeners=()=>{unsubscribeRoom();unsubscribeRoster();};
+}
+
 async function campaign(ticket,id,dmRequested) {
   if(!/^[A-Za-z0-9]{20}$/.test(id)){app.textContent=S.noAccess;return;}
   const fs=fb.fs, snap=await fs.getDoc(fs.doc(db,'campaigns',id));
@@ -375,9 +454,11 @@ async function campaign(ticket,id,dmRequested) {
       (v.revoked?'<small>'+S.revoked+'</small>':
         v.expiresAt?.toMillis?.()<=Date.now()?'<small>'+S.expired+'</small>':
         button(S.revoke,'revoke-'+i))+'</li>').join('')+'</ul></section></div>':'')+
+    '<section id="campaign-lobby" class="pending lobby-panel" aria-label="'+S.lobbyTitle+'"><p role="status">'+S.lobbyLoading+'</p></section>'+
     '<section class="pending"><h2>'+S.inactive+'</h2><p>'+S.noMulti+'</p>'+
-    '<div class="actions">'+button(S.launch,'launch',true)+button(S.sync,'sync',true)+'</div></section>';
+    '<div class="actions">'+button(S.sync,'sync',true)+'</div></section>';
   wireAction('refresh',()=>render());
+  watchCampaignLobby(ticket,id,dm,c.status!=='active',memberNames);
   if(!dm)return;
   wireAction('invite',async()=>{
     const code=makeInvitationCode();
@@ -412,6 +493,7 @@ async function campaign(ticket,id,dmRequested) {
 }
 async function render() {
   const ticket=++epoch;
+  stopLobbyListeners();stopLobbyListeners=()=>{};
   app.setAttribute('aria-busy','true');
   nav.innerHTML=link(S.home,'#inicio')+
     (user?link(S.games,'#partidas')+link(S.profile,'#perfil')+button(S.logout,'logout'):
