@@ -46,6 +46,12 @@ test('Navegador: editor real, descarga portable, IndexedDB nativo y reapertura d
    return {snapshots:r.snapshots.length,project:r.snapshots[0].cartridge.maps[0].project};
   },{doc});assert.ok(native.snapshots>=1);assert.deepEqual(native.project,doc.maps[0].project);
   await browser.close();browser=await launch();page=await browser.newPage();await mount(page);
+  await page.getByRole('button',{name:'Recuperar instantánea local',exact:true}).click();
+  await page.getByRole('button',{name:new RegExp('Recuperar instantánea local · '+doc.cartridgeId)}).click();
+  await page.getByRole('button',{name:'Editar',exact:true}).click();
+  const recovered=await page.evaluate(()=>document.querySelector('iframe').contentWindow.LumenEditor.read());
+  assert.deepEqual(recovered,doc.maps[0].project);
+  page.once('dialog',d=>d.accept());
   const inputPromise=page.waitForEvent('filechooser');await page.getByRole('button',{name:'Abrir cartucho existente',exact:true}).click();
   await (await inputPromise).setFiles({name:'Prueba.lumen.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(doc))});
   await page.getByRole('button',{name:'Editar',exact:true}).click();
@@ -55,8 +61,28 @@ test('Navegador: editor real, descarga portable, IndexedDB nativo y reapertura d
    const m=await import('/portal/cartridge.js'),{recoveryStore}=await import('/portal/cartridge-recovery.js');
    const validate=p=>document.querySelector('iframe').contentWindow.LumenEditor.validate(p);
    const c=m.changeMap(m.createCartridge(window.testContext),window.testContext,validate,{name:'120',project,expectedRevision:1}).cartridge;
-   const t=performance.now();await recoveryStore.save(c,window.testContext,validate);return {nativeIndexedDBSaveMs:performance.now()-t,bytes:new Blob([JSON.stringify(c)]).size};
+   const t=performance.now();const first=await recoveryStore.save(c,window.testContext,validate),elapsed=performance.now()-t;
+   c.revision++;const second=await recoveryStore.save(c,window.testContext,validate,{expectedToken:first.token});
+   c.revision++;await recoveryStore.save(c,window.testContext,validate,{expectedToken:second.token});
+   const stored=await recoveryStore.read(window.testContext,c.cartridgeId,validate);
+   if(stored.snapshots.length!==2||stored.snapshots[0].revision!==c.revision||stored.snapshots[1].revision!==c.revision-1)throw Error('Native snapshot retention failed');
+   return {nativeIndexedDBSaveMs:elapsed,bytes:new Blob([JSON.stringify(c)]).size,snapshotCount:stored.snapshots.length};
   },{project:require('./helpers/lumen-large-map.cjs')(true)});
   console.log(JSON.stringify(metrics));
+  // Native Chromium enforces a reduced quota for this disposable test origin.
+  const cdp=await browser.newCDPSession(page);
+  await cdp.send('Storage.overrideQuotaForOrigin',{origin,quotaSize:1});
+  const quota=await page.evaluate(async({project})=>{
+   const m=await import('/portal/cartridge.js'),{recoveryStore}=await import('/portal/cartridge-recovery.js');
+   const validate=p=>document.querySelector('iframe').contentWindow.LumenEditor.validate(p);
+   const doc=m.changeMap(m.createCartridge(window.testContext),window.testContext,validate,{name:'Quota',project,expectedRevision:1}).cartridge;
+   const before=m.exportCartridge(doc,window.testContext,validate);let code='';
+   try{await recoveryStore.save(doc,window.testContext,validate);}catch(e){code=e.code;}
+   const after=await recoveryStore.read(window.testContext,doc.cartridgeId,validate);
+   return {code,preserved:before===m.exportCartridge(doc,window.testContext,validate),snapshots:after.snapshots.length};
+  },{project:require('./helpers/lumen-large-map.cjs')(true)});
+  assert.equal(quota.code,'RECOVERY_QUOTA');assert.equal(quota.preserved,true);assert.equal(quota.snapshots,0);
+  console.log(JSON.stringify({nativeQuota:quota}));
+  await cdp.send('Storage.overrideQuotaForOrigin',{origin});
  }finally{if(browser)await browser.close();await new Promise(r=>server.close(r));fs.rmSync(profile,{recursive:true,force:true});}
 });
