@@ -145,3 +145,36 @@ test('Los tres retratos oficiales están disponibles y conectados a los modos',(
  }
  assert.match(css,/aspect-ratio:4\/3/);
 });
+
+test('Registro y acceso tienen control accesible para revelar contraseña',()=>{
+ const app=fs.readFileSync(path.join(base,'portal/app.js'),'utf8');
+ const css=fs.readFileSync(path.join(base,'portal/portal.css'),'utf8');
+ const strings=fs.readFileSync(path.join(base,'portal/strings.js'),'utf8');
+ assert.match(app,/const passwordField = \(signup\) =>/);
+ assert.match(app,/type="password" required/);
+ assert.match(app,/type="button" id="toggle-password"/);
+ assert.match(app,/aria-controls="password" aria-pressed="false"/);
+ assert.match(app,/field\.type=visible\?'text':'password'/);
+ assert.match(app,/toggle\.setAttribute\('aria-pressed',String\(visible\)\)/);
+ assert.match(app,/wirePasswordToggle\(\)/);
+ assert.match(css,/\.password-toggle:focus-visible/);
+ assert.match(strings,/showPassword:'Mostrar contraseña'/);
+ assert.match(strings,/hidePassword:'Ocultar contraseña'/);
+});
+
+test('Recuérdame opt-in usa Firebase local, y por defecto se limita a la pestaña',()=>{
+ const app=fs.readFileSync(path.join(base,'portal/app.js'),'utf8');
+ const strings=fs.readFileSync(path.join(base,'portal/strings.js'),'utf8');
+ assert.match(app,/id="remember-me" name="remember-me" type="checkbox"/);
+ assert.doesNotMatch(app,/id="remember-me"[^>]*checked/);
+ assert.match(app,/const remember=data\.get\('remember-me'\)==='yes'/);
+ assert.match(app,/setPersistence\(auth,remember\?fb\.auth\.browserLocalPersistence:fb\.auth\.browserSessionPersistence\)/);
+ assert.match(app,/setPersistence\(auth,fb\.auth\.browserSessionPersistence\)/);
+ assert.match(strings,/rememberMe:'Recuérdame en este dispositivo'/);
+ assert.match(strings,/equipos compartidos/);
+ assert.doesNotMatch(app,/(?:localStorage|sessionStorage)\.setItem\s*\(/);
+ assert.doesNotMatch(app,/document\.cookie\s*=/);
+ assert.doesNotMatch(app,/setDoc\([^)]*password/);
+ assert.match(app,/onAuthStateChanged/);
+ assert.match(app,/signOut\(auth\)/);
+});
