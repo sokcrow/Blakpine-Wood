@@ -68,3 +68,13 @@ Firebase Authentication conserva la etiqueta elegida mediante updateProfile. El 
 Las reglas permiten get a usuarios autenticados que conocen un UID, nunca list, y solo el titular del UID puede crear o actualizar su documento. Se prohíben otros campos y eliminar documentos. Los nombres pueden repetirse, pero nunca determinan permisos.
 
 **Requisito de despliegue:** volver a publicar firestore.rules en el proyecto Firebase rol-serv después de integrar este cambio en main. GitHub Pages no despliega reglas Firestore. Hasta entonces, el usuario puede guardar su nombre en Firebase Auth, pero la sincronización de perfiles compartidos estará denegada; Mi cuenta debe mostrar una advertencia. Verificar con dos cuentas antes de considerar completa la prueba.
+
+## Etapa de sala de espera multijugador (sin sincronización 3D)
+
+Se añadió una sala de inscripciones por campaña, en campaigns/{cid}/lobby/current, con estado waiting o closed, UID del DM y roomId criptográfico de versión. El DM abre/cierra la sala y un miembro permanente autorizado registra joined/left en campaigns/{cid}/lobbyParticipants/{uid}. Reabrir la sala cambia roomId; inscripciones de rondas anteriores quedan obsoletas. onSnapshot actualiza la vista y las suscripciones se cancelan al cambiar de pantalla.
+
+**Importante:** inscritos no significa conectados. Esta etapa no implementa WebRTC ni WebSockets, ni presencia de red fiable, ni transporte de acciones, ni replicación del motor. Sincronizar mundo 3D continúa deshabilitado. La sala no concede permisos del motor ni altera guardados locales. Firestore valida cada escritura contra UID y membresía, y el nombre visible solo se usa en la interfaz.
+
+**Despliegue necesario:** después del commit en main se debe actualizar firestore.rules en el proyecto Firebase rol-serv. GitHub Pages no despliega reglas. No se precisa índice compuesto nuevo para las lecturas directas del documento y la lista de inscritos. Probar con DM y jugador: apertura, inscripción, salida, cierre, expulsión y reapertura.
+
+**Continuación:** acoplar la sala al runtime Three.js del DM y usar un transporte de baja latencia. Firestore gestiona identidad, sala y señalización, no posiciones a 60 FPS. WebRTC requiere STUN/TURN para redes con NAT. El motor seguirá siendo el único responsable de colisiones, combate y persistencia multimodo.
