@@ -67,6 +67,61 @@ service cloud.firestore {
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name','status','updatedAt']) &&
         request.resource.data.updatedAt == request.time;
       allow delete: if false;
+      // Sala de inscripción. No concede control del motor ni representa presencia.
+      match /lobby/{docId} {
+        allow get: if docId == 'current' && (owner(cid) || member(cid));
+        allow list: if false;
+        allow create: if docId == 'current' && owner(cid) &&
+          get(campaignPath(cid)).data.status == 'active' &&
+          validLobby(request.resource.data) &&
+          request.resource.data.hostId == request.auth.uid &&
+          request.resource.data.status == 'waiting' &&
+          request.resource.data.openedAt == request.time &&
+          request.resource.data.updatedAt == request.time;
+        allow update: if docId == 'current' && owner(cid) &&
+          validLobby(request.resource.data) &&
+          resource.data.hostId == request.auth.uid &&
+          request.resource.data.hostId == resource.data.hostId &&
+          request.resource.data.updatedAt == request.time &&
+          (
+            (resource.data.status == 'waiting' &&
+             request.resource.data.status == 'closed' &&
+             request.resource.data.roomId == resource.data.roomId &&
+             request.resource.data.openedAt == resource.data.openedAt &&
+             request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','updatedAt'])) ||
+            (resource.data.status == 'closed' &&
+             request.resource.data.status == 'waiting' &&
+             request.resource.data.roomId != resource.data.roomId &&
+             request.resource.data.openedAt == request.time &&
+             get(campaignPath(cid)).data.status == 'active' &&
+             request.resource.data.diff(resource.data).affectedKeys().hasOnly(['roomId','status','openedAt','updatedAt']))
+          );
+        allow delete: if false;
+      }
+      match /lobbyParticipants/{uid} {
+        allow get, list: if owner(cid) || member(cid);
+        allow create: if signed() && uid == request.auth.uid &&
+          (owner(cid) || member(cid)) &&
+          validLobbyParticipant(request.resource.data,uid) &&
+          request.resource.data.state == 'joined' &&
+          get(campaignPath(cid)).data.status == 'active' &&
+          exists(lobbyPath(cid)) &&
+          get(lobbyPath(cid)).data.status == 'waiting' &&
+          request.resource.data.roomId == get(lobbyPath(cid)).data.roomId &&
+          request.resource.data.updatedAt == request.time;
+        allow update: if signed() && uid == request.auth.uid &&
+          (owner(cid) || member(cid)) &&
+          resource.data.userId == uid &&
+          validLobbyParticipant(request.resource.data,uid) &&
+          exists(lobbyPath(cid)) &&
+          request.resource.data.roomId == get(lobbyPath(cid)).data.roomId &&
+          (request.resource.data.state == 'left' ||
+            (get(lobbyPath(cid)).data.status == 'waiting' &&
+             get(campaignPath(cid)).data.status == 'active')) &&
+          request.resource.data.updatedAt == request.time &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['roomId','state','updatedAt']);
+        allow delete: if false;
+      }
       match /members/{uid} {
         allow get: if signed() && (uid == request.auth.uid || owner(cid));
         allow list: if owner(cid);
