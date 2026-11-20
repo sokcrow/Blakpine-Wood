@@ -200,18 +200,47 @@ function campaignCard(c) {
     '<small>'+S.createdAt+': '+date(c.createdAt)+'</small>'+
     link(dm?S.dm:S.room,'#'+place+'/'+c.id)+'</article>';
 }
+function queryFailure(error, title) {
+  const rawCode=String(error?.code || 'unknown').slice(0,80);
+  const reason=readableError(error);
+  const messageText=String(error?.message || '');
+  const candidate=messageText.match(/https:\/\/console\.firebase\.google\.com\/[^\s)]+/)?.[0];
+  let indexLink='';
+  if(candidate) {
+    try {
+      const url=new URL(candidate.replace(/[.,;]+$/,''));
+      if(url.protocol==='https:' && url.hostname==='console.firebase.google.com' &&
+          url.pathname.startsWith('/project/rol-serv/')) {
+        indexLink='<p>'+link(S.openIndex,url.href)+'</p>';
+      }
+    } catch { /* No publicar vínculos que Firebase no generó correctamente. */ }
+  }
+  return '<div class="query-warning" role="alert"><strong>'+esc(title)+'</strong><p>'+S.queryError+' '+esc(reason)+'</p>'+
+    '<small>'+S.firebaseCode+': '+esc(rawCode)+'</small>'+
+    (/failed-precondition/.test(rawCode)?'<p>'+S.queryHelp+'</p>':'')+indexLink+'</div>';
+}
 async function games(ticket) {
   const fs=fb.fs, uid=user.uid;
-  const [ownedDocs,membershipDocs]=await Promise.all([
+  // No ocultar la pantalla completa si falla una de las dos consultas independientes.
+  const [ownedResult,membershipResult]=await Promise.allSettled([
     fs.getDocs(fs.query(fs.collection(db,'campaigns'),fs.where('ownerId','==',uid))),
     fs.getDocs(fs.query(fs.collectionGroup(db,'members'),fs.where('userId','==',uid)))
   ]);
-  const owned=ownedDocs.docs.map(d=>({id:d.id,...d.data()}));
-  const eligible=membershipDocs.docs.filter(d=>d.data().role==='member'&&d.data().status==='active');
-  const joined=(await Promise.all(eligible.map(async m=>{
-    const campaign=await fs.getDoc(m.ref.parent.parent);
-    return campaign.exists()?{id:campaign.id,...campaign.data()}:null;
-  }))).filter(Boolean);
+  if(ticket!==epoch)return;
+  const ownedError=ownedResult.status==='rejected'?ownedResult.reason:null;
+  const owned=ownedResult.status==='fulfilled'?
+    ownedResult.value.docs.map(d=>({id:d.id,...d.data()})):[];
+  let joinedError=membershipResult.status==='rejected'?membershipResult.reason:null;
+  let joined=[];
+  if(membershipResult.status==='fulfilled') {
+    const eligible=membershipResult.value.docs.filter(d=>d.data().role==='member'&&d.data().status==='active');
+    const lookups=await Promise.allSettled(eligible.map(async m=>{
+      const campaign=await fs.getDoc(m.ref.parent.parent);
+      return campaign.exists()?{id:campaign.id,...campaign.data()}:null;
+    }));
+    joined=lookups.filter(r=>r.status==='fulfilled').map(r=>r.value).filter(Boolean);
+    joinedError=lookups.find(r=>r.status==='rejected')?.reason || null;
+  }
   if(ticket!==epoch)return;
   const latest=(a,b)=>(b.createdAt?.toMillis?.()||0)-(a.createdAt?.toMillis?.()||0);
   owned.sort(latest);joined.sort(latest);
@@ -243,10 +272,11 @@ async function games(ticket) {
     '</div>'+
     '<div class="grid">'+
       '<section class="workspace-section"><h2>'+S.created+'</h2>'+
-        (owned.map(campaignCard).join('')||'<p class="empty-state">'+S.emptyOwned+'</p>')+
+        (ownedError?queryFailure(ownedError,S.created):(owned.map(campaignCard).join('')||'<p class="empty-state">'+S.emptyOwned+'</p>'))+
       '</section>'+
       '<section class="workspace-section"><h2>'+S.memberships+'</h2>'+
-        (joined.map(campaignCard).join('')||'<p class="empty-state">'+S.emptyJoined+'</p>')+
+        (joinedError?queryFailure(joinedError,S.memberships):'')+
+        (joined.map(campaignCard).join('')||(joinedError?'':'<p class="empty-state">'+S.emptyJoined+'</p>'))+
       '</section>'+
     '</div>'+
     button(S.refresh,'refresh');
