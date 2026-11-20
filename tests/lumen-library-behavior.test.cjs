@@ -28,4 +28,9 @@ test('Biblioteca conserva proyecto ante importación inválida, error de memoria
  view.verify=async()=>({...context,uid:'player'});
  await view.run(()=>view.setDoc(m.createCartridge(context)));assert.equal(JSON.stringify(state.doc),before);
  assert.match(root.querySelector('#cartridge-status').textContent,/permiso/);
+ state.doc=m.changeMap(state.doc,context,view.validate,{name:'Edición incompleta',project:{bad:false},expectedRevision:state.doc.revision}).cartridge;
+ state.mapId=state.doc.maps[0].mapId;state.editorDirty=true;root.querySelector('#map-name').value='Edición incompleta';
+ view.api.read=()=>{throw Error('MAP_INVALID')};
+ assert.equal(view.dispose(),false);assert.equal(view.alive,true);assert.equal(state.editorDirty,true);
+ assert.match(root.querySelector('#cartridge-status').textContent,/conserva/);
 });

@@ -1,6 +1,6 @@
 # LUMEN — Etapa 5: cartuchos locales
 
-Estado: **NEEDS WORK** hasta verificar el recorrido completo en navegador y con cuentas Firebase reales. Los PRs A/B/C son dependientes y no equivalen a despliegue.
+Estado: **NEEDS WORK** hasta verificar el recorrido con cuentas Firebase reales y la aceptación visual. El recorrido técnico de navegador con identidades de prueba sí pasó en GitHub Actions. Los PRs A/B/C son dependientes y no equivalen a despliegue.
 
 ## Contrato v1
 
@@ -29,7 +29,7 @@ La vista usa `getDocFromServer` para autorizar campaña y UID antes de las accio
 
 El editor se carga en un iframe del mismo origen con `editor=1&lumenCartridge=1`. `LumenEditor` permite validar, crear, cargar y devolver proyectos; el padre controla la campaña y el mapa. El parámetro solo aísla el editor y no contiene identidades ni datos de campaña. Entrar directamente abre un editor vacío, sin acceder a cartuchos.
 
-La navegación de la sesión mantiene campaña, cartucho y mapa seleccionado; la reapertura puede recuperar el mapa activo de una instantánea. No se utiliza `fh_editor_map_v1` en modo cartucho. La prueba 3D se bloquea únicamente en esta vista hasta integrar la sesión del anfitrión; sigue disponible en el editor independiente. No hay otra implementación de editor ni de Three.js.
+La navegación de la sesión mantiene campaña, cartucho y mapa seleccionado; se detiene si la edición pendiente no valida, conservando el editor para corregirla. Cerrar sesión pide confirmar si aún hay cambios sin exportar o errores de recuperación; la reapertura puede recuperar el mapa activo de una instantánea. No se utiliza `fh_editor_map_v1` en modo cartucho. La prueba 3D se bloquea únicamente en esta vista hasta integrar la sesión del anfitrión; sigue disponible en el editor independiente. No hay otra implementación de editor ni de Three.js.
 
 ## Recuperación y exportación
 
@@ -45,12 +45,12 @@ Hay un aviso permanente mientras existen cambios pendientes de exportar o fallos
 
 Base inspeccionada: `main` `2fdaee383655afb7b4021055e22d58461cc6f4be`.
 
-- `node --test tests/lumen-*.test.cjs`: **37 PASS**, 1 prueba de navegador omitida explícitamente. Incluye módulos reales de datos y recuperación, puente real del editor ejecutado en VM, dos campañas/IDs, importación/exportación, retención de propiedades, autorización antes/después de lectura, corrupción, conflictos, cuota y permisos inyectados y ausencia de IndexedDB. El backend en memoria prueba la política de recuperación; no certifica IndexedDB nativo.
+- `node --test tests/lumen-*.test.cjs`: **37 PASS**, 1 prueba de navegador omitida explícitamente. Incluye módulos reales de datos y recuperación, puente real del editor ejecutado en VM, dos campañas/IDs, importación/exportación, retención de propiedades, autorización antes/después de lectura, corrupción, conflictos, cuota y permisos inyectados y ausencia de IndexedDB. El backend en memoria prueba la política de recuperación; IndexedDB nativo se verifica por separado en Chromium.
 - `TMPDIR=<scratch> node --test tests/multimode-*.test.cjs tests/legacy-*.test.cjs tests/mode-session.test.cjs`: **143/147 PASS**. Cuatro fallos preexistentes: tres expectativas DnD `RULES_ADAPTER_MISSING` en `multimode-runtime.test.cjs`, y `SAVE_ENGINE_HOOK_MISMATCH` en `multimode-save-engine-hook.test.cjs`. Se contrastan con el `index.html` original de main mediante precarga diagnóstica, sin modificar el checkout.
 - Primera regresión previa a editar `index.html`: **56/59 PASS**; tres fallos `preview3DSelectedMap is not defined` en fixtures de `fh-preview-boot.test.js`.
 - `node contratos/multimodo/validar-contratos.mjs`: **846 aserciones PASS**.
 - `node --check` de módulos nuevos; compilación `vm.Script` de scripts inline del editor; `git diff --check`.
-- Chromium local: no pudo arrancar por restricción de sockets del entorno (`Operation not permitted`). Navegador remoto: servidor local inaccesible (`ERR_CONNECTION_REFUSED`). No se acredita inspección visual, WebGL ni recuperación tras cerrar un navegador real.
+- Chromium local: no pudo arrancar por restricción de sockets del entorno (`Operation not permitted`). Navegador remoto: servidor local inaccesible (`ERR_CONNECTION_REFUSED`). Esas limitaciones locales se sortearon ejecutando la prueba técnica de Chromium en GitHub Actions. No se acredita inspección visual ni WebGL.
 
 ### Medición de 120 × 120
 
@@ -61,11 +61,13 @@ Mediciones puntuales de Node en este entorno, sin umbrales arbitrarios; no son c
 | Mapa del repositorio, cuadrícula 120 × 120 | 5 / 38 | 8 175 B | 0,08 ms | 0,13 ms | 0,51 ms | 1,56 ms | 0,54 ms |
 | Estrés derivado 120 × 120 | 5 / 18 038 | 7 484 175 B | 43,94 ms | 40,43 ms | 181,69 ms | 218,39 ms | 219,42 ms |
 
-**Pendiente:** tiempo y tamaño de las dos instantáneas en IndexedDB nativo, llenado real de cuota, rendimiento móvil habitual, mapas reales de usuario densamente diseñados y cartuchos con muchas imágenes/mapas. No se afirma que estos tamaños garanticen fluidez móvil. El código mantiene varias copias durante validación, edición y recuperación; el consumo de memoria supera el tamaño serializado. Si las mediciones reales lo requieren, evolucionar `formatVersion` a un contenedor de entradas independientes y compresión reversible, preservando los proyectos internos completos y la importación v1 explícita. No se implementa esa evolución aquí.
+**Pendiente:** coste de dos instantáneas de tamaño grande en dispositivos habituales, llenado físico de cuota, rendimiento móvil habitual, mapas reales de usuario densamente diseñados y cartuchos con muchas imágenes/mapas. No se afirma que estos tamaños garanticen fluidez móvil. El código mantiene varias copias durante validación, edición y recuperación; el consumo de memoria supera el tamaño serializado. Si las mediciones reales lo requieren, evolucionar `formatVersion` a un contenedor de entradas independientes y compresión reversible, preservando los proyectos internos completos y la importación v1 explícita. No se implementa esa evolución aquí.
 
-### Prueba de navegador preparada, pendiente de ejecución
+### Prueba de navegador ejecutada en GitHub Actions
 
 `LUMEN_BROWSER_TEST=1 node --test tests/lumen-browser.test.cjs` necesita Playwright y Chromium de pruebas; `LUMEN_CHROMIUM_PATH` permite elegir el ejecutable existente. Es una prueba de desarrollo, no un instalador ni un parche del producto. Usa identidades sintéticas claramente locales, editor real, descarga, IndexedDB nativo, cierre/reapertura del perfil y medición nativa de guardado. No sustituye la prueba Firebase con DM y jugador.
+
+Ejecución [44735937133](https://github.com/sokcrow/Blakpine-Wood/actions/runs/44735937133): **37 pruebas de datos PASS + 1 prueba nativa Chromium PASS**. Editor real, exportación completa, descarga y cierre/reapertura del perfil con reimportación exacta. Guardado IndexedDB nativo del cartucho de estrés: **209,2 ms**, **7 484 175 B**. Se fijó Ubuntu 24.04 porque el primer intento con Ubuntu 26.04 no era compatible con la versión de Playwright de pruebas.
 
 ### Aceptación pendiente
 

@@ -1,5 +1,5 @@
 import { campaignAccess } from './cartridge-access.js';
-import { mountMapLibrary, clearMapLibraries } from './map-library.js';
+import { mountMapLibrary, clearMapLibraries, confirmDiscardMapLibraries } from './map-library.js';
 import { C, cartridgeError } from './cartridge-strings.js';
 import { firebaseConfig, configured } from './config.js';
 import { S } from './strings.js';
@@ -44,6 +44,7 @@ function wirePasswordToggle() {
 let fb=null, auth=null, db=null, user=null, initError=null, epoch=0, busy=false, chosenName='', profileIssue='';
 let stopLobbyListeners=()=>{};
 let stopMapLibrary=()=>{};
+let activeMapHash=location.hash;
 const ownName=()=>visibleDisplayName(chosenName || user?.displayName,S.unnamed);
 
 function message(text='', bad=false) {
@@ -526,7 +527,8 @@ async function mapLibrary(ticket,id) {
   }catch(error){if(ticket===epoch){app.textContent=cartridgeError(error);}}
 }
 async function render() {
-  stopMapLibrary();stopMapLibrary=()=>{};
+  if(stopMapLibrary()===false){history.replaceState(null,'',activeMapHash||'#inicio');return;}
+  stopMapLibrary=()=>{};activeMapHash=location.hash;
   const ticket=++epoch;
   stopLobbyListeners();stopLobbyListeners=()=>{};
   app.setAttribute('aria-busy','true');
@@ -534,6 +536,7 @@ async function render() {
     (user?link(S.games,'#partidas')+link(S.profile,'#perfil')+button(S.logout,'logout'):
       link(S.login,'#acceso')+link(S.signup,'#registro'));
   wireAction('logout',async()=>{
+    if(!confirmDiscardMapLibraries())return;
     await fb.auth.signOut(auth); user=null;clearMapLibraries();
     location.hash='inicio';message(S.signedOut);await render();
   });

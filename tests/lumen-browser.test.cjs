@@ -18,8 +18,8 @@ test('Navegador: editor real, descarga portable, IndexedDB nativo y reapertura d
  const origin='http://127.0.0.1:'+server.address().port;
  const launch=()=>chromium.launchPersistentContext(profile,{headless:true,acceptDownloads:true,...(process.env.LUMEN_CHROMIUM_PATH?{executablePath:process.env.LUMEN_CHROMIUM_PATH}:{})});
  let browser;
- async function mount(page){
-  await page.goto(origin+'/__lumen_test__');
+ async function mount(page,base=origin){
+  await page.goto(base+'/__lumen_test__');
   await page.evaluate(async()=>{
    const {mountMapLibrary}=await import('/portal/map-library.js');
    window.testContext={uid:'test-dm',ownerUid:'test-dm',campaignId:'a'.repeat(20),rulesetId:'legacy',status:'active'};
@@ -70,19 +70,24 @@ test('Navegador: editor real, descarga portable, IndexedDB nativo y reapertura d
   },{project:require('./helpers/lumen-large-map.cjs')(true)});
   console.log(JSON.stringify(metrics));
   // Native Chromium enforces a reduced quota for this disposable test origin.
-  const cdp=await browser.newCDPSession(page);
-  await cdp.send('Storage.overrideQuotaForOrigin',{origin,quotaSize:1});
-  const quota=await page.evaluate(async({project})=>{
+  const quotaOrigin=origin.replace('127.0.0.1','localhost'),quotaPage=await browser.newPage();
+  await mount(quotaPage,quotaOrigin);
+  const cdp=await browser.newCDPSession(quotaPage);
+  await cdp.send('Storage.overrideQuotaForOrigin',{origin:quotaOrigin,quotaSize:1});
+  const quota=await quotaPage.evaluate(async({project})=>{
    const m=await import('/portal/cartridge.js'),{recoveryStore}=await import('/portal/cartridge-recovery.js');
    const validate=p=>document.querySelector('iframe').contentWindow.LumenEditor.validate(p);
    const doc=m.changeMap(m.createCartridge(window.testContext),window.testContext,validate,{name:'Quota',project,expectedRevision:1}).cartridge;
    const before=m.exportCartridge(doc,window.testContext,validate);let code='';
    try{await recoveryStore.save(doc,window.testContext,validate);}catch(e){code=e.code;}
-   const after=await recoveryStore.read(window.testContext,doc.cartridgeId,validate);
-   return {code,preserved:before===m.exportCartridge(doc,window.testContext,validate),snapshots:after.snapshots.length};
+   return {code,preserved:before===m.exportCartridge(doc,window.testContext,validate),cartridgeId:doc.cartridgeId};
   },{project:require('./helpers/lumen-large-map.cjs')(true)});
-  assert.equal(quota.code,'RECOVERY_QUOTA');assert.equal(quota.preserved,true);assert.equal(quota.snapshots,0);
-  console.log(JSON.stringify({nativeQuota:quota}));
-  await cdp.send('Storage.overrideQuotaForOrigin',{origin});
+  assert.equal(quota.code,'RECOVERY_QUOTA');assert.equal(quota.preserved,true);
+  await cdp.send('Storage.overrideQuotaForOrigin',{origin:quotaOrigin});
+  const remaining=await quotaPage.evaluate(async id=>{
+   const {recoveryStore}=await import('/portal/cartridge-recovery.js');
+   return (await recoveryStore.read(window.testContext,id,p=>document.querySelector('iframe').contentWindow.LumenEditor.validate(p))).snapshots.length;
+  },quota.cartridgeId);
+  assert.equal(remaining,0);console.log(JSON.stringify({nativeQuota:{code:quota.code,preserved:quota.preserved,snapshots:remaining}}));
  }finally{if(browser)await browser.close();await new Promise(r=>server.close(r));fs.rmSync(profile,{recursive:true,force:true});}
 });

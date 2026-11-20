@@ -13,7 +13,10 @@ window.addEventListener('beforeunload',e=>{
  if([...sessions.values()].some(s=>s.dirty||s.editorDirty)){e.preventDefault();e.returnValue='';}
 });
 export function clearMapLibraries() {
- active?.dispose();active=null;sessions.clear();warn();
+ active?.dispose(true);active=null;sessions.clear();warn();
+}
+export function confirmDiscardMapLibraries(){
+ return ![...sessions.values()].some(s=>s.dirty||s.editorDirty||s.recoveryError)||confirm(C.leaveUnsaved);
 }
 export async function mountMapLibrary({element,context,campaignName,verify,onError}) {
  authorize(context);
@@ -21,7 +24,7 @@ export async function mountMapLibrary({element,context,campaignName,verify,onErr
  let state=sessions.get(key);
  if(!state){state={doc:null,exported:null,dirty:false,editorDirty:false,mapId:null,campaignName,recoveryTokens:new Map(),saveQueue:Promise.resolve(),recoveryError:null};sessions.set(key,state);}
  const view=new MapLibrary(element,state,context,verify,onError);active=view;
- await view.mount();return ()=>{view.dispose();if(active===view)active=null;};
+ await view.mount();return ()=>{const result=view.dispose();if(result!==false&&active===view)active=null;return result;};
 }
 class MapLibrary {
  constructor(root,state,context,verify,onError){Object.assign(this,{root,state,context,verify,onError});this.alive=true;this.lock=false;this.api=null;this.timer=null;}
@@ -165,6 +168,6 @@ class MapLibrary {
   }
   this.paintRecovery?.(actions);warn();
  }
- dispose(){if(!this.alive)return;clearTimeout(this.timer);try{this.capture();}catch(e){this.onError?.(e);}this.alive=false;this.frame?.remove();}
+ dispose(force=false){if(!this.alive)return true;clearTimeout(this.timer);try{this.capture();}catch(e){this.say(C.error+cartridgeError(e),true);this.onError?.(e);if(!force)return false;}this.alive=false;this.frame?.remove();return true;}
 }
 export {MapLibrary};
