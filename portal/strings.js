@@ -7,7 +7,7 @@ export const S = Object.freeze({
  dnd:'DnD', dndStatus:'Combate D20 en prototipo con Training Dummy. Las reglas completas aún están pendientes.',
  moon:'Moon System', moonStatus:'Distopía urbana e industrial. Monedas y enfrentamientos en especificación; modo todavía no jugable.',
  setup:'El servicio de cuentas no está configurado. El registro y las campañas estarán disponibles al conectar la aplicación Firebase LUMEN Web del proyecto rol-serv.',
- loading:'Cargando…', email:'Correo electrónico', password:'Contraseña', passwordHint:'Usa al menos 12 caracteres.',
+ loading:'Cargando…', email:'Correo electrónico', password:'Contraseña', passwordHint:'Usa al menos 12 caracteres.', showPassword:'Mostrar contraseña', hidePassword:'Ocultar contraseña', rememberMe:'Recuérdame en este dispositivo', rememberHint:'Mantiene tu sesión al cerrar y volver a abrir el navegador. No lo actives en equipos compartidos.', sessionStorageError:'No se pudo configurar una sesión segura en este navegador. Revisa los permisos de almacenamiento o usa otro navegador.',
  confirm:'Si el registro se ha aceptado, revisa tu correo para confirmar la cuenta y luego inicia sesión.',
  authRequired:'Inicia sesión para acceder a tus campañas.', signedOut:'Sesión cerrada.',
  create:'Crear campaña', campaignName:'Nombre de la campaña', ruleset:'Reglamento', createAction:'Crear como DM',
