@@ -326,3 +326,11 @@ footer{padding:22px 36px;color:var(--muted);font-size:12px;border-top:1px solid 
 .lobby-roster{list-style:none;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:9px}
 .lobby-roster li{padding:9px 13px;border:1px solid var(--gold-dim);background:#17120c;font:14px system-ui,sans-serif;overflow-wrap:anywhere}
 .lobby-disclaimer{display:block;margin-top:18px;color:var(--muted);font:12px/1.5 system-ui,sans-serif}
+
+/* Map library reuses the original editor; its canvas retains its own layout. */
+#cartridge-warning{position:sticky;top:0;z-index:20;margin:0;padding:12px 5%;background:#231a0c;color:#f4d493;border-block:1px solid #9e7842}
+.map-library #lumen-editor{display:block;width:100%;height:80vh;min-height:420px;border:1px solid #9e7842;background:#090909}
+.map-library #lumen-editor[hidden],#cartridge-warning[hidden]{display:none}
+.map-library #map-name{width:min(100%,480px)}
+.map-library .campaign button+button{margin-left:12px}
+.map-library #cartridge-status{overflow-wrap:anywhere}

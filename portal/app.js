@@ -1,3 +1,5 @@
+import { mountMapLibrary, clearMapLibraries } from './map-library.js';
+import { C, cartridgeError } from './cartridge-strings.js';
 import { firebaseConfig, configured } from './config.js';
 import { S } from './strings.js';
 import { makeInvitationCode, cleanInvitationCode, campaignName, availableRuleset } from './campaign-model.js';
@@ -40,6 +42,7 @@ function wirePasswordToggle() {
 
 let fb=null, auth=null, db=null, user=null, initError=null, epoch=0, busy=false, chosenName='', profileIssue='';
 let stopLobbyListeners=()=>{};
+let stopMapLibrary=()=>{};
 const ownName=()=>visibleDisplayName(chosenName || user?.displayName,S.unnamed);
 
 function message(text='', bad=false) {
@@ -456,6 +459,7 @@ async function campaign(ticket,id,dmRequested) {
     '<p>'+esc(names[c.ruleset])+' · '+(c.status==='active'?S.active:S.archived)+'</p>'+
     '<p>'+(dm?S.dmNotice:S.waiting)+'</p>'+
     button(S.refresh,'refresh')+'<small>'+S.refreshNotice+'</small>'+
+    (dm&&c.ruleset==='legacy'&&c.status==='active'?'<p>'+link(C.title,'#mapas/'+id)+'</p>':'')+
     (dm?'<div class="grid"><section class="panel"><h2>'+S.members+'</h2><ul class="list">'+
       members.map((m,i)=>'<li><span class="account">'+esc(memberNames.get(m.userId)||S.unnamed)+(m.role==='dm'?' (DM)':'')+
       '</span><small>'+S.joinedAt+': '+date(m.joinedAt)+'</small>'+
@@ -505,7 +509,27 @@ async function campaign(ticket,id,dmRequested) {
     });
   });
 }
+async function mapLibrary(ticket,id) {
+  const uid=user?.uid;
+  async function verify(){
+    if(!uid||user?.uid!==uid||!auth?.currentUser||auth.currentUser.uid!==uid||!/^[A-Za-z0-9]{20}$/.test(id))throw Error('CARTRIDGE_ACCESS');
+    // Never trust the route or a cache-only campaign snapshot as authorization.
+    const snap=await fb.fs.getDocFromServer(fb.fs.doc(db,'campaigns',id));
+    if(!snap.exists()||user?.uid!==uid||ticket!==epoch)throw Error('CARTRIDGE_ACCESS');
+    const c=snap.data();
+    if(c.ownerId!==uid||c.ruleset!=='legacy'||c.status!=='active')throw Error('CARTRIDGE_ACCESS');
+    return {uid,ownerUid:c.ownerId,campaignId:id,rulesetId:c.ruleset,status:c.status,name:c.name};
+  }
+  try{
+    const context=await verify();
+    if(ticket!==epoch)return;
+    app.innerHTML=link(S.back,'#dm/'+id)+'<section class="map-library"></section>';
+    const cleanup=await mountMapLibrary({element:app.querySelector('.map-library'),context,campaignName:context.name,verify,onError:()=>{}});
+    if(ticket!==epoch)cleanup();else stopMapLibrary=cleanup;
+  }catch(error){if(ticket===epoch){app.textContent=cartridgeError(error);}}
+}
 async function render() {
+  stopMapLibrary();stopMapLibrary=()=>{};
   const ticket=++epoch;
   stopLobbyListeners();stopLobbyListeners=()=>{};
   app.setAttribute('aria-busy','true');
@@ -513,7 +537,7 @@ async function render() {
     (user?link(S.games,'#partidas')+link(S.profile,'#perfil')+button(S.logout,'logout'):
       link(S.login,'#acceso')+link(S.signup,'#registro'));
   wireAction('logout',async()=>{
-    await fb.auth.signOut(auth); user=null;
+    await fb.auth.signOut(auth); user=null;clearMapLibraries();
     location.hash='inicio';message(S.signedOut);await render();
   });
   const [route,id]=location.hash.slice(1).split('/');
@@ -521,10 +545,11 @@ async function render() {
     if(route==='perfil'){
       if(!auth||!user){authForm('acceso');if(auth)message(S.authRequired);return;}
       accountProfile();
-    } else if(['partidas','dm','sala'].includes(route)){
+    } else if(['partidas','dm','sala','mapas'].includes(route)){
       app.textContent=S.loading;
       if(!auth||!user){authForm('acceso');if(auth)message(S.authRequired);return;}
-      if(route==='partidas')await games(ticket);
+      if(route==='mapas')await mapLibrary(ticket,id);
+      else if(route==='partidas')await games(ticket);
       else await campaign(ticket,id,route==='dm');
     } else if(['registro','acceso','recuperar'].includes(route)) {
       if(user){location.hash='partidas';return;}
@@ -548,7 +573,7 @@ async function initialize() {
     ]);
     const instance=appSdk.initializeApp(firebaseConfig);
     fb={auth:authSdk,fs:fsSdk};auth=authSdk.getAuth(instance);db=fsSdk.getFirestore(instance);
-    authSdk.onAuthStateChanged(auth, next=>{user=next;chosenName=next?.displayName||'';if(!next)profileIssue='';void render();},error=>{
+    authSdk.onAuthStateChanged(auth, next=>{if(user?.uid!==next?.uid)clearMapLibraries();user=next;chosenName=next?.displayName||'';if(!next)profileIssue='';void render();},error=>{
       initError=error;user=null;void render();
     });
   }catch(error){initError=error;await render();message(S.error,true);}
