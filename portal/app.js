@@ -1,3 +1,4 @@
+import { campaignAccess } from './cartridge-access.js';
 import { mountMapLibrary, clearMapLibraries } from './map-library.js';
 import { C, cartridgeError } from './cartridge-strings.js';
 import { firebaseConfig, configured } from './config.js';
@@ -512,13 +513,9 @@ async function campaign(ticket,id,dmRequested) {
 async function mapLibrary(ticket,id) {
   const uid=user?.uid;
   async function verify(){
-    if(!uid||user?.uid!==uid||!auth?.currentUser||auth.currentUser.uid!==uid||!/^[A-Za-z0-9]{20}$/.test(id))throw Error('CARTRIDGE_ACCESS');
-    // Never trust the route or a cache-only campaign snapshot as authorization.
-    const snap=await fb.fs.getDocFromServer(fb.fs.doc(db,'campaigns',id));
-    if(!snap.exists()||user?.uid!==uid||ticket!==epoch)throw Error('CARTRIDGE_ACCESS');
-    const c=snap.data();
-    if(c.ownerId!==uid||c.ruleset!=='legacy'||c.status!=='active')throw Error('CARTRIDGE_ACCESS');
-    return {uid,ownerUid:c.ownerId,campaignId:id,rulesetId:c.ruleset,status:c.status,name:c.name};
+    return campaignAccess({uid,campaignId:id,
+      currentUid:()=>ticket===epoch&&user?.uid===auth?.currentUser?.uid?user?.uid:null,
+      readCampaign:cid=>fb.fs.getDocFromServer(fb.fs.doc(db,'campaigns',cid))});
   }
   try{
     const context=await verify();

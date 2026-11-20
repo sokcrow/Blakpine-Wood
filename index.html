@@ -1733,7 +1733,7 @@ function key(){return `fh_editor_map_v1`}
 function safeStorage(k,v){try{localStorage.setItem(k,v);return true}catch(e){return false}}
 function readStorage(k){try{return localStorage.getItem(k)}catch(e){return null}}
 function status(t){$('#autosave').textContent=t}
-function saveSoon(){if(lumenCartridgeMode){lumenEditorChanged=true;dirty=true;status(window.LUMEN_CARTRIDGE_TEXT?.editorDirty||'LUMEN');lumenEditorNotify?.();return}dirty=true;status('● Sin guardar');clearTimeout(saveTimer);saveTimer=setTimeout(()=>{if(safeStorage(key(),JSON.stringify(project))){dirty=false;status('✓ Guardado local')}else{status('⚠ Exporta JSON para guardar')}},550)}
+function saveSoon(){if(typeof lumenCartridgeMode!=='undefined'&&lumenCartridgeMode){lumenEditorChanged=true;dirty=true;status(window.LUMEN_CARTRIDGE_TEXT?.editorDirty||'LUMEN');lumenEditorNotify?.();return}dirty=true;status('● Sin guardar');clearTimeout(saveTimer);saveTimer=setTimeout(()=>{if(safeStorage(key(),JSON.stringify(project))){dirty=false;status('✓ Guardado local')}else{status('⚠ Exporta JSON para guardar')}},550)}
 function toast(msg){let el=$('#toast');el.textContent=msg;el.style.display='block';clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.style.display='none',3200)}
 
 // Cada escalera real del piso inferior tiene una bajada vinculada en el superior.
@@ -3267,7 +3267,7 @@ function exportJSON(withImages){const doc=exportProject(withImages);try{if(doc.e
  finish();}
 function exportPNG(){const area=window.FHMapGrid.bounds(project.units);if(area.width*area.height>28000000){toast(window.FH_MAP_GRID_TEXT.exportTooLarge);return}const temp=document.createElement('canvas');temp.width=area.width;temp.height=area.height;const c=temp.getContext('2d');renderOn(c,area.width,area.height,{tx:-area.x,ty:-area.y,scale:1},{dpr:1,clean:true});temp.toBlob(blob=>{if(blob){downloadBlob(blob,`${fileBase()}_${current().id}.png`);toast('Vista PNG exportada')}else toast('No se pudo exportar PNG')},'image/png')}
 function importProject(obj){
- if(lumenCartridgeMode){window.LumenEditor.validate(obj);if(!confirm(window.LUMEN_CARTRIDGE_TEXT.overwrite))return;window.LumenEditor.load(obj,lumenEditorNotify);saveSoon();return}
+ if(typeof lumenCartridgeMode!=='undefined'&&lumenCartridgeMode){window.LumenEditor.validate(obj);if(!confirm(window.LUMEN_CARTRIDGE_TEXT.overwrite))return;window.LumenEditor.load(obj,lumenEditorNotify);saveSoon();return}
  if(obj.environment)window.FHTerrain?.config(obj.environment);
  window.FHStructureHealth?.validateMap(obj);
  window.FHAccessConfig?.validateMap(obj);
@@ -5139,7 +5139,7 @@ function floorSightThroughOpening(f,at,target,openings){
 }
 let fhCharacterLaunchPending=false;
 async function start3DPreview(){
- if(lumenCartridgeMode){toast(window.LUMEN_CARTRIDGE_TEXT?.previewUnavailable||'LUMEN');return}
+ if(typeof lumenCartridgeMode!=='undefined'&&lumenCartridgeMode){toast(window.LUMEN_CARTRIDGE_TEXT?.previewUnavailable||'LUMEN');return}
  if(preview3DActive||fhCharacterLaunchPending)return;
  const spawn=preview3DSelectedMap?0:project.floors.findIndex(f=>f.items.some(it=>it.type==='spawn'));
  if(spawn<0){setCategory('areas');chooseTool('spawn');toast('Coloca primero 📍 Spawn en el mapa que estás editando.');return}
@@ -5366,7 +5366,7 @@ document.getElementById('play3dBack').addEventListener('click',close3DPreview);
 setupPlayMode();
 init();
 
-if(lumenCartridgeMode){
+if(typeof lumenCartridgeMode!=='undefined'&&lumenCartridgeMode){
  const validate=raw=>{
   const doc=clone(raw);ForestShared.loadProject(doc);
   if(doc.environment)window.FHTerrain?.config(doc.environment);

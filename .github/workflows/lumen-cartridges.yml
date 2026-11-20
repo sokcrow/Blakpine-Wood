@@ -1,0 +1,33 @@
+name: LUMEN cartuchos locales
+on:
+  pull_request:
+    paths:
+      - 'portal/**'
+      - 'index.html'
+      - 'tests/lumen-*.test.cjs'
+      - 'tests/helpers/lumen-large-map.cjs'
+      - '.github/workflows/lumen-cartridges.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  cartridges:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Datos, editor y política de recuperación
+        run: node --test tests/lumen-*.test.cjs
+      - name: Preparar navegador de pruebas
+        run: |
+          npm install --no-save --prefix "$RUNNER_TEMP/lumen-test" playwright@1.56.1
+          "$RUNNER_TEMP/lumen-test/node_modules/.bin/playwright" install --with-deps chromium
+      - name: IndexedDB nativo, descarga y reapertura
+        env:
+          LUMEN_BROWSER_TEST: '1'
+        run: NODE_PATH="$RUNNER_TEMP/lumen-test/node_modules" node --test tests/lumen-browser.test.cjs

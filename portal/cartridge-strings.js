@@ -31,3 +31,12 @@ export function cartridgeError(error) {
  if (/MAP_VALIDATOR|EDITOR/.test(error?.message || '')) return C.editorError;
  return C.invalid;
 }
+
+export function recoveryError(error) {
+ const code=error?.code||error?.message||'';
+ return /QUOTA/.test(code)?'Se agotó la cuota del navegador.':
+ /CONFLICT/.test(code)?'Otra pestaña guardó una revisión distinta. Exporta tu copia antes de abrir una recuperación.':
+ /PERMISSION/.test(code)?'El navegador denegó el acceso al almacenamiento.':
+ /BLOCKED/.test(code)?'Otra pestaña bloquea la apertura del almacenamiento.':
+ 'El almacenamiento del navegador no está disponible.';
+}

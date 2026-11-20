@@ -2,7 +2,7 @@ const {test}=require('node:test'),assert=require('node:assert/strict'),fs=requir
 const html=fs.readFileSync('index.html','utf8');
 function bridge(){
  const start=html.indexOf('const ForestShared=(()=>{'),end=html.indexOf("\n'use strict';",start);
- const begin=html.indexOf('if(lumenCartridgeMode){\n const validate=raw=>'),finish=html.indexOf('// Puerta opcional',begin);
+ const begin=html.indexOf("if(typeof lumenCartridgeMode!=='undefined'&&lumenCartridgeMode){\n const validate=raw=>"),finish=html.indexOf('// Puerta opcional',begin);
  const fixture=JSON.parse(fs.readFileSync('forest-horror/maps/DEMO_Ascensor_5_Pisos.json'));
  let writes=0;
  const ctx=vm.createContext({fixture,console,setTimeout:()=>0,clearTimeout:()=>{},localStorage:{setItem(){writes++}},
