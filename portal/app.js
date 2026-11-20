@@ -1,6 +1,7 @@
 import { firebaseConfig, configured } from './config.js';
 import { S } from './strings.js';
 import { makeInvitationCode, cleanInvitationCode, campaignName, availableRuleset } from './campaign-model.js';
+import { cleanDisplayName, visibleDisplayName } from './profile-model.js';
 
 const app = document.querySelector('#app');
 const nav = document.querySelector('#nav');
@@ -13,6 +14,10 @@ const link = (text, url, cls='') => '<a class="'+esc(cls)+'" href="'+esc(url)+'"
 const button = (text, id, disabled=false) => '<button type="button" id="'+id+'" '+(disabled?'disabled':'')+'>'+esc(text)+'</button>';
 const date = v => { try { return (v?.toDate?.() ?? new Date(v)).toLocaleString('es-MX'); } catch { return ''; } };
 const input = (id, label, type='text', extra='') => '<label for="'+id+'">'+esc(label)+'</label><input id="'+id+'" name="'+id+'" type="'+type+'" required '+extra+'>';
+const nameField = (current='') =>
+  '<label for="displayName">'+S.displayName+'</label>'+
+  '<input id="displayName" name="displayName" type="text" required minlength="3" maxlength="32" autocomplete="nickname" placeholder="'+esc(S.displayNamePlaceholder)+'" value="'+esc(current)+'">'+
+  '<small class="field-hint">'+S.displayNameHelp+'</small>';
 const eyeIcon = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>';
 const passwordField = (signup) =>
   '<label for="password">'+S.password+'</label>'+
@@ -32,7 +37,8 @@ function wirePasswordToggle() {
   });
 }
 
-let fb=null, auth=null, db=null, user=null, initError=null, epoch=0, busy=false;
+let fb=null, auth=null, db=null, user=null, initError=null, epoch=0, busy=false, chosenName='', profileIssue='';
+const ownName=()=>visibleDisplayName(chosenName || user?.displayName,S.unnamed);
 
 function message(text='', bad=false) {
   notice.textContent=text; notice.className=bad?'error':'';
@@ -46,6 +52,7 @@ function readableError(error) {
   if (/invalid-credential|wrong-password|user-not-found/.test(c)) return S.authError;
   if (/auth\/unsupported-persistence|auth\/web-storage-unsupported/.test(c)) return S.sessionStorageError;
   if (/CAMPAIGN_NAME_INVALID/.test(c)) return 'El nombre debe tener entre 1 y 80 caracteres.';
+  if (/DISPLAY_NAME_INVALID/.test(c)) return S.profileNameInvalid;
   if (/RULESET_NOT_AVAILABLE/.test(c)) return 'Ese reglamento no está habilitado.';
   if (/INVITATION_INVALID|INVITE_/.test(c)) return 'Invitación inválida, revocada o caducada.';
   if (/MEMBERSHIP_REMOVED/.test(c)) return 'Fuiste expulsado y no puedes reincorporarte con invitaciones.';
@@ -129,12 +136,46 @@ function home() {
       '</div>'+
     '</section>';
 }
+async function saveDisplayName(authUser, suppliedName) {
+  const name=cleanDisplayName(suppliedName);
+  // Firebase Auth almacena la etiqueta elegida; el UID sigue siendo la identidad real.
+  await fb.auth.updateProfile(authUser,{displayName:name});
+  if(user?.uid===authUser.uid)chosenName=name;
+  // Perfil compartible: sólo nombre visible y fecha. No guardar correo ni contraseña.
+  try {
+    await fb.fs.setDoc(fb.fs.doc(db,'profiles',authUser.uid),{
+      displayName:name,updatedAt:fb.fs.serverTimestamp()
+    });
+    return true;
+  } catch {
+    // Las reglas de perfiles podrían no estar desplegadas aún. No borrar la cuenta.
+    return false;
+  }
+}
+function accountProfile() {
+  app.innerHTML='<section class="auth account-profile"><p class="kicker">'+S.eyebrow+'</p>'+
+    '<h1>'+S.profileTitle+'</h1><p class="profile-subtitle">'+S.profileSubtitle+'</p>'+
+    (profileIssue?'<p class="query-warning" role="alert">'+esc(profileIssue)+'</p>':'')+
+    '<p class="profile-current">'+esc(ownName())+'</p>'+
+    '<form id="profile-form"><fieldset>'+
+      nameField(chosenName || user.displayName || '')+
+      '<button type="submit" class="primary">'+S.profileSave+'</button>'+
+    '</fieldset></form>'+
+    '<p class="profile-note">'+S.profileVisibility+'</p></section>';
+  wireForm('profile-form',async data=>{
+    const synced=await saveDisplayName(user,data.get('displayName'));
+    profileIssue=synced?'':S.profileSyncPending;
+    await render();
+    message(synced?S.profileSaved:S.profileSyncPending,!synced);
+  });
+}
 function authForm(mode) {
   const reset=mode==='recuperar', signup=mode==='registro';
   const heading=reset?S.reset:signup?S.signup:S.login;
   app.innerHTML='<section class="auth"><p class="kicker">'+S.eyebrow+'</p><h1>'+heading+'</h1>'+
     (!configured?'<p class="setup">'+S.setup+'</p>':'')+
     '<form id="auth"><fieldset '+(!auth?'disabled':'')+'>'+
+    (signup?nameField(): '')+
     input('email',S.email,'email','autocomplete="email" maxlength="254"')+
     (reset?'':passwordField(signup))+
     (signup?'<small>'+S.passwordHint+'</small>':'')+
@@ -149,11 +190,17 @@ function authForm(mode) {
       await fb.auth.sendPasswordResetEmail(auth,email,{url:new URL('./',location.href).href});
       message(S.resetSent);
     } else if(signup) {
+      // Validar antes de crear credenciales para no dejar cuentas medio registradas.
+      const wantedName=cleanDisplayName(data.get('displayName'));
       await fb.auth.setPersistence(auth,fb.auth.browserSessionPersistence);
       const result=await fb.auth.createUserWithEmailAndPassword(auth,email,password);
+      let synced=false;
+      try { synced=await saveDisplayName(result.user,wantedName); }
+      catch { profileIssue=S.profileSaveError; }
+      if(!synced && !profileIssue)profileIssue=S.profileSyncPending;
       try { await fb.auth.sendEmailVerification(result.user);message(S.verifyEmail); }
       catch { message(S.confirm); }
-      location.hash='partidas';
+      location.hash=synced?'partidas':'perfil';
     } else {
       const remember=data.get('remember-me')==='yes';
       await fb.auth.setPersistence(auth,remember?fb.auth.browserLocalPersistence:fb.auth.browserSessionPersistence);
@@ -248,7 +295,7 @@ async function games(ticket) {
     '<section class="workspace-head">'+
       '<div><p class="kicker">'+S.workspaceKicker+'</p>'+
       '<h1>'+S.games+'</h1><p class="workspace-intro">'+S.workspaceIntro+'</p></div>'+
-      '<p class="account">'+esc(user.email)+'</p>'+
+      '<p class="account">'+esc(ownName())+' · '+link(S.profile,'#perfil')+'</p>'+
     '</section>'+
     '<div class="grid">'+
       '<section class="panel"><p class="panel-eyebrow">01 / '+S.create+'</p><h2>'+S.create+'</h2>'+
@@ -292,6 +339,7 @@ async function campaign(ticket,id,dmRequested) {
   const c=snap.data(), dm=c.ownerId===user.uid;
   if(dmRequested&&!dm){app.textContent=S.noAccess;return;}
   let members=[],invites=[];
+  const memberNames=new Map();
   if(dm){
     const [m,i]=await Promise.all([
       fs.getDocs(fs.collection(db,'campaigns',id,'members')),
@@ -299,6 +347,15 @@ async function campaign(ticket,id,dmRequested) {
     ]);
     members=m.docs.map(d=>({id:d.id,...d.data()}));
     invites=i.docs.map(d=>({id:d.id,...d.data()}));
+    // Consultar sólo los perfiles de los miembros de esta campaña.
+    const resolved=await Promise.allSettled(members.map(async member=>{
+      if(member.userId===user.uid)return ownName();
+      const profile=await fs.getDoc(fs.doc(db,'profiles',member.userId));
+      return profile.exists()?visibleDisplayName(profile.data().displayName,S.unnamed):S.unnamed;
+    }));
+    members.forEach((member,index)=>{
+      memberNames.set(member.userId,resolved[index].status==='fulfilled'?resolved[index].value:S.unnamed);
+    });
   }
   if(ticket!==epoch)return;
   app.innerHTML=link(S.back,'#partidas')+
@@ -307,7 +364,7 @@ async function campaign(ticket,id,dmRequested) {
     '<p>'+(dm?S.dmNotice:S.waiting)+'</p>'+
     button(S.refresh,'refresh')+'<small>'+S.refreshNotice+'</small>'+
     (dm?'<div class="grid"><section class="panel"><h2>'+S.members+'</h2><ul class="list">'+
-      members.map((m,i)=>'<li><span class="account">'+S.account+': '+esc(m.userId)+(m.role==='dm'?' (DM)':'')+
+      members.map((m,i)=>'<li><span class="account">'+esc(memberNames.get(m.userId)||S.unnamed)+(m.role==='dm'?' (DM)':'')+
       '</span><small>'+S.joinedAt+': '+date(m.joinedAt)+'</small>'+
       (m.role==='member'&&m.status==='active'?button(S.expel,'expel-'+i):
         m.status==='removed'?'<small>'+S.expelled+': '+date(m.removedAt)+'</small>':'')+'</li>').join('')+
@@ -357,7 +414,7 @@ async function render() {
   const ticket=++epoch;
   app.setAttribute('aria-busy','true');
   nav.innerHTML=link(S.home,'#inicio')+
-    (user?link(S.games,'#partidas')+button(S.logout,'logout'):
+    (user?link(S.games,'#partidas')+link(S.profile,'#perfil')+button(S.logout,'logout'):
       link(S.login,'#acceso')+link(S.signup,'#registro'));
   wireAction('logout',async()=>{
     await fb.auth.signOut(auth); user=null;
@@ -365,7 +422,10 @@ async function render() {
   });
   const [route,id]=location.hash.slice(1).split('/');
   try {
-    if(['partidas','dm','sala'].includes(route)){
+    if(route==='perfil'){
+      if(!auth||!user){authForm('acceso');if(auth)message(S.authRequired);return;}
+      accountProfile();
+    } else if(['partidas','dm','sala'].includes(route)){
       app.textContent=S.loading;
       if(!auth||!user){authForm('acceso');if(auth)message(S.authRequired);return;}
       if(route==='partidas')await games(ticket);
@@ -392,7 +452,7 @@ async function initialize() {
     ]);
     const instance=appSdk.initializeApp(firebaseConfig);
     fb={auth:authSdk,fs:fsSdk};auth=authSdk.getAuth(instance);db=fsSdk.getFirestore(instance);
-    authSdk.onAuthStateChanged(auth, next=>{user=next;void render();},error=>{
+    authSdk.onAuthStateChanged(auth, next=>{user=next;chosenName=next?.displayName||'';if(!next)profileIssue='';void render();},error=>{
       initError=error;user=null;void render();
     });
   }catch(error){initError=error;await render();message(S.error,true);}
