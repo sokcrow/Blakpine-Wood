@@ -13,6 +13,25 @@ const link = (text, url, cls='') => '<a class="'+esc(cls)+'" href="'+esc(url)+'"
 const button = (text, id, disabled=false) => '<button type="button" id="'+id+'" '+(disabled?'disabled':'')+'>'+esc(text)+'</button>';
 const date = v => { try { return (v?.toDate?.() ?? new Date(v)).toLocaleString('es-MX'); } catch { return ''; } };
 const input = (id, label, type='text', extra='') => '<label for="'+id+'">'+esc(label)+'</label><input id="'+id+'" name="'+id+'" type="'+type+'" required '+extra+'>';
+const eyeIcon = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>';
+const passwordField = (signup) =>
+  '<label for="password">'+S.password+'</label>'+
+  '<div class="password-control">'+
+    '<input id="password" name="password" type="password" required autocomplete="'+(signup?'new-password':'current-password')+'" minlength="'+(signup?'12':'6')+'" maxlength="128" spellcheck="false">'+
+    '<button type="button" id="toggle-password" class="password-toggle" aria-controls="password" aria-pressed="false" aria-label="'+S.showPassword+'" title="'+S.showPassword+'">'+eyeIcon+'</button>'+
+  '</div>';
+function wirePasswordToggle() {
+  const field=document.getElementById('password'), toggle=document.getElementById('toggle-password');
+  if(!field || !toggle)return;
+  toggle.addEventListener('click',()=>{
+    const visible=field.type==='password';
+    field.type=visible?'text':'password';
+    toggle.setAttribute('aria-pressed',String(visible));
+    toggle.setAttribute('aria-label',visible?S.hidePassword:S.showPassword);
+    toggle.title=visible?S.hidePassword:S.showPassword;
+  });
+}
+
 let fb=null, auth=null, db=null, user=null, initError=null, epoch=0, busy=false;
 
 function message(text='', bad=false) {
@@ -25,6 +44,7 @@ function readableError(error) {
   if (/invalid-email/.test(c)) return 'El correo electrónico no es válido.';
   if (/weak-password/.test(c)) return 'La contraseña no cumple los requisitos de Firebase.';
   if (/invalid-credential|wrong-password|user-not-found/.test(c)) return S.authError;
+  if (/auth\/unsupported-persistence|auth\/web-storage-unsupported/.test(c)) return S.sessionStorageError;
   if (/CAMPAIGN_NAME_INVALID/.test(c)) return 'El nombre debe tener entre 1 y 80 caracteres.';
   if (/RULESET_NOT_AVAILABLE/.test(c)) return 'Ese reglamento no está habilitado.';
   if (/INVITATION_INVALID|INVITE_/.test(c)) return 'Invitación inválida, revocada o caducada.';
@@ -116,23 +136,27 @@ function authForm(mode) {
     (!configured?'<p class="setup">'+S.setup+'</p>':'')+
     '<form id="auth"><fieldset '+(!auth?'disabled':'')+'>'+
     input('email',S.email,'email','autocomplete="email" maxlength="254"')+
-    (reset?'':input('password',S.password,'password',
-      'autocomplete="'+(signup?'new-password':'current-password')+'" minlength="'+(signup?'12':'6')+'" maxlength="128"'))+
+    (reset?'':passwordField(signup))+
     (signup?'<small>'+S.passwordHint+'</small>':'')+
+    (!reset&&!signup?'<label class="remember-row" for="remember-me"><input id="remember-me" name="remember-me" type="checkbox" value="yes"><span>'+S.rememberMe+'<small>'+S.rememberHint+'</small></span></label>':'')+
     '<button type="submit" class="primary">'+(reset?S.resetAction:heading)+'</button></fieldset></form>'+
     '<p>'+link(S.login,'#acceso')+' · '+link(S.signup,'#registro')+
     ' · '+link(S.reset,'#recuperar')+'</p></section>';
+  wirePasswordToggle();
   wireForm('auth',async data=>{
     const email=String(data.get('email')).trim(), password=String(data.get('password')||'');
     if(reset) {
       await fb.auth.sendPasswordResetEmail(auth,email,{url:new URL('./',location.href).href});
       message(S.resetSent);
     } else if(signup) {
+      await fb.auth.setPersistence(auth,fb.auth.browserSessionPersistence);
       const result=await fb.auth.createUserWithEmailAndPassword(auth,email,password);
       try { await fb.auth.sendEmailVerification(result.user);message(S.verifyEmail); }
       catch { message(S.confirm); }
       location.hash='partidas';
     } else {
+      const remember=data.get('remember-me')==='yes';
+      await fb.auth.setPersistence(auth,remember?fb.auth.browserLocalPersistence:fb.auth.browserSessionPersistence);
       await fb.auth.signInWithEmailAndPassword(auth,email,password);
       location.hash='partidas';
     }
