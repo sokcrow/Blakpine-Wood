@@ -107,6 +107,7 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
 <link rel="stylesheet" href="./juego/assets/fh-mobile-menus.css?v=20261107-mobile-ui-75">
 <link rel="stylesheet" href="./juego/assets/fh-editor-layout.css?v=20261113-layout1">
 <link rel="stylesheet" href="./juego/assets/fh-multimode-selector.css?v=20261117-33">
+<link rel="stylesheet" href="./juego/assets/fh-editor-theme.css?v=20261120-lumen">
 </head>
 <body>
 <div id="app">
@@ -1676,9 +1677,9 @@ return {DOOR_VARIANTS,DOOR_LENGTH_TOLERANCE,doorSpan,doorWidthClass,doorSpec,doo
 'use strict';
 
 const SCHEMA=ForestShared.MAP_SCHEMA;
-// This mode has no global editor draft and receives data only from its LUMEN parent.
+// El cartucho usa una copia aislada, tanto en el puente como en su página de edición.
 const lumenCartridgeMode=new URLSearchParams(location.search).get('lumenCartridge')==='1';
-let lumenEditorChanged=false,lumenEditorOriginal=null,lumenEditorNotify=null;
+let lumenEditorChanged=false,lumenEditorOriginal=null,lumenEditorNotify=null,lumenEditorActions=null;
 let lumenPlaySession=null;
 if(lumenCartridgeMode&&new URLSearchParams(location.search).get('lumenPlayer')==='1'){
  document.getElementById('app').style.visibility='hidden';
@@ -1864,9 +1865,9 @@ function drawPropAnchorMarkers(c,item,z){
   c.fillText(String(index+1),p.x,p.y);c.restore();
  }
 }
-function renderOn(c,w,h,cam,opts={}){let d=opts.dpr||1;c.setTransform(d,0,0,d,0,0);c.fillStyle='#141923';c.fillRect(0,0,w,h);c.save();c.translate(cam.tx,cam.ty);c.scale(cam.scale,cam.scale);let ref=current().reference,im=loadedImgs[floorIndex],z=cam.scale;
+function renderOn(c,w,h,cam,opts={}){let d=opts.dpr||1;c.setTransform(d,0,0,d,0,0);c.fillStyle='#090909';c.fillRect(0,0,w,h);c.save();c.translate(cam.tx,cam.ty);c.scale(cam.scale,cam.scale);let ref=current().reference,im=loadedImgs[floorIndex],z=cam.scale;
 const mapBounds=window.FHMapGrid.bounds(project.units);
-c.fillStyle='#253244';c.fillRect(mapBounds.x,mapBounds.y,mapBounds.width,mapBounds.height);
+c.fillStyle='#1c1510';c.fillRect(mapBounds.x,mapBounds.y,mapBounds.width,mapBounds.height);
 if(im&&ref.visible!==false&&!opts.clean){const imageBounds=window.FHMapGrid.referenceRect(project.units,ref);c.save();c.beginPath();c.rect(mapBounds.x,mapBounds.y,mapBounds.width,mapBounds.height);c.clip();c.globalAlpha=ref.opacity??.75;c.drawImage(im,imageBounds.x,imageBounds.y,imageBounds.width,imageBounds.height);c.restore()}
 // El mapa de intensidad se pinta bajo las paredes, muebles y la cuadrícula.
 // Mientras se arrastra el router, evitar un cálculo costoso en cada evento táctil.
@@ -1875,11 +1876,11 @@ if(!opts.clean&&activeCategory==='network'&&!(action?.tool==='select'&&action.mo
  window.FHWifiEditorOverlay?.draw(c,{project,floorIndex,router:selectedRouter,toPixel,gridX:gridX(),gridY:gridY()});
 }else window.FHWifiEditorOverlay?.hide();
 // Cuadrícula calibrable: cada celda equivale a 5 pies.
-if(gridVisible){let gx=gridX(),gy=gridY(),o=origin();c.save();c.strokeStyle='rgba(236,246,255,.55)';c.lineWidth=Math.max(.45/z,.85);
+if(gridVisible){let gx=gridX(),gy=gridY(),o=origin();c.save();c.strokeStyle='rgba(240,230,211,.55)';c.lineWidth=Math.max(.45/z,.85);
 for(let n=0;n<=project.units.columns;n++){let x=o.x+n*gx;c.beginPath();c.moveTo(x,mapBounds.y);c.lineTo(x,mapBounds.y+mapBounds.height);c.stroke()}
 for(let n=0;n<=project.units.rows;n++){let y=o.y+n*gy;c.beginPath();c.moveTo(mapBounds.x,y);c.lineTo(mapBounds.x+mapBounds.width,y);c.stroke()}
 c.restore()}
-c.save();c.strokeStyle='#bed1ea';c.lineWidth=2/z;c.strokeRect(mapBounds.x,mapBounds.y,mapBounds.width,mapBounds.height);c.restore();
+c.save();c.strokeStyle='#9e7842';c.lineWidth=2/z;c.strokeRect(mapBounds.x,mapBounds.y,mapBounds.width,mapBounds.height);c.restore();
 const items=current().items;
 if(!opts.clean&&activeLayer!=='lighting'){for(const pending of (spaceCache[floorIndex]?.pending||[])){c.save();c.fillStyle='#d7a65b16';for(const sp of pending.spans){const p=toPixel(sp);c.fillRect(p.x,p.y,sp.w*gridX(),sp.h*gridY())}const cp=toPixel(pending.center);c.fillStyle='#f7c985';c.strokeStyle='#121b2b';c.lineWidth=2/z;c.font=`bold ${11/z}px system-ui`;c.textAlign='center';c.strokeText('Sin salida · añade puerta',cp.x,cp.y);c.fillText('Sin salida · añade puerta',cp.x,cp.y);c.restore()}}
 if(floorIndex>window.FHFloorLevels.mainIndex(project)){const slab=buildingSlabs(floorIndex-1);if(slab.spans.length){c.save();c.fillStyle='#cd68712e';c.strokeStyle='#f37b83a0';c.lineWidth=1.2/z;for(const sp of slab.spans){const p=toPixel({x:sp.x,y:sp.y});const w=sp.w*gridX(),h=sp.h*gridY();c.fillRect(p.x,p.y,w,h)}c.restore()}}
@@ -3401,7 +3402,7 @@ function playPaint(){const c=playCtx,w=playCanvas.clientWidth,h=playCanvas.clien
  document.querySelector('#playCoords').textContent=`X ${playState.x.toFixed(1)} · Y ${playState.y.toFixed(1)} · ${Math.round(playState.x*project.units.feetPerCell)} / ${Math.round(playState.y*project.units.feetPerCell)} pies`;
 }
 function playStickPoint(e){const el=document.querySelector('#playJoystick'),r=el.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,rad=r.width*.31,dx=e.clientX-cx,dy=e.clientY-cy,len=Math.hypot(dx,dy);const scale=Math.min(1,rad/Math.max(len,.01));const px=dx*scale,py=dy*scale;playState.stick={x:px/rad,y:py/rad};document.querySelector('#playKnob').style.transform=`translate(calc(-50% + ${px}px),calc(-50% + ${py}px))`}
-function setupPlayMode(){$('#testBtn').onclick=()=>{window.FHMultimodeSaveSelection=null;preview3DSelectedMap=null;launch3DPreview()};document.querySelector('#spawnQuickBtn').onclick=()=>{setCategory('areas');chooseTool('spawn');toast('Punto inicial: toca la casilla donde aparecerá el jugador.');const b=document.querySelector('#tools button[data-tool="spawn"]');b?.scrollIntoView({inline:'center',block:'nearest'})};document.querySelector('#playClose').onclick=stopPlay;document.querySelector('#playReset').onclick=()=>{const spawn=playFloor().items.find(it=>it.type==='spawn');if(spawn)playSetFloor(playState.floorIndex,spawn);else playSetFloor(playState.floorIndex,{x:playState.x,y:playState.y})};document.querySelector('#playVision').onclick=()=>{playState.vision=!playState.vision;document.querySelector('#playVision').textContent=playState.vision?'Visión: limitada':'Visión: libre'};document.querySelector('#playAction').onclick=playAction;
+function setupPlayMode(){$('#testBtn').onclick=()=>{if(lumenCartridgeMode&&window.LumenEditor){window.LumenEditor.play(window.LumenEditor.read());return;}window.FHMultimodeSaveSelection=null;preview3DSelectedMap=null;launch3DPreview()};document.querySelector('#spawnQuickBtn').onclick=()=>{setCategory('areas');chooseTool('spawn');toast('Punto inicial: toca la casilla donde aparecerá el jugador.');const b=document.querySelector('#tools button[data-tool="spawn"]');b?.scrollIntoView({inline:'center',block:'nearest'})};document.querySelector('#playClose').onclick=stopPlay;document.querySelector('#playReset').onclick=()=>{const spawn=playFloor().items.find(it=>it.type==='spawn');if(spawn)playSetFloor(playState.floorIndex,spawn);else playSetFloor(playState.floorIndex,{x:playState.x,y:playState.y})};document.querySelector('#playVision').onclick=()=>{playState.vision=!playState.vision;document.querySelector('#playVision').textContent=playState.vision?'Visión: limitada':'Visión: libre'};document.querySelector('#playAction').onclick=playAction;
  const joy=document.querySelector('#playJoystick');joy.addEventListener('pointerdown',e=>{e.preventDefault();joy.setPointerCapture(e.pointerId);playState.stickPointer=e.pointerId;playStickPoint(e)});joy.addEventListener('pointermove',e=>{if(playState.stickPointer===e.pointerId){e.preventDefault();playStickPoint(e)}});const release=e=>{if(playState.stickPointer===e.pointerId){playState.stickPointer=null;playState.stick={x:0,y:0};document.querySelector('#playKnob').style.transform='translate(-50%,-50%)'}};joy.addEventListener('pointerup',release);joy.addEventListener('pointercancel',release);
  window.addEventListener('resize',playResize);window.addEventListener('keydown',e=>{if(!playState.running)return;const k=e.key.toLowerCase();if(['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d','e','escape'].includes(k)){e.preventDefault();e.stopImmediatePropagation();if(k==='escape')stopPlay();else if(k==='e'&&!e.repeat)playAction();else playState.keys.add(k)}},true);window.addEventListener('keyup',e=>{if(playState.running){playState.keys.delete(e.key.toLowerCase());if(['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d'].includes(e.key.toLowerCase()))e.preventDefault()}},true);window.addEventListener('blur',()=>{playState.keys.clear();playState.stick={x:0,y:0}});
 }
@@ -5408,6 +5409,17 @@ if(typeof lumenCartridgeMode!=='undefined'&&lumenCartridgeMode){
   read(){const out=clone(lumenEditorChanged?exportProject(true):lumenEditorOriginal);validate(out);return out;},
   changed:()=>lumenEditorChanged,
   saved(){dirty=false;status(window.LUMEN_CARTRIDGE_TEXT?.working||'LUMEN');},
+  setActions(actions){
+   if(!lumenEditorActions)document.getElementById('menuBtn').addEventListener('click',()=>{
+    const group=document.querySelector('#dialog .actions');if(!group||!lumenEditorActions)return;
+    for(const [key,label] of [['close','close'],['export','export'],['save','save']]){
+     const button=document.createElement('button');button.type='button';
+     button.textContent=window.LUMEN_CARTRIDGE_TEXT[label];
+     button.onclick=()=>{closeModal();void lumenEditorActions[key]?.();};group.prepend(button);
+    }
+   });
+   lumenEditorActions=actions;
+  },
   play(raw,onClose){
    validate(raw);this.stop();
    lumenPlaySession={onClose};
@@ -5507,6 +5519,7 @@ window.FHMultimodeSelector?.mount({
 <script src="./juego/assets/fh-barriers-editor.js?v=20261111-metal1"></script>
 <script src="./juego/assets/fh-editor-layout-strings.js?v=20261113-layout1"></script>
 <script src="./juego/assets/fh-editor-layout.js?v=20261113-layout1"></script>
+<script type="module" src="./portal/editor-workspace.js"></script>
 </body>
 </html>
 

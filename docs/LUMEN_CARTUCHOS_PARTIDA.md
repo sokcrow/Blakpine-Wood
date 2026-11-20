@@ -6,11 +6,13 @@ Estado: **NEEDS WORK para producción**. Código y protocolo probados; faltan de
 
 | Persona | Recorrido |
 | --- | --- |
-| DM, prueba local | Mis partidas → Panel DM → Mapas del mundo → crear/abrir/recuperar cartucho → Probar mapa en 3D |
+| DM, prueba local | Mis partidas → Panel DM → Mapas del mundo → crear/abrir/recuperar cartucho → Editar (página completa) → Probar 3D |
 | DM, partida | En el mapa elegido, Abrir partida con este mapa → publicación de la versión → Entrar al mapa → selección de personaje existente |
 | Invitado | Unirse con código → Sala de espera → Entrar a la sala → Entrar a la partida → Entrar al mapa → selección de personaje existente |
 
 Abrir partida crea una sala si no hay una abierta. Se mantiene la inscripción cuando el DM cambia el mapa dentro de la misma sala. Cerrar y reabrir una sala cambia su identificador y exige inscribirse de nuevo. El enlace de partida sólo aparece para el DM o miembros inscritos y cuando la publicación corresponde a la sala actual.
+
+El editor usa ahora su página original completa y la paleta del portal. Guardar el cartucho y volver están en Proyecto. Véase [EDITOR_PAGINA_COMPLETA_LUMEN.md](EDITOR_PAGINA_COMPLETA_LUMEN.md) para este ajuste y sus verificaciones; la prueba 3D permanece en el editor.
 
 ## Fidelidad y persistencia
 

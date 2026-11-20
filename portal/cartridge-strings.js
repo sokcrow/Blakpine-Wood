@@ -1,5 +1,5 @@
 export const C = Object.freeze({
- previewUnavailable:'Selecciona Probar mapa en 3D o Abrir partida con este mapa desde la biblioteca del cartucho.',
+ previewUnavailable:'Abre el mapa en el editor y utiliza su botón Probar 3D.',
  leaveUnsaved:'Hay cartuchos con cambios sin exportar o con errores de recuperación. ¿Cerrar sesión y descartar las copias de trabajo en memoria? Las recuperaciones que sí se guardaron seguirán en este navegador.',
  title:'Mapas del mundo', intro:'Biblioteca local del DM. Exporta el cartucho para llevarlo a otro equipo. Abre una partida para compartir la versión del mapa seleccionado con tu sala.',
  create:'Crear cartucho', open:'Abrir cartucho existente', add:'Crear mapa en el editor', importMap:'Importar mapa JSON',
@@ -26,8 +26,12 @@ export const C = Object.freeze({
  fileExtension:'Selecciona un archivo .lumen.json.',
  revision:'Revisión', maps:'mapas', editorDirty:'Cambios del editor pendientes de guardar en el cartucho.',
  localPending:'La recuperación local todavía no se ha guardado.',
+ workspaceLoading:'Abriendo el cartucho en el editor…',
+ workspaceReady:'Mapa del cartucho abierto. Guarda y vuelve a la biblioteca desde Proyecto.',
+ workspaceSaved:'Mapa guardado. Conserva también una copia exportada del cartucho.',
 });
 export function cartridgeError(error) {
+ if (/^RECOVERY_/.test(error?.code || error?.message || '')) return C.noStorage+recoveryError(error);
  if (/ACCESS|IDENTITY/.test(error?.message || '')) return C.access;
  if (/MAP_VALIDATOR|EDITOR/.test(error?.message || '')) return C.editorError;
  return C.invalid;

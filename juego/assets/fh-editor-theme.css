@@ -1,0 +1,40 @@
+/* LUMEN colours only. Layout, typography and map legend retain their own rules. */
+:root{
+ --bg:#090909;--panel:#130f0b;--panel2:#1c1510;--line:#9e7842;
+ --text:#f0e6d3;--muted:#b9a98e;--active:#d9ad61;--mint:#eac47d;--gold:#f4d493;
+ --editor-selected:#49351e;--editor-overlay:#090909ed;--editor-control:#1c1510;
+}
+#head,#subbar,#palette,#floorTabs,#quickGrid,#inspector,.dialog,
+body.fh-editor .fh-editor-panel,body.fh-editor .fh-panel-head{
+ background:var(--panel);border-color:var(--line);color:var(--text);
+}
+#brand small,#floorElevation,#fields label,.dialog p,.dialog label,
+#quickGrid label,#circuitStatus,#circuitTools .circuit-all{color:var(--muted)}
+button.primary,button.accent,button.active,.snapModes button.active,
+#categories button.active,#floorTabs button.selected,#layerSwitch button.active,
+body.fh-editor [data-editor-tool][aria-pressed=true],body.fh-editor #fhPropertiesToggle[aria-expanded=true]{
+ background:var(--editor-selected);border-color:var(--active);color:var(--gold);
+}
+button.active,.snapModes button.active{box-shadow:inset 0 0 0 1px #d9ad6140}
+#testBtn,#spawnQuickBtn,#quickGrid button,#circuitAudit{
+ background:var(--editor-selected)!important;border-color:var(--active)!important;color:var(--gold);
+}
+#fields input,#fields select,#fields textarea,.dialog input[type=number],.dialog input[type=text],
+#quickGrid input,#circuitTools select,#circuitColor,.breaker-circuit-card input,.breaker-circuit-card select,
+body.fh-editor .fh-overflow-toggle{
+ background:var(--editor-control);border-color:var(--line);color:var(--text);
+}
+input[type=checkbox],.dialog input[type=range]{accent-color:var(--active)}
+#quickGrid input:focus,body.fh-editor #app button:focus-visible,
+body.fh-editor #app summary:focus-visible,body.fh-editor #inspector:focus-visible{outline-color:var(--gold)}
+#stage,body.layer-lighting #stage{background:var(--bg)}
+#stageHint,#coords,#stageBadge,#zoomLabel,#zoomControls button,#wifiCoverageLegend,
+body.fh-editor.fh-portrait #fhOrientationNotice:not([hidden]){
+ background:var(--editor-overlay);border-color:var(--line);color:var(--text);
+}
+#overlay{background:#050505cc}
+.dialog small{color:var(--muted)}
+.tip{background:#49351e88;border-color:var(--active);color:var(--gold)}
+#toast{background:var(--panel2);border-color:var(--active);color:var(--gold)}
+#workspace-error{position:fixed;inset:0;z-index:100;background:var(--bg);color:var(--text);display:grid;place-content:center;gap:1rem;padding:2rem}
+#workspace-error a{color:var(--gold)}
