@@ -29,7 +29,7 @@ La definición técnica de Moon procede de `docs/REGLAS_MODO_MOON_SYSTEM.md`, co
 
 ## Límites y pruebas
 
-No se cambia `firestore.rules`, `firebaseConfig`, las operaciones sensibles de Firebase, el editor ni los motores de juego.
+La incorporación de perfiles modifica únicamente el bloque `/profiles/{uid}` de `firestore.rules`. No cambia `firebaseConfig`, las autorizaciones de campañas, el editor ni los motores de juego.
 
 Esta implementación visual requiere inspección manual de navegador en resoluciones 320, 390, 768, 1280 y 1440 px, teclado y contraste en UI real. Las comprobaciones estáticas y de lógica no equivalen a una aceptación visual ni al recorrido con dos cuentas reales. El PR #219 continúa abierto hasta completar las condiciones de la Etapa 4.2.
 
@@ -58,3 +58,13 @@ El listado de campañas creadas utiliza `campaigns` con `where('ownerId','==',ui
 Las membresías utilizan `collectionGroup('members')` con `where('userId','==',uid)`. Son consultas independientes, así que `games()` emplea `Promise.allSettled` y presenta una advertencia en cada sección que falle, manteniendo accesibles las operaciones de creación e invitación. Si se produce `failed-precondition` en membresías, muestra el ámbito requerido y, cuando Firebase incorpora un enlace válido al índice en el mensaje del error, ofrece un enlace exclusivamente a `console.firebase.google.com/project/rol-serv/`.
 
 La definición bajo `firestore.indexes.json` expresa un **índice de campo único** para `members.userId`, orden ascendente, **ámbito `COLLECTION_GROUP`**; no es un índice compuesto. Las configuraciones en GitHub **no se activan automáticamente en Firebase**. Se debe comprobar en Firebase que el índice esté efectivamente habilitado, en el proyecto y base de datos correctos. Estas mejoras no sustituyen la validación real con cuentas ni abren permisos de Firestore.
+
+## Nombre visible de las cuentas
+
+La identidad interna de cada usuario continúa siendo su UID de Firebase Authentication y se utiliza para todas las membresías y permisos. El usuario elige un nombre visible de 3 a 32 caracteres en Crear cuenta o lo cambia en Mi cuenta. Las cuentas existentes pueden elegir el suyo sin registrarse otra vez; el placeholder de cuentas sin nombre es «Jugador sin nombre».
+
+Firebase Authentication conserva la etiqueta elegida mediante updateProfile. El documento profiles/{uid} de Firestore guarda únicamente displayName y updatedAt para mostrar al DM los nombres actuales de los miembros, sin exponer sus correos electrónicos. El identificador UID no se imprime como nombre en la pantalla.
+
+Las reglas permiten get a usuarios autenticados que conocen un UID, nunca list, y solo el titular del UID puede crear o actualizar su documento. Se prohíben otros campos y eliminar documentos. Los nombres pueden repetirse, pero nunca determinan permisos.
+
+**Requisito de despliegue:** volver a publicar firestore.rules en el proyecto Firebase rol-serv después de integrar este cambio en main. GitHub Pages no despliega reglas Firestore. Hasta entonces, el usuario puede guardar su nombre en Firebase Auth, pero la sincronización de perfiles compartidos estará denegada; Mi cuenta debe mostrar una advertencia. Verificar con dos cuentas antes de considerar completa la prueba.
