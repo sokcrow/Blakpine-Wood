@@ -50,3 +50,11 @@ Las tres escenas de modos y la ilustración de portada se descargaron mediante G
 - La sesión restaurada se detecta mediante `onAuthStateChanged`. «Cerrar sesión» invoca `signOut`; no hay implementación propia de credenciales, ni almacenamiento de contraseñas en Firestore, cookies del proyecto, `localStorage` o `sessionStorage`.
 - Persistencia significa continuidad de autenticación en ese navegador y origen; **no** equivale a detectar presencia en tiempo real ni proporciona un sistema de sesiones del servidor distinto al de Firebase.
 - En dispositivos compartidos, activar «Recuérdame» expone la sesión a otras personas con acceso al navegador. Firebase Auth y las reglas de seguridad de Firestore siguen siendo responsables de autenticar y autorizar. No se ha hecho auditoría ofensiva, integración con dos cuentas reales ni pruebas de navegador de esta mejora.
+
+
+## Diagnóstico de «Mis partidas» y consulta del índice
+
+El listado de campañas creadas utiliza `campaigns` con `where('ownerId','==',uid)`.
+Las membresías utilizan `collectionGroup('members')` con `where('userId','==',uid)`. Son consultas independientes, así que `games()` emplea `Promise.allSettled` y presenta una advertencia en cada sección que falle, manteniendo accesibles las operaciones de creación e invitación. Si se produce `failed-precondition` en membresías, muestra el ámbito requerido y, cuando Firebase incorpora un enlace válido al índice en el mensaje del error, ofrece un enlace exclusivamente a `console.firebase.google.com/project/rol-serv/`.
+
+La definición bajo `firestore.indexes.json` expresa un **índice de campo único** para `members.userId`, orden ascendente, **ámbito `COLLECTION_GROUP`**; no es un índice compuesto. Las configuraciones en GitHub **no se activan automáticamente en Firebase**. Se debe comprobar en Firebase que el índice esté efectivamente habilitado, en el proyecto y base de datos correctos. Estas mejoras no sustituyen la validación real con cuentas ni abren permisos de Firestore.
