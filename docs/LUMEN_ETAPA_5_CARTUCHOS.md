@@ -14,7 +14,7 @@ Estado: **NEEDS WORK** hasta verificar el recorrido con cuentas Firebase reales 
 | `index.html` | Aislamiento del borrador y API del editor; exportación completa e historial inicial |
 | `tests/lumen-cartridge.test.cjs`, `tests/lumen-editor-bridge.test.cjs`, `tests/lumen-library-behavior.test.cjs` | Datos, editor y comportamiento de autorización/biblioteca |
 | `tests/lumen-recovery.test.cjs`, `tests/lumen-performance.test.cjs`, `tests/helpers/lumen-large-map.cjs` | Recuperación, fallos y medición 120 × 120 |
-| `tests/lumen-browser.test.cjs`, `.github/workflows/lumen-cartridges.yml` | Integración Chromium con almacenamiento nativo y descarga |
+| `tests/lumen-browser.test.cjs` | Integración Chromium con almacenamiento nativo y descarga; se conserva como prueba reproducible sin workflow permanente |
 | `docs/LUMEN_ETAPA_5_CARTUCHOS.md` | Contrato, evidencia, límites y aceptación pendiente |
 
 ## Contrato v1
@@ -97,3 +97,7 @@ Verificar en el despliegue autorizado, sin credenciales inventadas:
 5. Verificar arranque 3D independiente con guardados Legacy preexistentes y resolver los fallos de pruebas anteriores por una tarea separada.
 
 No se modifican `firestore.rules`, `firestore.indexes.json`, `portal/config.js`, `juego/core/`, adaptadores Legacy/DnD/Moon ni los assets del motor. Permanecen intactas fórmulas, electricidad, economía, combate y guardados históricos. Firebase conserva cuentas, campañas, miembros y sala; no recibe mapas ni estados del mundo. Sin WebRTC, presencia fiable, transiciones o sincronización multijugador.
+
+## Integración en main
+
+Los PRs [#220](https://github.com/sokcrow/Blakpine-Wood/pull/220), [#221](https://github.com/sokcrow/Blakpine-Wood/pull/221) y [#222](https://github.com/sokcrow/Blakpine-Wood/pull/222) se fusionaron en orden A → B → C el 20-11-2026. El workflow temporal `lumen-cartridges.yml` se retiró después de la integración conforme a la política de no mantener workflows personalizados; las pruebas y la documentación de sus ejecuciones históricas permanecen. La aceptación con cuentas Firebase reales y revisión visual sigue pendiente.
