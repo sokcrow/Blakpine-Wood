@@ -199,11 +199,14 @@ test('Mis partidas no oculta los formularios cuando falla la consulta de membres
 test('El índice de membresías declarado en GitHub es de campo único y ámbito de grupo',()=>{
  const config=JSON.parse(fs.readFileSync(path.join(base,'firestore.indexes.json'),'utf8'));
  assert.deepEqual(config.indexes,[]);
- assert.deepEqual(config.fieldOverrides,[{
+ assert.deepEqual(config.fieldOverrides.find(f=>f.collectionGroup==='members'),{
   collectionGroup:'members',
   fieldPath:'userId',
   indexes:[{order:'ASCENDING',queryScope:'COLLECTION_GROUP'}]
- }]);
+ });
+ assert.deepEqual(config.fieldOverrides.find(f=>f.collectionGroup==='chunks'),{
+  collectionGroup:'chunks',fieldPath:'data',indexes:[]
+ });
 });
 
 test('Nombres visibles: validación, Unicode, normalización y entradas rechazadas',async()=>{

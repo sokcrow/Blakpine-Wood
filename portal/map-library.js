@@ -1,6 +1,7 @@
 import {recoveryStore,recoveryDiffers} from './cartridge-recovery.js';
 import {authorize,createCartridge,importCartridge,exportCartridge,changeMap,cartridgeFilename} from './cartridge.js';
 import {C,cartridgeError,recoveryError} from './cartridge-strings.js';
+import {P} from './play-strings.js';
 const sessions=new Map();
 const escape=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let active=null;
@@ -18,12 +19,13 @@ export function clearMapLibraries() {
 export function confirmDiscardMapLibraries(){
  return ![...sessions.values()].some(s=>s.dirty||s.editorDirty||s.recoveryError)||confirm(C.leaveUnsaved);
 }
-export async function mountMapLibrary({element,context,campaignName,verify,onError}) {
+export async function mountMapLibrary({element,context,campaignName,verify,onError,publish}) {
  authorize(context);
  const key=JSON.stringify([context.uid,context.campaignId]);
  let state=sessions.get(key);
  if(!state){state={doc:null,exported:null,dirty:false,editorDirty:false,mapId:null,campaignName,recoveryTokens:new Map(),saveQueue:Promise.resolve(),recoveryError:null};sessions.set(key,state);}
  const view=new MapLibrary(element,state,context,verify,onError);active=view;
+ view.publish=publish;
  await view.mount();return ()=>{const result=view.dispose();if(result!==false&&active===view)active=null;return result;};
 }
 class MapLibrary {
@@ -163,11 +165,31 @@ class MapLibrary {
      this.capture();const name=prompt(C.name,map.name);if(name===null)return;
      s.doc=changeMap(s.doc,this.context,this.validate,{mapId:map.mapId,name,expectedRevision:s.doc.revision}).cartridge;s.dirty=true;if(s.mapId===map.mapId)this.root.querySelector('#map-name').value=name;warn();this.paint();this.onMutation?.();
     }]]){const b=document.createElement('button');b.textContent=title;b.onclick=()=>this.run(fn);row.append(b);}
+    const preview=document.createElement('button');preview.textContent=P.preview;
+    preview.onclick=()=>this.run(async()=>{
+     this.capture();const current=s.doc.maps.find(m=>m.mapId===map.mapId);
+     this.validate(current.project);
+     this.frame.hidden=false;this.root.classList.add('lumen-playing');
+     const returned=()=>{
+      if(!this.alive)return;
+      this.root.classList.remove('lumen-playing');this.frame.hidden=this.root.querySelector('#map-editor').hidden;
+     };
+     try{this.api.play(current.project,returned);}catch(error){returned();throw error;}
+    });row.append(preview);
+    if(this.publish){
+     const start=document.createElement('button');start.textContent=P.publish;
+     start.onclick=()=>this.run(async()=>{
+      this.capture();if(!confirm(P.confirm))return;
+      this.say(P.publishing);
+      try{await this.publish(s.doc,map.mapId,this.validate);}
+      catch(error){this.say(error.message==='PLAY_TOO_LARGE'?P.large:P.firebase,true);}
+     });row.append(start);
+    }
     list.append(row);
    }
   }
   this.paintRecovery?.(actions);warn();
  }
- dispose(force=false){if(!this.alive)return true;clearTimeout(this.timer);try{this.capture();}catch(e){this.say(C.error+cartridgeError(e),true);this.onError?.(e);if(!force)return false;}this.alive=false;this.frame?.remove();return true;}
+ dispose(force=false){if(!this.alive)return true;clearTimeout(this.timer);try{this.capture();}catch(e){this.say(C.error+cartridgeError(e),true);this.onError?.(e);if(!force)return false;}this.alive=false;this.api?.stop?.();this.root.classList?.remove('lumen-playing');this.frame?.remove();return true;}
 }
 export {MapLibrary};

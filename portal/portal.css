@@ -334,3 +334,6 @@ footer{padding:22px 36px;color:var(--muted);font-size:12px;border-top:1px solid 
 .map-library #map-name{width:min(100%,480px)}
 .map-library .campaign button+button{margin-left:12px}
 .map-library #cartridge-status{overflow-wrap:anywhere}
+.lumen-playing>iframe{position:fixed!important;inset:0;z-index:1000;width:100vw!important;height:100dvh!important;min-height:0!important;border:0!important;background:#090909}
+.game-room iframe[hidden]{display:none}
+.game-room>button{margin:12px 0}

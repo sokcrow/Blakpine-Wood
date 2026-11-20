@@ -29,6 +29,38 @@ service cloud.firestore {
     function invitationPath(code) {
       return /databases/$(database)/documents/invitations/$(code);
     }
+    function playPath(cid) {
+      return /databases/$(database)/documents/campaigns/$(cid)/playSession/current;
+    }
+    function releasePath(cid, rid) {
+      return /databases/$(database)/documents/campaigns/$(cid)/worldReleases/$(rid);
+    }
+    function activeLegacy(cid) {
+      return get(campaignPath(cid)).data.status == 'active' &&
+        get(campaignPath(cid)).data.ruleset == 'legacy';
+    }
+    function releaseReader(cid, rid) {
+      return owner(cid) || (member(cid) && activeLegacy(cid) &&
+        get(playPath(cid)).data.status == 'open' &&
+        get(playPath(cid)).data.releaseId == rid &&
+        get(lobbyPath(cid)).data.status == 'waiting' &&
+        get(playPath(cid)).data.roomId == get(lobbyPath(cid)).data.roomId &&
+        get(/databases/$(database)/documents/campaigns/$(cid)/lobbyParticipants/$(request.auth.uid)).data.roomId == get(lobbyPath(cid)).data.roomId &&
+        get(/databases/$(database)/documents/campaigns/$(cid)/lobbyParticipants/$(request.auth.uid)).data.state == 'joined');
+    }
+    function validRelease(data) {
+      return data.keys().hasAll(['formatVersion','ownerUid','cartridgeId','revision','mapId','mapName','chunkCount','byteLength','sha256','createdAt']) &&
+        data.keys().hasOnly(['formatVersion','ownerUid','cartridgeId','revision','mapId','mapName','chunkCount','byteLength','sha256','createdAt']) &&
+        data.formatVersion == 1 && data.ownerUid == request.auth.uid &&
+        data.cartridgeId is string && data.cartridgeId.size() > 0 && data.cartridgeId.size() <= 256 &&
+        data.mapId is string && data.mapId.size() > 0 && data.mapId.size() <= 256 &&
+        data.mapName is string && data.mapName.size() > 0 && data.mapName.size() <= 160 &&
+        data.revision is int && data.revision > 0 && data.revision <= 9007199254740991 &&
+        data.chunkCount is int && data.chunkCount > 0 && data.chunkCount <= 256 &&
+        data.byteLength is int && data.byteLength > 0 && data.byteLength <= 50331648 &&
+        data.sha256 is string && data.sha256.matches('^[a-f0-9]{64}$') &&
+        data.createdAt == request.time;
+    }
     function owner(cid) {
       return signed() && exists(campaignPath(cid)) &&
         get(campaignPath(cid)).data.ownerId == request.auth.uid;
@@ -78,6 +110,41 @@ service cloud.firestore {
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name','status','updatedAt']) &&
         request.resource.data.updatedAt == request.time;
       allow delete: if false;
+      // Una publicación es inmutable. Los invitados sólo leen la versión de su sala.
+      match /worldReleases/{rid} {
+        allow get: if releaseReader(cid,rid);
+        allow list: if false;
+        allow create: if owner(cid) && activeLegacy(cid) && rid.matches('^[a-f0-9-]{36}$') &&
+          validRelease(request.resource.data);
+        allow update, delete: if false;
+        match /chunks/{part} {
+          allow get: if releaseReader(cid,rid);
+          allow list: if false;
+          allow create: if owner(cid) && activeLegacy(cid) && rid.matches('^[a-f0-9-]{36}$') &&
+            part.matches('^(0|[1-9][0-9]{0,2})$') && int(part) < 256 &&
+            !exists(releasePath(cid,rid)) &&
+            request.resource.data.keys().hasAll(['data']) &&
+            request.resource.data.keys().hasOnly(['data']) &&
+            request.resource.data.data is string && request.resource.data.data.size() > 0 &&
+            request.resource.data.data.size() <= 262144 &&
+            request.resource.data.data.matches('^[A-Za-z0-9+/]*={0,2}$');
+          allow update, delete: if false;
+        }
+      }
+      match /playSession/{docId} {
+        allow get: if docId == 'current' && (owner(cid) || member(cid));
+        allow list: if false;
+        allow create, update: if docId == 'current' && owner(cid) && activeLegacy(cid) &&
+          request.resource.data.keys().hasAll(['releaseId','roomId','status','updatedAt']) &&
+          request.resource.data.keys().hasOnly(['releaseId','roomId','status','updatedAt']) &&
+          request.resource.data.releaseId is string && request.resource.data.releaseId.matches('^[a-f0-9-]{36}$') &&
+          request.resource.data.roomId is string && request.resource.data.roomId.matches('^[A-F0-9]{32}$') &&
+          request.resource.data.status == 'open' && request.resource.data.updatedAt == request.time &&
+          getAfter(releasePath(cid,request.resource.data.releaseId)).data.ownerUid == request.auth.uid &&
+          getAfter(lobbyPath(cid)).data.status == 'waiting' &&
+          getAfter(lobbyPath(cid)).data.roomId == request.resource.data.roomId;
+        allow delete: if false;
+      }
       // Sala de inscripción. No concede control del motor ni representa presencia.
       match /lobby/{docId} {
         allow get: if docId == 'current' && (owner(cid) || member(cid));
