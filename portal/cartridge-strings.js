@@ -1,7 +1,7 @@
 export const C = Object.freeze({
- previewUnavailable:'La prueba 3D del cartucho se habilitará al integrar la sesión del anfitrión. Puedes usar la prueba 3D del editor independiente.',
+ previewUnavailable:'Selecciona Probar mapa en 3D o Abrir partida con este mapa desde la biblioteca del cartucho.',
  leaveUnsaved:'Hay cartuchos con cambios sin exportar o con errores de recuperación. ¿Cerrar sesión y descartar las copias de trabajo en memoria? Las recuperaciones que sí se guardaron seguirán en este navegador.',
- title:'Mapas del mundo', intro:'Biblioteca local del DM. Exporta el cartucho para llevarlo a otro equipo. La sala 3D todavía no sincroniza el mundo.',
+ title:'Mapas del mundo', intro:'Biblioteca local del DM. Exporta el cartucho para llevarlo a otro equipo. Abre una partida para compartir la versión del mapa seleccionado con tu sala.',
  create:'Crear cartucho', open:'Abrir cartucho existente', add:'Crear mapa en el editor', importMap:'Importar mapa JSON',
  edit:'Editar', rename:'Cambiar nombre', save:'Guardar mapa en cartucho de trabajo', close:'Volver a la biblioteca',
  export:'Exportar cartucho', empty:'Este cartucho aún no contiene mapas.', name:'Nombre del mapa', defaultName:'Mapa nuevo',

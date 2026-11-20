@@ -1679,6 +1679,11 @@ const SCHEMA=ForestShared.MAP_SCHEMA;
 // This mode has no global editor draft and receives data only from its LUMEN parent.
 const lumenCartridgeMode=new URLSearchParams(location.search).get('lumenCartridge')==='1';
 let lumenEditorChanged=false,lumenEditorOriginal=null,lumenEditorNotify=null;
+let lumenPlaySession=null;
+if(lumenCartridgeMode&&new URLSearchParams(location.search).get('lumenPlayer')==='1'){
+ document.getElementById('app').style.visibility='hidden';
+}
+function finishLumenPlay(){const session=lumenPlaySession;lumenPlaySession=null;session?.onClose?.();}
 const COLORS={generator:'#bc8b68',generator_ats:'#7f9392',generator_tank:'#b69b63',red_wall:'#ef5656',property_wall:'#E6BD43',wall:'#64bdf9',half_wall:'#82c4ff',fence:'#97d8c3',door:'#ffbc66',peephole_door:'#ce92ff',window:'#70ecd6',opening:'#b7d184',room:'#ffad79',room_fill:'#ffad79',hall:'#8ab1ff',outside:'#7de39c',building:'#a7b2c4',pavement:'#8b96a9',parking:'#b8c0cf',asphalt:'#55575a',alley:'#65655b',sidewalk:'#a1a09c',concrete:'#a8a29a',gravel:'#ada69a',cobblestone:'#aaa396',tile_floor:'#d1bab3',carpet:'#b7a0a9',wood_floor:'#b3967b',parking_stall:'#f6ecb4',parking_arrow:'#f6ecb4',parking_crosswalk:'#f6ecb4',parking_double_yellow:'#e4be47',parking_dashed_yellow:'#e4be47',parking_speed_bump:'#e4be47',parking_curb:'#beb3a3',parking_decal:'#f4d985',grass:'#6ecb7d',dirt:'#b58c63',stairs:'#edb676',spawn:'#f5df71',npc_portal:'#77d7ba',training_dummy:'#d2c0a0',elevator:'#8b99ff',light_switch:'#d3c06d',breaker_panel:'#bc8b68',battery_pickup:'#dfc56b',power_outlet:'#efc66b',power_strip:'#cba579',phone_charger:'#cbe2a3',water_cistern:'#537e98',water_tinaco:'#78a0ad',water_boiler:'#cc8554',water_boiler_aux:'#ba9c70',water_main:'#52a9e2',water_valve:'#67bce9',water_outlet:'#76d3f1',drain_outlet:'#567b9b',drain_main:'#4a829f',router:'#68b4c6',ethernet_port:'#59a5ae',landline_phone:'#b5c6d5',light_fixture:'#fff0aa',zone_assign:'#d6a55c',bed:'#da9ac0',sofa:'#81a9c8',tv:'#8ea1e1',dining:'#d8b47f',table:'#bfa478',chair:'#71b1cd',kitchen:'#b2b8c2',bath:'#75cde6',toilet:'#a8cce5',plant:'#83d28f',misc:'#c0c5d2',car:'#a88dd5'};
 const TOOL_GROUPS={
  structure:[['select','Seleccionar','☞'],['pan','Mover mapa','✋'],['wall','Pared','▰'],['red_wall','Pared roja · losa','▰'],['paint_wall','Pintar cara','▨'],['half_wall','Pared media','▱'],['fence','Reja','⛶'],['door','Puerta','🚪'],['elevator','Ascensor ⇅','⇅'],['peephole_door','Con mirilla','◉'],['window','Ventana','▤'],['opening','Hueco libre','⟷'],['erase','Borrar','⌫']],
@@ -5139,7 +5144,8 @@ function floorSightThroughOpening(f,at,target,openings){
 }
 let fhCharacterLaunchPending=false;
 async function start3DPreview(){
- if(typeof lumenCartridgeMode!=='undefined'&&lumenCartridgeMode){toast(window.LUMEN_CARTRIDGE_TEXT?.previewUnavailable||'LUMEN');return}
+ const lumenLaunch=typeof lumenPlaySession==='undefined'?null:lumenPlaySession;
+ if(typeof lumenCartridgeMode!=='undefined'&&lumenCartridgeMode&&!lumenLaunch){toast(window.LUMEN_CARTRIDGE_TEXT?.previewUnavailable||'LUMEN');return}
  if(preview3DActive||fhCharacterLaunchPending)return;
  const spawn=preview3DSelectedMap?0:project.floors.findIndex(f=>f.items.some(it=>it.type==='spawn'));
  if(spawn<0){setCategory('areas');chooseTool('spawn');toast('Coloca primero 📍 Spawn en el mapa que estás editando.');return}
@@ -5147,7 +5153,8 @@ async function start3DPreview(){
  try{
   if(!window.FHCharacterCreation?.ensureCharacter)throw Error(window.FH_CHARACTER_TEXT?.missingEngine||'Creador no disponible.');
   const profile=await window.FHCharacterCreation.ensureCharacter();
-  if(!profile)return;
+  if(!profile){if(lumenLaunch)finishLumenPlay();return;}
+  if(lumenLaunch&&lumenPlaySession!==lumenLaunch)return;
   try{previewSaveSession=prepare3DSaveSession(profile)}
   catch(error){
    console.error('[Blakpine guardados multimodo]',error);
@@ -5157,7 +5164,7 @@ async function start3DPreview(){
        window.FH_MULTIMODE_SAVE_TEXT.saveInvalid);
    return;
   }
- }catch(err){console.error('[Blakpine personaje]',err);toast(err.message||window.FH_CHARACTER_TEXT?.storageError);return}
+ }catch(err){console.error('[Blakpine personaje]',err);toast(err.message||window.FH_CHARACTER_TEXT?.storageError);if(lumenLaunch)finishLumenPlay();return}
  finally{fhCharacterLaunchPending=false}
  if(preview3DActive)return;
  // Si el celular se giró durante la selección de personaje, no cargar en vertical.
@@ -5179,7 +5186,12 @@ async function start3DPreview(){
  play3DLayer.classList.add('show');play3DLayer.setAttribute('aria-hidden','false');
  // La vista se crea fresca en cada prueba: las puertas abiertas durante juego no editan el mapa.
  try{
-  const originalEngineDoc=decodeEmbedded3DEngine(PREVIEW_ENGINE_DOC_B64);
+  let originalEngineDoc=decodeEmbedded3DEngine(PREVIEW_ENGINE_DOC_B64);
+  if(lumenLaunch){
+   const saveHook='let localSave=null;try{localSave=window.localStorage}catch{}';
+   if(originalEngineDoc.split(saveHook).length!==2)throw Error('LUMEN_SAVE_HOOK');
+   originalEngineDoc=originalEngineDoc.replace(saveHook,'const localSave=null;');
+  }
   const preparedEngineDoc=prepareGLBEngineDoc(originalEngineDoc);
    let fhEngineDoc=preparedEngineDoc;
    try{if(window.FHServicesEngine?.patch)fhEngineDoc=window.FHServicesEngine.patch(preparedEngineDoc)||preparedEngineDoc;}
@@ -5217,7 +5229,8 @@ async function start3DPreview(){
  }catch(error){console.error('[Forest Horror 3D]',error);preview3DDiagnostics?.record({kind:'fatal',stage:'adapter',message:error.message,stack:error.stack});preview3DError(error.message,true);}
 }
 function close3DPreview(){
- if(!preview3DActive)return;
+ const keepLumen=arguments[0]===true;
+ if(!preview3DActive){if(!keepLumen&&typeof lumenPlaySession!=='undefined'&&lumenPlaySession)finishLumenPlay();return;}
  stop3DWatchdog();preview3DActive=false;preview3DSent=false;preview3DRunning=false;preview3DArchitectureError='';
  previewSaveSession?.close();previewSaveSession=null;
  preview3DDiagnostics?.dispose();preview3DDiagnostics=null;
@@ -5226,6 +5239,7 @@ function close3DPreview(){
  play3DFrame.removeAttribute('srcdoc');play3DFrame.src='about:blank';
  preview3DSelectedMap=null;
  show3DStatus(PREVIEW_TEXT.preparing);render();
+ if(!keepLumen&&typeof lumenPlaySession!=='undefined'&&lumenPlaySession)finishLumenPlay();
 }
 const play3DLandscapeGate=document.getElementById('play3dLandscapeGate');
 const play3DLandscapeMessage=document.getElementById('play3dLandscapeMessage');
@@ -5259,6 +5273,7 @@ function hide3DLandscapeGate(){
 }
 function cancel3DLandscapeGate(){
  hide3DLandscapeGate();preview3DSelectedMap=null;
+ if(typeof lumenPlaySession!=='undefined'&&lumenPlaySession)finishLumenPlay();
  if(document.fullscreenElement===play3DLayer&&document.exitFullscreen)void document.exitFullscreen();
 }
 function launch3DPreview(){
@@ -5290,7 +5305,7 @@ async function confirm3DLandscape(){
 function handle3DPreviewOrientation(){
  if(!preview3DIsPhone())return;
  if(!preview3DIsLandscape()){
-  if(preview3DActive){const world=preview3DSelectedMap;close3DPreview();preview3DSelectedMap=world;show3DLandscapeGate()}
+  if(preview3DActive){const world=preview3DSelectedMap;close3DPreview(true);preview3DSelectedMap=world;show3DLandscapeGate()}
   else if(!play3DLandscapeGate.hidden)play3DLandscapeMessage.textContent=PREVIEW_TEXT.landscapeRotate;
  }else if(preview3DGateAuthorized)continue3DPreviewInLandscape();
 }
@@ -5332,6 +5347,7 @@ window.addEventListener('message',e=>{
  } else if(e.data.type==='FOREST_PREVIEW_ERROR'){
   console.error('[Forest Horror 3D]',e.data.message);preview3DError(e.data.message);
  } else if(e.data.type==='FOREST_GAMESTATE_SAVE'){
+   if(typeof lumenCartridgeMode!=='undefined'&&lumenCartridgeMode)return;
    if(previewSaveSession)return;
   if(typeof e.data.key==='string'&&e.data.key===ForestShared.gameSaveKey(project)&&typeof e.data.json==='string'){
    const id=window.FHCharacterCreation?.current?.()?.id;
@@ -5392,6 +5408,13 @@ if(typeof lumenCartridgeMode!=='undefined'&&lumenCartridgeMode){
   read(){const out=clone(lumenEditorChanged?exportProject(true):lumenEditorOriginal);validate(out);return out;},
   changed:()=>lumenEditorChanged,
   saved(){dirty=false;status(window.LUMEN_CARTRIDGE_TEXT?.working||'LUMEN');},
+  play(raw,onClose){
+   validate(raw);this.stop();
+   lumenPlaySession={onClose};
+   window.FHMultimodeSaveSelection=null;preview3DSelectedMap=clone(raw);
+   launch3DPreview();
+  },
+  stop(){hide3DLandscapeGate();close3DPreview();preview3DSelectedMap=null;},
  });
 }
 

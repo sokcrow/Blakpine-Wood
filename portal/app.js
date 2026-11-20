@@ -6,6 +6,9 @@ import { S } from './strings.js';
 import { makeInvitationCode, cleanInvitationCode, campaignName, availableRuleset } from './campaign-model.js';
 import { cleanDisplayName, visibleDisplayName } from './profile-model.js';
 import { makeLobbyId, isWaitingLobby, isJoinedParticipant } from './lobby-model.js';
+import { playStore } from './play-session.js';
+import { mountGameRoom } from './game-room.js';
+import { P } from './play-strings.js';
 
 const app = document.querySelector('#app');
 const nav = document.querySelector('#nav');
@@ -44,6 +47,8 @@ function wirePasswordToggle() {
 let fb=null, auth=null, db=null, user=null, initError=null, epoch=0, busy=false, chosenName='', profileIssue='';
 let stopLobbyListeners=()=>{};
 let stopMapLibrary=()=>{};
+let stopGameRoom=()=>{};
+const gameStore=()=>playStore(fb.fs,db,()=>user?.uid===auth?.currentUser?.uid?user?.uid:null);
 let activeMapHash=location.hash;
 const ownName=()=>visibleDisplayName(chosenName || user?.displayName,S.unnamed);
 
@@ -345,7 +350,7 @@ function watchCampaignLobby(ticket,campaignId,dm,archived,memberNames) {
   const roomRef=fs.doc(db,'campaigns',campaignId,'lobby','current');
   const membersRef=fs.collection(db,'campaigns',campaignId,'lobbyParticipants');
   const currentUid=user.uid;
-  let room=null,roster=[],roomLoaded=false,rosterLoaded=false,problem=null;
+  let room=null,roster=[],roomLoaded=false,rosterLoaded=false,problem=null,playSession=null;
   const rosterNames=new Map(memberNames),pendingNames=new Set();
   const active=()=>isWaitingLobby(room);
   function paint() {
@@ -369,6 +374,9 @@ function watchCampaignLobby(ticket,campaignId,dm,archived,memberNames) {
           '<button type="button" class="primary" data-lobby-action="join">'+S.lobbyJoinAction+'</button>')+'</div>';
       }
       if(waiting) {
+        if(!archived&&(dm||enrolled)&&playSession?.status==='open'&&playSession.roomId===room.roomId){
+          html+='<p>'+link(P.join,'#jugar/'+campaignId)+'</p><p>'+P.limitation+'</p>';
+        }
         html+='<h3>'+S.lobbyRoster+' ('+listed.length+')</h3>';
         html+='<ul class="lobby-roster">'+(listed.map(p=>
           '<li>'+esc(p.userId===currentUid?ownName():(rosterNames.get(p.userId)||S.unnamed))+'</li>'
@@ -426,7 +434,10 @@ function watchCampaignLobby(ticket,campaignId,dm,archived,memberNames) {
   const unsubscribeRoster=fs.onSnapshot(membersRef,snapshot=>{
     roster=snapshot.docs.map(d=>d.data());rosterLoaded=true;resolveNames();paint();
   },onError);
-  stopLobbyListeners=()=>{unsubscribeRoom();unsubscribeRoster();};
+  const unsubscribePlay=fs.onSnapshot(fs.doc(db,'campaigns',campaignId,'playSession','current'),snapshot=>{
+    playSession=snapshot.exists()?snapshot.data():null;paint();
+  },error=>{message(readableError(error),true);});
+  stopLobbyListeners=()=>{unsubscribeRoom();unsubscribeRoster();unsubscribePlay();};
 }
 
 async function campaign(ticket,id,dmRequested) {
@@ -522,14 +533,25 @@ async function mapLibrary(ticket,id) {
     const context=await verify();
     if(ticket!==epoch)return;
     app.innerHTML=link(S.back,'#dm/'+id)+'<section class="map-library"></section>';
-    const cleanup=await mountMapLibrary({element:app.querySelector('.map-library'),context,campaignName:context.name,verify,onError:()=>{}});
+    const cleanup=await mountMapLibrary({element:app.querySelector('.map-library'),context,campaignName:context.name,verify,onError:()=>{},
+      publish:async(doc,mapId,validate)=>{
+        await verify();await gameStore().publish(doc,context,mapId,validate);await verify();
+        location.hash='jugar/'+id;
+      }});
     if(ticket!==epoch)cleanup();else stopMapLibrary=cleanup;
   }catch(error){if(ticket===epoch){app.textContent=cartridgeError(error);}}
+}
+async function gameRoom(ticket,id){
+  if(!/^[A-Za-z0-9]{20}$/.test(id)){app.textContent=S.noAccess;return;}
+  app.innerHTML=link(P.leave,'#sala/'+id)+'<section class="game-room"></section>';
+  stopGameRoom=await mountGameRoom({element:app.querySelector('.game-room'),store:gameStore(),campaignId:id,
+    isCurrent:()=>ticket===epoch&&user?.uid===auth?.currentUser?.uid});
 }
 async function render() {
   if(stopMapLibrary()===false){history.replaceState(null,'',activeMapHash||'#inicio');return;}
   stopMapLibrary=()=>{};activeMapHash=location.hash;
   const ticket=++epoch;
+  stopGameRoom();stopGameRoom=()=>{};
   stopLobbyListeners();stopLobbyListeners=()=>{};
   app.setAttribute('aria-busy','true');
   nav.innerHTML=link(S.home,'#inicio')+
@@ -545,10 +567,11 @@ async function render() {
     if(route==='perfil'){
       if(!auth||!user){authForm('acceso');if(auth)message(S.authRequired);return;}
       accountProfile();
-    } else if(['partidas','dm','sala','mapas'].includes(route)){
+    } else if(['partidas','dm','sala','mapas','jugar'].includes(route)){
       app.textContent=S.loading;
       if(!auth||!user){authForm('acceso');if(auth)message(S.authRequired);return;}
-      if(route==='mapas')await mapLibrary(ticket,id);
+      if(route==='jugar')await gameRoom(ticket,id);
+      else if(route==='mapas')await mapLibrary(ticket,id);
       else if(route==='partidas')await games(ticket);
       else await campaign(ticket,id,route==='dm');
     } else if(['registro','acceso','recuperar'].includes(route)) {

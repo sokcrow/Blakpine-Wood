@@ -1,5 +1,7 @@
 # LUMEN — Etapa 5: cartuchos locales
 
+Este documento registra la etapa local original. La integración posterior de entrada del DM/invitado, publicaciones de mapas y reglas Firebase se describe en [LUMEN_CARTUCHOS_PARTIDA.md](LUMEN_CARTUCHOS_PARTIDA.md); sus pruebas y límites vigentes prevalecen para ese recorrido.
+
 Estado: **NEEDS WORK** hasta verificar el recorrido con cuentas Firebase reales y la aceptación visual. El recorrido técnico de navegador con identidades de prueba sí pasó en GitHub Actions. Los PRs A/B/C son dependientes y no equivalen a despliegue.
 
 ## Archivos del cambio

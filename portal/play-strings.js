@@ -1,0 +1,14 @@
+export const P=Object.freeze({
+  title:'Partida del cartucho',preview:'Probar mapa en 3D',publish:'Abrir partida con este mapa',
+  publishing:'Preparando la versión del mapa para la partida…',
+  publishHelp:'Se compartirá el mapa seleccionado completo con los miembros inscritos en la sala.',
+  loading:'Cargando el mapa publicado por el DM…',ready:'Mapa verificado',enter:'Entrar al mapa',
+  leave:'Volver a la sala',join:'Entrar a la partida',waiting:'El DM todavía no ha abierto un mapa para esta sala.',
+  closed:'La partida se cerró, cambió de mapa o tu acceso dejó de estar disponible. Vuelve a la sala.',
+  error:'No se pudo cargar el mapa. No se abrió una copia incompleta. Reintenta desde la sala.',
+  large:'El mapa supera el tamaño admitido para compartirlo en esta partida (48 MiB). El cartucho local se conserva completo.',
+  firebase:'No se pudo publicar la partida. Comprueba la conexión y que las reglas de Firestore estén actualizadas.',
+  limitation:'Todos entran al mapa publicado por el DM. Los movimientos, puertas y demás acciones todavía se ejecutan de forma independiente.',
+  returned:'Saliste del mapa. Puedes volver a entrar a la versión publicada.',
+  confirm:'¿Abrir una partida con este mapa? Los miembros inscritos podrán cargar esta versión. Los cambios posteriores del editor requieren volver a abrir la partida.',
+});
