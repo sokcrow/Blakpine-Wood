@@ -205,3 +205,47 @@ test('El índice de membresías declarado en GitHub es de campo único y ámbito
   indexes:[{order:'ASCENDING',queryScope:'COLLECTION_GROUP'}]
  }]);
 });
+
+test('Nombres visibles: validación, Unicode, normalización y entradas rechazadas',async()=>{
+ const {cleanDisplayName,visibleDisplayName}=await import('../portal/profile-model.js');
+ assert.equal(cleanDisplayName('  Ana  María  '),'Ana María');
+ assert.equal(cleanDisplayName('Sok'),'Sok');
+ assert.equal(visibleDisplayName(null,'Jugador sin nombre'),'Jugador sin nombre');
+ assert.equal(visibleDisplayName(' Otro ','Jugador sin nombre'),'Otro');
+ for(const bad of ['','  ','AB','x'.repeat(33),'<script>','Ana\nMaría','Test\u202e']) {
+  assert.throws(()=>cleanDisplayName(bad),/DISPLAY_NAME_INVALID/);
+ }
+});
+
+test('Registro y Mi cuenta permiten elegir nombre sin cambiar el UID de Firebase',()=>{
+ const app=fs.readFileSync(path.join(base,'portal/app.js'),'utf8');
+ const strings=fs.readFileSync(path.join(base,'portal/strings.js'),'utf8');
+ assert.match(app,/id="displayName" name="displayName"/);
+ assert.match(app,/signup\?nameField\(\)/);
+ assert.match(app,/cleanDisplayName\(data\.get\('displayName'\)\)/);
+ assert.match(app,/updateProfile\(authUser,\{displayName:name\}\)/);
+ assert.match(app,/link\(S\.profile,'#perfil'\)/);
+ assert.match(app,/function accountProfile\(\)/);
+ assert.match(app,/profileIssue/);
+ assert.match(strings,/unnamed:'Jugador sin nombre'/);
+ assert.doesNotMatch(app,/esc\(m\.userId\)/);
+ assert.match(app,/fs\.doc\(db,'profiles',member\.userId\)/);
+ assert.match(app,/Promise\.allSettled\(members\.map/);
+});
+
+test('Perfiles Firestore exponen sólo el nombre y se editan por su propietario',()=>{
+ const rules=fs.readFileSync(path.join(base,'firestore.rules'),'utf8');
+ const app=fs.readFileSync(path.join(base,'portal/app.js'),'utf8');
+ const from=rules.indexOf('match /profiles/{uid}');
+ const through=rules.indexOf('match /{document=**}',from);
+ const profile=rules.slice(from,through);
+ assert.ok(from>=0);
+ assert.match(profile,/allow get: if signed\(\);/);
+ assert.match(profile,/allow list: if false;/);
+ assert.match(profile,/request\.auth\.uid == uid/);
+ assert.match(profile,/validProfile\(request\.resource\.data\)/);
+ assert.match(profile,/allow delete: if false;/);
+ assert.match(rules,/data\.keys\(\)\.hasOnly\(\['displayName','updatedAt'\]\)/);
+ assert.match(app,/fb\.fs\.doc\(db,'profiles',authUser\.uid\)/);
+ assert.doesNotMatch(app,/setDoc\(fb\.fs\.doc\(db,'profiles',authUser\.uid\),\{[^}]*email/);
+});
