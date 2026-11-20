@@ -12,7 +12,7 @@ export const S = Object.freeze({
  authRequired:'Inicia sesión para acceder a tus campañas.', signedOut:'Sesión cerrada.',
  create:'Crear campaña', campaignName:'Nombre de la campaña', ruleset:'Reglamento', createAction:'Crear como DM',
  join:'Unirse con código', code:'Código de invitación (48 caracteres)', joinAction:'Unirme a la campaña',
- created:'Campañas que dirijo', memberships:'Campañas a las que pertenezco', emptyOwned:'Todavía no has creado una campaña.', emptyJoined:'Todavía no perteneces a otra campaña.',
+ created:'Campañas que dirijo', memberships:'Campañas a las que pertenezco', emptyOwned:'Todavía no has creado una campaña.', emptyJoined:'Todavía no perteneces a otra campaña.', queryError:'No se pudo cargar esta sección.', queryHelp:'Comprueba que el índice members / userId esté habilitado con ámbito Grupo de colecciones, no Colección.', firebaseCode:'Código Firebase', openIndex:'Abrir el índice solicitado por Firebase',
  dm:'Panel DM', room:'Sala de espera', back:'Volver a Mis partidas', active:'Activa', archived:'Archivada', createdAt:'Creada',
  members:'Miembros', emptyMembers:'Aún no hay miembros activos.', account:'Cuenta', joinedAt:'Ingreso', expel:'Expulsar', expelled:'Expulsado',
  confirmExpel:'¿Expulsar esta cuenta? No podrá volver a entrar mediante invitaciones de esta campaña.',
