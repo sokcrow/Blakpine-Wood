@@ -203,6 +203,23 @@ button.danger{border-color:#c36c6c;color:var(--bad)}
 .auth a{color:var(--gold-hi)}
 label{display:block;font:650 13px system-ui,sans-serif;color:var(--ink);margin:16px 0 8px}
 input,select,textarea{width:100%;min-height:47px;color:#f3e4ca;background:#090909;border:1px solid #89683e;border-radius:1px;padding:12px;font:15px system-ui,sans-serif}
+
+/* Contraseña visible solo por acción explícita; botón separado de submit. */
+.password-control{position:relative}
+.password-control input{padding-right:65px}
+.password-toggle{
+  position:absolute;right:4px;top:50%;transform:translateY(-50%);
+  width:47px;height:43px;min-height:43px;padding:0;
+  border:1px solid transparent;border-radius:2px;background:transparent;
+  color:var(--gold-hi);display:grid;place-items:center;
+}
+.password-toggle:hover:not(:disabled){background:#392a1b;color:#fff1cd}
+.password-toggle:focus-visible{outline:2px solid var(--gold-hi);outline-offset:2px}
+.password-toggle[aria-pressed="true"]{background:#312316;border-color:var(--gold-dim)}
+.remember-row{display:flex;align-items:flex-start;gap:12px;cursor:pointer;margin:20px 0 0;font:600 13px/1.45 system-ui,sans-serif}
+.remember-row input{width:19px;min-width:19px;height:19px;min-height:19px;margin:1px 0 0;padding:0;accent-color:var(--gold);cursor:pointer}
+.remember-row span{display:block}
+.remember-row small{display:block;margin-top:5px;max-width:40ch;color:var(--muted);font:400 12px/1.45 system-ui,sans-serif}
 input:disabled,select:disabled{opacity:.5;cursor:not-allowed}
 input:focus,select:focus,textarea:focus{border-color:var(--gold-hi)}
 small{font-size:12px}
