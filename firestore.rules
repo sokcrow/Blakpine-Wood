@@ -28,6 +28,12 @@ service cloud.firestore {
         data.status in ['active','archived'] &&
         data.createdAt is timestamp && data.updatedAt is timestamp;
     }
+    function validProfile(data) {
+      return data.keys().hasAll(['displayName','updatedAt']) &&
+        data.keys().hasOnly(['displayName','updatedAt']) &&
+        data.displayName is string && data.displayName.size() >= 3 &&
+        data.displayName.size() <= 32 && data.updatedAt is timestamp;
+    }
     function validMembership(data, uid) {
       return data.keys().hasAll(['userId','role','status','joinedAt','inviteCode','removedAt']) &&
         data.keys().hasOnly(['userId','role','status','joinedAt','inviteCode','removedAt']) &&
@@ -105,7 +111,21 @@ service cloud.firestore {
         resource.data.revoked == false && request.resource.data.revoked == true;
       allow delete: if false;
     }
-    // Predeterminado cerrado para perfiles, saves, sesiones y cualquier ruta no aprobada.
+    // Etiqueta pública mínima para resolver nombres de miembros sin exponer correos.
+    // El UID del documento determina quién puede modificarlo; no se permiten listados.
+    match /profiles/{uid} {
+      allow get: if signed();
+      allow list: if false;
+      allow create: if signed() && request.auth.uid == uid &&
+        validProfile(request.resource.data) &&
+        request.resource.data.updatedAt == request.time;
+      allow update: if signed() && request.auth.uid == uid &&
+        validProfile(request.resource.data) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName','updatedAt']) &&
+        request.resource.data.updatedAt == request.time;
+      allow delete: if false;
+    }
+    // Predeterminado cerrado para rutas no aprobadas, guardados y sesiones.
     match /{document=**} { allow read, write: if false; }
   }
 }
