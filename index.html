@@ -1676,6 +1676,9 @@ return {DOOR_VARIANTS,DOOR_LENGTH_TOLERANCE,doorSpan,doorWidthClass,doorSpec,doo
 'use strict';
 
 const SCHEMA=ForestShared.MAP_SCHEMA;
+// This mode has no global editor draft and receives data only from its LUMEN parent.
+const lumenCartridgeMode=new URLSearchParams(location.search).get('lumenCartridge')==='1';
+let lumenEditorChanged=false,lumenEditorOriginal=null,lumenEditorNotify=null;
 const COLORS={generator:'#bc8b68',generator_ats:'#7f9392',generator_tank:'#b69b63',red_wall:'#ef5656',property_wall:'#E6BD43',wall:'#64bdf9',half_wall:'#82c4ff',fence:'#97d8c3',door:'#ffbc66',peephole_door:'#ce92ff',window:'#70ecd6',opening:'#b7d184',room:'#ffad79',room_fill:'#ffad79',hall:'#8ab1ff',outside:'#7de39c',building:'#a7b2c4',pavement:'#8b96a9',parking:'#b8c0cf',asphalt:'#55575a',alley:'#65655b',sidewalk:'#a1a09c',concrete:'#a8a29a',gravel:'#ada69a',cobblestone:'#aaa396',tile_floor:'#d1bab3',carpet:'#b7a0a9',wood_floor:'#b3967b',parking_stall:'#f6ecb4',parking_arrow:'#f6ecb4',parking_crosswalk:'#f6ecb4',parking_double_yellow:'#e4be47',parking_dashed_yellow:'#e4be47',parking_speed_bump:'#e4be47',parking_curb:'#beb3a3',parking_decal:'#f4d985',grass:'#6ecb7d',dirt:'#b58c63',stairs:'#edb676',spawn:'#f5df71',npc_portal:'#77d7ba',training_dummy:'#d2c0a0',elevator:'#8b99ff',light_switch:'#d3c06d',breaker_panel:'#bc8b68',battery_pickup:'#dfc56b',power_outlet:'#efc66b',power_strip:'#cba579',phone_charger:'#cbe2a3',water_cistern:'#537e98',water_tinaco:'#78a0ad',water_boiler:'#cc8554',water_boiler_aux:'#ba9c70',water_main:'#52a9e2',water_valve:'#67bce9',water_outlet:'#76d3f1',drain_outlet:'#567b9b',drain_main:'#4a829f',router:'#68b4c6',ethernet_port:'#59a5ae',landline_phone:'#b5c6d5',light_fixture:'#fff0aa',zone_assign:'#d6a55c',bed:'#da9ac0',sofa:'#81a9c8',tv:'#8ea1e1',dining:'#d8b47f',table:'#bfa478',chair:'#71b1cd',kitchen:'#b2b8c2',bath:'#75cde6',toilet:'#a8cce5',plant:'#83d28f',misc:'#c0c5d2',car:'#a88dd5'};
 const TOOL_GROUPS={
  structure:[['select','Seleccionar','☞'],['pan','Mover mapa','✋'],['wall','Pared','▰'],['red_wall','Pared roja · losa','▰'],['paint_wall','Pintar cara','▨'],['half_wall','Pared media','▱'],['fence','Reja','⛶'],['door','Puerta','🚪'],['elevator','Ascensor ⇅','⇅'],['peephole_door','Con mirilla','◉'],['window','Ventana','▤'],['opening','Hueco libre','⟷'],['erase','Borrar','⌫']],
@@ -1730,7 +1733,7 @@ function key(){return `fh_editor_map_v1`}
 function safeStorage(k,v){try{localStorage.setItem(k,v);return true}catch(e){return false}}
 function readStorage(k){try{return localStorage.getItem(k)}catch(e){return null}}
 function status(t){$('#autosave').textContent=t}
-function saveSoon(){dirty=true;status('● Sin guardar');clearTimeout(saveTimer);saveTimer=setTimeout(()=>{if(safeStorage(key(),JSON.stringify(project))){dirty=false;status('✓ Guardado local')}else{status('⚠ Exporta JSON para guardar')}},550)}
+function saveSoon(){if(lumenCartridgeMode){lumenEditorChanged=true;dirty=true;status(window.LUMEN_CARTRIDGE_TEXT?.editorDirty||'LUMEN');lumenEditorNotify?.();return}dirty=true;status('● Sin guardar');clearTimeout(saveTimer);saveTimer=setTimeout(()=>{if(safeStorage(key(),JSON.stringify(project))){dirty=false;status('✓ Guardado local')}else{status('⚠ Exporta JSON para guardar')}},550)}
 function toast(msg){let el=$('#toast');el.textContent=msg;el.style.display='block';clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.style.display='none',3200)}
 
 // Cada escalera real del piso inferior tiene una bajada vinculada en el superior.
@@ -3250,7 +3253,7 @@ function modalElevatorEvents(){
   };
  });
 }
-function modalProject(){modal(`<h2>Proyecto · Forest Horror</h2><p>Conserva los pisos del mapa y compártelo como JSON para convertirlo después al juego 3D.</p><div class="tip">El <b>JSON completo</b> incluye las imágenes base, muros, ventanas, puertas con mirilla, muebles y altura de cada piso.</div><div class="actions"><button class="primary" id="fullExport">⬇ Exportar JSON completo</button><button id="liteExport">⬇ JSON ligero</button><button id="importJSON">⬆ Importar JSON</button><button id="previewPNG">▧ Imagen PNG del piso</button><button id="loadDemo" class="accent">⌂ Cargar ejemplo arquitectónico</button><button id="projectRoomsBtn">⌂ Ver / renombrar cuartos</button><button id="itemCatalogBtn">▣ Catálogo de objetos</button><button id="elevatorConfigBtn">⇅ Eventos del ascensor</button><button id="propertyManagerBtn">▰ Propiedades y dueños</button><button id="wallpaperEditorBtn">▨ Diseñar tapiz</button><button id="parkingDemoBtn">▤ Demo: 8 cajones y 4 coches</button></div><h3>Administrar</h3><label>Nombre del proyecto<input type="text" id="projectName" value="${escapeAttr(project.title)}"></label><div class="actions"><button id="applyName">Guardar nombre</button><button id="newMap" class="danger">Vaciar dibujos</button><button id="closeProject">Cerrar</button></div><p><small>El borrador se intenta guardar en el dispositivo. Exporta el JSON regularmente para tener una copia segura.</small></p>`,()=>{$('#closeProject').onclick=closeModal;$('#fullExport').onclick=()=>exportJSON(true);$('#liteExport').onclick=()=>exportJSON(false);$('#importJSON').onclick=()=>{$('#jsonInput').click()};$('#previewPNG').onclick=exportPNG;$('#loadDemo').onclick=loadArchitectureExample;$('#projectRoomsBtn').onclick=modalRoomList;$('#itemCatalogBtn').onclick=modalItemCatalog;$('#elevatorConfigBtn').onclick=modalElevatorEvents;$('#propertyManagerBtn').onclick=()=>window.FHStyleEditor?.propertyManager();$('#wallpaperEditorBtn').onclick=()=>window.FHStyleEditor?.wallpaperEditor();$('#parkingDemoBtn').onclick=()=>{closeModal();window.FHParkingEditor?.demo()};$('#applyName').onclick=()=>{project.title=$('#projectName').value||'Mapa sin título';saveSoon();toast('Nombre guardado')};$('#newMap').onclick=()=>{if(confirm('¿Borrar TODOS los elementos dibujados en los dos pisos? Se conservan las imágenes.')){try{localStorage.removeItem(ForestShared.gameSaveKey(project))}catch{};project.createdAt=new Date().toISOString();project.floors.forEach(f=>{f.items=[];f.apartments=[]});project.properties=[];project.locationZones=[];project.buildingNames={};project.patterns=[];recalcAllSpaces();selection=null;history=[];historyIndex=-1;record();closeModal();toast('Mapa de dibujos vaciado')}}})}
+function modalProject(){modal(`<h2>Proyecto · Forest Horror</h2><p>Conserva los pisos del mapa y compártelo como JSON para convertirlo después al juego 3D.</p><div class="tip">El <b>JSON completo</b> incluye las imágenes base, muros, ventanas, puertas con mirilla, muebles y altura de cada piso.</div><div class="actions"><button class="primary" id="fullExport">⬇ Exportar JSON completo</button><button id="liteExport">⬇ JSON ligero</button><button id="importJSON">⬆ Importar JSON</button><button id="previewPNG">▧ Imagen PNG del piso</button><button id="loadDemo" class="accent">⌂ Cargar ejemplo arquitectónico</button><button id="projectRoomsBtn">⌂ Ver / renombrar cuartos</button><button id="itemCatalogBtn">▣ Catálogo de objetos</button><button id="elevatorConfigBtn">⇅ Eventos del ascensor</button><button id="propertyManagerBtn">▰ Propiedades y dueños</button><button id="wallpaperEditorBtn">▨ Diseñar tapiz</button><button id="parkingDemoBtn">▤ Demo: 8 cajones y 4 coches</button></div><h3>Administrar</h3><label>Nombre del proyecto<input type="text" id="projectName" value="${escapeAttr(project.title)}"></label><div class="actions"><button id="applyName">Guardar nombre</button><button id="newMap" class="danger">Vaciar dibujos</button><button id="closeProject">Cerrar</button></div><p><small>El borrador se intenta guardar en el dispositivo. Exporta el JSON regularmente para tener una copia segura.</small></p>`,()=>{$('#closeProject').onclick=closeModal;$('#fullExport').onclick=()=>exportJSON(true);$('#liteExport').onclick=()=>exportJSON(false);$('#importJSON').onclick=()=>{$('#jsonInput').click()};$('#previewPNG').onclick=exportPNG;$('#loadDemo').onclick=loadArchitectureExample;$('#projectRoomsBtn').onclick=modalRoomList;$('#itemCatalogBtn').onclick=modalItemCatalog;$('#elevatorConfigBtn').onclick=modalElevatorEvents;$('#propertyManagerBtn').onclick=()=>window.FHStyleEditor?.propertyManager();$('#wallpaperEditorBtn').onclick=()=>window.FHStyleEditor?.wallpaperEditor();$('#parkingDemoBtn').onclick=()=>{closeModal();window.FHParkingEditor?.demo()};$('#applyName').onclick=()=>{project.title=$('#projectName').value||'Mapa sin título';saveSoon();toast('Nombre guardado')};$('#newMap').onclick=()=>{if(confirm('¿Borrar TODOS los elementos dibujados en los dos pisos? Se conservan las imágenes.')){if(!lumenCartridgeMode){try{localStorage.removeItem(ForestShared.gameSaveKey(project))}catch{}};project.createdAt=new Date().toISOString();project.floors.forEach(f=>{f.items=[];f.apartments=[]});project.properties=[];project.locationZones=[];project.buildingNames={};project.patterns=[];recalcAllSpaces();selection=null;history=[];historyIndex=-1;record();closeModal();toast('Mapa de dibujos vaciado')}}})}
 function escapeAttr(v){return String(v).replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;')}
 function emptySlab(){return {enabled:false,spans:[],regions:[],micro:1}}
 function slabsForLevels(){const ground=window.FHFloorLevels.mainIndex(project);return project.floors.slice(1).map((_,i)=>i+1<=ground?emptySlab():clone(buildingSlabs(i)))}
@@ -3264,6 +3267,7 @@ function exportJSON(withImages){const doc=exportProject(withImages);try{if(doc.e
  finish();}
 function exportPNG(){const area=window.FHMapGrid.bounds(project.units);if(area.width*area.height>28000000){toast(window.FH_MAP_GRID_TEXT.exportTooLarge);return}const temp=document.createElement('canvas');temp.width=area.width;temp.height=area.height;const c=temp.getContext('2d');renderOn(c,area.width,area.height,{tx:-area.x,ty:-area.y,scale:1},{dpr:1,clean:true});temp.toBlob(blob=>{if(blob){downloadBlob(blob,`${fileBase()}_${current().id}.png`);toast('Vista PNG exportada')}else toast('No se pudo exportar PNG')},'image/png')}
 function importProject(obj){
+ if(lumenCartridgeMode){window.LumenEditor.validate(obj);if(!confirm(window.LUMEN_CARTRIDGE_TEXT.overwrite))return;window.LumenEditor.load(obj,lumenEditorNotify);saveSoon();return}
  if(obj.environment)window.FHTerrain?.config(obj.environment);
  window.FHStructureHealth?.validateMap(obj);
  window.FHAccessConfig?.validateMap(obj);
@@ -3310,18 +3314,18 @@ document.querySelector('[data-cat="roads"]').textContent='⇄ '+window.FH_ROAD_T
 window.FHRoadEditor?.install({project:()=>project,current,modal,closeModal,toast,record,newId:numId,render,inspect:openInspector,anchor:function(value){if(arguments.length)anchor=value;return anchor;}});
  window.FHDrainageEditor?.install({project:()=>project,current,floorIndex:()=>floorIndex,modal,closeModal,toast,record,newId:numId,render,inspect:openInspector,anchor:function(value){if(arguments.length)anchor=value;return anchor;}});
 
- const raw=readStorage(key());let error=null;
+ const raw=lumenCartridgeMode?null:readStorage(key());let error=null;
  if(raw){try{const draft=JSON.parse(raw);window.FHStructureHealth?.validateMap(draft);window.FHAccessConfig?.validateMap(draft);project=ForestShared.loadProject(draft);window.FHElectricCatalog?.upgradeMap(project);status('✓ Borrador restaurado')}catch(err){error=err;project=newProject();status('⚠ Borrador incompatible; mapa nuevo')}}
  else status('Nuevo borrador');
  ensureGridConfig(!!raw);rememberFloorRefs();window.FHStyleEditor?.install({project:()=>project,current,record,modal,closeModal,toast});window.FHParkingEditor?.install({project:()=>project,current,record,modal,closeModal,toast,newId:numId,canEditAt:item=>{const p=window.FHStyleEditor;if(!p?.hasActor())return true;const a=Number(item.rotation||0)*Math.PI/180,points=[[0,0],[-.5,-.5],[.5,-.5],[-.5,.5],[.5,.5]];return points.every(([u,v])=>p.canEditAt({x:item.x+Math.cos(a)*item.w*u-Math.sin(a)*item.h*v,y:item.y+Math.sin(a)*item.w*u+Math.cos(a)*item.h*v}));},canEditItem:item=>window.FHStyleEditor?.canEditItem(item)!==false});window.FHWeatherEditor?.install({project:()=>project,record,modal,closeModal,toast});window.FHForestEditor?.install({project:()=>project,record,modal,closeModal,toast});wire();refreshFloorTabs();setCategory('structure');loadedImgs=project.floors.map(()=>null);
  project.floors.forEach((_,i)=>setupImage(i));
- const migratedFurniture=normalizeFurnitureFootprints();
- const migratedPoles=window.FHExteriorGrid?.compactMapFootprints(project)||0;
- recalcAllSpaces();record();resize();
+ const migratedFurniture=lumenCartridgeMode?0:normalizeFurnitureFootprints();
+ const migratedPoles=lumenCartridgeMode?0:(window.FHExteriorGrid?.compactMapFootprints(project)||0);
+ if(!lumenCartridgeMode){recalcAllSpaces();record()}resize();
  if(error)toast(`Error al restaurar borrador: ${error.message}`);
  else if(migratedPoles)toast('Postes anteriores: colisión ajustada a la base del tubo');
  else if(migratedFurniture)toast('Muebles ajustados a proporción más compacta');
- setTimeout(fitMap,110);if(!readStorage('fh_editor_help_seen_v2'))setTimeout(modalHelp,420);
+ setTimeout(fitMap,110);if(!lumenCartridgeMode&&!readStorage('fh_editor_help_seen_v2'))setTimeout(modalHelp,420);
 }
 // ───── PRUEBA JUGABLE 2D (no altera ni exporta el estado temporal de puertas) ─────
 const playState={running:false,x:0,y:0,floorIndex:0,heading:-Math.PI/2,keys:new Set(),stick:{x:0,y:0},stickPointer:null,doors:new Map(),near:null,vision:false,last:0,raf:0,stepPhase:0};
@@ -5135,6 +5139,7 @@ function floorSightThroughOpening(f,at,target,openings){
 }
 let fhCharacterLaunchPending=false;
 async function start3DPreview(){
+ if(lumenCartridgeMode){toast(window.LUMEN_CARTRIDGE_TEXT?.previewUnavailable||'LUMEN');return}
  if(preview3DActive||fhCharacterLaunchPending)return;
  const spawn=preview3DSelectedMap?0:project.floors.findIndex(f=>f.items.some(it=>it.type==='spawn'));
  if(spawn<0){setCategory('areas');chooseTool('spawn');toast('Coloca primero 📍 Spawn en el mapa que estás editando.');return}
@@ -5360,6 +5365,36 @@ document.getElementById('play3dBack').addEventListener('click',close3DPreview);
 
 setupPlayMode();
 init();
+
+if(lumenCartridgeMode){
+ const validate=raw=>{
+  const doc=clone(raw);ForestShared.loadProject(doc);
+  if(doc.environment)window.FHTerrain?.config(doc.environment);
+  for(const mod of [window.FHRoads,window.FHDrainage,window.FHDrainageAccess,window.FHParking])mod?.validateProject(doc);
+  for(const mod of [window.FHStructureHealth,window.FHAccessConfig,window.FHStyleProperty])mod?.validateMap(doc);
+  return true;
+ };
+ window.LumenEditor=Object.freeze({
+  validate,
+  create:()=>clone(newProject()),
+  load(raw,onChange){
+   validate(raw);clearTimeout(saveTimer);lumenEditorNotify=null;
+   lumenEditorOriginal=clone(raw);
+   const defaults=newProject();
+   project={...defaults,...clone(raw),units:{...defaults.units,...clone(raw.units)},
+    floors:raw.floors.map((f,i)=>({...floorDefault(f.id,f.name,f.elevationFt,i),...clone(f)}))};
+   floorIndex=0;selection=null;history=[];historyIndex=-1;floorRefArchive.clear();rememberFloorRefs();
+   closeInspector();closeModal();loadedImgs=project.floors.map(()=>null);spaceCache=[];
+   refreshFloorTabs();project.floors.forEach((_,i)=>setupImage(i));
+   lumenEditorChanged=false;dirty=false;lumenEditorNotify=onChange;
+   render();setTimeout(fitMap,140);
+  },
+  read(){const out=clone(lumenEditorChanged?project:lumenEditorOriginal);validate(out);return out;},
+  changed:()=>lumenEditorChanged,
+  saved(){dirty=false;status(window.LUMEN_CARTRIDGE_TEXT?.working||'LUMEN');},
+ });
+}
+
 // Puerta opcional: si faltan módulos o se abre el HTML antiguo, Legacy continúa igual.
 window.FHMultimodeSelector?.mount({
  validateMap:map=>ForestShared.validate(map).ok,
