@@ -191,6 +191,16 @@ button.danger{border-color:#c36c6c;color:var(--bad)}
 .campaign a:not(h3 a){display:inline-block;margin-top:10px;color:var(--gold-hi)}
 .workspace-section{padding-top:12px}
 .empty-state{border:1px dashed #937348;padding:24px;color:var(--muted);background:#15110d;font-size:14px;min-height:94px}
+.query-warning{
+  padding:17px 18px;margin:10px 0 16px;
+  border:1px solid #b17a59;background:#2d160f;color:#f4d4b5;
+  font:14px/1.5 system-ui,sans-serif;overflow-wrap:anywhere;
+}
+.query-warning strong{display:block;font-weight:700;color:#f7d7af}
+.query-warning p{margin:8px 0 0;color:inherit}
+.query-warning small{display:block;margin-top:10px;color:#e5bda2}
+.query-warning a{color:#ffe09b;text-decoration:underline}
+
 .auth{
   max-width:530px;margin:45px auto 70px;padding:36px 40px;
   border:1px solid var(--gold-dim);background:linear-gradient(145deg,#201710,#0a0908);
