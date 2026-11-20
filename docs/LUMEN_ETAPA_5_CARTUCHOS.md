@@ -2,6 +2,21 @@
 
 Estado: **NEEDS WORK** hasta verificar el recorrido con cuentas Firebase reales y la aceptación visual. El recorrido técnico de navegador con identidades de prueba sí pasó en GitHub Actions. Los PRs A/B/C son dependientes y no equivalen a despliegue.
 
+## Archivos del cambio
+
+| Archivos | Responsabilidad |
+| --- | --- |
+| `portal/cartridge.js` | Contrato portable, validación e identidad, catálogo y revisiones |
+| `portal/cartridge-access.js` | Autorización mediante lectura Firebase externa y comprobación de sesión |
+| `portal/cartridge-recovery.js` | IndexedDB, dos instantáneas y token contra conflictos |
+| `portal/map-library.js`, `portal/cartridge-strings.js` | Biblioteca, editor integrado, recuperación y textos en español |
+| `portal/app.js`, `portal/index.html`, `portal/portal.css` | Ruta DM, navegación, aviso permanente, iframe del mismo origen y estilo LUMEN |
+| `index.html` | Aislamiento del borrador y API del editor; exportación completa e historial inicial |
+| `tests/lumen-cartridge.test.cjs`, `tests/lumen-editor-bridge.test.cjs`, `tests/lumen-library-behavior.test.cjs` | Datos, editor y comportamiento de autorización/biblioteca |
+| `tests/lumen-recovery.test.cjs`, `tests/lumen-performance.test.cjs`, `tests/helpers/lumen-large-map.cjs` | Recuperación, fallos y medición 120 × 120 |
+| `tests/lumen-browser.test.cjs`, `.github/workflows/lumen-cartridges.yml` | Integración Chromium con almacenamiento nativo y descarga |
+| `docs/LUMEN_ETAPA_5_CARTUCHOS.md` | Contrato, evidencia, límites y aceptación pendiente |
+
 ## Contrato v1
 
 Archivo portable `Nombre-de-Partida.lumen.json`, JSON UTF-8. No está cifrado ni firmado: el propietario puede editarlo externamente. Los identificadores no prueban autenticidad ni conceden permisos de Firebase.
@@ -61,7 +76,7 @@ Mediciones puntuales de Node en este entorno, sin umbrales arbitrarios; no son c
 | Mapa del repositorio, cuadrícula 120 × 120 | 5 / 38 | 8 175 B | 0,08 ms | 0,13 ms | 0,51 ms | 1,56 ms | 0,54 ms |
 | Estrés derivado 120 × 120 | 5 / 18 038 | 7 484 175 B | 43,94 ms | 40,43 ms | 181,69 ms | 218,39 ms | 219,42 ms |
 
-**Pendiente:** coste de dos instantáneas de tamaño grande en dispositivos habituales, llenado físico de cuota, rendimiento móvil habitual, mapas reales de usuario densamente diseñados y cartuchos con muchas imágenes/mapas. No se afirma que estos tamaños garanticen fluidez móvil. El código mantiene varias copias durante validación, edición y recuperación; el consumo de memoria supera el tamaño serializado. Si las mediciones reales lo requieren, evolucionar `formatVersion` a un contenedor de entradas independientes y compresión reversible, preservando los proyectos internos completos y la importación v1 explícita. No se implementa esa evolución aquí.
+**Pendiente:** coste de dos instantáneas de tamaño grande en dispositivos habituales, llenado físico de cuota, rendimiento móvil habitual, mapas reales de usuario densamente diseñados y cartuchos con muchas imágenes/mapas. La cuota nativa impuesta se verificó después en Chromium; queda pendiente el llenado de cuota física y su comportamiento en dispositivos reales. No se afirma que estos tamaños garanticen fluidez móvil. El código mantiene varias copias durante validación, edición y recuperación; el consumo de memoria supera el tamaño serializado. Si las mediciones reales lo requieren, evolucionar `formatVersion` a un contenedor de entradas independientes y compresión reversible, preservando los proyectos internos completos y la importación v1 explícita. No se implementa esa evolución aquí.
 
 ### Prueba de navegador ejecutada en GitHub Actions
 
@@ -69,13 +84,15 @@ Mediciones puntuales de Node en este entorno, sin umbrales arbitrarios; no son c
 
 Ejecución [44735937133](https://github.com/sokcrow/Blakpine-Wood/actions/runs/44735937133): **37 pruebas de datos PASS + 1 prueba nativa Chromium PASS**. Editor real, exportación completa, descarga y cierre/reapertura del perfil con reimportación exacta. Guardado IndexedDB nativo del cartucho de estrés: **209,2 ms**, **7 484 175 B**. Se fijó Ubuntu 24.04 porque el primer intento con Ubuntu 26.04 no era compatible con la versión de Playwright de pruebas.
 
+Ejecución final de código [44736457978](https://github.com/sokcrow/Blakpine-Wood/actions/runs/44736457978), commit `78139886a6bef507435d33b17cd65a59ff3d8a28`: **37 pruebas de datos PASS + 1 integración Chromium PASS**. Añade recuperación sin seleccionar archivo después de reabrir el perfil, retención nativa de dos revisiones y rechazo real de la escritura IndexedDB por cuota. Para este último caso se reduce la cuota de un origen de prueba nuevo mediante CDP; no se llena el disco físico. Resultado: `RECOVERY_QUOTA`, cartucho en memoria idéntico y exportable, ninguna instantánea parcial. El primer intento de reducir cuota en un origen ya usado no produjo rechazo, por lo que se aisló el origen antes de abrir IndexedDB. Guardado inicial nativo del cartucho de 7 484 175 B: **201,1 ms**; se comprobaron dos instantáneas tras sucesivas revisiones.
+
 ### Aceptación pendiente
 
 Verificar en el despliegue autorizado, sin credenciales inventadas:
 
 1. DM real crea dos campañas Legacy; jugador real conserva exclusivamente su membresía y sala.
 2. Ejecutar el recorrido completo de exportación, cierre, nuevo inicio de sesión y reapertura del archivo en ambas campañas.
-3. Confirmar recuperación más nueva y elección de conservar el archivo, predecesora válida, error real de cuota y navegación mientras hay cambios.
+3. Confirmar recuperación más nueva y elección de conservar el archivo, predecesora válida, cuota del dispositivo real y navegación mientras hay cambios. El rechazo de cuota nativo bajo una cuota impuesta ya pasó en Chromium.
 4. Comprobar teclado, foco, vistas móviles y escritorio; referencia de imágenes y todos los servicios tras editar.
 5. Verificar arranque 3D independiente con guardados Legacy preexistentes y resolver los fallos de pruebas anteriores por una tarea separada.
 
