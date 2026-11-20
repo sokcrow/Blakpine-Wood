@@ -249,3 +249,51 @@ test('Perfiles Firestore exponen sólo el nombre y se editan por su propietario'
  assert.match(app,/fb\.fs\.doc\(db,'profiles',authUser\.uid\)/);
  assert.doesNotMatch(app,/setDoc\(fb\.fs\.doc\(db,'profiles',authUser\.uid\),\{[^}]*email/);
 });
+
+
+test('Salas: IDs aleatorios y estados de inscripciones de la versión actual',async()=>{
+ const {makeLobbyId,isWaitingLobby,isJoinedParticipant}=await import('../portal/lobby-model.js');
+ const ids=new Set(Array.from({length:128},()=>makeLobbyId()));
+ assert.equal(ids.size,128);
+ for(const id of ids)assert.match(id,/^[A-F0-9]{32}$/);
+ assert.throws(()=>makeLobbyId({}),/LOBBY_CRYPTO_REQUIRED/);
+ const id=makeLobbyId();
+ assert.equal(isWaitingLobby({roomId:id,status:'waiting'}),true);
+ assert.equal(isWaitingLobby({roomId:id,status:'closed'}),false);
+ assert.equal(isWaitingLobby({roomId:'ABC',status:'waiting'}),false);
+ assert.equal(isJoinedParticipant({roomId:id,state:'joined'},id),true);
+ assert.equal(isJoinedParticipant({roomId:id,state:'left'},id),false);
+ assert.equal(isJoinedParticipant({roomId:makeLobbyId(),state:'joined'},id),false);
+});
+
+test('Sala compartida no presenta el motor como sincronizado',()=>{
+ const app=fs.readFileSync(path.join(base,'portal/app.js'),'utf8');
+ const css=fs.readFileSync(path.join(base,'portal/portal.css'),'utf8');
+ const strings=fs.readFileSync(path.join(base,'portal/strings.js'),'utf8');
+ assert.match(app,/function watchCampaignLobby\(/);
+ assert.match(app,/fs\.onSnapshot\(roomRef/);
+ assert.match(app,/fs\.onSnapshot\(membersRef/);
+ assert.match(app,/stopLobbyListeners\(\)/);
+ assert.match(app,/isWaitingLobby\(room\)/);
+ assert.match(app,/makeLobbyId\(\)/);
+ assert.match(app,/id="campaign-lobby"/);
+ assert.match(app,/data-lobby-action="join"/);
+ assert.match(app,/data-lobby-action="close"/);
+ assert.match(app,/button\(S\.sync,'sync',true\)/);
+ assert.doesNotMatch(app,/button\(S\.launch,'launch',true\)/);
+ assert.match(strings,/lobbyPresence:'Esta lista registra inscripciones/);
+ assert.match(css,/\.lobby-roster/);
+});
+
+test('Reglas de sala limitan al DM y a miembros identificados por UID',()=>{
+ const rules=fs.readFileSync(path.join(base,'firestore.rules'),'utf8');
+ const area=rules.slice(rules.indexOf('match /lobby/{docId}'),rules.indexOf('match /members/{uid}'));
+ assert.match(area,/allow create: if docId == 'current' && owner\(cid\)/);
+ assert.match(area,/allow update: if docId == 'current' && owner\(cid\)/);
+ assert.match(area,/allow list: if false/);
+ assert.match(area,/allow create: if signed\(\) && uid == request\.auth\.uid/);
+ assert.match(area,/get\(lobbyPath\(cid\)\)\.data\.roomId/);
+ assert.match(area,/resource\.data\.userId == uid/);
+ assert.match(area,/allow delete: if false/g);
+ assert.match(rules,/data\.keys\(\)\.hasOnly\(\['userId','roomId','state','updatedAt'\]\)/);
+});
