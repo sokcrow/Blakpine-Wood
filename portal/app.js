@@ -341,6 +341,7 @@ function watchCampaignLobby(ticket,campaignId,dm,archived,memberNames) {
   const membersRef=fs.collection(db,'campaigns',campaignId,'lobbyParticipants');
   const currentUid=user.uid;
   let room=null,roster=[],roomLoaded=false,rosterLoaded=false,problem=null;
+  const rosterNames=new Map(memberNames),pendingNames=new Set();
   const active=()=>isWaitingLobby(room);
   function paint() {
     if(ticket!==epoch||!panel.isConnected)return;
@@ -365,12 +366,25 @@ function watchCampaignLobby(ticket,campaignId,dm,archived,memberNames) {
       if(waiting) {
         html+='<h3>'+S.lobbyRoster+' ('+listed.length+')</h3>';
         html+='<ul class="lobby-roster">'+(listed.map(p=>
-          '<li>'+esc(p.userId===currentUid?ownName():(memberNames.get(p.userId)||S.unnamed))+'</li>'
+          '<li>'+esc(p.userId===currentUid?ownName():(rosterNames.get(p.userId)||S.unnamed))+'</li>'
         ).join('')||'<li>'+S.lobbyNobody+'</li>')+'</ul>';
       }
       html+='<small class="lobby-disclaimer">'+S.lobbyPresence+'</small>';
     }
     panel.innerHTML=html;
+  }
+  function resolveNames() {
+    for(const entry of roster) {
+      const uid=entry.userId;
+      if(uid===currentUid||typeof uid!=='string'||rosterNames.has(uid)||pendingNames.has(uid))continue;
+      pendingNames.add(uid);
+      fs.getDoc(fs.doc(db,'profiles',uid)).then(snapshot=>{
+        rosterNames.set(uid,snapshot.exists()?
+          visibleDisplayName(snapshot.data().displayName,S.unnamed):S.unnamed);
+      },()=>{rosterNames.set(uid,S.unnamed);}).finally(()=>{
+        pendingNames.delete(uid);paint();
+      });
+    }
   }
   panel.addEventListener('click',async event=>{
     const target=event.target.closest('[data-lobby-action]');
@@ -405,7 +419,7 @@ function watchCampaignLobby(ticket,campaignId,dm,archived,memberNames) {
     room=snapshot.exists()?snapshot.data():null;roomLoaded=true;paint();
   },onError);
   const unsubscribeRoster=fs.onSnapshot(membersRef,snapshot=>{
-    roster=snapshot.docs.map(d=>d.data());rosterLoaded=true;paint();
+    roster=snapshot.docs.map(d=>d.data());rosterLoaded=true;resolveNames();paint();
   },onError);
   stopLobbyListeners=()=>{unsubscribeRoom();unsubscribeRoster();};
 }
