@@ -1,6 +1,6 @@
 {
   "schema": "forest-horror-furniture-catalog-v1",
-  "version": 6,
+  "version": 7,
   "units": {
     "length": "ft",
     "metersPerFoot": 0.3048,
@@ -2130,6 +2130,184 @@
       "triangles": 120,
       "description": "Modelo 3D Pixel Art Low Poly. Funciones de comercio e inventario pendientes.",
       "forSale": false
+    },
+    {
+      "id": "barril_madera_medieval",
+      "name": "Barril de madera",
+      "category": "Almacenamiento",
+      "shortCode": "BA",
+      "widthFt": 2.5,
+      "depthFt": 2.5,
+      "heightFt": 3.1,
+      "description": "Barril de duelas y aros de hierro.",
+      "tags": [
+        "medieval",
+        "fantasia",
+        "taberna",
+        "bodega"
+      ],
+      "environment": "interior",
+      "blocksMovement": true,
+      "pack": "medieval_01",
+      "glb": "modelos_glb/barril_madera_medieval.glb",
+      "thumbnail": "miniaturas/barril_madera_medieval.png"
+    },
+    {
+      "id": "tonel_bodega_medieval",
+      "name": "Tonel de bodega",
+      "category": "Almacenamiento",
+      "shortCode": "TO",
+      "widthFt": 5.1,
+      "depthFt": 3.4,
+      "heightFt": 3.7,
+      "description": "Tonel horizontal en soportes de madera.",
+      "tags": [
+        "medieval",
+        "fantasia",
+        "bodega",
+        "taberna"
+      ],
+      "environment": "interior",
+      "blocksMovement": true,
+      "pack": "medieval_01",
+      "glb": "modelos_glb/tonel_bodega_medieval.glb",
+      "thumbnail": "miniaturas/tonel_bodega_medieval.png"
+    },
+    {
+      "id": "banco_largo_medieval",
+      "name": "Banco largo de taberna",
+      "category": "Asientos",
+      "shortCode": "BL",
+      "widthFt": 6,
+      "depthFt": 1.6,
+      "heightFt": 1.75,
+      "description": "Banco de tablones y caballetes.",
+      "tags": [
+        "medieval",
+        "fantasia",
+        "taberna",
+        "comedor"
+      ],
+      "environment": "interior",
+      "blocksMovement": true,
+      "pack": "medieval_01",
+      "glb": "modelos_glb/banco_largo_medieval.glb",
+      "thumbnail": "miniaturas/banco_largo_medieval.png"
+    },
+    {
+      "id": "arcon_reforzado_medieval",
+      "name": "Arcón reforzado",
+      "category": "Almacenamiento",
+      "shortCode": "AR",
+      "widthFt": 3.6,
+      "depthFt": 2.2,
+      "heightFt": 2.4,
+      "description": "Arcón de madera con cerradura y herrajes.",
+      "tags": [
+        "medieval",
+        "fantasia",
+        "cofre",
+        "bodega"
+      ],
+      "environment": "interior",
+      "blocksMovement": true,
+      "pack": "medieval_01",
+      "glb": "modelos_glb/arcon_reforzado_medieval.glb",
+      "thumbnail": "miniaturas/arcon_reforzado_medieval.png"
+    },
+    {
+      "id": "cama_paja_medieval",
+      "name": "Cama de paja",
+      "category": "Descanso",
+      "shortCode": "CP",
+      "widthFt": 3.4,
+      "depthFt": 6.4,
+      "heightFt": 1.8,
+      "description": "Armazón de madera, paja, manta y almohada.",
+      "tags": [
+        "medieval",
+        "fantasia",
+        "aldea",
+        "descanso"
+      ],
+      "environment": "interior",
+      "blocksMovement": true,
+      "pack": "medieval_01",
+      "glb": "modelos_glb/cama_paja_medieval.glb",
+      "thumbnail": "miniaturas/cama_paja_medieval.png"
+    },
+    {
+      "id": "estanteria_madera_medieval",
+      "name": "Estantería de madera",
+      "category": "Almacenamiento",
+      "shortCode": "EM",
+      "widthFt": 4.5,
+      "depthFt": 1.65,
+      "heightFt": 6.1,
+      "description": "Estantería abierta de cuatro niveles.",
+      "tags": [
+        "medieval",
+        "fantasia",
+        "almacen",
+        "bodega"
+      ],
+      "environment": "interior",
+      "blocksMovement": true,
+      "pack": "medieval_01",
+      "glb": "modelos_glb/estanteria_madera_medieval.glb",
+      "thumbnail": "miniaturas/estanteria_madera_medieval.png"
+    },
+    {
+      "id": "mesa_taberna_medieval",
+      "name": "Mesa de taberna",
+      "category": "Superficies",
+      "shortCode": "MT",
+      "widthFt": 6.2,
+      "depthFt": 3,
+      "heightFt": 2.8,
+      "description": "Mesa comunal de tablones con caballetes.",
+      "tags": [
+        "medieval",
+        "fantasia",
+        "taberna",
+        "comedor"
+      ],
+      "environment": "interior",
+      "blocksMovement": true,
+      "pack": "medieval_01",
+      "glb": "modelos_glb/mesa_taberna_medieval.glb",
+      "thumbnail": "miniaturas/mesa_taberna_medieval.png",
+      "supportSurfaces": [
+        {
+          "id": "top",
+          "xFt": 0,
+          "zFt": 0,
+          "widthFt": 5.9,
+          "depthFt": 2.75,
+          "heightFt": 2.8
+        }
+      ]
+    },
+    {
+      "id": "armario_rustico_medieval",
+      "name": "Armario rústico",
+      "category": "Almacenamiento",
+      "shortCode": "AM",
+      "widthFt": 4.2,
+      "depthFt": 2.3,
+      "heightFt": 6.3,
+      "description": "Armario de puertas reforzadas y bisagras de hierro.",
+      "tags": [
+        "medieval",
+        "fantasia",
+        "aldea",
+        "almacen"
+      ],
+      "environment": "interior",
+      "blocksMovement": true,
+      "pack": "medieval_01",
+      "glb": "modelos_glb/armario_rustico_medieval.glb",
+      "thumbnail": "miniaturas/armario_rustico_medieval.png"
     }
   ]
 }
