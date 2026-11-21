@@ -97,7 +97,7 @@ const buildMedievalPack=function buildMedievalPack(){
   for(let j=0;j<indices.length;j+=3){const ids=indices.slice(j,j+3),A=proj[ids[0]],B=proj[ids[1]],C=proj[ids[2]],x0=A[0]*scale+ox,y0=A[1]*scale+oy,x1=B[0]*scale+ox,y1=B[1]*scale+oy,x2=C[0]*scale+ox,y2=C[1]*scale+oy,area=(x1-x0)*(y2-y0)-(y1-y0)*(x2-x0);if(Math.abs(area)<.00001)continue;
    const light=.71+.27*Math.max(0,n[ids[0]*3]*.55+n[ids[0]*3+1]*.75+n[ids[0]*3+2]*.4);
    for(let y=Math.max(0,Math.floor(Math.min(y0,y1,y2)));y<=Math.min(h-1,Math.ceil(Math.max(y0,y1,y2)));y++)for(let x=Math.max(0,Math.floor(Math.min(x0,x1,x2)));x<=Math.min(w-1,Math.ceil(Math.max(x0,x1,x2)));x++){
-    const a=((x1-x0)*(y+.5-y0)-(y1-y0)*(x+.5-x0))/area,b=((x2-x0)*(y+.5-y0)-(y2-y0)*(x+.5-x0))/area;if(a<0||b<0||a+b>1)continue;
+    const a=((x+.5-x0)*(y2-y0)-(y+.5-y0)*(x2-x0))/area,b=((x1-x0)*(y+.5-y0)-(y1-y0)*(x+.5-x0))/area;if(a<0||b<0||a+b>1)continue;
     const c=1-a-b,z=A[2]*c+B[2]*a+C[2]*b,k=y*w+x;if(z<=depth[k])continue;depth[k]=z;
     const tu=u[ids[0]*2]*c+u[ids[1]*2]*a+u[ids[2]*2]*b,tv=u[ids[0]*2+1]*c+u[ids[1]*2+1]*a+u[ids[2]*2+1]*b,src=(Math.max(0,Math.min(63,Math.floor(tv*64)))*64+Math.max(0,Math.min(63,Math.floor(tu*64))))*4;for(let i=0;i<3;i++)px[k*4+i]=Math.round(tex[src+i]*light);px[k*4+3]=255;
    }
