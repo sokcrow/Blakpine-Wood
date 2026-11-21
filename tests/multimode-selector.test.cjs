@@ -214,3 +214,32 @@ test('UI offline: Legacy del editor, teclado, Escape, Tab, click y tacto',async 
  assert.equal(localLaunches,1);assert.equal(worldLaunches,0);
  assert.equal(d.fhModesOverlay.hidden,true);
 });
+
+test('UI offline: los tres catálogos pueden seleccionarse sin activar una partida',t=>{
+ const backup=Object.fromEntries(['document','location','FH_MULTIMODE_TEXT',
+  'FHModeAdapterRegistry'].map(k=>[k,globalThis[k]]));
+ t.after(()=>{for(const [key,value]of Object.entries(backup))if(value===undefined)delete globalThis[key];else globalThis[key]=value;});
+ vm.runInThisContext(fs.readFileSync(path.resolve(__dirname,'../juego/assets/fh-multimode-strings.js'),'utf8'));
+ globalThis.FHModeAdapterRegistry=registryModule;
+ globalThis.location={protocol:'file:'};
+ const document=makeDOM(),d=document.ids;
+ globalThis.document=document;
+ const selections=[];
+ choice.mount({
+  validateMap:()=>true,selectEditorRuleset:id=>selections.push(id),
+  launchLegacyWorld:()=>assert.fail('partida remota sin perfil'),
+  launchLegacyCurrent:()=>assert.fail('partida local sin pulsar su botón')
+ });
+ d.fhModesBtn.fire('click');
+ for(const id of ['dnd','moon-system','legacy']){
+  const button=d.fhRulesOptions.children.find(choice=>choice.dataset.rule===id);
+  assert.equal(button.disabled,false);
+  button.focus();
+  button.fire('click');
+  assert.equal(document.activeElement.dataset.rule,id);
+  assert.equal(document.activeElement.attributes['aria-pressed'],'true');
+  assert.equal(d.fhModesStart.disabled,true);
+ }
+ assert.deepEqual(selections,['dnd','moon-system','legacy']);
+ assert.equal(d.fhModesLegacyLocal.disabled,false);
+});

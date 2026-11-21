@@ -1,4 +1,4 @@
-/* Interfaz multimodo: lee contratos reales, no modifica el editor ni interpreta combate. */
+/* Interfaz multimodo: lee contratos reales y comunica la selección del reglamento. */
 (function(root,factory){
  'use strict';
  const api=factory();
@@ -84,7 +84,7 @@
   }
   return Object.freeze({load,world,rule,canStart,prepare});
  }
- function mount({validateMap,launchLegacyWorld,launchLegacyCurrent,launchDndWorld}={}){
+ function mount({validateMap,launchLegacyWorld,launchLegacyCurrent,launchDndWorld,selectEditorRuleset}={}){
   const d=document,t=globalThis.FH_MULTIMODE_TEXT;
   const trigger=d.getElementById('fhModesBtn'),overlay=d.getElementById('fhModesOverlay'),
    closeButton=d.getElementById('fhModesClose'),status=d.getElementById('fhModesStatus'),
@@ -98,6 +98,7 @@
    registry.register({adapter:globalThis.FHDndCombat,start:launchDndWorld});
   }
   globalThis.FHMultimodeAdapters=registry;
+  const canSelectCatalog=typeof selectEditorRuleset==='function';
   let runtime=null,loaded=false,busy=false,selectedWorld='ciudad-moderna',selectedRule='legacy';
   function setStatus(message){status.textContent=message;}
   function renderChoices(box,items,type){
@@ -106,19 +107,26 @@
     const row=type==='world'?runtime?.world(item.id):runtime?.rule(item.id);
     const available=type==='world'?row?.description?.scenario?.status==='map-available':
      !!(row?.manifest&&registry.resolve(row.manifest));
+    const catalogOnly=type==='rule'&&canSelectCatalog&&!available;
     const button=d.createElement('button'),name=d.createElement('strong'),hint=d.createElement('small');
     button.type='button';button.className='fh-modes-choice';button.dataset[type]=item.id;
-    button.disabled=busy||!available;
+    button.disabled=busy||(!available&&!catalogOnly);
     button.setAttribute('aria-pressed',String((type==='world'?selectedWorld:selectedRule)===item.id));
     name.textContent=(type==='world'?row?.profile?.label:row?.manifest?.label) || t[item.label];
     hint.textContent=available?(type==='world'?t.demo:t.available):
      (type==='world'&&row?.description?.scenario?.status==='declarative-only'?t.noMap:
-      type==='world'?t.missing:t.adapterPending);
+      type==='world'?t.missing:catalogOnly?t.catalogOnly:t.adapterPending);
     button.append(name,hint);
     button.addEventListener('click',()=>{
      if(button.disabled)return;
-     if(type==='world')selectedWorld=item.id;else selectedRule=item.id;
+     const focused=d.activeElement===button;
+     if(type==='world')selectedWorld=item.id;
+     else{
+      selectedRule=item.id;
+      if(canSelectCatalog)selectEditorRuleset(selectedRule);
+     }
      render();
+     if(focused)Array.from(box.children).find(choice=>choice.dataset[type]===item.id)?.focus();
     });
     box.append(button);
    }

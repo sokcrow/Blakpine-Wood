@@ -12,6 +12,8 @@
   launchError:'No se pudo iniciar esta combinación. Revisa el perfil y los recursos publicados.',
   noWorld:'Mapa no disponible',noRules:'Adaptador pendiente',
   available:'Disponible',planned:'Pendiente',missing:'No disponible',
+  catalogOnly:'Catálogo del editor disponible · partida no disponible',
+  catalogHint:'El reglamento cambia el catálogo del editor. Puedes cerrar el selector y seguir editando.',
   modern:'Ciudad moderna',dystopian:'Ciudad distópica',medieval:'Villa o castillo medieval',
   legacy:'Legacy',dnd:'DnD',moon:'Moon System',
   demo:'Mapa de demostración cargable',noMap:'Sin mapa cargable',adapterPending:'Sin adaptador funcional',

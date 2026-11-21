@@ -7,6 +7,15 @@
     "windowSpanTiles": 1
   },
   "behaviour": "visual-only; door/window gameplay remains in ForestShared and the 3D engine",
+  "compatibility": {
+    "puerta_mirilla": { "technology": "industrial" },
+    "puerta_cristal_antipanico": { "technology": "industrial" },
+    "puerta_cristal_tintada": { "technology": "industrial" },
+    "puerta_electronica_reja": { "technology": "electronics" },
+    "puerta_electronica_opaca": { "technology": "electronics" },
+    "teclado_pin": { "technology": "electronics" },
+    "lector_tarjeta": { "technology": "electronics" }
+  },
   "architecture": [
     {
       "id": "puerta_madera",

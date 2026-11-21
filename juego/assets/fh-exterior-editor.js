@@ -55,7 +55,9 @@
   hide();toast(T.selected+entry.name);
  }
  function launcher(){
-  const tools=document.querySelector('#tools');if(activeCategory!=='lighting'||!tools||document.getElementById('fhExteriorLauncher'))return;
+  const tools=document.querySelector('#tools');
+  if(activeCategory!=='lighting'||!tools||window.editorCatalogAllowsTool?.('power_outlet')===false||
+     document.getElementById('fhExteriorLauncher'))return;
   const button=document.createElement('button');button.id='fhExteriorLauncher';button.type='button';button.textContent=T.picker;
   button.onclick=open;tools.append(button);
  }

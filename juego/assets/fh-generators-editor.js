@@ -68,7 +68,9 @@
   }catch(error){choices.textContent=T.loadError;console.warn('[Generadores]',error);}
  }
  function launcher(){
-  const tools=document.querySelector('#tools');if(!tools||activeCategory!=='lighting'||document.getElementById('fhGeneratorLauncher'))return;
+  const tools=document.querySelector('#tools');
+  if(!tools||activeCategory!=='lighting'||global.editorCatalogAllowsTool?.('generator')===false||
+     document.getElementById('fhGeneratorLauncher'))return;
   const button=document.createElement('button');button.id='fhGeneratorLauncher';button.type='button';button.textContent=T.picker;button.onclick=open;tools.append(button);
  }
  const priorCategory=setCategory;setCategory=function(category){priorCategory(category);launcher();};
