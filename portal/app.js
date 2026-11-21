@@ -18,6 +18,10 @@ document.querySelector('#footer').textContent = S.footer;
 const names = { legacy: S.legacy, dnd: S.dnd, 'moon-system': S.moon };
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const link = (text, url, cls='') => '<a class="'+esc(cls)+'" href="'+esc(url)+'">'+esc(text)+'</a>';
+const actionLink = (label,url,icon,primary=false) =>
+  '<a class="map-action'+(primary?' map-action-primary':'')+'" href="'+esc(url)+'">'+
+  '<svg aria-hidden="true" focusable="false"><use href="../juego/assets/fh-action-icons.svg#'+icon+'"></use></svg>'+
+  '<span>'+esc(label)+'</span></a>';
 const button = (text, id, disabled=false) => '<button type="button" id="'+id+'" '+(disabled?'disabled':'')+'>'+esc(text)+'</button>';
 const date = v => { try { return (v?.toDate?.() ?? new Date(v)).toLocaleString('es-MX'); } catch { return ''; } };
 const input = (id, label, type='text', extra='') => '<label for="'+id+'">'+esc(label)+'</label><input id="'+id+'" name="'+id+'" type="'+type+'" required '+extra+'>';
@@ -258,7 +262,7 @@ function campaignCard(c) {
   return '<article class="campaign"><h3>'+link(c.name,'#'+place+'/'+c.id)+'</h3>'+
     '<p>'+esc(names[c.ruleset])+' · '+(c.status==='active'?S.active:S.archived)+'</p>'+
     '<small>'+S.createdAt+': '+date(c.createdAt)+'</small>'+
-    link(dm?S.dm:S.room,'#'+place+'/'+c.id)+'</article>';
+    actionLink(dm?S.dm:S.room,'#'+place+'/'+c.id,dm?'settings':'play')+'</article>';
 }
 function queryFailure(error, title) {
   const rawCode=String(error?.code || 'unknown').slice(0,80);
@@ -375,7 +379,7 @@ function watchCampaignLobby(ticket,campaignId,dm,archived,memberNames) {
       }
       if(waiting) {
         if(!archived&&(dm||enrolled)&&playSession?.status==='open'&&playSession.roomId===room.roomId){
-          html+='<p>'+link(P.join,'#jugar/'+campaignId)+'</p><p>'+P.limitation+'</p>';
+          html+='<p>'+actionLink(P.join,'#jugar/'+campaignId,'play',true)+'</p><p>'+P.limitation+'</p>';
         }
         html+='<h3>'+S.lobbyRoster+' ('+listed.length+')</h3>';
         html+='<ul class="lobby-roster">'+(listed.map(p=>
@@ -472,7 +476,7 @@ async function campaign(ticket,id,dmRequested) {
     '<p>'+esc(names[c.ruleset])+' · '+(c.status==='active'?S.active:S.archived)+'</p>'+
     '<p>'+(dm?S.dmNotice:S.waiting)+'</p>'+
     button(S.refresh,'refresh')+'<small>'+S.refreshNotice+'</small>'+
-    (dm&&c.ruleset==='legacy'&&c.status==='active'?'<p>'+link(C.title,'#mapas/'+id)+'</p>':'')+
+    (dm&&c.ruleset==='legacy'&&c.status==='active'?'<p>'+actionLink(C.title,'#mapas/'+id,'map',true)+'</p>':'')+
     (dm?'<div class="grid"><section class="panel"><h2>'+S.members+'</h2><ul class="list">'+
       members.map((m,i)=>'<li><span class="account">'+esc(memberNames.get(m.userId)||S.unnamed)+(m.role==='dm'?' (DM)':'')+
       '</span><small>'+S.joinedAt+': '+date(m.joinedAt)+'</small>'+

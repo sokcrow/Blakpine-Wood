@@ -38,3 +38,34 @@ body.fh-editor.fh-portrait #fhOrientationNotice:not([hidden]){
 #toast{background:var(--panel2);border-color:var(--active);color:var(--gold)}
 #workspace-error{position:fixed;inset:0;z-index:100;background:var(--bg);color:var(--text);display:grid;place-content:center;gap:1rem;padding:2rem}
 #workspace-error a{color:var(--gold)}
+
+/* Actions read from left to right and keep their labels when moved into overflow. */
+.fh-action-icon{width:18px;height:18px;flex:0 0 18px;vertical-align:middle}
+#headActions button:has(.fh-action-icon),#testBtn,.fh-project-action{
+ display:inline-flex;align-items:center;justify-content:flex-start;gap:7px
+}
+#app #headActions button:has(.fh-action-icon),#testBtn{
+ border-radius:6px;border-color:transparent;box-shadow:none
+}
+#app #menuBtn,#testBtn{background:var(--gold)!important;color:#211507;border-color:var(--gold)!important}
+#app #headActions button:hover,#testBtn:hover{filter:brightness(1.2)}
+#app #editorLandscapeBtn{font-family:inherit}
+#subbar button,#categories button,#tools button{border-radius:6px}
+#categories button{border-color:transparent}
+#categories button.active{box-shadow:inset 0 -2px 0 var(--active)}
+#tools button:not(.active):not(.fh-overflow-toggle){border-color:transparent}
+#tools button:hover:not(:disabled){border-color:var(--line)}
+#dialog:has(.fh-project-menu){width:min(640px,96vw);border-radius:10px}
+.fh-project-header{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.fh-project-header h2{margin:0;font-size:20px}
+.fh-project-menu section,.fh-project-menu details{padding:12px 0;border-bottom:1px solid #433422}
+.fh-project-menu h3{margin:0 0 6px;color:var(--gold)}
+.fh-project-menu p{margin:0 0 8px}
+.fh-project-menu summary{cursor:pointer;min-height:32px;padding:4px 0}
+.fh-project-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:6px;margin-top:6px}
+.fh-project-grid .fh-project-action{min-height:44px;text-align:left;border:1px solid transparent;border-radius:6px;background:var(--panel2);color:var(--text);line-height:1.25}
+.fh-project-action .fh-action-icon{color:var(--gold)}
+.fh-project-grid .fh-project-action.featured{background:var(--editor-selected);color:var(--gold)}
+.fh-project-grid .fh-project-action:hover,.fh-project-grid .fh-project-action:focus-visible{border-color:var(--active)}
+.fh-project-grid .fh-project-action.danger,.fh-project-grid .danger .fh-action-icon{color:#f5a6a1}
+.fh-action-icon{fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}

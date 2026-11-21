@@ -285,7 +285,7 @@
   if(e.key==='Escape'&&panels.size){e.preventDefault();e.stopImmediatePropagation();closePanels(true);}
  },true);
  // El editor sólo pide pantalla completa; la ruta compartida de Probar 3D se conserva.
- const fullscreen=$('editorLandscapeBtn');fullscreen.textContent='⛶';fullscreen.title=T.fullscreen;fullscreen.setAttribute('aria-label',T.fullscreen);
+ const fullscreen=$('editorLandscapeBtn');fullscreen.title=T.fullscreen;fullscreen.setAttribute('aria-label',T.fullscreen);
  fullscreen.onclick=async()=>{
   try{
    if(doc.fullscreenElement)await doc.exitFullscreen();

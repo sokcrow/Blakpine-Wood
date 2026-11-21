@@ -1,7 +1,7 @@
 export const C = Object.freeze({
  previewUnavailable:'Abre el mapa en el editor y utiliza su botón Probar 3D.',
  leaveUnsaved:'Hay cartuchos con cambios sin exportar o con errores de recuperación. ¿Cerrar sesión y descartar las copias de trabajo en memoria? Las recuperaciones que sí se guardaron seguirán en este navegador.',
- title:'Mapas del mundo', intro:'Biblioteca local del DM. Exporta el cartucho para llevarlo a otro equipo. Abre una partida para compartir la versión del mapa seleccionado con tu sala.',
+ title:'Mapas del mundo', intro:'El cartucho reúne los mapas de esta campaña. Exporta el archivo .lumen.json para abrirlo con la misma cuenta en otro dispositivo.',
  create:'Crear cartucho', open:'Abrir cartucho existente', add:'Crear mapa en el editor', importMap:'Importar mapa JSON',
  edit:'Editar', rename:'Cambiar nombre', save:'Guardar mapa en cartucho de trabajo', close:'Volver a la biblioteca',
  export:'Exportar cartucho', empty:'Este cartucho aún no contiene mapas.', name:'Nombre del mapa', defaultName:'Mapa nuevo',
