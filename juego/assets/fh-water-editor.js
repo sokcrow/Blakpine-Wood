@@ -113,7 +113,8 @@
   list.querySelector('button')?.focus();
  }
  function launcher(){
-  const tools=document.querySelector('#tools');if(!tools||activeCategory!=='water')return;
+  const tools=document.querySelector('#tools');
+  if(!tools||activeCategory!=='water'||window.editorCatalogAllowsTool?.('water_outlet')===false)return;
   let button=document.getElementById('fhWaterLauncher');if(button)return;
   button=document.createElement('button');button.id='fhWaterLauncher';button.type='button';button.title=T.title||'Agua';
   const icon=document.createElement('span');icon.className='sym';icon.textContent='◉';

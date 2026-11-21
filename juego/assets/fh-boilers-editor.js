@@ -54,7 +54,8 @@
   grid.querySelector('button')?.focus();
  }
  function launcher(){
-  if(activeCategory!=='water'||document.getElementById('fhBoilersLauncher'))return;
+  if(activeCategory!=='water'||root.editorCatalogAllowsTool?.('water_boiler')===false||
+     document.getElementById('fhBoilersLauncher'))return;
   const tools=document.getElementById('tools');if(!tools)return;
   const button=document.createElement('button');button.id='fhBoilersLauncher';
   button.type='button';button.textContent=T.picker||'Calderas y agua caliente';button.onclick=show;tools.append(button);

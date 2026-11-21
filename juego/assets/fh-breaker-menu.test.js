@@ -82,7 +82,7 @@ test('mapa sin breakers conserva estado vacío y alerta de conexiones huérfanas
  assert.match(state.html,/Conexiones por zona/);
 });
 test('los textos del menú se cargan antes de inicializar el editor',()=>{
- const script=editor.indexOf('fh-light-strings.js?v=20261109-zones-3');
+ const script=editor.indexOf('src="./juego/assets/fh-light-strings.js');
  assert.ok(script>=0&&script<editor.indexOf('const ForestShared=(()=>{'));
 });
 test('varios breakers de una zona aparecen una sola vez en el selector y juntos en el resumen',()=>{

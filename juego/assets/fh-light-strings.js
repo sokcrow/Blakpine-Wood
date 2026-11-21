@@ -1,5 +1,6 @@
 /* Forest Horror — etiquetas de iluminación en el editor. */
 window.FH_LIGHT_TEXT=Object.freeze({
+ electricTools:'⚡ Electricidad',lightingTools:'✦ Iluminación',
  breakerIdentity:(name,id)=>name+' [ID: '+id+']',
  circuitIdentity:(name,id)=>name+' ['+id+']',
  chooseBreaker:'— Elige breaker y circuito —',
@@ -29,6 +30,14 @@ window.FH_LIGHT_TEXT=Object.freeze({
  wall:'Las lámparas de pared necesitan una pared cercana para montarse.',
  brightRange:'Luz brillante (pies)',dimRange:'Luz tenue adicional (pies)',angle:'Cono (grados)',kind:'Tipo de luminaria',
  note:'La luz brillante mantiene intensidad completa. La luz tenue es una franja adicional de caída gradual; fuera de la suma vuelve la oscuridad. Las paredes y puertas opacas bloquean la luz; las ventanas dejan pasar sus rayos.',
- presets:[['bulb','Foco de techo'],['strip','Tubo largo de techo'],['panel','Panel de techo'],['wall_sconce','Aplique de pared'],['wall_flood','Reflector de pared']]
+ presets:[['bulb','Foco de techo'],['strip','Tubo largo de techo'],['panel','Panel de techo'],['wall_sconce','Aplique de pared'],['wall_flood','Reflector de pared']],
+ medievalCategories:Object.freeze({
+  torches:'Antorchas',candles:'Velas',oilLanterns:'Faroles de aceite',
+  braziers:'Braseros',campfires:'Fogatas',fireplaces:'Chimeneas',magicLights:'Piedras y cristales mágicos'
+ }),
+ medievalSources:Object.freeze({
+  torch:'Antorcha',candle:'Vela',oil_lantern:'Farol de aceite',brazier:'Brasero',
+  campfire:'Fogata',fireplace:'Chimenea',magic_stone:'Piedra mágica',magic_crystal:'Cristal mágico'
+ })
 });
 

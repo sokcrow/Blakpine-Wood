@@ -6,7 +6,7 @@
  const base=new URL('../../forest-horror/biblioteca/arquitectura/',scriptUrl);
  const allowed=/^(puerta_madera|puerta_metal|puerta_mirilla|puerta_cristal_simple|puerta_cristal_antipanico|puerta_cristal_tintada|puerta_electronica_opaca|puerta_electronica_reja|teclado_pin|lector_tarjeta|ventana_clasica|ventana_dividida)$/;
  const isElectronic=id=>id==='puerta_electronica_opaca'||id==='puerta_electronica_reja';
- let catalogPromise=null,models=[],openingTool='door',opener=null,lastDoorModel='puerta_madera';
+ let catalogPromise=null,models=[],compatibility={},openingTool='door',opener=null,lastDoorModel='puerta_madera';
  const active={door:'puerta_madera',peephole_door:'puerta_mirilla',window:'ventana_clasica'};
  const css=document.createElement('style');
  css.textContent='#fhArchCatalog[hidden]{display:none!important}#fhArchCatalog{position:fixed;inset:0;z-index:91;display:flex;align-items:center;justify-content:center;padding:12px;background:#05080de8}#fhArchCatalog .fhArchPanel{display:flex;flex-direction:column;gap:10px;width:min(680px,100%);max-height:92dvh;padding:14px;background:#131b25;border:2px solid #8a978d;box-shadow:0 18px 55px #000c;color:#f4eddd}#fhArchCatalog .fhArchTop{display:flex;align-items:center;justify-content:space-between;gap:10px}#fhArchCatalog h2{font:700 17px system-ui;margin:0}#fhArchCatalog p{font:12px/1.5 system-ui;margin:0;color:#d0d5d0}#fhArchCatalog .fhArchList{display:grid;grid-template-columns:repeat(auto-fill,minmax(125px,1fr));gap:8px;overflow-y:auto}#fhArchCatalog button:focus-visible,.fhArchInspector button:focus-visible{outline:3px solid #efca88;outline-offset:2px}.fhArchCard{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0;padding:7px;background:#27323b;border:2px solid #56646a;border-radius:3px;color:#f7f0e4;text-align:center;cursor:pointer}.fhArchCard[aria-pressed=true]{border-color:#f1bf78;background:#3f3a31}.fhArchCard img{display:block;width:100%;height:94px;object-fit:contain;image-rendering:pixelated;background:#0e171e}.fhArchCard span{font:600 11px/1.35 system-ui}.fhArchCard small{font:11px system-ui;color:#e3ad86}.fhArchInspector{grid-column:1/-1;display:grid;gap:7px}.fhArchInspector>strong{font:700 12px system-ui}.fhArchInspector .fhArchList{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:6px}.fhArchInspector .fhArchCard{padding:5px}.fhArchInspector .fhArchCard img{height:77px}@media(max-width:480px){#fhArchCatalog .fhArchList{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}#fhArchCatalog .fhArchCard img{height:74px}#fhArchCatalog .fhArchCard{padding:4px}}';
@@ -21,16 +21,18 @@
  const list=el('div');list.className='fhArchList';
  top.append(title,closeButton);panel.append(top,description,list);modal.append(panel);document.body.append(modal);
  function catalog(){
-  if(!catalogPromise)catalogPromise=fetch(new URL('catalogo_arquitectura.json',base).href)
+  if(!catalogPromise)catalogPromise=fetch(new URL('catalogo_arquitectura.json?v=20261121-dnd41',base).href)
    .then(r=>{if(!r.ok)throw Error('HTTP '+r.status);return r.json();})
    .then(doc=>{
     if(doc.schema!=='forest-horror-architecture-catalog-v1'||!Array.isArray(doc.architecture))throw Error('Catálogo inválido');
+    compatibility=doc.compatibility||{};
     models=doc.architecture.filter(m=>allowed.test(m.id)&&m.thumbnail==='miniaturas/'+m.id+'.png'&&['door','peephole_door','window','accessory'].includes(m.type));
     return models;
    }).catch(error=>{catalogPromise=null;throw error;});
   return catalogPromise;
  }
- function subset(tool){return models.filter(m=>tool==='door'?m.type==='door'||m.type==='peephole_door':m.type===tool);}
+ function isAvailable(model){return window.editorCatalogAllows?.(compatibility[model.id])??true;}
+ function subset(tool){return models.filter(m=>isAvailable(m)&&(tool==='door'?m.type==='door'||m.type==='peephole_door':m.type===tool));}
  function currentModel(it){
   if(it.type==='window')return it.windowSkin==='dividida'?'ventana_dividida':'ventana_clasica';
   if(it.type==='peephole_door')return 'puerta_mirilla';
@@ -52,7 +54,7 @@
   for(const tool of ['door','peephole_door','window']){
    const button=document.querySelector('#tools button[data-tool="'+tool+'"]');
    if(!button)continue;
-   const model=models.find(m=>m.id===active[tool]);
+   const model=models.find(m=>m.id===active[tool]&&isAvailable(m));
    if(!model)continue;
    button.title=model.name;
    const name=button.children[1],symbol=button.querySelector('.sym');
@@ -61,6 +63,7 @@
   }
  }
  function choosePlacement(model){
+  if(!isAvailable(model))return;
   const tool=model.type;
   active[tool]=model.id;
   if(tool==='door'||tool==='peephole_door')lastDoorModel=model.id;
@@ -121,7 +124,9 @@
    const gallery=el('section');gallery.className='fhArchInspector';
    const caption=el('strong',it.type==='window'?T.windowModels:T.doorModels);
    const tiles=el('div');tiles.className='fhArchList';
-   const choices=models.filter(m=>m.type===it.type&&(!isElectronic(m.id)||ForestShared.doorSpec(it).family==='single'));
+   const selectedId=currentModel(it);
+   const choices=models.filter(m=>m.type===it.type&&(m.id===selectedId||isAvailable(m))&&
+    (!isElectronic(m.id)||ForestShared.doorSpec(it).family==='single'));
    tiles.append(...choices.map(m=>modelCard(m,currentModel(it),selected=>{
     if(selected.id!==currentModel(it))changeModel(it,selected);
    })));
@@ -136,7 +141,8 @@
     none.setAttribute('aria-pressed',String(chosen==='none'));
     none.onclick=()=>{setItemField(it.id,'accessDevice','none');openInspector();};
     choices.append(none);
-    for(const model of models.filter(m=>m.type==='accessory')){
+    for(const model of models.filter(m=>m.type==='accessory'&&(isAvailable(m)||
+      (chosen!=='none'&&m.id===(chosen==='pin'?'teclado_pin':'lector_tarjeta'))))){
      const value=model.id==='teclado_pin'?'pin':'card';
      choices.append(modelCard(model,chosen==='none'?'':chosen==='pin'?'teclado_pin':'lector_tarjeta',()=>{
       setItemField(it.id,'accessDevice',value);openInspector();
@@ -166,7 +172,7 @@
  createSegment=function(type,a,b){
   const item=oldCreateSegment(type,a,b);
   if(item&&active[type]){
-   const model=models.find(m=>m.id===active[type]);
+   const model=models.find(m=>m.id===active[type]&&isAvailable(m));
    if(model){
     if(type==='door'&&isElectronic(model.id)&&ForestShared.doorSpec(item).family!=='single'){
      // Una puerta arrastrada a doble ancho conserva el modelo normal del motor.

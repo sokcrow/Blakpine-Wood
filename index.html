@@ -140,7 +140,7 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
   <fieldset><legend>Reglamento</legend><div id="fhRulesOptions" class="fh-modes-options"></div></fieldset>
   <div class="fh-modes-actions"><button id="fhModesStart" type="button" disabled>Iniciar partida</button>
    <button id="fhModesLegacyLocal" type="button">Legacy · Mapa del editor</button></div>
-  <p class="fh-modes-foot">La prueba del editor conserva la entrada Legacy original, también sin conexión.</p>
+  <p id="fhModesCatalogHint" class="fh-modes-foot"></p>
  </section>
 </div>
 <div id="toast" role="status"></div>
@@ -167,13 +167,14 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
 <script src="./juego/worlds/fh-world-profile-loader.js?v=20261117-33"></script>
 <script src="./juego/core/fh-session-coordinator.js?v=20261117-33"></script>
 <script src="./juego/core/fh-mode-adapter-registry.js?v=20261117-33"></script>
-<script src="./juego/assets/fh-multimode-strings.js?v=20261117-33"></script>
+<script src="./juego/assets/fh-multimode-strings.js?v=20261121-dnd41"></script>
 <script src="./juego/units/fh-training-dummy.js?v=20261117-training1"></script>
 <script src="./juego/rules/dnd/fh-dnd-combat.js?v=20261117-dnd34"></script>
 <script src="./juego/rules/dnd/fh-dnd-save-adapter.js?v=20261117-dnd34"></script>
 <script>window.FHMultimodeCombatAdapters=Object.freeze({dnd:window.FHDndCombat});
 window.FHMultimodeSaveAdapters=Object.freeze({dnd:window.FHDndSaveAdapter});</script>
-<script src="./juego/assets/fh-multimode-selector.js?v=20261117-dnd34"></script>
+<script src="./juego/assets/fh-multimode-selector.js?v=20261121-dnd41"></script>
+<script src="./juego/assets/fh-catalog-compatibility.js"></script>
 <script src="./juego/core/fh-multimode-save-identity.js?v=20261117-persist32"></script>
 <script src="./juego/core/fh-multimode-persistence.js?v=20261117-persist32"></script>
 <script src="./juego/core/fh-multimode-save-hook.js?v=20261117-persist32"></script>
@@ -241,7 +242,8 @@ window.FHMultimodeSaveAdapters=Object.freeze({dnd:window.FHDndSaveAdapter});</sc
 <script src="./juego/assets/fh-floor-levels.js?v=20261109-basements1"></script>
 <script src="./juego/assets/fh-basement-structure.js?v=20261112-basement-native-1"></script>
 <script src="./juego/assets/fh-wifi-editor-overlay.js?v=20261109-wifi-editor-1"></script>
-<script src="./juego/assets/fh-light-strings.js?v=20261109-zones-3"></script>
+<script src="./juego/assets/fh-light-strings.js?v=20261121-dnd41"></script>
+<script src="./juego/assets/fh-medieval-light-catalog.js"></script>
 <script src="./juego/assets/fh-map-grid.js?v=20261110-grid1"></script>
 <script src="./juego/assets/fh-map-grid-strings.js?v=20261110-grid1"></script>
 <script src="./juego/assets/fh-courtyard-strings.js?v=20261110-patio1"></script>
@@ -2120,7 +2122,47 @@ function drawUtilityNetworkOverlay(c,z){
   c.restore();
  }
 }
-function setCategory(cat){setLayer(layerForCategory(cat));activeCategory=cat;$$('#categories button').forEach(b=>b.classList.toggle('active',b.dataset.cat===cat));const target=$('#tools');target.innerHTML='';for(const [id,label,symbol] of TOOL_GROUPS[cat]){let b=document.createElement('button');b.dataset.tool=id;b.title=label;const col=COLORS[id]||'#8090aa';b.innerHTML=`<span class="sym">${symbol}</span><span>${label}</span><span class="swatch" style="background:${col}"></span>`;b.onclick=()=>chooseTool(id);target.append(b)}chooseTool(TOOL_GROUPS[cat].some(v=>v[0]===activeTool)?activeTool:TOOL_GROUPS[cat][0][0]);target.scrollLeft=0}
+let editorCatalogMode='legacy';
+function editorCatalogAllows(compatibility){
+ return window.FHCatalogCompatibility?.allows(compatibility,{mode:editorCatalogMode})??true;
+}
+function editorCatalogAllowsTool(id){
+ return editorCatalogAllows(window.FHCatalogCompatibility?.tools[id]);
+}
+function editorCatalogAllowsCategory(id){
+ return editorCatalogAllows(window.FHCatalogCompatibility?.categories[id]);
+}
+function setEditorCatalogMode(mode){
+ if(mode===editorCatalogMode)return;
+ editorCatalogMode=mode;
+ for(const button of $$('#categories button[data-cat]')){
+  button.hidden=!editorCatalogAllowsCategory(button.dataset.cat);
+ }
+ $('#parkingConfigBtn').hidden=!editorCatalogAllowsCategory('parking_marks');
+ const label=editorCatalogAllowsTool('light_fixture')?window.FH_LIGHT_TEXT.electricTools:window.FH_LIGHT_TEXT.lightingTools;
+ for(const button of $$('#categories [data-cat="lighting"], #layerSwitch [data-layer="lighting"]')){
+  button.textContent=label;
+ }
+ setCategory(activeCategory);
+}
+function setCategory(cat){
+ if(!editorCatalogAllowsCategory(cat))cat=layerForCategory(cat)==='furniture'?'furniture':'structure';
+ setLayer(layerForCategory(cat));
+ activeCategory=cat;
+ $$('#categories button').forEach(b=>b.classList.toggle('active',b.dataset.cat===cat));
+ const target=$('#tools'),tools=TOOL_GROUPS[cat].filter(([id])=>editorCatalogAllowsTool(id));
+ target.replaceChildren();
+ for(const [id,label,symbol] of tools){
+  const b=document.createElement('button');
+  b.dataset.tool=id;b.title=label;
+  const color=COLORS[id]||'#8090aa';
+  b.innerHTML=`<span class="sym">${symbol}</span><span>${label}</span><span class="swatch" style="background:${color}"></span>`;
+  b.onclick=()=>chooseTool(id);
+  target.append(b);
+ }
+ chooseTool(tools.some(([id])=>id===activeTool)?activeTool:tools[0][0]);
+ target.scrollLeft=0;
+}
 let stairPlacementDirection='up';
 function stairNeighbors(index=floorIndex){
  const active=project.floors[index];if(!active)return [];
@@ -5451,8 +5493,10 @@ if(typeof lumenCartridgeMode!=='undefined'&&lumenCartridgeMode){
 }
 
 // Puerta opcional: si faltan módulos o se abre el HTML antiguo, Legacy continúa igual.
+$('#fhModesCatalogHint').textContent=window.FH_MULTIMODE_TEXT?.catalogHint||'';
 window.FHMultimodeSelector?.mount({
  validateMap:map=>ForestShared.validate(map).ok,
+ selectEditorRuleset:setEditorCatalogMode,
  launchLegacyWorld:description=>{
   window.FHMultimodeSaveSelection=null;
   preview3DSelectedMap=description.scenario.data;
@@ -5492,12 +5536,12 @@ window.FHMultimodeSelector?.mount({
 <script src="./juego/assets/fh-inventory-core.js?v=20261108-encimera-1"></script>
 <link rel="stylesheet" href="./juego/assets/fh-storage-editor.css?v=20261108-storage-editor-1">
 <script src="./juego/assets/fh-storage-editor.js?v=20261108-storage-editor-1"></script>
-<script src="./juego/assets/fh-editor-catalog.js"></script>
+<script src="./juego/assets/fh-editor-catalog.js?v=20261121-dnd41"></script>
 <script src="./juego/assets/fh-surface-editor.js"></script>
 <script src="./juego/assets/fh-property-editor.js?v=20261115-seleccion"></script>
 <script src="./juego/assets/fh-architecture-strings.js"></script>
 <script src="./juego/assets/fh-architecture-skins.js?v=20261112-door-facade-glb-1"></script>
-<script src="./juego/assets/fh-architecture-editor-catalog.js?v=20261105-visual-models"></script>
+<script src="./juego/assets/fh-architecture-editor-catalog.js?v=20261121-dnd41"></script>
 <script src="./juego/assets/fh-access-editor.js?v=20261107-map-v1"></script>
 <script src="./juego/assets/fh-structure-editor.js?v=20261107-structure-pg"></script>
 <script src="./juego/assets/fh-structure-strings.js?v=20261108-architecture-load"></script>
@@ -5508,15 +5552,15 @@ window.FHMultimodeSelector?.mount({
 <script src="./juego/assets/fh-electric-catalog.js?v=20261112-duplex-uv-1"></script>
 <script src="./juego/assets/fh-electric-strings.js?v=20261109-servicios-24"></script>
 <script src="./juego/assets/fh-electric-visuals.js?v=20261112-no-overlay-1"></script>
-<script src="./juego/assets/fh-electric-editor.js?v=20261112-duplex-uv-1"></script>
+<script src="./juego/assets/fh-electric-editor.js?v=20261121-dnd41"></script>
 <script src="./juego/assets/fh-water-catalog.js?v=20261109-servicios-24"></script>
 <script src="./juego/assets/fh-water-storage-catalog.js?v=20261112-agua03-menu1"></script>
 <script src="./juego/assets/fh-water-strings.js?v=20261113-sotano-bombeo"></script>
 <script src="./juego/assets/fh-water-visuals.js?v=20261113-agua-glb-electricidad-1"></script>
-<script src="./juego/assets/fh-water-editor.js?v=20261113-agua-glb-electricidad-1"></script>
+<script src="./juego/assets/fh-water-editor.js?v=20261121-dnd41"></script>
 <script src="./juego/assets/fh-boilers-catalog.js?v=20261112-boilers-04"></script>
 <script src="./juego/assets/fh-boilers-strings.js?v=20261113-sotano-bombeo"></script>
-<script src="./juego/assets/fh-boilers-editor.js?v=20261113-agua-glb-electricidad-1"></script>
+<script src="./juego/assets/fh-boilers-editor.js?v=20261121-dnd41"></script>
 <script src="./juego/assets/fh-internet-catalog.js?v=20261109-servicios-24"></script>
 <script src="./juego/assets/fh-internet-strings.js?v=20261109-servicios-24"></script>
 <script src="./juego/assets/fh-internet-visuals.js?v=20261112-purple-pc-power-1"></script>
@@ -5530,8 +5574,8 @@ window.FHMultimodeSelector?.mount({
 <script src="./juego/assets/fh-cctv-strings.js?v=20261112-cctv1"></script>
 <script src="./juego/assets/fh-cctv-editor.js?v=20261112-cctv1"></script>
 <script src="./juego/assets/fh-cctv-engine-hook.js?v=20261112-cctv-boot2"></script>
-<script src="./juego/assets/fh-generators-editor.js?v=20261111-elevator-power-1"></script>
-<script src="./juego/assets/fh-exterior-editor.js?v=20261111-pole-collision-1"></script>
+<script src="./juego/assets/fh-generators-editor.js?v=20261121-dnd41"></script>
+<script src="./juego/assets/fh-exterior-editor.js?v=20261121-dnd41"></script>
 <script src="./juego/assets/fh-roof-editor.js?v=20261110-roof3"></script>
 <script src="./juego/assets/fh-barriers-strings.js?v=20261111-metal1"></script>
 <script src="./juego/assets/fh-barriers.js?v=20261111-metal1"></script>

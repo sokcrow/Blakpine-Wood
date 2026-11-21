@@ -85,7 +85,8 @@
   choices.querySelector('button')?.focus();
  }
  function launcher(){
-  const container=document.querySelector('#tools');if(!container||activeCategory!=='lighting')return;
+  const container=document.querySelector('#tools');
+  if(!container||activeCategory!=='lighting'||window.editorCatalogAllowsTool?.('power_outlet')===false)return;
   let b=document.getElementById('fhElectricLauncher');if(b)return;
   b=document.createElement('button');b.id='fhElectricLauncher';b.type='button';b.title=T.title||'Electricidad';
   const sym=document.createElement('span');sym.className='sym';sym.textContent='⚡';
@@ -96,7 +97,8 @@
  setCategory=function(cat){previousSetCategory(cat);launcher();};
  const prevCreate=createObject;
  createObject=function(type,p){
-  const meta=(window.__fhWaterCreatingFloor||window.__fhExteriorCreatingFloor)?null:
+  const meta=(window.__fhWaterCreatingFloor||window.__fhExteriorCreatingFloor||
+   window.editorCatalogAllowsTool?.('power_outlet')===false)?null:
    active[type]||(type==='power_outlet'?window.FHElectricCatalog.modelFor({type}):null);
   if(meta?.mount==='wall'&&!structuralWall(p)){
    toast(T.wallRequired||'Necesita una pared estructural.');return null;
