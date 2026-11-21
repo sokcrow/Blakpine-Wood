@@ -65,11 +65,11 @@ export class RecoveryStore {
  }
 }
 export class IndexedDBBackend {
- constructor(indexedDB=globalThis.indexedDB){this.factory=indexedDB;this.pending=null;}
+ constructor(indexedDB=globalThis.indexedDB,databaseName='lumen-cartridge-recovery-v1'){this.factory=indexedDB;this.databaseName=databaseName;this.pending=null;}
  open(){
   if(!this.factory)return Promise.reject(new RecoveryError('RECOVERY_UNAVAILABLE'));
   if(!this.pending)this.pending=new Promise((resolve,reject)=>{
-   let request,blocked=false;try{request=this.factory.open('lumen-cartridge-recovery-v1',1);}catch(e){reject(e);return;}
+   let request,blocked=false;try{request=this.factory.open(this.databaseName,1);}catch(e){reject(e);return;}
    request.onupgradeneeded=()=>request.result.createObjectStore('cartridges');
    request.onerror=()=>reject(request.error);
    request.onblocked=()=>{blocked=true;reject(new RecoveryError('RECOVERY_BLOCKED'));};

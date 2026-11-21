@@ -2,15 +2,18 @@ import {recoveryStore,recoveryDiffers} from './cartridge-recovery.js';
 import {authorize,createCartridge,importCartridge,exportCartridge,changeMap,cartridgeFilename} from './cartridge.js';
 import {C,cartridgeError,recoveryError} from './cartridge-strings.js';
 import {P} from './play-strings.js';
+import {workspaceStore,editorURL} from './editor-workspace-model.js';
 const sessions=new Map();
 const escape=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let active=null;
+let navigatingToEditor=false;
 function warn() {
  const pending=[...sessions.values()].filter(s=>s.dirty||s.editorDirty||s.recoveryError);
  const el=document.getElementById('cartridge-warning');
  el.hidden=!pending.length;el.textContent=pending.length?pending.map(s=>s.campaignName+': '+(s.recoveryError?C.noStorage:s.editorDirty?C.editorDirty:C.unsaved)).join(' '):'';
 }
 window.addEventListener('beforeunload',e=>{
+ if(navigatingToEditor)return;
  if([...sessions.values()].some(s=>s.dirty||s.editorDirty)){e.preventDefault();e.returnValue='';}
 });
 export function clearMapLibraries() {
@@ -19,14 +22,16 @@ export function clearMapLibraries() {
 export function confirmDiscardMapLibraries(){
  return ![...sessions.values()].some(s=>s.dirty||s.editorDirty||s.recoveryError)||confirm(C.leaveUnsaved);
 }
-export async function mountMapLibrary({element,context,campaignName,verify,onError,publish}) {
+export async function mountMapLibrary({element,context,campaignName,verify,onError,publish,workspaceId}) {
  authorize(context);
  const key=JSON.stringify([context.uid,context.campaignId]);
  let state=sessions.get(key);
  if(!state){state={doc:null,exported:null,dirty:false,editorDirty:false,mapId:null,campaignName,recoveryTokens:new Map(),saveQueue:Promise.resolve(),recoveryError:null};sessions.set(key,state);}
  const view=new MapLibrary(element,state,context,verify,onError);active=view;
  view.publish=publish;
- await view.mount();return ()=>{const result=view.dispose();if(result!==false&&active===view)active=null;return result;};
+ try{await view.mount();if(workspaceId)await view.resume(workspaceId);}
+ catch(error){view.dispose(true);if(active===view)active=null;throw error;}
+ return ()=>{const result=view.dispose();if(result!==false&&active===view)active=null;return result;};
 }
 class MapLibrary {
  constructor(root,state,context,verify,onError){Object.assign(this,{root,state,context,verify,onError});this.alive=true;this.lock=false;this.api=null;this.timer=null;}
@@ -45,7 +50,6 @@ class MapLibrary {
   this.root.querySelector('#map-save').onclick=()=>this.run(async()=>{this.capture();this.say(C.working);this.api.saved();});
   this.root.querySelector('#map-close').onclick=()=>this.run(async()=>{this.capture();this.hideEditor();this.paint();});
   this.paint();
-  if(this.state.mapId&&this.state.doc?.maps.some(m=>m.mapId===this.state.mapId))this.edit(this.state.mapId);
  }
  say(text,bad=false){if(!this.alive)return;const el=this.root.querySelector('#cartridge-status');el.textContent=text;el.className=bad?'error':'';}
  async run(fn){if(this.lock||!this.alive)return;this.lock=true;try{await this.access();await fn();}catch(e){this.say(C.error+cartridgeError(e),true);this.onError?.(e);}finally{this.lock=false;}}
@@ -59,11 +63,22 @@ class MapLibrary {
  }
  setDoc(doc,exported=null,save=true){this.state.doc=doc;this.state.exported=exported;this.state.dirty=JSON.stringify(doc)!==exported;this.state.editorDirty=false;this.state.mapId=null;this.hideEditor();warn();this.paint();if(save)this.onMutation?.();}
  hideEditor(){this.root.querySelector('#map-editor').hidden=true;this.frame.hidden=true;}
- edit(mapId){
+ async edit(mapId){
   this.capture();const s=this.state,map=s.doc.maps.find(m=>m.mapId===mapId);if(!map)throw Error('MAP_MISSING');
-  s.mapId=mapId;this.root.querySelector('#map-editor').hidden=false;this.frame.hidden=false;
-  const input=this.root.querySelector('#map-name');input.value=map.name;input.oninput=()=>this.changed();
-  this.api.load(map.project,()=>this.changed());
+  await s.saveQueue;await this.access();
+  const workspace=await workspaceStore.create(this.context,s.doc,mapId,this.validate,{
+   needsExport:s.dirty,recoveryToken:s.recoveryTokens.get(s.doc.cartridgeId)??null,recoveryFloor:s.recoveryFloor||0});
+  await this.access();navigatingToEditor=true;
+  try{location.href=editorURL(this.context.campaignId,workspace.id);}catch(error){navigatingToEditor=false;throw error;}
+ }
+ async resume(id){
+  await this.access();const record=await workspaceStore.read(this.context,id,this.validate);await this.access();
+  const s=this.state;
+  if(s.doc&&s.dirty&&JSON.stringify(s.doc)!==JSON.stringify(record.cartridge)&&!confirm(C.replace))return;
+  s.recoveryTokens.set(record.cartridge.cartridgeId,record.recoveryToken);
+  s.recoveryFloor=record.recoveryFloor;s.recoveryError=record.recoveryError;
+  this.setDoc(record.cartridge,record.needsExport?null:JSON.stringify(record.cartridge),false);
+  this.say(record.recoveryError?C.noStorage+recoveryError({code:record.recoveryError}):C.workspaceSaved,!!record.recoveryError);
  }
  add(project,name){const result=changeMap(this.state.doc,this.context,this.validate,{name,project,expectedRevision:this.state.doc.revision});this.state.doc=result.cartridge;this.state.dirty=true;warn();this.paint();this.onMutation?.();return result.mapId;}
  async pick(cartridge){
@@ -94,7 +109,7 @@ class MapLibrary {
   }
   // Opening a physical file never writes over a different local recovery implicitly.
   this.setDoc(recovered?.cartridge||doc,JSON.stringify(doc),false);
-  if(recovered){this.state.mapId=recovered.activeMapId;if(this.state.doc.maps.some(m=>m.mapId===this.state.mapId))this.edit(this.state.mapId);this.say(C.recovery+' · '+C.revision+' '+recovered.revision);}
+  if(recovered)this.say(C.recovery+' · '+C.revision+' '+recovered.revision);
  }
  onMutation(){
   const s=this.state;if(!s.doc)return;
@@ -129,8 +144,7 @@ class MapLibrary {
      const chosen=latest.snapshots[0];if(!chosen)throw Error('RECOVERY_INVALID');
      this.state.recoveryTokens.set(record.cartridgeId,latest.token);
      this.state.recoveryFloor=chosen.revision;
-     this.setDoc(chosen.cartridge,null,false);this.state.mapId=chosen.activeMapId;
-     if(this.state.doc.maps.some(m=>m.mapId===this.state.mapId))this.edit(this.state.mapId);
+     this.setDoc(chosen.cartridge,null,false);
      this.say(C.recovery+' · '+C.revision+' '+chosen.revision);list.replaceChildren();
     });list.append(b);
    }
@@ -147,7 +161,7 @@ class MapLibrary {
   action(C.create,async()=>{this.capture();if(s.doc&&!confirm(C.replace))return;this.setDoc(createCartridge(this.context));});
   action(C.open,()=>this.pick(true));
   if(s.doc){
-   action(C.add,async()=>{this.capture();const name=prompt(C.name,C.defaultName);if(name===null)return;const id=this.add(this.api.create(),name);this.edit(id);});
+   action(C.add,async()=>{this.capture();const name=prompt(C.name,C.defaultName);if(name===null)return;const id=this.add(this.api.create(),name);await this.edit(id);});
    action(C.importMap,()=>this.pick(false));
    action(C.export,async()=>{
     this.capture();const text=exportCartridge(s.doc,this.context,this.validate),blob=new Blob([text],{type:'application/json'});
@@ -165,17 +179,6 @@ class MapLibrary {
      this.capture();const name=prompt(C.name,map.name);if(name===null)return;
      s.doc=changeMap(s.doc,this.context,this.validate,{mapId:map.mapId,name,expectedRevision:s.doc.revision}).cartridge;s.dirty=true;if(s.mapId===map.mapId)this.root.querySelector('#map-name').value=name;warn();this.paint();this.onMutation?.();
     }]]){const b=document.createElement('button');b.textContent=title;b.onclick=()=>this.run(fn);row.append(b);}
-    const preview=document.createElement('button');preview.textContent=P.preview;
-    preview.onclick=()=>this.run(async()=>{
-     this.capture();const current=s.doc.maps.find(m=>m.mapId===map.mapId);
-     this.validate(current.project);
-     this.frame.hidden=false;this.root.classList.add('lumen-playing');
-     const returned=()=>{
-      if(!this.alive)return;
-      this.root.classList.remove('lumen-playing');this.frame.hidden=this.root.querySelector('#map-editor').hidden;
-     };
-     try{this.api.play(current.project,returned);}catch(error){returned();throw error;}
-    });row.append(preview);
     if(this.publish){
      const start=document.createElement('button');start.textContent=P.publish;
      start.onclick=()=>this.run(async()=>{

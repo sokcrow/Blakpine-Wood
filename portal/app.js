@@ -522,7 +522,7 @@ async function campaign(ticket,id,dmRequested) {
     });
   });
 }
-async function mapLibrary(ticket,id) {
+async function mapLibrary(ticket,id,workspaceId) {
   const uid=user?.uid;
   async function verify(){
     return campaignAccess({uid,campaignId:id,
@@ -533,12 +533,15 @@ async function mapLibrary(ticket,id) {
     const context=await verify();
     if(ticket!==epoch)return;
     app.innerHTML=link(S.back,'#dm/'+id)+'<section class="map-library"></section>';
-    const cleanup=await mountMapLibrary({element:app.querySelector('.map-library'),context,campaignName:context.name,verify,onError:()=>{},
+    const cleanup=await mountMapLibrary({element:app.querySelector('.map-library'),context,campaignName:context.name,verify,onError:()=>{},workspaceId,
       publish:async(doc,mapId,validate)=>{
         await verify();await gameStore().publish(doc,context,mapId,validate);await verify();
         location.hash='jugar/'+id;
       }});
-    if(ticket!==epoch)cleanup();else stopMapLibrary=cleanup;
+    if(ticket!==epoch)cleanup();else{
+      stopMapLibrary=cleanup;
+      if(workspaceId){history.replaceState(null,'','#mapas/'+id);activeMapHash=location.hash;}
+    }
   }catch(error){if(ticket===epoch){app.textContent=cartridgeError(error);}}
 }
 async function gameRoom(ticket,id){
@@ -562,7 +565,7 @@ async function render() {
     await fb.auth.signOut(auth); user=null;clearMapLibraries();
     location.hash='inicio';message(S.signedOut);await render();
   });
-  const [route,id]=location.hash.slice(1).split('/');
+  const [route,id,workspaceId]=location.hash.slice(1).split('/');
   try {
     if(route==='perfil'){
       if(!auth||!user){authForm('acceso');if(auth)message(S.authRequired);return;}
@@ -571,7 +574,7 @@ async function render() {
       app.textContent=S.loading;
       if(!auth||!user){authForm('acceso');if(auth)message(S.authRequired);return;}
       if(route==='jugar')await gameRoom(ticket,id);
-      else if(route==='mapas')await mapLibrary(ticket,id);
+      else if(route==='mapas')await mapLibrary(ticket,id,workspaceId);
       else if(route==='partidas')await games(ticket);
       else await campaign(ticket,id,route==='dm');
     } else if(['registro','acceso','recuperar'].includes(route)) {
