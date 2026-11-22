@@ -169,7 +169,8 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
 <script src="./juego/core/fh-mode-adapter-registry.js?v=20261117-33"></script>
 <script src="./juego/assets/fh-multimode-strings.js?v=20261117-33"></script>
 <script src="./juego/units/fh-training-dummy.js?v=20261117-training1"></script>
-<script src="./juego/rules/dnd/fh-dnd-combat.js?v=20261117-dnd34"></script>
+<script src="./juego/rules/dnd/fh-dnd-sheet.js?v=20261122-dnd-sheet"></script>
+<script src="./juego/rules/dnd/fh-dnd-combat.js?v=20261122-dnd-sheet"></script>
 <script src="./juego/rules/dnd/fh-dnd-save-adapter.js?v=20261117-dnd34"></script>
 <script>window.FHMultimodeCombatAdapters=Object.freeze({dnd:window.FHDndCombat});
 window.FHMultimodeSaveAdapters=Object.freeze({dnd:window.FHDndSaveAdapter});</script>
@@ -5193,8 +5194,11 @@ async function start3DPreview(){
  if(spawn<0){setCategory('areas');chooseTool('spawn');toast('Coloca primero 📍 Spawn en el mapa que estás editando.');return}
  fhCharacterLaunchPending=true;
  try{
-  if(!window.FHCharacterCreation?.ensureCharacter)throw Error(window.FH_CHARACTER_TEXT?.missingEngine||'Creador no disponible.');
-  const profile=await window.FHCharacterCreation.ensureCharacter();
+  // DnD posee identidad y ficha propias; el cuestionario Legacy no se abre aquí.
+  const isDndPilot=window.FHMultimodeSaveSelection?.rulesetId==='dnd';
+  if(!isDndPilot&&!window.FHCharacterCreation?.ensureCharacter)throw Error(window.FH_CHARACTER_TEXT?.missingEngine||'Creador no disponible.');
+  const profile=isDndPilot?window.FHDndSheet?.pilotIdentity(window.localStorage):
+   await window.FHCharacterCreation.ensureCharacter();
   if(!profile){if(lumenLaunch)finishLumenPlay();return;}
   if(lumenLaunch&&lumenPlaySession!==lumenLaunch)return;
   try{previewSaveSession=prepare3DSaveSession(profile)}
