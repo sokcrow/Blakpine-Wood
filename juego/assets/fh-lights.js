@@ -31,17 +31,17 @@ function dimFalloffFt(lamp,brightRadiusFt){
  if(Number.isFinite(legacyOuter))return clamp(legacyOuter,bright,LEGACY_MAX_DIM_RADIUS_FT)-bright;
  return clamp(bright*(DIM_RADIUS_RATIO-1),0,MAX_DIM_FALLOFF_FT);
 }
-function presetFields(kind){
+function presetFields(kind,feetPerCell=5){
  const p=presetFor(kind),bright=clamp(p.radiusFt,5,MAX_LIGHT_RADIUS_FT);
  if(global.FHMedievalLighting?.isMedieval(kind)){
-  const sizes={torch_wall:[.22,.20],torch_hand:[.14,.14],candle:[.11,.11],candelabrum:[.44,.28],
-   oil_lantern:[.24,.24],brazier:[.5,.5],campfire:[.8,.8],fireplace:[.84,.42],magic_crystal:[.42,.42]};
-  const [w,h]=sizes[kind];
+  const cell=Number(feetPerCell)>0?Number(feetPerCell):5;
   return {lightKind:kind,modelId:p.modelId,lightOn:true,lightFuelMinutes:p.fuelMinutes,
-   lightRadiusFt:bright,lightDimFalloffFt:p.dimFt,beamAngleDeg:360,w,h,
-   heightFt:p.heightFt,blocksMovement:p.blocksMovement===true,label:p.label};
+   lightRadiusFt:bright,lightDimFalloffFt:p.dimFt,beamAngleDeg:360,
+   w:p.widthFt/cell,h:p.depthFt/cell,heightFt:p.heightFt,
+   placement:p.mount==='wall'?'wall':'floor',
+   ...(p.mountHeightFt?{mountHeightFt:p.mountHeightFt}:{}),
+   blocksMovement:p.blocksMovement===true,label:p.label};
  }
-
  return {lightKind:Object.prototype.hasOwnProperty.call(PRESETS,kind)?kind:'bulb',
    lightRadiusFt:bright,lightDimFalloffFt:Math.round(dimFalloffFt({lightKind:kind},bright)*10)/10,beamAngleDeg:p.beamAngleDeg,w:p.w,h:p.h,heightFt:p.mount==='wall'?6.5:8.4,
    blocksMovement:false,label:p.label};
