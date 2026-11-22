@@ -51,13 +51,11 @@ async function openSelector(page){
   await page.goto(host+'index.html?editor=1',{waitUntil:'load',timeout:90000});
   await openSelector(page);
   assert.equal(await page.locator('#fhWorldOptions [data-world="ciudad-moderna"]').isDisabled(),false);
-  for(const id of ['distopia','villa-medieval']){
-   assert.equal(await page.locator('#fhWorldOptions [data-world="'+id+'"]').isDisabled(),true,id);
-  }
+  assert.equal(await page.locator('#fhWorldOptions [data-world="distopia"]').isDisabled(),true);
+  assert.equal(await page.locator('#fhWorldOptions [data-world="villa-medieval"]').isDisabled(),false);
   assert.equal(await page.locator('#fhRulesOptions [data-rules="legacy"]').isDisabled(),false);
-  for(const id of ['dnd','moon-system']){
-   assert.equal(await page.locator('#fhRulesOptions [data-rules="'+id+'"]').isDisabled(),true,id);
-  }
+  assert.equal(await page.locator('#fhRulesOptions [data-rules="dnd"]').isDisabled(),false);
+  assert.equal(await page.locator('#fhRulesOptions [data-rules="moon-system"]').isDisabled(),true);
   assert.equal(await page.locator('#fhModesStart').isDisabled(),false);
   await page.locator('#fhModesClose').focus();
   await page.keyboard.press('Shift+Tab');
@@ -95,6 +93,19 @@ async function openSelector(page){
   assert.equal(await page.locator('#play3dLayer').isVisible(),false);
   assert.equal(await page.locator('#testBtn').isEnabled(),true);
 
+  // Segunda sesión: la villa medieval y DnD deben abrir mapa propio sin wizard Legacy.
+  await openSelector(page);
+  await page.locator('#fhWorldOptions [data-world="villa-medieval"]').click();
+  await page.locator('#fhRulesOptions [data-rules="dnd"]').click();
+  assert.equal(await page.locator('#fhModesStart').isDisabled(),false);
+  await page.evaluate(()=>{window.__testedModeMap=null;});
+  await page.locator('#fhModesStart').click();
+  await page.waitForFunction(()=>!!window.__testedModeMap,{timeout:65000});
+  const medieval=await page.evaluate(()=>window.__testedModeMap);
+  assert.equal(medieval.title,'DnD · Sala de pruebas de iluminación medieval');
+  assert.equal(medieval.floors[0].items.filter(i=>i.type==='light_fixture').length,9);
+  await page.locator('#play3dBack').click();
+
   const missing=await context.newPage();
   await routeRepository(missing,true);
   await missing.goto(host+'index.html?editor=1',{waitUntil:'load',timeout:90000});
@@ -104,6 +115,6 @@ async function openSelector(page){
   assert.equal(await missing.locator('#fhModesLegacyLocal').isEnabled(),true);
   await missing.close();
   await context.close();
-  console.log('PASS: HTML real bajo HTTPS, selección táctil/teclado, 8 bloqueos, mapa Legacy en iframe y error 404');
+  console.log('PASS: selección Legacy y piloto medieval DnD, mapas reales, teclado/táctil y 404');
  }finally{await browser?.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;});
