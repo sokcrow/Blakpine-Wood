@@ -10,6 +10,7 @@ const map=JSON.parse(fromRoot('forest-horror/maps/DEMO_DnD_Iluminacion.json'));
 const world=JSON.parse(fromRoot('contratos/multimodo/ejemplos/mundos/villa-medieval.json'));
 const selector=require('../juego/assets/fh-multimode-selector.js');
 const combat=require('../juego/rules/dnd/fh-dnd-combat.js');
+const sheetCore=require('../juego/rules/dnd/fh-dnd-sheet.js');
 const sheet=require('../juego/rules/dnd/fh-dnd-engine.js');
 const save=require('../juego/rules/dnd/fh-dnd-save-adapter.js');
 const lights=require('../juego/assets/fh-medieval-lighting.js');
@@ -74,25 +75,38 @@ test('La partida DnD arranca sin energía eléctrica y el combustible usa el inv
  assert.equal(runtime.lit(0,wall),true);
 });
 
-test('La ficha del personaje lee DnD y persiste separada de Legacy',()=>{
+test('La partida usa guerrero DnD 2024, no PE ni puntuaciones Legacy',()=>{
  const state=save.initial(map);
  const initial=combat.initialState();
  assert.deepEqual(state.dnd,initial);
  const stats=sheet.readStats(state.dnd.player);
- assert.deepEqual({pg:stats.pg,pe:stats.pe,hitDie:stats.hitDie,defense:stats.defense},
-  {pg:combat.defaults.playerHp,pe:combat.defaults.playerEnergy,hitDie:20,defense:combat.defaults.defense});
+ assert.equal(stats.hp,12);assert.equal(stats.armorClass,17);
+ assert.equal(stats.abilities.str.score,17);assert.equal(stats.saves.str,5);
+ assert.equal(stats.skills.athletics,5);assert.equal(Object.keys(stats.skills).length,18);
+ assert.equal(Object.keys(stats.saves).length,6);assert.equal(stats.attacks[0].attackBonus,5);
  assert.equal(Object.hasOwn(state,'character'),false);
+ assert.equal(Object.hasOwn(state.dnd.player,'energy'),false);
+ assert.equal(state.dnd.player.spellcasting,null);
  state.dnd.player.hp-=3;
- assert.equal(sheet.readStats(state.dnd.player).pg,initial.player.hp-3);
+ assert.equal(sheet.readStats(state.dnd.player).hp,initial.player.hp-3);
  const runtime=lights.createRuntime({floors:map.floors,state,clock:()=>100});
  const torch=map.floors[0].items.find(i=>i.lightKind==='torch_hand');
  runtime.interact(0,torch);
  const saved=save.capture(state);
  assert.equal(saved.rules.rulesetId,'dnd');
- assert.equal(saved.rules.data.player.hp,combat.defaults.playerHp-3);
+ assert.equal(saved.rules.data.player.hp,initial.player.hp-3);
  assert.equal(saved.world.runtime.medievalLighting[torch.id].carried,true);
  assert.equal(Object.hasOwn(saved.world.runtime,'character'),false);
+ assert.equal(Object.hasOwn(saved.rules.data.player,'energy'),false);
  const restored=save.restore(saved.world,saved.rules.data,map);
- assert.equal(restored.dnd.player.hp,combat.defaults.playerHp-3);
+ assert.equal(restored.dnd.player.hp,initial.player.hp-3);
  assert.equal(restored.medievalLighting[torch.id].carried,true);
+});
+test('Identidad piloto DnD independiente del creador de personajes Legacy',()=>{
+ const values=new Map();
+ const storage={getItem:key=>values.get(key),setItem:(key,value)=>values.set(key,value)};
+ const a=sheetCore.pilotIdentity(storage),b=sheetCore.pilotIdentity(storage);
+ assert.equal(a.id,b.id);
+ assert.match(a.id,/^dnd_/);
+ assert.equal(Object.hasOwn(a,'resources'),false);
 });
