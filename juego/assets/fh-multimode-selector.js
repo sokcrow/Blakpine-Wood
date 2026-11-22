@@ -117,7 +117,14 @@
     button.append(name,hint);
     button.addEventListener('click',()=>{
      if(button.disabled)return;
-     if(type==='world')selectedWorld=item.id;else selectedRule=item.id;
+     if(type==='world')selectedWorld=item.id;
+     else{
+      selectedRule=item.id;
+      // Sólo el editor independiente sigue el selector de vista previa.
+      // En campañas el modo procede del contexto verificado por Firebase.
+      if(new URLSearchParams(globalThis.location?.search||'').get('lumenCartridge')!=='1')
+       globalThis.FHEditorCatalog?.setRuleset?.(selectedRule);
+     }
      render();
     });
     box.append(button);
