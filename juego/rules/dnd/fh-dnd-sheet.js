@@ -49,8 +49,9 @@
    classId:'fighter',level:1,backgroundId:'soldier',speciesId:'human',
    abilities:{str:17,dex:14,con:14,int:8,wis:10,cha:12},
    saveProficiencies:['str','con'],
-   skillProficiencies:['athletics','intimidation','insight','perception'],
-   expertise:[],tools:['gaming_set'],languages:['common'],
+   skillProficiencies:['athletics','intimidation','insight','perception',
+    'medicine','acrobatics','survival','investigation'],
+   expertise:[],tools:['gaming_set'],languages:['common','elvish','dwarvish'],
    hp:12,maxHp:12,temporaryHp:0,armorClass:17,speedFt:30,
    hitDice:{sides:10,total:1,available:1},
    attacks:[
@@ -59,7 +60,9 @@
     {id:'javelin',name:'Jabalina',ability:'str',damageCount:1,damageDie:6,damageType:'piercing',rangeFt:30,longRangeFt:120,proficient:true}
    ],
    activeAttackId:'flail',
-   features:{fightingStyle:'defense',originFeat:'savageAttacker',secondWind:{current:2,max:2},weaponMastery:['flail','greatsword','javelin']},
+   features:{fightingStyle:'defense',originFeat:'savageAttacker',
+    humanOriginFeat:'skilled',humanSkillful:'medicine',humanResourceful:true,
+    secondWind:{current:2,max:2},weaponMastery:['flail','greatsword','javelin']},
    spellcasting:null, // Únicamente las clases/capacidades con magia poseen espacios de conjuro.
    deathSaves:{successes:0,failures:0},conditions:[],exhaustion:0,
    senses:{darkvisionFt:0},heroicInspiration:false
