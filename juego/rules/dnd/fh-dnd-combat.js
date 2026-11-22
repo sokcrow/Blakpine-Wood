@@ -35,8 +35,11 @@
    ['resistances','vulnerabilities','immunities'].every(key=>Array.isArray(v[key])&&
     v[key].every(x=>damageTypes.includes(x)));
  }
- function initialState(){
-  return {revision:0,actionSequence:0,lastPlayerMinute:-1,player:sheet.createPilot(),actors:{}};
+ function initialState(player=null){
+  const chosen=player===null?sheet.createUnassigned():player;
+  if(!sheet.valid(chosen))throw Error('DND_CHARACTER_INVALID');
+  return {revision:0,actionSequence:0,lastPlayerMinute:-1,
+   player:JSON.parse(JSON.stringify(chosen)),actors:{}};
  }
  function validState(state){
   return plain(state)&&integer(state.revision,0,Number.MAX_SAFE_INTEGER)&&
