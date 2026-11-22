@@ -1,6 +1,6 @@
 {
   "schema": "forest-horror-furniture-catalog-v1",
-  "version": 7,
+  "version": 8,
   "units": {
     "length": "ft",
     "metersPerFoot": 0.3048,
@@ -2352,6 +2352,249 @@
       "ambientations": [
         "medieval"
       ]
+    },
+    {
+      "id": "antorcha_pared_medieval",
+      "name": "Antorcha de pared",
+      "category": "Iluminación",
+      "shortCode": "AP",
+      "widthFt": 1.1,
+      "depthFt": 1,
+      "heightFt": 2.3,
+      "description": "Antorcha de pared con soporte forjado.",
+      "tags": [
+        "medieval",
+        "fantasia",
+        "antorcha",
+        "pared"
+      ],
+      "environment": "interior",
+      "blocksMovement": false,
+      "pack": "medieval_lighting_01",
+      "ambientations": [
+        "medieval"
+      ],
+      "glb": "modelos_glb/antorcha_pared_medieval.glb",
+      "thumbnail": "miniaturas/antorcha_pared_medieval.png",
+      "lightKind": "torch_wall",
+      "fuelMinutes": 60,
+      "placement": "wall"
+    },
+    {
+      "id": "antorcha_mano_medieval",
+      "name": "Antorcha de mano",
+      "category": "Iluminación",
+      "shortCode": "AM",
+      "widthFt": 0.7,
+      "depthFt": 0.7,
+      "heightFt": 3.3,
+      "description": "Antorcha portátil de madera y tela.",
+      "tags": [
+        "medieval",
+        "fantasia",
+        "portatil",
+        "antorcha"
+      ],
+      "environment": "interior",
+      "blocksMovement": false,
+      "pack": "medieval_lighting_01",
+      "ambientations": [
+        "medieval"
+      ],
+      "glb": "modelos_glb/antorcha_mano_medieval.glb",
+      "thumbnail": "miniaturas/antorcha_mano_medieval.png",
+      "lightKind": "torch_hand",
+      "fuelMinutes": 60,
+      "placement": "floor"
+    },
+    {
+      "id": "vela_medieval",
+      "name": "Vela",
+      "category": "Iluminación",
+      "shortCode": "VE",
+      "widthFt": 0.55,
+      "depthFt": 0.55,
+      "heightFt": 1,
+      "description": "Vela sencilla con plato metálico.",
+      "tags": [
+        "medieval",
+        "fantasia",
+        "vela",
+        "cera"
+      ],
+      "environment": "interior",
+      "blocksMovement": false,
+      "pack": "medieval_lighting_01",
+      "ambientations": [
+        "medieval"
+      ],
+      "glb": "modelos_glb/vela_medieval.glb",
+      "thumbnail": "miniaturas/vela_medieval.png",
+      "lightKind": "candle",
+      "fuelMinutes": 120,
+      "placement": "floor"
+    },
+    {
+      "id": "candelabro_medieval",
+      "name": "Candelabro",
+      "category": "Iluminación",
+      "shortCode": "CD",
+      "widthFt": 2.2,
+      "depthFt": 1.4,
+      "heightFt": 4,
+      "description": "Candelabro de hierro con tres portavelas.",
+      "tags": [
+        "medieval",
+        "fantasia",
+        "candelabro",
+        "hierro"
+      ],
+      "environment": "interior",
+      "blocksMovement": false,
+      "pack": "medieval_lighting_01",
+      "ambientations": [
+        "medieval"
+      ],
+      "glb": "modelos_glb/candelabro_medieval.glb",
+      "thumbnail": "miniaturas/candelabro_medieval.png",
+      "lightKind": "candelabrum",
+      "fuelMinutes": 180,
+      "placement": "floor"
+    },
+    {
+      "id": "farol_aceite_medieval",
+      "name": "Farol de aceite",
+      "category": "Iluminación",
+      "shortCode": "FA",
+      "widthFt": 1.2,
+      "depthFt": 1.2,
+      "heightFt": 1.9,
+      "description": "Farol de aceite con marco y cristal.",
+      "tags": [
+        "medieval",
+        "fantasia",
+        "farol",
+        "aceite"
+      ],
+      "environment": "interior",
+      "blocksMovement": false,
+      "pack": "medieval_lighting_01",
+      "ambientations": [
+        "medieval"
+      ],
+      "glb": "modelos_glb/farol_aceite_medieval.glb",
+      "thumbnail": "miniaturas/farol_aceite_medieval.png",
+      "lightKind": "oil_lantern",
+      "fuelMinutes": 240,
+      "placement": "floor"
+    },
+    {
+      "id": "brasero_medieval",
+      "name": "Brasero",
+      "category": "Iluminación",
+      "shortCode": "BR",
+      "widthFt": 2.5,
+      "depthFt": 2.5,
+      "heightFt": 2.4,
+      "description": "Brasero de hierro con carbón.",
+      "tags": [
+        "medieval",
+        "fantasia",
+        "brasero",
+        "carbon"
+      ],
+      "environment": "interior",
+      "blocksMovement": true,
+      "pack": "medieval_lighting_01",
+      "ambientations": [
+        "medieval"
+      ],
+      "glb": "modelos_glb/brasero_medieval.glb",
+      "thumbnail": "miniaturas/brasero_medieval.png",
+      "lightKind": "brazier",
+      "fuelMinutes": 180,
+      "placement": "floor"
+    },
+    {
+      "id": "fogata_medieval",
+      "name": "Fogata",
+      "category": "Iluminación",
+      "shortCode": "FO",
+      "widthFt": 4,
+      "depthFt": 4,
+      "heightFt": 1.2,
+      "description": "Fogata con troncos y círculo de piedras.",
+      "tags": [
+        "medieval",
+        "fantasia",
+        "fogata",
+        "leña"
+      ],
+      "environment": "interior",
+      "blocksMovement": true,
+      "pack": "medieval_lighting_01",
+      "ambientations": [
+        "medieval"
+      ],
+      "glb": "modelos_glb/fogata_medieval.glb",
+      "thumbnail": "miniaturas/fogata_medieval.png",
+      "lightKind": "campfire",
+      "fuelMinutes": 120,
+      "placement": "floor"
+    },
+    {
+      "id": "chimenea_medieval",
+      "name": "Chimenea",
+      "category": "Iluminación",
+      "shortCode": "CH",
+      "widthFt": 4.2,
+      "depthFt": 2.1,
+      "heightFt": 5,
+      "description": "Hogar de piedra y tiro de chimenea.",
+      "tags": [
+        "medieval",
+        "fantasia",
+        "chimenea",
+        "piedra"
+      ],
+      "environment": "interior",
+      "blocksMovement": true,
+      "pack": "medieval_lighting_01",
+      "ambientations": [
+        "medieval"
+      ],
+      "glb": "modelos_glb/chimenea_medieval.glb",
+      "thumbnail": "miniaturas/chimenea_medieval.png",
+      "lightKind": "fireplace",
+      "fuelMinutes": 240,
+      "placement": "floor"
+    },
+    {
+      "id": "cristal_magico_medieval",
+      "name": "Cristal mágico",
+      "category": "Iluminación",
+      "shortCode": "CM",
+      "widthFt": 2.1,
+      "depthFt": 2.1,
+      "heightFt": 3.1,
+      "description": "Cristal facetado sobre pedestal antiguo.",
+      "tags": [
+        "medieval",
+        "fantasia",
+        "magia",
+        "cristal"
+      ],
+      "environment": "interior",
+      "blocksMovement": true,
+      "pack": "medieval_lighting_01",
+      "ambientations": [
+        "medieval"
+      ],
+      "glb": "modelos_glb/cristal_magico_medieval.glb",
+      "thumbnail": "miniaturas/cristal_magico_medieval.png",
+      "lightKind": "magic_crystal",
+      "fuelMinutes": null,
+      "placement": "floor"
     }
   ]
 }

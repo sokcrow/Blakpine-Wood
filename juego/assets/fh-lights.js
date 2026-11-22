@@ -20,8 +20,8 @@ const MAX_DIM_FALLOFF_FT=120;
 const LEGACY_MAX_DIM_RADIUS_FT=112;
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 const finite=(value,fallback)=>Number.isFinite(Number(value))?Number(value):fallback;
-const presetFor=kind=>PRESETS[Object.prototype.hasOwnProperty.call(PRESETS,kind)?kind:'bulb'];
-const kindForTool=tool=>Object.prototype.hasOwnProperty.call(TOOL_PRESET,tool)?TOOL_PRESET[tool]:null;
+const presetFor=kind=>global.FHMedievalLighting?.preset(kind)||PRESETS[Object.prototype.hasOwnProperty.call(PRESETS,kind)?kind:'bulb'];
+const kindForTool=tool=>Object.prototype.hasOwnProperty.call(TOOL_PRESET,tool)?TOOL_PRESET[tool]:(global.FHMedievalLighting?.tools?.[tool]||null);
 const isWall=kind=>presetFor(kind).mount==='wall';
 function dimFalloffFt(lamp,brightRadiusFt){
  const p=presetFor(lamp?.lightKind),explicit=Number(lamp?.lightDimFalloffFt),maxBright=Number.isFinite(explicit)?MAX_LIGHT_RADIUS_FT:80;
@@ -31,8 +31,17 @@ function dimFalloffFt(lamp,brightRadiusFt){
  if(Number.isFinite(legacyOuter))return clamp(legacyOuter,bright,LEGACY_MAX_DIM_RADIUS_FT)-bright;
  return clamp(bright*(DIM_RADIUS_RATIO-1),0,MAX_DIM_FALLOFF_FT);
 }
-function presetFields(kind){
+function presetFields(kind,feetPerCell=5){
  const p=presetFor(kind),bright=clamp(p.radiusFt,5,MAX_LIGHT_RADIUS_FT);
+ if(global.FHMedievalLighting?.isMedieval(kind)){
+  const cell=Number(feetPerCell)>0?Number(feetPerCell):5;
+  return {lightKind:kind,modelId:p.modelId,lightOn:true,lightFuelMinutes:p.fuelMinutes,
+   lightRadiusFt:bright,lightDimFalloffFt:p.dimFt,beamAngleDeg:360,
+   w:p.widthFt/cell,h:p.depthFt/cell,heightFt:p.heightFt,
+   placement:p.mount==='wall'?'wall':'floor',
+   ...(p.mountHeightFt?{mountHeightFt:p.mountHeightFt}:{}),
+   blocksMovement:p.blocksMovement===true,label:p.label};
+ }
  return {lightKind:Object.prototype.hasOwnProperty.call(PRESETS,kind)?kind:'bulb',
    lightRadiusFt:bright,lightDimFalloffFt:Math.round(dimFalloffFt({lightKind:kind},bright)*10)/10,beamAngleDeg:p.beamAngleDeg,w:p.w,h:p.h,heightFt:p.mount==='wall'?6.5:8.4,
    blocksMovement:false,label:p.label};
@@ -45,7 +54,9 @@ function resolve(floorIndex,floor,rooms,roomAtGrid,cell){
  const result=[],items=floor.items||[],authored=items.filter(i=>i.type==='light_fixture');
  const byId=new Map(rooms.map(r=>[r.roomId||r.id,r]));
  function emit(lamp,room){
-  const preset=presetFor(lamp.lightKind),kind=preset.mount==='wall'?presetFor(lamp.lightKind)===PRESETS.wall_flood?'wall_flood':'wall_sconce':Object.prototype.hasOwnProperty.call(PRESETS,lamp.lightKind)?lamp.lightKind:'bulb';
+  const preset=presetFor(lamp.lightKind),kind=global.FHMedievalLighting?.isMedieval(lamp.lightKind)?lamp.lightKind:
+   preset.mount==='wall'?(presetFor(lamp.lightKind)===PRESETS.wall_flood?'wall_flood':'wall_sconce'):
+   Object.prototype.hasOwnProperty.call(PRESETS,lamp.lightKind)?lamp.lightKind:'bulb';
   const explicitDim=Number(lamp.lightDimFalloffFt);
   const radiusFt=clamp(finite(lamp.lightRadiusFt,preset.radiusFt),5,Number.isFinite(explicitDim)?MAX_LIGHT_RADIUS_FT:80);
   const dimRadiusFt=radiusFt+dimFalloffFt(lamp,radiusFt);
@@ -77,7 +88,7 @@ function setDynamicSource(id,source){
 }
 function removeDynamicSource(id){return DYNAMIC_SOURCES.delete(id)}
 function sourcesNear(entries,lighting,floor,x,z,viewRange=19,maxSources=12){
- return entries.filter(e=>e.floor===floor&&lighting.fixtureLit(e.floor,e.room,e.lamp))
+ return entries.filter(e=>e.floor===floor&&!global.FHMedievalRuntime?.isCarried?.(e.lamp?.id)&&lighting.fixtureLit(e.floor,e.room,e.lamp))
   .concat([...DYNAMIC_SOURCES.values()].filter(e=>e.floor===floor))
   .filter(e=>{const reach=e.dimRadius||e.radius;return (e.x-x)**2+(e.z-z)**2<=(viewRange+reach)**2})
   .sort((a,b)=>(a.x-x)**2+(a.z-z)**2-((b.x-x)**2+(b.z-z)**2))
