@@ -57,10 +57,10 @@ for (const world of worlds) for (const rule of rules) {
     assert.deepEqual(mode.worldProfile, readJson(input.worldProfile));
     assert.deepEqual(mode.rulesetManifest, readJson(input.rulesetManifest));
     const description = await worldModule.create({ readJson, validate }).prepare(mode.worldProfile);
-    assert.equal(description.scenario.status, world === 'ciudad-moderna' ? 'map-available' : 'declarative-only');
+    assert.equal(description.scenario.status, world === 'distopia' ? 'declarative-only' : 'map-available');
     let loads = 0;
     await rejects(coordinatorModule.create({ readSelection: read,
-      worldLoader: { prepare() { loads++; } } }).prepare(input), 'RULESET_NOT_IMPLEMENTED');
+      worldLoader: { prepare() { loads++; } } }).prepare(input), rule === 'dnd' ? 'RULES_ADAPTER_MISSING' : 'RULESET_NOT_IMPLEMENTED');
     assert.equal(loads, 0);
   });
 }
@@ -95,13 +95,21 @@ test('sin selección devuelve Legacy sin invocar ningún puerto', async () => {
       worldLoader: { prepare: bomb }, rulesAdapter: { evaluate: bomb } }).prepare(input), { kind: 'legacy' });
   }
 });
-test('mundo declarativo válido no equivale a sesión preparada ni inventa mapa', async () => {
-  for (const world of worlds.slice(1)) {
+test('Distopía declarativa no equivale a sesión preparada ni inventa mapa', async () => {
+  for (const world of ['distopia']) {
     const h = harness('dnd');
     await rejects(coordinatorModule.create(h.options).prepare(binding(world, 'dnd')), 'WORLD_MAP_MISSING');
     assert.equal(h.loads(), 0);
     assert.ok(!h.reads.some(p => p.startsWith('forest-horror/')));
   }
+});
+test('villa medieval prepara el mapa DnD real cuando el adaptador está registrado', async () => {
+ const h=harness('dnd');
+ const prepared=await coordinatorModule.create(h.options).prepare(binding('villa-medieval','dnd'));
+ assert.equal(prepared.kind,'prepared');
+ assert.equal(prepared.worldDescription.scenario.status,'map-available');
+ assert.equal(prepared.worldDescription.scenario.data.title,'DnD · Sala de pruebas de iluminación medieval');
+ assert.equal(prepared.worldDescription.scenario.data.floors[0].items.filter(i=>i.type==='light_fixture').length,9);
 });
 test('versiones desconocidas en selección, mundo y reglamento fallan sin cargar escenario', async () => {
   for (const target of ['selection', 'worldProfile', 'rulesetManifest']) {

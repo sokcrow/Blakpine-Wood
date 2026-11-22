@@ -1,15 +1,19 @@
-/* DnD PROTOTIPO: combate contra blancos neutros, nunca actores Legacy. */
+/* DnD 2024: ficha, pruebas d20 y ataques al blanco de entrenamiento. */
 (function(root,factory){
  'use strict';
  const coordinator=typeof module==='object'&&module.exports
   ?require('../../core/fh-session-coordinator.js'):root.FHSessionCoordinator;
  const combat=typeof module==='object'&&module.exports
   ?require('./fh-dnd-combat.js'):root.FHDndCombat;
- const api=factory(coordinator,combat);
+ const sheet=typeof module==='object'&&module.exports
+  ?require('./fh-dnd-sheet.js'):root.FHDndSheet;
+ const api=factory(coordinator,combat,sheet);
  if(typeof module==='object'&&module.exports)module.exports=api;
  else root.FHDndEngine=api;
-})(typeof globalThis!=='undefined'?globalThis:this,function(coordinator,combat){
+})(typeof globalThis!=='undefined'?globalThis:this,function(coordinator,combat,sheet){
  'use strict';
+ // La ficha activa DnD pertenece al reglamento, nunca a recursos/scores Legacy.
+ function readStats(player){return sheet.overview(player);}
  function create({targetPort,gameState,identity,sessionId,readPlayer,readMinute,
   save,notice,document:doc=typeof document!=='undefined'?document:null,
   random=Math.random}={}){
@@ -37,14 +41,15 @@
    if(intent.actor.kind!=='player'||intent.target.kind!=='training_dummy')return null;
    const target=targetPort.read(intent.target.id);
    if(!target)return null;
-   // Defensa 10 y resistencia 0 son valores del PROTOTIPO DnD, no una ficha de monstruo.
+   // Sólo blanco indestructible de entrenamiento; usa CA 10 para las tiradas.
    return {actor:state.player,target:{type:'training_dummy',hp:1,maxHp:1,
-    defense:combat.defaults.defense,resistance:combat.defaults.resistance}};
+    armorClass:combat.defaults.trainingAc,resistances:[],vulnerabilities:[],immunities:[]}};
   }
   function updateHud(){
    if(!hud)return;
    const t=globalThis.FH_DND_TEXT;
    hud.status.textContent=t?.status(state.player.hp,state.player.maxHp)||'';
+   hud.stats.textContent=t?.sheet?.(readStats(state.player))||'';
    const targets=targetPort.list(),key=targets.map(value=>value.id).join('\u0000');
    if(key!==hud.targetsKey){
     const previous=hud.select.value;
@@ -58,18 +63,28 @@
     hud.targetsKey=key;
    }
    hud.select.disabled=closed||targets.length===0;
+   const weapons=state.player.attacks||[],weaponKey=weapons.map(a=>a.id).join('\u0000');
+   if(weaponKey!==hud.weaponKey){
+    const options=weapons.map(attack=>{
+     const item=doc.createElement('option');
+     item.value=attack.id;item.textContent=attack.name||attack.id;return item;
+    });
+    hud.weapon.replaceChildren(...options);hud.weaponKey=weaponKey;
+   }
+   hud.weapon.value=state.player.activeAttackId;
+   hud.weapon.disabled=closed||weapons.length<=1;
    hud.button.disabled=closed||state.player.hp===0;
   }
   function show(result){
    if(closed)return;
    const t=globalThis.FH_DND_TEXT;
-   const message=result.hit?t?.hit(result.roll,result.total,result.damage):t?.miss(result.roll,result.total);
+   const message=result.hit?t?.hit(result.roll,result.total,result.damage,result.critical):t?.miss(result.roll,result.total);
    if(message)notice(message,2400);
    updateHud();
   }
   function apply(result,intent){
    if(closed||intent.actor.kind!=='player'||intent.target.kind!=='training_dummy'||
-    result.targetId!==intent.target.id||result.cost!==0||result.defeated!==false)
+    result.targetId!==intent.target.id||result.defeated!==false)
     throw Error('DND_APPLY_INVALID');
    // El puerto es el único escritor del Dummy; nunca descontar HP ni invocar defeat().
    targetPort.receiveHit(intent.target.id,result);
@@ -102,6 +117,17 @@
     execute:()=>null
    });}catch(error){notice(t?.unknown||'',1500);return null;}
   }
+  // Estas tiradas usan el mismo reglamento que ataques y no consumen PE.
+  function rollTest(kind,id,dc=12,options={}){
+   if(closed||!sheet.valid(state.player))return null;
+   try{
+    const result=sheet.testD20(state.player,kind,id,{dc,random,...options});
+    const label=kind==='save'?(globalThis.FH_DND_TEXT?.saveName?.(id)||id):
+     (globalThis.FH_DND_TEXT?.skillName?.(id)||id);
+    notice(globalThis.FH_DND_TEXT?.testResult?.(label,result)||'',2700);
+    return result;
+   }catch(error){notice(globalThis.FH_DND_TEXT?.invalidTest||'',1500);return null;}
+  }
   function onKey(event){
    if(event.key?.toLowerCase()!=='f'||event.repeat||event.altKey||event.ctrlKey||
     event.metaKey||/^(input|textarea|select)$/i.test(event.target?.tagName||''))return;
@@ -110,25 +136,57 @@
   }
   if(doc?.body&&typeof doc.createElement==='function'){
    const box=doc.createElement('aside'),title=doc.createElement('strong'),
-    status=doc.createElement('span'),select=doc.createElement('select'),
-    button=doc.createElement('button'),help=doc.createElement('small');
+    status=doc.createElement('span'),stats=doc.createElement('small'),select=doc.createElement('select'),
+    weapon=doc.createElement('select'),button=doc.createElement('button'),help=doc.createElement('small'),
+    dc=doc.createElement('input'),saveSelect=doc.createElement('select'),
+    skillSelect=doc.createElement('select'),saveButton=doc.createElement('button'),
+    skillButton=doc.createElement('button');
    const t=globalThis.FH_DND_TEXT||{};
    box.setAttribute('aria-label',t.title||'Combate DnD');
-   box.style.cssText='position:fixed;right:12px;bottom:92px;z-index:201;background:#15181de8;color:#fff;border:1px solid #ccc;padding:10px;display:grid;gap:5px;max-width:245px;font:13px system-ui';
+   box.style.cssText='position:fixed;right:12px;top:12px;z-index:201;background:#15181de8;color:#fff;border:1px solid #ccc;padding:10px;display:grid;gap:5px;max-width:290px;max-height:65vh;overflow:auto;font:13px system-ui';
+   stats.style.cssText='white-space:pre-line;line-height:1.45;color:#d8dce2;font-variant-numeric:tabular-nums';
    title.textContent=t.title||'Combate DnD';button.type='button';button.textContent=t.attack||'Atacar';
    help.textContent=t.hint||'';select.setAttribute('aria-label',t.selectTarget||'Seleccionar blanco');
-   box.append(title,status,select,button,help);doc.body.append(box);
+   weapon.setAttribute('aria-label',t.selectAttack||'Ataque o arma DnD');
+   dc.type='number';dc.min='1';dc.max='100';dc.value='12';
+   dc.setAttribute('aria-label',t.dc||'Dificultad (CD)');
+   saveSelect.setAttribute('aria-label',t.saveSelect||'Salvación');
+   skillSelect.setAttribute('aria-label',t.skillSelect||'Habilidad');
+   for(const ability of sheet.ABILITIES){
+    const option=doc.createElement('option');
+    option.value=ability;option.textContent=t.saveName?.(ability)||ability;
+    saveSelect.append(option);
+   }
+   for(const skill of Object.keys(sheet.SKILLS)){
+    const option=doc.createElement('option');
+    option.value=skill;option.textContent=t.skillName?.(skill)||skill;
+    skillSelect.append(option);
+   }
+   saveSelect.value='dex';skillSelect.value='perception';
+   saveButton.type='button';saveButton.textContent=t.rollSave||'Tirar salvación';
+   skillButton.type='button';skillButton.textContent=t.rollSkill||'Tirar habilidad';
+   box.append(title,status,stats,weapon,select,button,dc,saveSelect,saveButton,
+    skillSelect,skillButton,help);doc.body.append(box);
+   weapon.addEventListener('change',()=>{
+    if(closed||!state.player.attacks.some(a=>a.id===weapon.value))return;
+    state.player.activeAttackId=weapon.value;
+    state.revision++;try{save();}catch(error){console.error('[DnD] Guardado de arma:',error);}
+    updateHud();
+   });
    button.addEventListener('click',()=>playerAttack(select.value||undefined));
+   saveButton.addEventListener('click',()=>rollTest('save',saveSelect.value,Number(dc.value)));
+   skillButton.addEventListener('click',()=>rollTest('skill',skillSelect.value,Number(dc.value)));
    doc.addEventListener('keydown',onKey);
-   hud={box,status,select,button,targetsKey:null};updateHud();
+   hud={box,status,stats,select,weapon,button,targetsKey:null,weaponKey:null};updateHud();
   }
   return Object.freeze({
    tick(){if(!closed)updateHud();},
-   attack:playerAttack,
-   getStatus:()=>Object.freeze({connected:!closed,closed,rulesetId:'dnd',prototype:true}),
+   attack:playerAttack,rollSave:(id,dc,options)=>rollTest('save',id,dc,options),
+   rollSkill:(id,dc,options)=>rollTest('skill',id,dc,options),
+   getStatus:()=>Object.freeze({connected:!closed,closed,rulesetId:'dnd',characterId:playerId}),
    close(){if(closed)return;closed=true;session.close();
     if(hud){hud.box.remove();doc.removeEventListener('keydown',onKey);}}
   });
  }
- return Object.freeze({create});
+ return Object.freeze({create,readStats});
 });

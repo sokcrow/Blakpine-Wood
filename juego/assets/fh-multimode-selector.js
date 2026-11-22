@@ -17,10 +17,11 @@
   Object.freeze({id:'moon-system',path:'contratos/multimodo/ejemplos/reglas/moon-system.json',label:'moon'})
  ]);
  const mapPath='forest-horror/maps/DEMO_Interacciones.json';
+ const medievalMapPath='forest-horror/maps/DEMO_DnD_Iluminacion.json';
  const resources=Object.freeze(Object.fromEntries([
   ...worlds.map(item=>[item.path,'world']),
   ...rules.map(item=>[item.path,'rules']),
-  [mapPath,'map']
+  [mapPath,'map'],[medievalMapPath,'map']
  ]));
  function binding(world,rule){
   const w=worlds.find(item=>item.id===world),r=rules.find(item=>item.id===rule);

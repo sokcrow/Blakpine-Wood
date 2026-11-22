@@ -169,8 +169,14 @@ test('los manifiestos se limitan al combate, sin cambios de geometría ni colisi
     if (data.extensions) {
       assert.deepEqual(Object.keys(data.extensions), ['blakpine.combat-scope.v1'], file);
       const scope = data.extensions['blakpine.combat-scope.v1'];
-      assert.deepEqual(Object.keys(scope).sort(), ['combatResolution', 'generalSkills'], file);
-      for (const value of Object.values(scope)) assert.equal(typeof value, 'string', file);
+      const expected=data.id==='dnd'?
+        ['combatResolution','generalSkills','pilotClass','playerSheet','universalEnergy']:
+        ['combatResolution','generalSkills'];
+      assert.deepEqual(Object.keys(scope).sort(),expected,file);
+      for(const [key,value] of Object.entries(scope)){
+        if(key==='universalEnergy')assert.equal(value,false,'DnD no utiliza PE general');
+        else assert.equal(typeof value,'string',file);
+      }
     }
     assert.equal(data.status, data.id === 'dnd' ? 'implemented' : 'planned', file);
     if (data.id === 'legacy') {

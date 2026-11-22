@@ -188,15 +188,22 @@
         }
         const world=copyDescription(readWorld(action));
         const rules=copyDescription(before.state);
-        if(!world?.actor||!world.target||!Number.isSafeInteger(world.actor.hitDie)||
-         !Number.isSafeInteger(world.actor.damageDie)||
-         world.actor.hitDie<2||world.actor.damageDie<2)fail('DND_ACTION_UNAVAILABLE');
-        const dice={hit:roll(world.actor.hitDie),damage:roll(world.actor.damageDie)};
+        const profile=world?.actor&&typeof rulesAdapter.attackProfile==='function'?
+         rulesAdapter.attackProfile(world.actor):null;
+        if(!profile||!Number.isSafeInteger(profile.hitDie)||profile.hitDie!==20||
+         !Number.isSafeInteger(profile.damageDie)||profile.damageDie<2||
+         !Number.isSafeInteger(profile.damageCount)||profile.damageCount<1||profile.damageCount>20)
+         fail('DND_ACTION_UNAVAILABLE');
+        // Los 20 naturales duplican los dados de daño, nunca el modificador.
+        const hit=roll(20);
+        const damage=Array.from({length:profile.damageCount},()=>roll(profile.damageDie));
+        const criticalDamage=hit===20?Array.from({length:profile.damageCount},()=>roll(profile.damageDie)):[];
+        const dice={hit,damage,criticalDamage};
         const proposal=copyDescription(rulesAdapter.evaluate({...action,dice},world,rules));
         if(!proposal||proposal.rulesetId!=='dnd'||proposal.actionId!==action.actionId||
          proposal.actorId!==action.actor.id||proposal.targetId!==action.target.id||
-         !Number.isSafeInteger(proposal.cost)||proposal.cost<0||
-         !Number.isSafeInteger(proposal.damage)||proposal.damage<0)fail('DND_RESULT_INVALID');
+         !Number.isSafeInteger(proposal.damage)||proposal.damage<0||
+         typeof proposal.hit!=='boolean'||typeof proposal.critical!=='boolean')fail('DND_RESULT_INVALID');
         const current=readContext();
         if(closed||current?.sessionId!==sessionId||current.playerId!==playerId||
          current.rulesetId!=='dnd'||current.revision!==action.revision||
