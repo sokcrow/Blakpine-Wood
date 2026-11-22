@@ -37,3 +37,18 @@ test('Portal transmite modo del contexto y no publica campañas DnD como Legacy'
  assert.match(html,/lumenEditorRuleset==='dnd'/);
  assert.match(html,/fh-medieval-catalog\.js/);
 });
+
+test('Cartucho DnD conserva el modelId al guardar y no acepta mezclas de identidad',async()=>{
+ const m=await import('../portal/cartridge.js');
+ const context={uid:'director',ownerUid:'director',campaignId:'campana-medieval',rulesetId:'dnd',status:'active'};
+ const created=m.createCartridge(context);
+ const project={schema:'forest-horror-map-v1',version:1,floors:[{id:'PB',items:[{id:'a1',type:'misc',modelId:'arcon_reforzado_medieval',x:2,y:3,blocksMovement:true}]}]};
+ const updated=m.changeMap(created,context,p=>{assert.equal(p.schema,'forest-horror-map-v1');return true;},{
+  name:'Taberna',project,expectedRevision:1
+ });
+ assert.equal(updated.cartridge.rulesetId,'dnd');
+ assert.equal(updated.cartridge.maps[0].project.floors[0].items[0].modelId,'arcon_reforzado_medieval');
+ assert.equal(updated.cartridge.maps[0].project.floors[0].items[0].blocksMovement,true);
+ assert.throws(()=>m.validateCartridge(updated.cartridge,{...context,rulesetId:'legacy'},()=>true),/IDENTITY/);
+ assert.throws(()=>m.authorize({...context,rulesetId:'moon-system'}),/ACCESS/);
+});
