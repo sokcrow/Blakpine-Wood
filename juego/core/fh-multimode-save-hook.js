@@ -51,6 +51,7 @@ const SAVE_KEY=fhMultimode?fhMultimode.key:ForestShared.gameSaveKey(DATA);`);
     const scripts = ['core/fh-multimode-save-identity.js', 'core/fh-multimode-persistence.js',
        'core/fh-combat-target-port.js',
       'rules/dnd/fh-dnd-sheet.js','rules/dnd/fh-dnd-combat.js','rules/dnd/fh-dnd-save-adapter.js',
+      'assets/fh-dnd-character-strings.js',
       'rules/dnd/fh-dnd-strings.js','rules/dnd/fh-dnd-engine.js']
       .map(file => '<script src="' + new URL('./juego/' + file + '?v=20261117-persist32', baseURL).href + '"></' + 'script>').join('');
     if(doc.includes('GameState.horror=structuredClone(restored?.horror||DATA.initialGameState?.horror||{});')){
