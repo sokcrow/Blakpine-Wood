@@ -1,0 +1,490 @@
+{
+  "schema": "forest-horror-map-v1",
+  "version": 1,
+  "title": "DnD · Sala de pruebas de iluminación medieval",
+  "createdAt": "2026-11-22T08:30:00.000Z",
+  "units": {
+    "gridPx": 70,
+    "columns": 32,
+    "rows": 26,
+    "fitGridToImage": false,
+    "feetPerCell": 5,
+    "metersPerCell": 1.524,
+    "snapCell": 1,
+    "originPx": {
+      "x": 0,
+      "y": 0
+    }
+  },
+  "itemDefs": [
+    {
+      "id": "resina_antorcha",
+      "name": "Resina para antorcha",
+      "description": "Consumible de prueba para reabastecer antorchas.",
+      "kind": "consumable",
+      "stackable": true
+    },
+    {
+      "id": "cera_vela",
+      "name": "Cera de vela",
+      "description": "Consumible de prueba para velas y candelabros.",
+      "kind": "consumable",
+      "stackable": true
+    },
+    {
+      "id": "aceite_lampara",
+      "name": "Aceite para farol",
+      "description": "Consumible de prueba para faroles.",
+      "kind": "consumable",
+      "stackable": true
+    },
+    {
+      "id": "lena",
+      "name": "Leña",
+      "description": "Consumible de prueba para braseros, fogatas y chimeneas.",
+      "kind": "consumable",
+      "stackable": true
+    }
+  ],
+  "floors": [
+    {
+      "id": "floor1",
+      "name": "Planta de pruebas",
+      "elevationFt": 0,
+      "ceilingHeightFt": 11.5,
+      "reference": {
+        "name": "Plano DnD de pruebas",
+        "width": 2240,
+        "height": 1820,
+        "opacity": 0.65,
+        "imageIncluded": false
+      },
+      "items": [
+        {
+          "id": "sala_izquierda",
+          "type": "room",
+          "x": 2,
+          "y": 2,
+          "w": 12,
+          "h": 18,
+          "label": "Sala de antorchas",
+          "roomId": "sala_izquierda",
+          "zoneId": "",
+          "blocksViewOutside": true
+        },
+        {
+          "id": "sala_derecha",
+          "type": "room",
+          "x": 14,
+          "y": 2,
+          "w": 14,
+          "h": 18,
+          "label": "Sala del fuego y cristal",
+          "roomId": "sala_derecha",
+          "zoneId": "",
+          "blocksViewOutside": true
+        },
+        {
+          "id": "muro_norte",
+          "type": "wall",
+          "a": {
+            "x": 2,
+            "y": 2
+          },
+          "b": {
+            "x": 28,
+            "y": 2
+          },
+          "heightFt": 10,
+          "widthFt": 0
+        },
+        {
+          "id": "muro_este",
+          "type": "wall",
+          "a": {
+            "x": 28,
+            "y": 2
+          },
+          "b": {
+            "x": 28,
+            "y": 20
+          },
+          "heightFt": 10,
+          "widthFt": 0
+        },
+        {
+          "id": "muro_sur",
+          "type": "wall",
+          "a": {
+            "x": 2,
+            "y": 20
+          },
+          "b": {
+            "x": 28,
+            "y": 20
+          },
+          "heightFt": 10,
+          "widthFt": 0
+        },
+        {
+          "id": "muro_oeste",
+          "type": "wall",
+          "a": {
+            "x": 2,
+            "y": 2
+          },
+          "b": {
+            "x": 2,
+            "y": 20
+          },
+          "heightFt": 10,
+          "widthFt": 0
+        },
+        {
+          "id": "muro_divisor_norte",
+          "type": "wall",
+          "a": {
+            "x": 14,
+            "y": 2
+          },
+          "b": {
+            "x": 14,
+            "y": 9
+          },
+          "heightFt": 10,
+          "widthFt": 0
+        },
+        {
+          "id": "muro_divisor_sur",
+          "type": "wall",
+          "a": {
+            "x": 14,
+            "y": 10
+          },
+          "b": {
+            "x": 14,
+            "y": 20
+          },
+          "heightFt": 10,
+          "widthFt": 0
+        },
+        {
+          "id": "puerta_divisoria",
+          "type": "door",
+          "a": {
+            "x": 14,
+            "y": 9
+          },
+          "b": {
+            "x": 14,
+            "y": 10
+          },
+          "heightFt": 7,
+          "widthFt": 3,
+          "open": false,
+          "locked": false,
+          "doorRole": "interior",
+          "label": "Puerta entre salas"
+        },
+        {
+          "id": "spawn_dnd",
+          "type": "spawn",
+          "x": 5,
+          "y": 5,
+          "w": 0.4,
+          "h": 0.4,
+          "blocksMovement": false
+        },
+        {
+          "id": "dummy_dnd",
+          "type": "training_dummy",
+          "x": 6,
+          "y": 5,
+          "w": 0.6,
+          "h": 0.6,
+          "heightFt": 6,
+          "blocksMovement": true,
+          "label": "Blanco de entrenamiento"
+        },
+        {
+          "id": "dnd_luz_torch_wall",
+          "type": "light_fixture",
+          "x": 2,
+          "y": 8,
+          "w": 0.22000000000000003,
+          "h": 0.2,
+          "rotation": 90,
+          "label": "Antorcha de pared",
+          "modelId": "antorcha_pared_medieval",
+          "lightKind": "torch_wall",
+          "lightOn": true,
+          "lightFuelMinutes": 60,
+          "lightRadiusFt": 20,
+          "lightDimFalloffFt": 10,
+          "beamAngleDeg": 360,
+          "heightFt": 6,
+          "placement": "wall",
+          "roomId": "sala_izquierda",
+          "zoneId": "",
+          "blocksMovement": false,
+          "interact": {
+            "id": "dnd_usar_luz_torch_wall",
+            "verb": "use",
+            "label": "Usar Antorcha de pared",
+            "effects": []
+          }
+        },
+        {
+          "id": "dnd_luz_torch_hand",
+          "type": "light_fixture",
+          "x": 5.5,
+          "y": 7.5,
+          "w": 0.13999999999999999,
+          "h": 0.13999999999999999,
+          "rotation": 0,
+          "label": "Antorcha de mano",
+          "modelId": "antorcha_mano_medieval",
+          "lightKind": "torch_hand",
+          "lightOn": true,
+          "lightFuelMinutes": 60,
+          "lightRadiusFt": 20,
+          "lightDimFalloffFt": 10,
+          "beamAngleDeg": 360,
+          "heightFt": 2.9,
+          "placement": "floor",
+          "roomId": "sala_izquierda",
+          "zoneId": "",
+          "blocksMovement": false,
+          "interact": {
+            "id": "dnd_usar_luz_torch_hand",
+            "verb": "use",
+            "label": "Usar Antorcha de mano",
+            "effects": []
+          }
+        },
+        {
+          "id": "dnd_luz_candle",
+          "type": "light_fixture",
+          "x": 8,
+          "y": 10,
+          "w": 0.11000000000000001,
+          "h": 0.11000000000000001,
+          "rotation": 0,
+          "label": "Vela",
+          "modelId": "vela_medieval",
+          "lightKind": "candle",
+          "lightOn": true,
+          "lightFuelMinutes": 120,
+          "lightRadiusFt": 5,
+          "lightDimFalloffFt": 5,
+          "beamAngleDeg": 360,
+          "heightFt": 0.95,
+          "placement": "floor",
+          "roomId": "sala_izquierda",
+          "zoneId": "",
+          "blocksMovement": false,
+          "interact": {
+            "id": "dnd_usar_luz_candle",
+            "verb": "use",
+            "label": "Usar Vela",
+            "effects": []
+          }
+        },
+        {
+          "id": "dnd_luz_candelabrum",
+          "type": "light_fixture",
+          "x": 8,
+          "y": 15,
+          "w": 0.44000000000000006,
+          "h": 0.27999999999999997,
+          "rotation": 0,
+          "label": "Candelabro",
+          "modelId": "candelabro_medieval",
+          "lightKind": "candelabrum",
+          "lightOn": true,
+          "lightFuelMinutes": 180,
+          "lightRadiusFt": 10,
+          "lightDimFalloffFt": 5,
+          "beamAngleDeg": 360,
+          "heightFt": 3.9,
+          "placement": "floor",
+          "roomId": "sala_izquierda",
+          "zoneId": "",
+          "blocksMovement": false,
+          "interact": {
+            "id": "dnd_usar_luz_candelabrum",
+            "verb": "use",
+            "label": "Usar Candelabro",
+            "effects": []
+          }
+        },
+        {
+          "id": "dnd_luz_oil_lantern",
+          "type": "light_fixture",
+          "x": 19,
+          "y": 5,
+          "w": 0.24,
+          "h": 0.24,
+          "rotation": 0,
+          "label": "Farol de aceite",
+          "modelId": "farol_aceite_medieval",
+          "lightKind": "oil_lantern",
+          "lightOn": true,
+          "lightFuelMinutes": 240,
+          "lightRadiusFt": 15,
+          "lightDimFalloffFt": 10,
+          "beamAngleDeg": 360,
+          "heightFt": 1.5,
+          "placement": "floor",
+          "roomId": "sala_derecha",
+          "zoneId": "",
+          "blocksMovement": false,
+          "interact": {
+            "id": "dnd_usar_luz_oil_lantern",
+            "verb": "use",
+            "label": "Usar Farol de aceite",
+            "effects": []
+          }
+        },
+        {
+          "id": "dnd_luz_brazier",
+          "type": "light_fixture",
+          "x": 20,
+          "y": 11,
+          "w": 0.5,
+          "h": 0.5,
+          "rotation": 0,
+          "label": "Brasero",
+          "modelId": "brasero_medieval",
+          "lightKind": "brazier",
+          "lightOn": true,
+          "lightFuelMinutes": 180,
+          "lightRadiusFt": 20,
+          "lightDimFalloffFt": 10,
+          "beamAngleDeg": 360,
+          "heightFt": 2.25,
+          "placement": "floor",
+          "roomId": "sala_derecha",
+          "zoneId": "",
+          "blocksMovement": true,
+          "interact": {
+            "id": "dnd_usar_luz_brazier",
+            "verb": "use",
+            "label": "Usar Brasero",
+            "effects": []
+          }
+        },
+        {
+          "id": "dnd_luz_campfire",
+          "type": "light_fixture",
+          "x": 6,
+          "y": 22,
+          "w": 0.8,
+          "h": 0.8,
+          "rotation": 0,
+          "label": "Fogata",
+          "modelId": "fogata_medieval",
+          "lightKind": "campfire",
+          "lightOn": true,
+          "lightFuelMinutes": 120,
+          "lightRadiusFt": 25,
+          "lightDimFalloffFt": 15,
+          "beamAngleDeg": 360,
+          "heightFt": 0.85,
+          "placement": "floor",
+          "roomId": "",
+          "zoneId": "",
+          "blocksMovement": true,
+          "interact": {
+            "id": "dnd_usar_luz_campfire",
+            "verb": "use",
+            "label": "Usar Fogata",
+            "effects": []
+          }
+        },
+        {
+          "id": "dnd_luz_fireplace",
+          "type": "light_fixture",
+          "x": 24,
+          "y": 5,
+          "w": 0.8400000000000001,
+          "h": 0.42000000000000004,
+          "rotation": 0,
+          "label": "Chimenea",
+          "modelId": "chimenea_medieval",
+          "lightKind": "fireplace",
+          "lightOn": true,
+          "lightFuelMinutes": 240,
+          "lightRadiusFt": 20,
+          "lightDimFalloffFt": 10,
+          "beamAngleDeg": 360,
+          "heightFt": 1.8,
+          "placement": "floor",
+          "roomId": "sala_derecha",
+          "zoneId": "",
+          "blocksMovement": true,
+          "interact": {
+            "id": "dnd_usar_luz_fireplace",
+            "verb": "use",
+            "label": "Usar Chimenea",
+            "effects": []
+          }
+        },
+        {
+          "id": "dnd_luz_magic_crystal",
+          "type": "light_fixture",
+          "x": 22,
+          "y": 16,
+          "w": 0.42000000000000004,
+          "h": 0.42000000000000004,
+          "rotation": 0,
+          "label": "Cristal mágico",
+          "modelId": "cristal_magico_medieval",
+          "lightKind": "magic_crystal",
+          "lightOn": true,
+          "lightFuelMinutes": null,
+          "lightRadiusFt": 30,
+          "lightDimFalloffFt": 15,
+          "beamAngleDeg": 360,
+          "heightFt": 2.8,
+          "placement": "floor",
+          "roomId": "sala_derecha",
+          "zoneId": "",
+          "blocksMovement": true,
+          "interact": {
+            "id": "dnd_usar_luz_magic_crystal",
+            "verb": "use",
+            "label": "Usar Cristal mágico",
+            "effects": []
+          }
+        }
+      ]
+    }
+  ],
+  "initialGameState": {
+    "flags": {
+      "power_global": false
+    },
+    "inventory": [
+      "resina_antorcha",
+      "resina_antorcha",
+      "cera_vela",
+      "aceite_lampara",
+      "lena",
+      "lena",
+      "lena"
+    ],
+    "clock": {
+      "year": 2026,
+      "month": 11,
+      "day": 22,
+      "minutes": 30
+    },
+    "player": {
+      "floorId": "floor1",
+      "x": 7.62,
+      "z": 7.62
+    }
+  },
+  "notes": "Escenario de pruebas DnD: no requiere electricidad. Interactúa con las luminarias para encenderlas, apagarlas o recargarlas; recoge y suelta la antorcha."
+}
