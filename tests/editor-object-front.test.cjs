@@ -24,7 +24,7 @@ function setup(item){
  const ctx={document,window:{FH_OBJECT_FRONT_TEXT:T,FHObjectFront:front,
   FHLights:{isWall:kind=>kind==='torch_wall'}},
   current:()=>({items:[item]}),
-  hasVisualFront:obj=>front.hasFront(obj,new Set(['misc'])),
+  hasVisualFront:obj=>front.hasFront(obj,new Set(['misc','light_switch'])),
   setItemField(id,key,value){assert.equal(id,item.id);assert.equal(key,'rotation');
    item.rotation=value;messages.push(value)}};
  const render=vm.runInNewContext('('+source+')',ctx);
