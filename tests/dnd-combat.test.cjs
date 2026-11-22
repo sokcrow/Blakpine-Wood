@@ -103,7 +103,8 @@ test('Coordinador: una aplicación por acción, protección contra repetición y
 });
 
 test('Guardado/restauración: la ficha D&D sobrevive sin personaje/scores ni PE Legacy',()=>{
- const storage=memory(),game=saveAdapter.initial({initialGameState:{
+ const storage=memory(),game=saveAdapter.initial({__dndCharacter:{
+  id:'hero',sheet:sheet.createPilot()},initialGameState:{
   character:{resources:{pg:99,pe:99}},stats:{hit:100},skills:{repair:20},clock:{minutes:1320}}});
  assert.equal(game.character,undefined);assert.equal(game.stats,undefined);assert.equal(game.skills,undefined);
  game.dnd.player.hp=9;game.dnd.actors.enemy=combat.combatant({hp:4,armorClass:13});
