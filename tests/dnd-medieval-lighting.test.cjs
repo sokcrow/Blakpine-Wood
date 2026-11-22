@@ -94,6 +94,11 @@ test('Antorcha portátil sigue al personaje y se suelta en la posición correcta
  assert.equal(torch.x,4);assert.equal(torch.y,5);
  assert.equal(a.isCarried('hand'),false);
  assert.equal(calls.at(-1)[0],'remove');
+ const saved=JSON.parse(JSON.stringify(state)),reopened={...torch,x:2,y:3};
+ const again=mod.createRuntime({floors:[{items:[reopened]}],state:saved,clock:()=>minute,
+   player:()=>player,lights,cell:1.524});
+ assert.equal(again.itemFor('hand').x,4);
+ assert.equal(again.itemFor('hand').y,5);
 });
 test('La antorcha de pared mantiene oclusión y respeta intensidad',()=>{
  const wall={type:'wall',a:{x:5,y:0},b:{x:5,y:10}};
