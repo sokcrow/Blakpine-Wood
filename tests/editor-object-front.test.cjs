@@ -72,7 +72,7 @@ test('Los objetos anclados a pared explican que no pueden girar libremente',()=>
 test('Interruptor sujeto a pared sólo permite cambiar de lado 180°',()=>{
  const item={id:'switch_1',type:'light_switch',rotation:0};
  const h=setup(item),children=h.fields.children[0].children;
- assert.match(children[3].textContent,/muro/);
+ assert.match(children[3].textContent,/pared/);
  assert.equal(children[4].children.length,1);
  children[4].children[0].onclick();
  assert.equal(item.rotation,180);
