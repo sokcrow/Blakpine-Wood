@@ -51,7 +51,7 @@ test('HTML mantiene entrada Legacy original y enlaza módulos reales antes del i
   'fh-multimode-schema-validator.js','fh-mode-adapter-registry.js','fh-multimode-selector.js']){
   assert.ok(editor.includes(name),name);
  }
- for(const id of ['testBtn','fhModesBtn','fhModesOverlay','fhModesStart','fhModesLegacyLocal']){
+ for(const id of ['testBtn','fhModesBtn','fhModesOverlay','fhModesStart','fhModesLegacyLocal','fhModesDndLocal']){
   assert.match(editor,new RegExp('id="'+id+'"'));
  }
  assert.match(editor,/setupPlayMode\(\);\s*init\(\);/);
@@ -166,13 +166,14 @@ class Element {
  querySelectorAll(){
   const d=this.document;
   return [d.ids.fhModesClose,...d.ids.fhWorldOptions.children,
-   ...d.ids.fhRulesOptions.children,d.ids.fhModesStart,d.ids.fhModesLegacyLocal].filter(n=>!n.disabled);
+   ...d.ids.fhRulesOptions.children,d.ids.fhModesStart,d.ids.fhModesLegacyLocal,
+   d.ids.fhModesDndLocal].filter(n=>!n.disabled);
  }
 }
 function makeDOM(){
  const doc={ids:{},activeElement:null};
  for(const id of ['fhModesBtn','fhModesOverlay','fhModesClose','fhModesStatus',
-  'fhWorldOptions','fhRulesOptions','fhModesStart','fhModesLegacyLocal']){
+  'fhWorldOptions','fhRulesOptions','fhModesStart','fhModesLegacyLocal','fhModesDndLocal']){
   doc.ids[id]=new Element(doc,id);
  }
  doc.getElementById=id=>doc.ids[id];
@@ -182,7 +183,7 @@ function makeDOM(){
 
 test('UI offline: Legacy del editor, teclado, Escape, Tab, click y tacto',async t=>{
  const backup=Object.fromEntries(['document','location','FH_MULTIMODE_TEXT',
-  'FHModeAdapterRegistry'].map(k=>[k,globalThis[k]]));
+  'FHModeAdapterRegistry','FHDndCombat','FHDndSaveAdapter'].map(k=>[k,globalThis[k]]));
  t.after(()=>{for(const [key,value]of Object.entries(backup))if(value===undefined)delete globalThis[key];else globalThis[key]=value;});
  require('../juego/assets/fh-multimode-strings.js');
  globalThis.FHModeAdapterRegistry=registryModule;
@@ -196,6 +197,7 @@ test('UI offline: Legacy del editor, teclado, Escape, Tab, click y tacto',async 
  assert.equal(d.fhModesOverlay.hidden,false);
  assert.equal(document.activeElement,d.fhModesClose);
  assert.equal(d.fhModesStart.disabled,true);
+ assert.equal(d.fhModesDndLocal.disabled,true);
  assert.equal(d.fhWorldOptions.children.length,3);
  assert.equal(d.fhRulesOptions.children.length,3);
  assert.ok(d.fhWorldOptions.children.every(c=>c.disabled));
@@ -214,5 +216,29 @@ test('UI offline: Legacy del editor, teclado, Escape, Tab, click y tacto',async 
  assert.equal(d.fhModesOverlay.hidden,true);
  d.fhModesBtn.fire('click');d.fhModesLegacyLocal.fire('click',{pointerType:'touch'});
  assert.equal(localLaunches,1);assert.equal(worldLaunches,0);
+ assert.equal(d.fhModesOverlay.hidden,true);
+});
+
+test('UI mapa actual DnD: funciona sin elegir DEMO y exige adaptadores reales',async t=>{
+ const backup=Object.fromEntries(['document','location','FH_MULTIMODE_TEXT',
+  'FHModeAdapterRegistry','FHDndCombat','FHDndSaveAdapter'].map(k=>[k,globalThis[k]]));
+ t.after(()=>{for(const [k,v] of Object.entries(backup))
+  if(v===undefined)delete globalThis[k];else globalThis[k]=v;});
+ require('../juego/assets/fh-multimode-strings.js');
+ globalThis.FHModeAdapterRegistry=registryModule;
+ globalThis.FHDndCombat={status:'implemented'};
+ globalThis.FHDndSaveAdapter={status:'implemented'};
+ globalThis.location={protocol:'file:'};
+ const document=makeDOM();globalThis.document=document;
+ let dnd=0,legacy=0;
+ const selector=choice.mount({validateMap:()=>true,
+  launchLegacyWorld(){},launchLegacyCurrent(){legacy++;},
+  launchDndCurrent(){dnd++;},launchDndWorld(){}});
+ assert.ok(selector);
+ const d=document.ids;d.fhModesBtn.fire('click');
+ assert.equal(d.fhModesStart.disabled,true,'La DEMO requiere perfiles HTTPS');
+ assert.equal(d.fhModesDndLocal.disabled,false,'El mapa actual NO requiere perfil DEMO');
+ d.fhModesDndLocal.fire('click');
+ assert.equal(dnd,1);assert.equal(legacy,0);
  assert.equal(d.fhModesOverlay.hidden,true);
 });

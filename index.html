@@ -106,7 +106,7 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
 <link rel="stylesheet" href="./juego/assets/fh-game-ui.css?v=20261113-single-item-frame-1">
 <link rel="stylesheet" href="./juego/assets/fh-mobile-menus.css?v=20261107-mobile-ui-75">
 <link rel="stylesheet" href="./juego/assets/fh-editor-layout.css?v=20261113-layout1">
-<link rel="stylesheet" href="./juego/assets/fh-multimode-selector.css?v=20261117-33">
+<link rel="stylesheet" href="./juego/assets/fh-multimode-selector.css?v=20261122-current-map">
 <link rel="stylesheet" href="./juego/assets/fh-editor-theme.css?v=20261120-lumen">
 <script src="./juego/assets/fh-project-strings.js"></script>
 </head>
@@ -139,7 +139,8 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
   <fieldset><legend>Mundo</legend><div id="fhWorldOptions" class="fh-modes-options"></div></fieldset>
   <fieldset><legend>Reglamento</legend><div id="fhRulesOptions" class="fh-modes-options"></div></fieldset>
   <div class="fh-modes-actions"><button id="fhModesStart" type="button" disabled>Iniciar partida</button>
-   <button id="fhModesLegacyLocal" type="button">Legacy · Mapa del editor</button></div>
+   <button id="fhModesLegacyLocal" type="button">Legacy · Mapa del editor</button>
+   <button id="fhModesDndLocal" type="button">D&D · Mapa del editor</button></div>
   <p class="fh-modes-foot">La prueba del editor conserva la entrada Legacy original, también sin conexión.</p>
  </section>
 </div>
@@ -167,7 +168,7 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
 <script src="./juego/worlds/fh-world-profile-loader.js?v=20261117-33"></script>
 <script src="./juego/core/fh-session-coordinator.js?v=20261117-33"></script>
 <script src="./juego/core/fh-mode-adapter-registry.js?v=20261117-33"></script>
-<script src="./juego/assets/fh-multimode-strings.js?v=20261117-33"></script>
+<script src="./juego/assets/fh-multimode-strings.js?v=20261122-current-map"></script>
 <script src="./juego/units/fh-training-dummy.js?v=20261117-training1"></script>
 <script src="./juego/rules/dnd/fh-dnd-sheet.js?v=20261122-dnd-characters"></script>
 <script src="./juego/assets/fh-dnd-character-strings.js?v=20261122-dnd-characters"></script>
@@ -176,7 +177,7 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
 <script src="./juego/rules/dnd/fh-dnd-save-adapter.js?v=20261117-dnd34"></script>
 <script>window.FHMultimodeCombatAdapters=Object.freeze({dnd:window.FHDndCombat});
 window.FHMultimodeSaveAdapters=Object.freeze({dnd:window.FHDndSaveAdapter});</script>
-<script src="./juego/assets/fh-multimode-selector.js?v=20261117-dnd34"></script>
+<script src="./juego/assets/fh-multimode-selector.js?v=20261122-current-map"></script>
 <script src="./juego/core/fh-multimode-save-identity.js?v=20261117-persist32"></script>
 <script src="./juego/core/fh-multimode-persistence.js?v=20261117-persist32"></script>
 <script src="./juego/core/fh-multimode-save-hook.js?v=20261117-persist32"></script>
@@ -3446,7 +3447,7 @@ function playPaint(){const c=playCtx,w=playCanvas.clientWidth,h=playCanvas.clien
  document.querySelector('#playCoords').textContent=`X ${playState.x.toFixed(1)} · Y ${playState.y.toFixed(1)} · ${Math.round(playState.x*project.units.feetPerCell)} / ${Math.round(playState.y*project.units.feetPerCell)} pies`;
 }
 function playStickPoint(e){const el=document.querySelector('#playJoystick'),r=el.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,rad=r.width*.31,dx=e.clientX-cx,dy=e.clientY-cy,len=Math.hypot(dx,dy);const scale=Math.min(1,rad/Math.max(len,.01));const px=dx*scale,py=dy*scale;playState.stick={x:px/rad,y:py/rad};document.querySelector('#playKnob').style.transform=`translate(calc(-50% + ${px}px),calc(-50% + ${py}px))`}
-function setupPlayMode(){$('#testBtn').onclick=()=>{if(lumenCartridgeMode&&window.LumenEditor){window.LumenEditor.play(window.LumenEditor.read());return;}window.FHMultimodeSaveSelection=null;preview3DSelectedMap=null;launch3DPreview()};document.querySelector('#spawnQuickBtn').onclick=()=>{setCategory('areas');chooseTool('spawn');toast('Punto inicial: toca la casilla donde aparecerá el jugador.');const b=document.querySelector('#tools button[data-tool="spawn"]');b?.scrollIntoView({inline:'center',block:'nearest'})};document.querySelector('#playClose').onclick=stopPlay;document.querySelector('#playReset').onclick=()=>{const spawn=playFloor().items.find(it=>it.type==='spawn');if(spawn)playSetFloor(playState.floorIndex,spawn);else playSetFloor(playState.floorIndex,{x:playState.x,y:playState.y})};document.querySelector('#playVision').onclick=()=>{playState.vision=!playState.vision;document.querySelector('#playVision').textContent=playState.vision?'Visión: limitada':'Visión: libre'};document.querySelector('#playAction').onclick=playAction;
+function setupPlayMode(){$('#testBtn').onclick=()=>{if(lumenCartridgeMode&&window.LumenEditor){window.LumenEditor.play(window.LumenEditor.read());return;}if(window.FHEditorCatalog?.ruleset?.()==='dnd'){launchDndCurrentMap();return;}window.FHMultimodeSaveSelection=null;preview3DSelectedMap=null;launch3DPreview()};document.querySelector('#spawnQuickBtn').onclick=()=>{setCategory('areas');chooseTool('spawn');toast('Punto inicial: toca la casilla donde aparecerá el jugador.');const b=document.querySelector('#tools button[data-tool="spawn"]');b?.scrollIntoView({inline:'center',block:'nearest'})};document.querySelector('#playClose').onclick=stopPlay;document.querySelector('#playReset').onclick=()=>{const spawn=playFloor().items.find(it=>it.type==='spawn');if(spawn)playSetFloor(playState.floorIndex,spawn);else playSetFloor(playState.floorIndex,{x:playState.x,y:playState.y})};document.querySelector('#playVision').onclick=()=>{playState.vision=!playState.vision;document.querySelector('#playVision').textContent=playState.vision?'Visión: limitada':'Visión: libre'};document.querySelector('#playAction').onclick=playAction;
  const joy=document.querySelector('#playJoystick');joy.addEventListener('pointerdown',e=>{e.preventDefault();joy.setPointerCapture(e.pointerId);playState.stickPointer=e.pointerId;playStickPoint(e)});joy.addEventListener('pointermove',e=>{if(playState.stickPointer===e.pointerId){e.preventDefault();playStickPoint(e)}});const release=e=>{if(playState.stickPointer===e.pointerId){playState.stickPointer=null;playState.stick={x:0,y:0};document.querySelector('#playKnob').style.transform='translate(-50%,-50%)'}};joy.addEventListener('pointerup',release);joy.addEventListener('pointercancel',release);
  window.addEventListener('resize',playResize);window.addEventListener('keydown',e=>{if(!playState.running)return;const k=e.key.toLowerCase();if(['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d','e','escape'].includes(k)){e.preventDefault();e.stopImmediatePropagation();if(k==='escape')stopPlay();else if(k==='e'&&!e.repeat)playAction();else playState.keys.add(k)}},true);window.addEventListener('keyup',e=>{if(playState.running){playState.keys.delete(e.key.toLowerCase());if(['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d'].includes(e.key.toLowerCase()))e.preventDefault()}},true);window.addEventListener('blur',()=>{playState.keys.clear();playState.stick={x:0,y:0}});
 }
@@ -3556,6 +3557,11 @@ function makeCurrent3DProject(){
  }
  const fhProfile=window.FHCharacterCreation?.current?.()||null;
  const session=preview3DSaveContext();
+ const dndProfile=session?.identity.rulesetId==='dnd'?
+  window.FHDndCharacterManager?.current?.():null;
+ if(session?.identity.rulesetId==='dnd'&&
+    (dndProfile?.id!==session.identity.characterId||
+     !window.FHDndSheet?.valid?.(dndProfile.sheet)))throw Error('DND_CHARACTER_SELECTION_INVALID');
  const fhRawSave=session?null:readStorage(ForestShared.gameSaveKey(project));
  const fhMapSave=fhProfile?window.FHCharacterCreation.selectMapSave(fhRawSave,fhProfile.id):fhRawSave;
  const units={...project.units,metersPerCell:Number(project.units.feetPerCell||5)*.3048};
@@ -3567,6 +3573,7 @@ function makeCurrent3DProject(){
  // Excluir únicamente imágenes de referencia de varios MB; geometría 3D proviene de items.
  return {schema:SCHEMA,version:project.version||1,mainFloorId:project.mainFloorId||undefined,styleSystem:project.styleSystem||0,buildingOwnerId:project.buildingOwnerId||'',buildingOwners:clone(project.buildingOwners||{}),buildingNames:clone(project.buildingNames||{}),properties:clone(project.properties||[]),locationZones:clone(project.locationZones||[]),patterns:clone(project.patterns||[]),title:project.title||'Forest Horror',createdAt:project.createdAt,itemDefs:clone(project.itemDefs||[]),initialGameState:clone(project.initialGameState||{}),weather:clone(project.weather||{enabled:false}),...(project.environment?{environment:clone(project.environment)}:{}),elevatorEvents:clone(project.elevatorEvents||{}),__runtimeSave:session?null:fhMapSave,
   __runtimeCharacter:session?null:(fhProfile?clone(fhProfile):null),
+  ...(dndProfile?{__dndCharacter:{id:dndProfile.id,sheet:clone(dndProfile.sheet)}}:{}),
   ...(session?{__multimodeSave:session}:{}),units,buildingSlabs:clone(buildingSlabs(mainIndex)),slabsByLevel,basementSlabs,roofSlabsByFloor:project.floors.map((_,i)=>clone(buildingSlabs(i))),
   floors:project.floors.map(f=>({id:f.id,name:f.name,elevationFt:f.elevationFt,
    ceilingHeightFt:f.ceilingHeightFt,roof:f.roof?clone(f.roof):undefined,lightingManual:!!f.lightingManual,items:clone(courtyardFloorItems(window.FHAreaMerge?.forEngine(f.items)||f.items,project.floors.indexOf(f))),apartments:clone(f.apartments||[])}))};
@@ -5338,6 +5345,25 @@ function launch3DPreview(){
  if(preview3DIsPhone())show3DLandscapeGate();
  else void start3DPreview();
 }
+function launchDndCurrentMap(){
+ // Jugar el borrador actual: NO sustituirlo por la sala DEMO.
+ if(window.FHDndCombat?.status!=='implemented'||!window.FHDndSaveAdapter?.initial){
+  toast(window.FH_MULTIMODE_TEXT.dndUnavailable);return false;
+ }
+ if(typeof project?.createdAt!=='string'||!project.createdAt||
+   !Array.isArray(project?.floors)||!project.floors.length){
+  toast(window.FH_MULTIMODE_TEXT.mapIdMissing);return false;
+ }
+ if(!ForestShared.validate(project).ok){
+  toast(window.FH_MULTIMODE_TEXT.currentMapInvalid);return false;
+ }
+ window.FHEditorCatalog?.setRuleset?.('dnd');
+ window.FHMultimodeSaveSelection={mapId:project.createdAt,rulesetId:'dnd',
+  rulesetVersion:1,saveId:'principal'};
+ preview3DSelectedMap=null;
+ launch3DPreview();
+ return true;
+}
 function continue3DPreviewInLandscape(){
  if(!preview3DGateAuthorized||!preview3DIsLandscape()||play3DLandscapeGate.hidden||preview3DGateStarting)return;
  preview3DGateStarting=true;
@@ -5474,10 +5500,14 @@ if(typeof lumenCartridgeMode!=='undefined'&&lumenCartridgeMode){
   setActions(actions){lumenEditorActions=actions;},
   play(raw,onClose){
    validate(raw);
-   if(lumenEditorRuleset==='dnd'){toast(window.LUMEN_CARTRIDGE_TEXT.dndPreviewUnavailable);return;}
+   if(lumenEditorRuleset==='dnd'&&(typeof raw.createdAt!=='string'||!raw.createdAt)){
+    toast(window.FH_MULTIMODE_TEXT.mapIdMissing);return;
+   }
    this.stop();
    lumenPlaySession={onClose};
-   window.FHMultimodeSaveSelection=null;preview3DSelectedMap=clone(raw);
+   window.FHMultimodeSaveSelection=lumenEditorRuleset==='dnd'?
+    {mapId:raw.createdAt,rulesetId:'dnd',rulesetVersion:1,saveId:'principal'}:null;
+   preview3DSelectedMap=clone(raw);
    launch3DPreview();
   },
   stop(){hide3DLandscapeGate();close3DPreview();preview3DSelectedMap=null;},
@@ -5501,10 +5531,12 @@ window.FHMultimodeSelector?.mount({
   launch3DPreview();
  },
  launchLegacyCurrent:()=>{
+  if(!lumenCartridgeMode)window.FHEditorCatalog?.setRuleset?.('legacy');
   window.FHMultimodeSaveSelection=null;
   preview3DSelectedMap=null;
   launch3DPreview();
- }
+ },
+ launchDndCurrent:()=>launchDndCurrentMap()
 });
 </script>
 <link rel="stylesheet" href="./juego/assets/fh-character-help.css?v=20261107-help">

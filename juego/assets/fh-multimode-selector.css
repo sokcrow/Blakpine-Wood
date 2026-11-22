@@ -24,6 +24,8 @@
 #fhModesStart{background:#356151;border:2px solid #a2d5b3;color:white;font-weight:750}
 #fhModesStart:disabled{background:#2c3635;color:#c1c6c1;opacity:.65}
 #fhModesLegacyLocal{background:#273446;border:2px solid #97a7bb;color:white}
+#fhModesDndLocal{background:#4b3629;border:2px solid #deb879;color:#fff0d1;font-weight:750}
+#fhModesDndLocal:disabled{opacity:.55}
 .fh-modes-foot{color:#adb8b7;font-size:12px;line-height:1.5;margin:14px 0 0}
 @media(max-width:530px){.fh-modes-options{grid-template-columns:1fr}.fh-modes-choice{min-height:56px}.fh-modes-panel{max-height:94dvh}.fh-modes-actions button{width:100%}}
 @media(prefers-reduced-motion:reduce){.fh-modes-overlay *{scroll-behavior:auto!important}}

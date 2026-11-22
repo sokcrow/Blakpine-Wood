@@ -95,6 +95,8 @@ async function openSelector(page){
 
   // Segunda sesión: la villa medieval y DnD deben abrir mapa propio sin wizard Legacy.
   await openSelector(page);
+  assert.equal(await page.locator('#fhModesDndLocal').isEnabled(),true,
+   'El mapa actual debe poder abrirse en DnD sin perfil DEMO');
   await page.locator('#fhWorldOptions [data-world="villa-medieval"]').click();
   await page.locator('#fhRulesOptions [data-rules="dnd"]').click();
   assert.equal(await page.locator('#fhModesStart').isDisabled(),false);
