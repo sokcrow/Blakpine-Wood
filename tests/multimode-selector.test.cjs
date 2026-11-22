@@ -74,18 +74,18 @@ test('validador navegador comprueba los mismos esquemas y falla cerrado',()=>{
   worldProfile:'../secret.json'},read('contratos/multimodo/v1/seleccion-modo.schema.json')),/CONTRACT_INVALID/);
 });
 
-test('tres mundos, tres reglas, nueve pares y solo moderno/Legacy habilitados',async()=>{
+test('tres mundos: villa medieval cargable; Legacy y DnD requieren su adaptador',async()=>{
  const {api}=runtime();
  await api.load();
  assert.equal(api.world('ciudad-moderna').description.scenario.status,'map-available');
  assert.equal(api.world('distopia').description.scenario.status,'declarative-only');
- assert.equal(api.world('villa-medieval').description.scenario.status,'declarative-only');
+ assert.equal(api.world('villa-medieval').description.scenario.status,'map-available');
  for(const w of choice.worlds)for(const r of choice.rules){
   const mode=await selection.readSelection(choice.binding(w.id,r.id),io(root));
   assert.equal(mode.worldProfile.id,w.id);
   assert.equal(mode.rulesetManifest.id,r.id);
-  assert.equal(api.canStart(w.id,r.id),w.id==='ciudad-moderna'&&r.id==='legacy');
-  if(w.id!=='ciudad-moderna'||r.id!=='legacy')await assert.rejects(api.prepare(w.id,r.id),/MODE_NOT_AVAILABLE/);
+  assert.equal(api.canStart(w.id,r.id),w.id!=='distopia'&&r.id==='legacy');
+  if(w.id==='distopia'||r.id!=='legacy')await assert.rejects(api.prepare(w.id,r.id),/MODE_NOT_AVAILABLE/);
  }
 });
 
@@ -141,6 +141,8 @@ test('registro evita suplantes; DnD solo habilitado con adaptador registrado y M
  assert.equal(api.rule('dnd').manifest.status,'implemented');
  assert.equal(api.canStart('ciudad-moderna','dnd'),true);
  assert.equal((await api.prepare('ciudad-moderna','dnd')).entry.kind,'adapter');
+ assert.equal(api.canStart('villa-medieval','dnd'),true);
+ assert.equal((await api.prepare('villa-medieval','dnd')).payload.worldDescription.scenario.data.floors[0].items.filter(i=>i.type==='light_fixture').length,9);
  assert.equal(api.rule('moon-system').manifest.status,'planned');
  assert.equal(api.canStart('ciudad-moderna','moon-system'),false);
 });
