@@ -25,11 +25,12 @@ const worldPath = id => `contratos/multimodo/ejemplos/mundos/${id}.json`;
 const rulePath = id => `contratos/multimodo/ejemplos/reglas/${id}.json`;
 const selectionPath = id => `contratos/multimodo/ejemplos/selecciones/${id}.json`;
 const mapPath = 'forest-horror/maps/DEMO_Interacciones.json';
+const medievalPath = 'forest-horror/maps/DEMO_DnD_Iluminacion.json';
 const resources = Object.fromEntries([
   ...['ciudad-moderna', 'distopia', 'villa-medieval'].map(id => [worldPath(id), 'world']),
   ...['legacy', 'dnd', 'moon-system'].map(id => [rulePath(id), 'rules']),
   ...['moderno-dnd', 'distopia-moon', 'medieval-legacy'].map(id => [selectionPath(id), 'selection']),
-  [mapPath, 'map']
+  [mapPath, 'map'],[medievalPath, 'map']
 ]);
 const reader = options => createNode({ root, resources, validate, validateMap, ...options });
 const rejects = (promise, code) => assert.rejects(promise, error => error.code === code);
@@ -39,6 +40,7 @@ function fixture(t) {
   fs.cpSync(path.join(root, 'contratos'), path.join(temp, 'contratos'), { recursive: true });
   fs.mkdirSync(path.join(temp, 'forest-horror/maps'), { recursive: true });
   fs.copyFileSync(path.join(root, mapPath), path.join(temp, mapPath));
+  fs.copyFileSync(path.join(root, medievalPath), path.join(temp, medievalPath));
   const edit = (name, change) => {
     const file = path.join(temp, name), data = JSON.parse(fs.readFileSync(file, 'utf8'));
     change(data); fs.writeFileSync(file, JSON.stringify(data));
@@ -54,9 +56,10 @@ test('los tres perfiles y nueve pares conservan los documentos oficiales sin mod
     assert.deepEqual(await io.readJson(worldPath(world)), original);
     const description = await loader.prepare(original);
     assert.deepEqual(description.profile, original);
-    if (world === 'ciudad-moderna') assert.deepEqual(description.scenario.data,
-      JSON.parse(fs.readFileSync(path.join(root, mapPath), 'utf8')));
-    else assert.equal(description.scenario.status, 'declarative-only');
+    if (world === 'ciudad-moderna'||world==='villa-medieval')
+      assert.deepEqual(description.scenario.data,
+       JSON.parse(fs.readFileSync(path.join(root,world==='villa-medieval'?medievalPath:mapPath),'utf8')));
+    else assert.equal(description.scenario.status,'declarative-only');
     for (const rules of ['legacy', 'dnd', 'moon-system']) {
       const binding = { kind: 'blakpine-mode-selection-v1', version: 1,
         worldProfile: worldPath(world), rulesetManifest: rulePath(rules) };
