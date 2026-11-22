@@ -1,5 +1,5 @@
 /* D&D 2024 · ficha aislada de Legacy y Moon; referencia: SRD 5.2.1 (CC BY 4.0).
- * https://www.dndbeyond.com/srd · Guerrrero de nivel 1: personaje PILOTO, no creador completo.
+ * https://www.dndbeyond.com/srd · Personajes por ficha manual; el director elige.
  */
 (function(root,factory){
  'use strict';
@@ -40,6 +40,44 @@
   const mod=bonus(sheet,kind,id),total=roll+mod;
   // 20/1 naturales automáticos sólo en tiradas de ataque, no en pruebas ni salvaciones.
   return Object.freeze({kind,id,roll,dice,modifier:mod,total,dc,success:total>=dc});
+ }
+ // Un usuario o director crea cada ficha. Nada asigna Guerrero ni estadísticas por defecto
+ // a una partida: el formulario debe solicitar clase, atributos y recursos.
+ function createCharacter(input={}){
+  const {name,classId,level,abilities,hp,maxHp=hp,armorClass,
+   speedFt=30,hitDice,saveProficiencies=[],skillProficiencies=[],
+   expertise=[],attacks,activeAttackId=attacks?.[0]?.id,
+   backgroundId='custom',speciesId='custom',temporaryHp=0,
+   spellcasting=null,features={},tools=[],languages=[],
+   deathSaves={successes:0,failures:0},conditions=[],exhaustion=0,
+   senses={},heroicInspiration=false}=input;
+  if(typeof name!=='string'||!name.trim()||name.length>100||
+   typeof classId!=='string'||!/^[a-z][a-z0-9-]{0,79}$/.test(classId)||
+   !int(level,1,20)||!abilities||!ABILITIES.every(k=>int(abilities[k],1,30))||
+   !int(hp,1,100000)||!int(maxHp,hp,100000)||!int(armorClass,1,100)||
+   !int(speedFt,0,1000)||!hitDice||!int(hitDice.sides,2,100)||
+   !int(hitDice.total,1,20)||!int(hitDice.available,0,hitDice.total)||
+   !Array.isArray(attacks)||!attacks.length||
+   !Array.isArray(saveProficiencies)||!Array.isArray(skillProficiencies)||
+   !Array.isArray(expertise))throw Error('DND_CHARACTER_INPUT_INVALID');
+  const clone=v=>JSON.parse(JSON.stringify(v));
+  const p={kind:'dnd-character-2024-v1',rules:'srd-5.2.1',name:name.trim(),
+   classId,level,backgroundId,speciesId,abilities:clone(abilities),
+   saveProficiencies:clone(saveProficiencies),skillProficiencies:clone(skillProficiencies),
+   expertise:clone(expertise),tools:clone(tools),languages:clone(languages),
+   hp,maxHp,temporaryHp,armorClass,speedFt,hitDice:clone(hitDice),
+   attacks:clone(attacks),activeAttackId,features:clone(features),
+   spellcasting:clone(spellcasting),deathSaves:clone(deathSaves),
+   conditions:clone(conditions),exhaustion,senses:clone(senses),heroicInspiration};
+  if(!valid(p))throw Error('DND_CHARACTER_INPUT_INVALID');
+  return p;
+ }
+ function createUnassigned(){
+  return createCharacter({name:'Ficha sin asignar',classId:'unassigned',level:1,
+   abilities:Object.fromEntries(ABILITIES.map(k=>[k,10])),hp:1,armorClass:10,
+   hitDice:{sides:6,total:1,available:1},
+   attacks:[{id:'unarmed',name:'Sin armas',ability:'str',damageCount:1,
+    damageDie:2,damageType:'bludgeoning',rangeFt:5,proficient:true}]});
  }
  function createPilot(){
   // Guerrero 1 (matriz estándar + trasfondo Soldado: FUE +2, CON +1).
@@ -101,7 +139,7 @@
  }
  function overview(sheet){
   if(!valid(sheet))throw Error('DND_SHEET_INVALID');
-  return Object.freeze({classId:sheet.classId,level:sheet.level,backgroundId:sheet.backgroundId,
+  return Object.freeze({name:sheet.name||'Personaje',classId:sheet.classId,level:sheet.level,backgroundId:sheet.backgroundId,
    abilities:Object.fromEntries(ABILITIES.map(id=>[id,{score:sheet.abilities[id],modifier:modifier(sheet.abilities[id])}])),
    proficiency:proficiency(sheet.level),armorClass:sheet.armorClass,
    initiative:modifier(sheet.abilities.dex),speedFt:sheet.speedFt,
@@ -126,5 +164,5 @@
   return Object.freeze({id:value,life:'alive',name:'Personaje D&D de prueba'});
  }
  return Object.freeze({ABILITIES,SKILLS,modifier,proficiency,bonus,rollD20,testD20,
-  createPilot,valid,attack,overview,pilotIdentity});
+  createCharacter,createUnassigned,createPilot,valid,attack,overview,pilotIdentity});
 });
