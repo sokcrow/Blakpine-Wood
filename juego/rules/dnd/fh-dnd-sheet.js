@@ -151,18 +151,6 @@
    attacks:sheet.attacks.map(w=>attack(sheet,w.id)),
    features:sheet.features,spellcasting:sheet.spellcasting});
  }
- const PILOT_ID_KEY='blakpine_dnd_pilot_identity_v1';
- function pilotIdentity(storage){
-  let value=null;
-  try{value=storage?.getItem(PILOT_ID_KEY)||null;}catch{}
-  if(typeof value!=='string'||!/^dnd_[A-Za-z0-9_-]{8,80}$/.test(value)){
-   const token=typeof globalThis.crypto?.randomUUID==='function'?globalThis.crypto.randomUUID():
-    Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,12);
-   value='dnd_'+token;
-   try{storage?.setItem(PILOT_ID_KEY,value);}catch{}
-  }
-  return Object.freeze({id:value,life:'alive',name:'Personaje D&D de prueba'});
- }
  return Object.freeze({ABILITIES,SKILLS,modifier,proficiency,bonus,rollD20,testD20,
-  createCharacter,createUnassigned,createPilot,valid,attack,overview,pilotIdentity});
+  createCharacter,createUnassigned,createPilot,valid,attack,overview});
 });
