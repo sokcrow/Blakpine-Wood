@@ -113,6 +113,7 @@
  function setRuleset(id){
   if(!['legacy','dnd','moon-system'].includes(id))throw Error('EDITOR_RULESET_INVALID');
   rulesetId=id;
+  categoryValue='';
   if(chosen&&!compatible(chosen))chosen=null;
   setCategory(activeCategory);
   if(!modal.hidden){renderCategories();render();}
