@@ -1682,6 +1682,7 @@ const SCHEMA=ForestShared.MAP_SCHEMA;
 const lumenCartridgeMode=new URLSearchParams(location.search).get('lumenCartridge')==='1';
 let lumenEditorChanged=false,lumenEditorOriginal=null,lumenEditorNotify=null,lumenEditorActions=null;
 let lumenPlaySession=null;
+let lumenEditorRuleset='legacy';
 if(lumenCartridgeMode&&new URLSearchParams(location.search).get('lumenPlayer')==='1'){
  document.getElementById('app').style.visibility='hidden';
 }
@@ -5423,6 +5424,12 @@ if(typeof lumenCartridgeMode!=='undefined'&&lumenCartridgeMode){
  };
  window.LumenEditor=Object.freeze({
   validate,
+  setRuleset(rulesetId){
+   if(!['legacy','dnd'].includes(rulesetId))throw Error('EDITOR_RULESET_INVALID');
+   if(typeof window.FHEditorCatalog?.setRuleset!=='function')throw Error('EDITOR_CATALOG_UNAVAILABLE');
+   window.FHEditorCatalog.setRuleset(rulesetId);
+   lumenEditorRuleset=rulesetId;
+  },
   create:()=>clone(newProject()),
   load(raw,onChange){
    validate(raw);clearTimeout(saveTimer);lumenEditorNotify=null;
@@ -5441,7 +5448,9 @@ if(typeof lumenCartridgeMode!=='undefined'&&lumenCartridgeMode){
   saved(){dirty=false;status(window.LUMEN_CARTRIDGE_TEXT?.working||'LUMEN');},
   setActions(actions){lumenEditorActions=actions;},
   play(raw,onClose){
-   validate(raw);this.stop();
+   validate(raw);
+   if(lumenEditorRuleset==='dnd'){toast(window.LUMEN_CARTRIDGE_TEXT.dndPreviewUnavailable);return;}
+   this.stop();
    lumenPlaySession={onClose};
    window.FHMultimodeSaveSelection=null;preview3DSelectedMap=clone(raw);
    launch3DPreview();
@@ -5492,7 +5501,8 @@ window.FHMultimodeSelector?.mount({
 <script src="./juego/assets/fh-inventory-core.js?v=20261108-encimera-1"></script>
 <link rel="stylesheet" href="./juego/assets/fh-storage-editor.css?v=20261108-storage-editor-1">
 <script src="./juego/assets/fh-storage-editor.js?v=20261108-storage-editor-1"></script>
-<script src="./juego/assets/fh-editor-catalog.js"></script>
+<script src="./juego/assets/fh-medieval-catalog.js"></script>
+<script src="./juego/assets/fh-editor-catalog.js?v=20261121-medieval1"></script>
 <script src="./juego/assets/fh-surface-editor.js"></script>
 <script src="./juego/assets/fh-property-editor.js?v=20261115-seleccion"></script>
 <script src="./juego/assets/fh-architecture-strings.js"></script>

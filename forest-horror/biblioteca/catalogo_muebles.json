@@ -34,7 +34,11 @@
       ],
       "glb": "modelos_glb/silla_madera.glb",
       "thumbnail": "miniaturas/silla_madera.png",
-      "pack": "domestico_01"
+      "pack": "domestico_01",
+      "ambientations": [
+        "medieval",
+        "modern"
+      ]
     },
     {
       "id": "mesa_pequena",
@@ -63,6 +67,10 @@
           "depthFt": 2.75,
           "heightFt": 2.5
         }
+      ],
+      "ambientations": [
+        "medieval",
+        "modern"
       ]
     },
     {
@@ -120,6 +128,10 @@
           "depthFt": 1.1,
           "heightFt": 3.5
         }
+      ],
+      "ambientations": [
+        "medieval",
+        "modern"
       ]
     },
     {
@@ -157,7 +169,11 @@
       ],
       "glb": "modelos_glb/cama_individual.glb",
       "thumbnail": "miniaturas/cama_individual.png",
-      "pack": "domestico_01"
+      "pack": "domestico_01",
+      "ambientations": [
+        "medieval",
+        "modern"
+      ]
     },
     {
       "id": "armario",
@@ -281,6 +297,10 @@
           "depthFt": 3,
           "heightFt": 2.75
         }
+      ],
+      "ambientations": [
+        "medieval",
+        "modern"
       ]
     },
     {
@@ -2150,7 +2170,10 @@
       "blocksMovement": true,
       "pack": "medieval_01",
       "glb": "modelos_glb/barril_madera_medieval.glb",
-      "thumbnail": "miniaturas/barril_madera_medieval.png"
+      "thumbnail": "miniaturas/barril_madera_medieval.png",
+      "ambientations": [
+        "medieval"
+      ]
     },
     {
       "id": "tonel_bodega_medieval",
@@ -2171,7 +2194,10 @@
       "blocksMovement": true,
       "pack": "medieval_01",
       "glb": "modelos_glb/tonel_bodega_medieval.glb",
-      "thumbnail": "miniaturas/tonel_bodega_medieval.png"
+      "thumbnail": "miniaturas/tonel_bodega_medieval.png",
+      "ambientations": [
+        "medieval"
+      ]
     },
     {
       "id": "banco_largo_medieval",
@@ -2192,7 +2218,10 @@
       "blocksMovement": true,
       "pack": "medieval_01",
       "glb": "modelos_glb/banco_largo_medieval.glb",
-      "thumbnail": "miniaturas/banco_largo_medieval.png"
+      "thumbnail": "miniaturas/banco_largo_medieval.png",
+      "ambientations": [
+        "medieval"
+      ]
     },
     {
       "id": "arcon_reforzado_medieval",
@@ -2213,7 +2242,10 @@
       "blocksMovement": true,
       "pack": "medieval_01",
       "glb": "modelos_glb/arcon_reforzado_medieval.glb",
-      "thumbnail": "miniaturas/arcon_reforzado_medieval.png"
+      "thumbnail": "miniaturas/arcon_reforzado_medieval.png",
+      "ambientations": [
+        "medieval"
+      ]
     },
     {
       "id": "cama_paja_medieval",
@@ -2234,7 +2266,10 @@
       "blocksMovement": true,
       "pack": "medieval_01",
       "glb": "modelos_glb/cama_paja_medieval.glb",
-      "thumbnail": "miniaturas/cama_paja_medieval.png"
+      "thumbnail": "miniaturas/cama_paja_medieval.png",
+      "ambientations": [
+        "medieval"
+      ]
     },
     {
       "id": "estanteria_madera_medieval",
@@ -2255,7 +2290,10 @@
       "blocksMovement": true,
       "pack": "medieval_01",
       "glb": "modelos_glb/estanteria_madera_medieval.glb",
-      "thumbnail": "miniaturas/estanteria_madera_medieval.png"
+      "thumbnail": "miniaturas/estanteria_madera_medieval.png",
+      "ambientations": [
+        "medieval"
+      ]
     },
     {
       "id": "mesa_taberna_medieval",
@@ -2286,6 +2324,9 @@
           "depthFt": 2.75,
           "heightFt": 2.8
         }
+      ],
+      "ambientations": [
+        "medieval"
       ]
     },
     {
@@ -2307,7 +2348,10 @@
       "blocksMovement": true,
       "pack": "medieval_01",
       "glb": "modelos_glb/armario_rustico_medieval.glb",
-      "thumbnail": "miniaturas/armario_rustico_medieval.png"
+      "thumbnail": "miniaturas/armario_rustico_medieval.png",
+      "ambientations": [
+        "medieval"
+      ]
     }
   ]
 }

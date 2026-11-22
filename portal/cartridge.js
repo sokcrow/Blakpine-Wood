@@ -7,7 +7,7 @@ const fail = code => { throw new Error(code); };
 export const copy = v => JSON.parse(JSON.stringify(v));
 export function authorize(context) {
   if (!context || !id(context.uid) || !id(context.campaignId) ||
-      context.ownerUid !== context.uid || context.rulesetId !== 'legacy' ||
+      context.ownerUid !== context.uid || !['legacy','dnd'].includes(context.rulesetId) ||
       context.status !== 'active') fail('CARTRIDGE_ACCESS');
   return context;
 }

@@ -44,6 +44,7 @@ async function activate(){
   };
   const context=await verify(),id=params.get('workspace');
   const record=await workspaceStore.read(context,id,p=>api.validate(p));await verify();
+  api.setRuleset(context.rulesetId);
   editor=new EditorWorkspace({context,id,record,api,verify});
   const report=record=>say(editor.editorDirty?C.editorDirty:record.recoveryError?C.noStorage+recoveryError({code:record.recoveryError}):C.workspaceSaved);
   const save=async()=>{

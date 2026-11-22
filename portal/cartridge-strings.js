@@ -1,5 +1,6 @@
 export const C = Object.freeze({
  previewUnavailable:'Abre el mapa en el editor y utiliza su botón Probar 3D.',
+  dndPreviewUnavailable:'Este mapa se puede editar, pero la vista jugable de DnD todavía no está disponible.',
  leaveUnsaved:'Hay cartuchos con cambios sin exportar o con errores de recuperación. ¿Cerrar sesión y descartar las copias de trabajo en memoria? Las recuperaciones que sí se guardaron seguirán en este navegador.',
  title:'Mapas del mundo', intro:'El cartucho reúne los mapas de esta campaña. Exporta el archivo .lumen.json para abrirlo con la misma cuenta en otro dispositivo.',
  create:'Crear cartucho', open:'Abrir cartucho existente', add:'Crear mapa en el editor', importMap:'Importar mapa JSON',
