@@ -169,7 +169,9 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
 <script src="./juego/core/fh-mode-adapter-registry.js?v=20261117-33"></script>
 <script src="./juego/assets/fh-multimode-strings.js?v=20261117-33"></script>
 <script src="./juego/units/fh-training-dummy.js?v=20261117-training1"></script>
-<script src="./juego/rules/dnd/fh-dnd-sheet.js?v=20261122-dnd-sheet"></script>
+<script src="./juego/rules/dnd/fh-dnd-sheet.js?v=20261122-dnd-characters"></script>
+<script src="./juego/assets/fh-dnd-character-strings.js?v=20261122-dnd-characters"></script>
+<script src="./juego/assets/fh-dnd-character-manager.js?v=20261122-dnd-characters"></script>
 <script src="./juego/rules/dnd/fh-dnd-combat.js?v=20261122-dnd-sheet"></script>
 <script src="./juego/rules/dnd/fh-dnd-save-adapter.js?v=20261117-dnd34"></script>
 <script>window.FHMultimodeCombatAdapters=Object.freeze({dnd:window.FHDndCombat});
@@ -3510,7 +3512,8 @@ function prepare3DSaveSession(profile){
 }
 function validLive3DSave(){
  return !previewSaveSession||(previewSaveSession.identity.mapId===preview3DCurrentMapId()&&
-   previewSaveSession.identity.characterId===window.FHCharacterCreation?.current?.()?.id);
+   previewSaveSession.identity.characterId===(previewSaveSession.identity.rulesetId==='dnd'?
+    window.FHDndCharacterManager?.current?.()?.id:window.FHCharacterCreation?.current?.()?.id));
 }
 function preview3DSaveContext(){
  if(!validLive3DSave())throw Error('SAVE_CONTEXT_CHANGED');
@@ -3541,8 +3544,14 @@ function makeCurrent3DProject(){
   }
   const character=window.FHCharacterCreation?.current?.()||null;
   const session=preview3DSaveContext();
+  const dndProfile=session?.identity.rulesetId==='dnd'?
+   window.FHDndCharacterManager?.current?.():null;
+  if(session?.identity.rulesetId==='dnd'&&
+   (dndProfile?.id!==session.identity.characterId||
+    !window.FHDndSheet?.valid?.(dndProfile.sheet)))throw Error('DND_CHARACTER_SELECTION_INVALID');
   return {...loaded,__runtimeSave:null,
    __runtimeCharacter:session?null:(character?clone(character):null),
+   ...(dndProfile?{__dndCharacter:{id:dndProfile.id,sheet:clone(dndProfile.sheet)}}:{}),
    ...(session?{__multimodeSave:session}:{})};
  }
  const fhProfile=window.FHCharacterCreation?.current?.()||null;
@@ -5194,10 +5203,11 @@ async function start3DPreview(){
  if(spawn<0){setCategory('areas');chooseTool('spawn');toast('Coloca primero 📍 Spawn en el mapa que estás editando.');return}
  fhCharacterLaunchPending=true;
  try{
-  // DnD posee identidad y ficha propias; el cuestionario Legacy no se abre aquí.
-  const isDndPilot=window.FHMultimodeSaveSelection?.rulesetId==='dnd';
-  if(!isDndPilot&&!window.FHCharacterCreation?.ensureCharacter)throw Error(window.FH_CHARACTER_TEXT?.missingEngine||'Creador no disponible.');
-  const profile=isDndPilot?window.FHDndSheet?.pilotIdentity(window.localStorage):
+  // Cada partida DnD elige su propia ficha; nunca usa un Guerrero prefijado ni Legacy.
+  const isDnd=window.FHMultimodeSaveSelection?.rulesetId==='dnd';
+  if(isDnd&&!window.FHDndCharacterManager?.ensureCharacter)throw Error('DND_CHARACTER_MANAGER_UNAVAILABLE');
+  if(!isDnd&&!window.FHCharacterCreation?.ensureCharacter)throw Error(window.FH_CHARACTER_TEXT?.missingEngine||'Creador no disponible.');
+  const profile=isDnd?await window.FHDndCharacterManager.ensureCharacter():
    await window.FHCharacterCreation.ensureCharacter();
   if(!profile){if(lumenLaunch)finishLumenPlay();return;}
   if(lumenLaunch&&lumenPlaySession!==lumenLaunch)return;
