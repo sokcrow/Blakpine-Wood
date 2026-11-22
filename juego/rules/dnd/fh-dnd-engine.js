@@ -63,6 +63,16 @@
     hud.targetsKey=key;
    }
    hud.select.disabled=closed||targets.length===0;
+   const weapons=state.player.attacks||[],weaponKey=weapons.map(a=>a.id).join('\u0000');
+   if(weaponKey!==hud.weaponKey){
+    const options=weapons.map(attack=>{
+     const item=doc.createElement('option');
+     item.value=attack.id;item.textContent=attack.name||attack.id;return item;
+    });
+    hud.weapon.replaceChildren(...options);hud.weaponKey=weaponKey;
+   }
+   hud.weapon.value=state.player.activeAttackId;
+   hud.weapon.disabled=closed||weapons.length<=1;
    hud.button.disabled=closed||state.player.hp===0;
   }
   function show(result){
@@ -127,7 +137,7 @@
   if(doc?.body&&typeof doc.createElement==='function'){
    const box=doc.createElement('aside'),title=doc.createElement('strong'),
     status=doc.createElement('span'),stats=doc.createElement('small'),select=doc.createElement('select'),
-    button=doc.createElement('button'),help=doc.createElement('small'),
+    weapon=doc.createElement('select'),button=doc.createElement('button'),help=doc.createElement('small'),
     dc=doc.createElement('input'),saveSelect=doc.createElement('select'),
     skillSelect=doc.createElement('select'),saveButton=doc.createElement('button'),
     skillButton=doc.createElement('button');
@@ -137,6 +147,7 @@
    stats.style.cssText='white-space:pre-line;line-height:1.45;color:#d8dce2;font-variant-numeric:tabular-nums';
    title.textContent=t.title||'Combate DnD';button.type='button';button.textContent=t.attack||'Atacar';
    help.textContent=t.hint||'';select.setAttribute('aria-label',t.selectTarget||'Seleccionar blanco');
+   weapon.setAttribute('aria-label',t.selectAttack||'Ataque o arma DnD');
    dc.type='number';dc.min='1';dc.max='100';dc.value='12';
    dc.setAttribute('aria-label',t.dc||'Dificultad (CD)');
    saveSelect.setAttribute('aria-label',t.saveSelect||'Salvación');
@@ -154,19 +165,25 @@
    saveSelect.value='dex';skillSelect.value='perception';
    saveButton.type='button';saveButton.textContent=t.rollSave||'Tirar salvación';
    skillButton.type='button';skillButton.textContent=t.rollSkill||'Tirar habilidad';
-   box.append(title,status,stats,select,button,dc,saveSelect,saveButton,
+   box.append(title,status,stats,weapon,select,button,dc,saveSelect,saveButton,
     skillSelect,skillButton,help);doc.body.append(box);
+   weapon.addEventListener('change',()=>{
+    if(closed||!state.player.attacks.some(a=>a.id===weapon.value))return;
+    state.player.activeAttackId=weapon.value;
+    state.revision++;try{save();}catch(error){console.error('[DnD] Guardado de arma:',error);}
+    updateHud();
+   });
    button.addEventListener('click',()=>playerAttack(select.value||undefined));
    saveButton.addEventListener('click',()=>rollTest('save',saveSelect.value,Number(dc.value)));
    skillButton.addEventListener('click',()=>rollTest('skill',skillSelect.value,Number(dc.value)));
    doc.addEventListener('keydown',onKey);
-   hud={box,status,stats,select,button,targetsKey:null};updateHud();
+   hud={box,status,stats,select,weapon,button,targetsKey:null,weaponKey:null};updateHud();
   }
   return Object.freeze({
    tick(){if(!closed)updateHud();},
    attack:playerAttack,rollSave:(id,dc,options)=>rollTest('save',id,dc,options),
    rollSkill:(id,dc,options)=>rollTest('skill',id,dc,options),
-   getStatus:()=>Object.freeze({connected:!closed,closed,rulesetId:'dnd',pilot:true}),
+   getStatus:()=>Object.freeze({connected:!closed,closed,rulesetId:'dnd',characterId:playerId}),
    close(){if(closed)return;closed=true;session.close();
     if(hud){hud.box.remove();doc.removeEventListener('keydown',onKey);}}
   });
