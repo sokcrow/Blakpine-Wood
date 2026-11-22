@@ -51,6 +51,12 @@
     prev.on=prev.on!==false;prev.remaining=spec.fuelMinutes===null?null:
      Math.max(0,finite(prev.remaining,spec.fuelMinutes));
     prev.lastMinute=Number.isFinite(prev.lastMinute)?prev.lastMinute:null;prev.carried=!!prev.carried;
+    // Restaurar posición de la antorcha soltada desde el guardado de partida,
+    // sin actualizar el JSON inmutable del creador.
+    if(item.lightKind==='torch_hand'&&prev.position&&
+       Number.isFinite(prev.position.x)&&Number.isFinite(prev.position.y)&&prev.position.floor===index){
+      item.x=prev.position.x;item.y=prev.position.y;
+    }
    }
   }});
   let heldId=null;
@@ -96,6 +102,7 @@
    if(!p||p.floor!==ref.floor||!Number.isFinite(p.x)||!Number.isFinite(p.z))return false;
    // Cambia sólo la copia del mapa de la partida; el JSON del creador permanece intacto.
    ref.item.x=p.x/cellMeters;ref.item.y=p.z/cellMeters;
+   store[heldId].position={floor:ref.floor,x:ref.item.x,y:ref.item.y};
    store[heldId].carried=false;heldId=null;
    lights?.removeDynamicSource?.('dnd:hand-torch');
    return true;
