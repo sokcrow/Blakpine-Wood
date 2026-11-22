@@ -1699,6 +1699,9 @@ const TOOL_GROUPS={
  parking_marks:[['select','Seleccionar','☞'],['parking_stall','Cajones N','▱'],['parking_arrow','Flecha','➜'],['parking_crosswalk','Cebra','▥'],['parking_double_yellow','Doble amarilla','═'],['parking_dashed_yellow','Discontinua','┄'],['parking_speed_bump','Reductor','▰'],['parking_curb','Guarnición','▤'],['pan','Mover mapa','✋'],['erase','Borrar','⌫']],
  navigate:[['select','Seleccionar','☞'],['pan','Mover mapa','✋'],['erase','Borrar','⌫'],['wall','Pared','▰'],['red_wall','Pared roja','▰'],['paint_wall','Pintar cara','▨'],['half_wall','Pared media','▱'],['fence','Reja','⛶'],['door','Puerta','🚪'],['peephole_door','Mirilla','◉'],['window','Ventana','▤']]
 };
+// Herramientas medievales: el filtro del editor decide cuáles mostrar.
+for(const [tool,kind] of Object.entries(window.FHMedievalLighting?.tools||{}))
+ TOOL_GROUPS.lighting.push([tool,window.FHMedievalLighting.preset(kind).label,'✦']);
 const LIGHTING_TYPES=new Set(['generator','generator_emergency','generator_ats','generator_tank','light_switch','breaker_panel','light_fixture','power_outlet','power_strip','phone_charger']);
 const CIRCUIT_COLORS=ForestShared.CIRCUIT_PALETTE;
 const SEGMENT_TYPES=new Set(['red_wall','wall','property_wall','half_wall','fence','door','peephole_door','window','opening']);
@@ -2252,8 +2255,10 @@ function createObject(type,p){
  if(type==='spawn'){it.heightFt=0;it.blocksMovement=false}if(type==='npc_portal'){it.heightFt=0;it.blocksMovement=false;it.label='Entrada / salida NPC'}if(type==='training_dummy'){it.heightFt=0;it.blocksMovement=false;it.label='Training Dummy'}if(type==='stairs'){const chosen=stairNeighbors(floorIndex).find(v=>v.direction===stairPlacementDirection);if(!chosen){toast('No existe un nivel contiguo para crear esa escalera.');return null}it.targetFloorId=chosen.floor.id;it.stairDirection=chosen.direction;it.heightFt=Math.abs(chosen.floor.elevationFt-current().elevationFt);it.label='Escalera '+(chosen.direction==='down'?'↓':'↑')+' a '+(floorCode(chosen.index)||chosen.floor.name)}if(type==='elevator'){it.enabled=true;it.doorsOpen=false;it.requiresPower=true;it.zoneId=room?.zoneId&&(room.zoneId!=='main'||availableCircuits().some(c=>c.zoneId==='main'))?room.zoneId:selectedCircuit()||'';it.label='Ascensor'}
 if(type==='light_fixture'){
  const kind=fixtureKind||'bulb';
- if(!window.FHLights?.isWall(kind)&&!room){toast(window.FH_LIGHT_TEXT.outside);return null;}
+ if(!window.FHLights?.isWall(kind)&&!room&&!window.FHMedievalLighting?.isMedieval(kind)){toast(window.FH_LIGHT_TEXT.outside);return null;}
  Object.assign(it,window.FHLights.presetFields(kind));
+ if(window.FHMedievalLighting?.isMedieval(kind))
+  it.interact={id:'medieval_light_'+it.id,verb:'use',label:'Encender / apagar '+it.label,effects:[]};
  if(window.FHLights.isWall(kind)){
   const mount=ForestShared.switchWallMount(current().items,p,{maxDistance:.55});
   if(!mount){toast(window.FH_LIGHT_TEXT.wall);return null;}
@@ -2791,7 +2796,7 @@ if(tool==='zone_assign'){
 if(tool==='erase'){let hit=hitTest(pt);if(hit&&window.FHStyleEditor&&!window.FHStyleEditor.canEditItem(hit)){toast('No tienes permiso para borrar este objeto');return}if(hit&&current().items.some(s=>s.type==='light_switch'&&s.wallId===hit.id)){toast('Esa pared tiene un interruptor. Muévelo o bórralo primero.');return}if(hit?.autoLanding||hit?.autoDescendingSource){toast('Edita el tramo que colocaste manualmente, no el automático.');return}if(hit){if(window.FHDrainageEditor?.canRemove(hit)===false)return;window.FHSurfaceEditor?.beforeRemove(hit.id);window.FHRoadEditor?.beforeRemove(hit);window.FHDrainageEditor?.beforeRemove(hit);current().items=current().items.filter(it=>it.id!==hit.id);window.FHDrainageEditor?.afterRemove(hit);if(selection===hit.id){selection=null;closeInspector()}record()}return}
 if(tool==='select'){if(a.hit&&doDrag){const it=current().items.find(v=>v.id===a.hit);if(it&&window.FHStyleEditor?.hasActor()&&!window.FHStyleEditor.canEditItem(it)){Object.assign(it,a.original);toast('No puedes mover el objeto fuera de tu propiedad');render();return}if(it&&window.FHDrainageEditor?.afterMove(it)===false){Object.assign(it,a.original);render();return}if(it&&current().items.some(s=>s.type==='light_switch'&&s.wallId===it.id)){toast('Mueve primero el interruptor anclado a esta pared.');return}if(it?.autoLanding||it?.autoDescendingSource){syncStairLinks();render();toast('Edita el tramo que colocaste manualmente.');return}if(it&&!SEGMENT_TYPES.has(it.type)&&!AREA_TYPES.has(it.type)&&it.type!=='light_switch'&&!(it.type==='light_fixture'&&window.FHLights.isWall(it.lightKind))){
  const room=current().items.find(r=>r.type==='room'&&roomHasPosition(r,{x:it.x,y:it.y}));
- if(it.type==='light_fixture'&&!window.FHLights.isWall(it.lightKind)&&!room){Object.assign(it,a.original);toast(window.FH_LIGHT_TEXT.outside);render();return;}
+ if(it.type==='light_fixture'&&!window.FHLights.isWall(it.lightKind)&&!window.FHMedievalLighting?.isMedieval(it.lightKind)&&!room){Object.assign(it,a.original);toast(window.FH_LIGHT_TEXT.outside);render();return;}
  it.roomId=room?.roomId||'';it.apartmentId=room?.apartmentId||'';
 }record();openInspector()}return}
 if(tool==='pan')return;
@@ -2808,7 +2813,7 @@ function setItemField(id,key,val){const it=current().items.find(v=>v.id===id);if
    it.service||={};const name=key.slice(8);
    it.service[name]=['requiresPower','requiresWater','drains','onDemand'].includes(name)?!!val:
     ['rayos','watts','flowLpm','litersPerUse'].includes(name)?Math.max(0,Number(val)||0):String(val);
-  }else if(key.startsWith('style.')){it.style||={};it.style[key.slice(6)]=key==='style.window'?!!val:String(val)}else if(key==='partialOpen'){it.partialOpen=Number(val)}else if(key==='peekSide'){it.peekSide=Number(val)}else if(key==='open'||key==='locked'||key==='blocksMovement'||key==='enabled'||key==='doorsOpen'||key==='requiresPower'||key==='opened'){it[key]=!!val}else if(['x','y','w','h','rotation','heightFt','widthFt','lightRadiusFt','lightDimFalloffFt','beamAngleDeg','slots','capacityRayos','radiusFt','rangeFt','flowLpm','wifiRadiusFt','ethernetLengthFt','cableLengthFt','chargePerHour','rayos','watts','ethernetLeadFt','autonomyHours','capacityWatts','fuelLitersPerHour','capacityLiters','initialFuelLiters','sourceCableFt'].includes(key)){it[key]=Number.isFinite(Number(val))?Number(val):0}else if(['ax','ay','bx','by'].includes(key)){let pt=key[0]==='a'?it.a:it.b;pt[key[1]]=Number(val)||0}else{it[key]=val}
+  }else if(key.startsWith('style.')){it.style||={};it.style[key.slice(6)]=key==='style.window'?!!val:String(val)}else if(key==='partialOpen'){it.partialOpen=Number(val)}else if(key==='peekSide'){it.peekSide=Number(val)}else if(key==='open'||key==='locked'||key==='blocksMovement'||key==='enabled'||key==='lightOn'||key==='doorsOpen'||key==='requiresPower'||key==='opened'){it[key]=!!val}else if(['x','y','w','h','rotation','heightFt','widthFt','lightRadiusFt','lightDimFalloffFt','lightFuelMinutes','beamAngleDeg','slots','capacityRayos','radiusFt','rangeFt','flowLpm','wifiRadiusFt','ethernetLengthFt','cableLengthFt','chargePerHour','rayos','watts','ethernetLeadFt','autonomyHours','capacityWatts','fuelLitersPerHour','capacityLiters','initialFuelLiters','sourceCableFt'].includes(key)){it[key]=Number.isFinite(Number(val))?Number(val):0}else if(['ax','ay','bx','by'].includes(key)){let pt=key[0]==='a'?it.a:it.b;pt[key[1]]=Number(val)||0}else{it[key]=val}
  if(AREA_TYPES.has(it.type)&&it.type!=='room'&&before.spans?.length&&['x','y'].includes(key)){const d=it[key]-before[key];it.spans=before.spans.map(sp=>({...sp,[key]:rounded(sp[key]+d,6)}))}
  if(it.type==='stairs'&&key==='targetFloorId'&&!it.autoLanding){
   const dest=stairNeighbors().find(t=>t.floor.id===val);
@@ -2821,7 +2826,7 @@ function setItemField(id,key,val){const it=current().items.find(v=>v.id===id);if
  if(it.type==='parking_decal'){it.blocksMovement=false;if(key==='w')it.widthFt=window.FHParking.toFeet(it.w,project.units.feetPerCell);if(key==='h')it.lengthFt=window.FHParking.toFeet(it.h,project.units.feetPerCell);}
 if(it.type==='light_fixture'&&key==='lightKind'){
   const p=window.FHLights.presetFields(String(val));
-  if(!window.FHLights.isWall(p.lightKind)&&!current().items.some(r=>r.type==='room'&&roomHasPosition(r,{x:it.x,y:it.y}))){Object.assign(it,before);toast(window.FH_LIGHT_TEXT.outside);openInspector();return;}
+  if(!window.FHLights.isWall(p.lightKind)&&!window.FHMedievalLighting?.isMedieval(p.lightKind)&&!current().items.some(r=>r.type==='room'&&roomHasPosition(r,{x:it.x,y:it.y}))){Object.assign(it,before);toast(window.FH_LIGHT_TEXT.outside);openInspector();return;}
   const custom={lightRadiusFt:Number.isFinite(Number(before.lightRadiusFt))?Number(before.lightRadiusFt):p.lightRadiusFt,lightDimFalloffFt:window.FHLights.dimFalloffFt(before),beamAngleDeg:Number.isFinite(Number(before.beamAngleDeg))?Number(before.beamAngleDeg):p.beamAngleDeg,heightFt:Number.isFinite(Number(before.heightFt))?Number(before.heightFt):p.heightFt};
   Object.assign(it,p,custom);delete it.lightDimRadiusFt;
   if(window.FHLights.isWall(p.lightKind)){
@@ -2847,7 +2852,7 @@ if(it.type==='light_fixture'&&key==='lightKind'){
   it.lightDimFalloffFt=Math.min(window.FHLights.MAX_DIM_FALLOFF_FT,Math.max(0,it.lightDimFalloffFt));
  }
  if(it.type==='light_fixture'&&key==='beamAngleDeg')it.beamAngleDeg=Math.min(360,Math.max(20,it.beamAngleDeg));
- if(it.type==='light_fixture'&&['x','y'].includes(key)&&!window.FHLights.isWall(it.lightKind)){
+ if(it.type==='light_fixture'&&['x','y'].includes(key)&&!window.FHLights.isWall(it.lightKind)&&!window.FHMedievalLighting?.isMedieval(it.lightKind)){
   const room=current().items.find(r=>r.type==='room'&&roomHasPosition(r,{x:it.x,y:it.y}));
   if(!room){Object.assign(it,before);toast(window.FH_LIGHT_TEXT.outside);openInspector();return;}
   it.roomId=room.roomId||room.id;
@@ -3159,7 +3164,15 @@ if(it.type==='room'||it.courtyard===true){const field=document.createElement('la
 if(SEGMENT_TYPES.has(it.type)){put('Inicio X (cuadros)','ax',it.a.x,'number');put('Inicio Y','ay',it.a.y,'number');put('Final X','bx',it.b.x,'number');put('Final Y','by',it.b.y,'number');put('Altura (pies)','heightFt',it.heightFt,'number');if(it.type==='window')put('Marco de ventana','windowSkin',it.windowSkin||'clasica','select',[['clasica','Clásica'],['dividida','Dividida']]);if(it.type==='door'||it.type==='peephole_door'){put('Estado','open',String(it.open),'select',[['false','Cerrada'],['true','Abierta']]);fields.lastElementChild.querySelector('select').onchange=(e)=>{setItemField(selection,'open',e.target.value==='true')};put('Apartamento (ID)','apartmentId',it.apartmentId||'');put('Tipo de puerta','doorRole',it.doorRole||'auto','select',[['auto','Automática'],['entrance','Entrada de apartamento'],['interior','Puerta interior']]);put('Cerradura','locked',it.locked,'checkbox');put('ID de llave (opcional)','keyId',it.keyId||'');put('Flag que atranca escaleras (opcional)','stairBlockFlag',it.stairBlockFlag||'');const ds=ForestShared.doorSpec(it);const note=document.createElement('div');note.className='tip';note.style.gridColumn='1/-1';note.textContent=ds.label+' · '+ds.length.toFixed(2)+' casillas · 1=una hoja, 2=dos hojas, 3=cochera';fields.append(note);put('Variante de acabado','variant',it.variant||ds.variant,'select',ForestShared.DOOR_VARIANTS.map(v=>[v,({wood:'Madera',glass:'Cristal',metal:'Metal',garage:'Cochera',storefront:'Escaparate'})[v]]));if(it.type==='door'&&(ds.variant==='glass'||ds.variant==='storefront'))put(window.FH_ARCHITECTURE_TEXT.glassDesign,'architectureSkin',it.architectureSkin||'','select',[['',window.FH_ARCHITECTURE_TEXT.automatic],['puerta_cristal_simple',window.FH_ARCHITECTURE_TEXT.simple],['puerta_cristal_antipanico',window.FH_ARCHITECTURE_TEXT.panic],['puerta_cristal_tintada',window.FH_ARCHITECTURE_TEXT.tinted]]);put('Color de hoja','style.color',it.style?.color||'#79624a','color');put('Ventana en hoja','style.window',!!it.style?.window,'checkbox');if(ds.family==='garage')put('Apertura (0.05–1)','partialOpen',it.partialOpen??1,'number');const previewCanvas=document.createElement('canvas');previewCanvas.id='doorPreviewCanvas';previewCanvas.width=240;previewCanvas.height=76;previewCanvas.style.gridColumn='1/-1';fields.append(previewCanvas);drawDoorInspectorPreview(previewCanvas,it);const variantField=[...fields.querySelectorAll('label')].find(l=>l.textContent.startsWith('Variante de acabado'));const colorField=[...fields.querySelectorAll('label')].find(l=>l.textContent.startsWith('Color de hoja'));fields.prepend(note,variantField,colorField,previewCanvas)}
 if(it.type==='peephole_door'){put('La mirilla apunta hacia','peekSide',it.peekSide||1,'select',[['1','Lado de la flecha'],['-1','Lado contrario']]);let p=document.createElement('div');p.className='tip';p.style.gridColumn='1/-1';p.textContent='La flecha violeta señala HACIA DÓNDE se ve a través de la mirilla. Ubica la flecha del lado exterior del apartamento.';fields.append(p)}if(it.type==='half_wall'||it.type==='fence'){let p=document.createElement('div');p.className='tip';p.style.gridColumn='1/-1';p.textContent=it.type==='half_wall'?'Pared media: sirve como barda baja o división parcial.':'Reja: sirve para cercas, barandales o límites ligeros.';fields.append(p)}
 }else{put('Centro / X','x',it.x,'number');put('Centro / Y','y',it.y,'number');if(AREA_TYPES.has(it.type)){put('Ancho (cuadros)','w',it.w,'number');put('Alto (cuadros)','h',it.h,'number');put('Nombre del área','label',it.label||'');put('ID apartamento','apartmentId',it.apartmentId||'');put('ID habitación','roomId',it.roomId||'');if(it.type==='room')put('Circuito de iluminación','zoneId',it.zoneId||'main','select',circuitSelectOptions(it.zoneId));else put('ID de zona eléctrica','zoneId',it.zoneId||'main');if(it.autoGenerated){let p=document.createElement('div');p.className='tip';p.style.gridColumn='1/-1';p.textContent=`✓ Habitación creada por una puerta · ${it.areaCells||0} casillas · ${it.exitCount||0} salidas. Para cambiar la forma, edita sus paredes.`;fields.append(p)}if(it.cells?.length){let p=document.createElement('div');p.className='tip';p.style.gridColumn='1/-1';p.textContent=`Área detectada automáticamente: ${it.cells.length} casillas.`;fields.append(p)}}else{put('Ancho (cuadros)','w',it.w,'number');put('Alto (cuadros)','h',it.h,'number');put('Rotación (grados)','rotation',it.rotation||0,'number');put('Etiqueta','label',it.label||'');if(ORIENTABLE_TYPES.has(it.type)){let p=document.createElement('div');p.className='tip';p.style.gridColumn='1/-1';p.textContent='La flecha amarilla indica el frente del objeto según su rotación.';fields.append(p)}if(it.type==='stairs'&&!it.autoLanding&&!it.autoDescendingSource){put('Dirección y destino','targetFloorId',it.targetFloorId,'select',stairNeighbors().map(t=>[t.floor.id,(t.direction==='down'?'↓ Bajar a ':'↑ Subir a ')+t.floor.name+' ('+rounded(t.floor.elevationFt-current().elevationFt,2)+' pies)']));put('Flag que bloquea (opcional)','stairBlockFlag',it.stairBlockFlag||'')}if(it.type==='stairs'&&it.autoDescendingSource){const p=document.createElement('p');p.className='tip';p.textContent='Tramo automático: modifica la escalera que colocaste en el piso superior.';fields.append(p)}if(it.type==='light_fixture'){
- put(window.FH_LIGHT_TEXT.kind,'lightKind',it.lightKind||'bulb','select',window.FH_LIGHT_TEXT.presets);
+ put(window.FH_LIGHT_TEXT.kind,'lightKind',it.lightKind||'bulb','select',
+  window.FHMedievalLighting?.isMedieval(it.lightKind)?
+   Object.entries(window.FHMedievalLighting.definitions).map(([id,spec])=>[id,spec.label]):
+   window.FH_LIGHT_TEXT.presets);
+ if(window.FHMedievalLighting?.isMedieval(it.lightKind)){
+  put('Encendida al empezar','lightOn',it.lightOn!==false,'checkbox');
+  if(window.FHMedievalLighting.preset(it.lightKind).fuelMinutes!==null)
+   put('Combustible inicial (minutos de juego)','lightFuelMinutes',it.lightFuelMinutes??window.FHMedievalLighting.preset(it.lightKind).fuelMinutes,'number');
+ }
  put(window.FH_LIGHT_TEXT.brightRange,'lightRadiusFt',it.lightRadiusFt??window.FHLights.presetFor(it.lightKind).radiusFt,'number');
  put(window.FH_LIGHT_TEXT.dimRange,'lightDimFalloffFt',it.lightDimFalloffFt??window.FHLights.dimFalloffFt(it),'number');
  put(window.FH_LIGHT_TEXT.angle,'beamAngleDeg',it.beamAngleDeg??window.FHLights.presetFor(it.lightKind).beamAngleDeg,'number');
@@ -5250,6 +5263,7 @@ async function start3DPreview(){
    if(window.FHCCTVEngine?.patch)architectureDoc=window.FHCCTVEngine.patch(architectureDoc);
    if(window.FHForestEngine?.patch)architectureDoc=window.FHForestEngine.patch(architectureDoc);
    if(window.FHTrainingDummy?.patchEngineDoc)architectureDoc=window.FHTrainingDummy.patchEngineDoc(architectureDoc);
+   if(window.FHMedievalLightEngine?.patchEngineDoc)architectureDoc=window.FHMedievalLightEngine.patchEngineDoc(architectureDoc,document.baseURI);
    play3DFrame.srcdoc=previewSaveSession?window.FHMultimodeSaveHook.patch(architectureDoc,document.baseURI):architectureDoc;
   }catch(architectureError){
    console.error('[Forest Arquitectura] Falló la integración visual:',architectureError);
@@ -5494,7 +5508,10 @@ window.FHMultimodeSelector?.mount({
 <script src="./juego/assets/fh-character-creation.js?v=20261107-help"></script>
 <script src="./juego/assets/fh-strings.js"></script>
 <script src="./juego/assets/fh-light-coverage.js?v=20261105-light-ui2"></script>
+<script src="./juego/assets/fh-medieval-lighting.js?v=20261121-medievallight1"></script>
+<script src="./juego/assets/fh-medieval-light-strings.js?v=20261121-medievallight1"></script>
 <script src="./juego/assets/fh-lights.js?v=20261105-light-ui2"></script>
+<script src="./juego/assets/fh-medieval-light-engine.js?v=20261121-medievallight1"></script>
 <script src="./juego/assets/fh-light-editor-overlay.js?v=20261105-light-ui2"></script>
 <script src="./juego/assets/fh-surface-placement.js"></script>
 <script src="./juego/assets/fh-furniture-rules.js?v=20261111-pole-collision-1"></script>
