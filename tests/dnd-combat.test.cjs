@@ -82,7 +82,7 @@ test('Coordinador: una aplicación por acción, protección contra repetición y
  let writes=0,revision=0,rolls=0;
  const port=coordinator().bindDndCombat({sessionId:'session',playerId:'hero',rulesAdapter:combat,
   readContext:()=>({sessionId:'session',playerId:'hero',rulesetId:'dnd',revision,minute:30,state}),
-  readWorld:()=>({actor:state.player,target:enemy}),roll:()=>{rolls++;return 10;},
+  readWorld:()=>({actor:state.player,target:enemy}),roll:sides=>{rolls++;return Math.min(sides,10);},
   apply:()=>{writes++;revision++;}
  });
  const intent={sessionId:'session',rulesetId:'dnd',action:'attack',actionId:'once',
@@ -230,7 +230,7 @@ test('Coordinador deduplica el mismo actionId y aplica una vez',()=>{
   readContext:()=>({sessionId:'dedup',playerId:'hero',rulesetId:'dnd',revision,minute:50,state}),
   readWorld:()=>({actor:state.player,target:{type:'training_dummy',hp:1,maxHp:1,
     armorClass:10,resistances:[],vulnerabilities:[],immunities:[]}}),
-  roll:()=>{rolls++;return 20;},
+  roll:sides=>{rolls++;return sides;},
   apply:(result,intent)=>{t.port.receiveHit(intent.target.id,result);revision++;}
  });
  const intent={sessionId:'dedup',rulesetId:'dnd',action:'attack',actionId:'same',
