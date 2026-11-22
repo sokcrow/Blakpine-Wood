@@ -59,6 +59,27 @@ test('La entrada Lumen.play acepta DnD, usa el JSON recibido y no muestra pendie
  assert.match(source,/mapId:raw\.createdAt/);
  assert.match(source,/preview3DSelectedMap=clone\(raw\)/);
 });
+test('Lumen.play invoca el lanzamiento DnD con el JSON editado y callback',()=>{
+ const start=html.indexOf('  play(raw,onClose){');
+ const end=html.indexOf('  stop(){',start);
+ const method=html.slice(start,end);
+ let launch=0,close=0,errors=[];
+ const scope={window:{FH_MULTIMODE_TEXT:{mapIdMissing:'sin id'},
+  FHMultimodeSaveSelection:null},
+  lumenEditorRuleset:'dnd',lumenPlaySession:null,preview3DSelectedMap:null,
+  validate:()=>true,clone:value=>JSON.parse(JSON.stringify(value)),
+  toast:message=>errors.push(message),launch3DPreview:()=>launch++};
+ const api=vm.runInNewContext('({'+method+'})',scope);
+ api.stop=()=>{close++};
+ const raw={createdAt:'mi_mapa_123',floors:[{items:[]}],title:'Castillo propio'};
+ api.play(raw,()=>{});
+ assert.equal(launch,1);assert.equal(close,1);
+ assert.equal(scope.window.FHMultimodeSaveSelection.rulesetId,'dnd');
+ assert.equal(scope.window.FHMultimodeSaveSelection.mapId,'mi_mapa_123');
+ assert.deepEqual(JSON.parse(JSON.stringify(scope.preview3DSelectedMap)),raw);
+ assert.notEqual(scope.preview3DSelectedMap,raw,'La sesión debe recibir una copia');
+ assert.deepEqual(errors,[]);
+});
 test('Probar 3D usa DnD cuando se eligió ese reglamento y Legacy por defecto',()=>{
  assert.match(html,/FHEditorCatalog\?\.ruleset\?\.\(\)==='dnd'\)\{launchDndCurrentMap\(\)/);
  assert.match(html,/window\.FHMultimodeSaveSelection=null;preview3DSelectedMap=null;launch3DPreview\(\)/);
