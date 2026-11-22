@@ -19,7 +19,7 @@ test('El mapa es válido para ForestShared.validate del editor real',()=>{
  const start=html.indexOf('const ForestShared=(()=>{');
  const end=html.indexOf('})();',html.indexOf('return {DOOR_VARIANTS',start));
  assert.ok(start>=0&&end>start);
- const source=html.slice(start,end+5)+'\\nForestShared';
+ const source=html.slice(start,end+5)+'\nForestShared';
  const shared=vm.runInNewContext(source);
  const result=shared.validate(map);
  assert.equal(result.ok,true,JSON.stringify(result.errors));
