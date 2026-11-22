@@ -10,6 +10,17 @@
  else root.FHDndEngine=api;
 })(typeof globalThis!=='undefined'?globalThis:this,function(coordinator,combat){
  'use strict';
+ // La ficha visible de DnD sólo lee su propio estado: nunca character.resources Legacy.
+ function readStats(player){
+  if(!combat.validCombatant(player))throw Error('DND_PLAYER_STATS_INVALID');
+  return Object.freeze({
+   pg:player.hp,pgMax:player.maxHp,pe:player.energy,peMax:player.maxEnergy,
+   defense:player.defense,resistance:player.resistance,
+   hitDie:player.hitDie,attackBonus:player.attackBonus,
+   damageDie:player.damageDie,damageBonus:player.damageBonus,
+   energyCost:player.energyCost
+  });
+ }
  function create({targetPort,gameState,identity,sessionId,readPlayer,readMinute,
   save,notice,document:doc=typeof document!=='undefined'?document:null,
   random=Math.random}={}){
@@ -45,6 +56,7 @@
    if(!hud)return;
    const t=globalThis.FH_DND_TEXT;
    hud.status.textContent=t?.status(state.player.hp,state.player.maxHp)||'';
+   hud.stats.textContent=t?.sheet?.(readStats(state.player))||'';
    const targets=targetPort.list(),key=targets.map(value=>value.id).join('\u0000');
    if(key!==hud.targetsKey){
     const previous=hud.select.value;
@@ -110,17 +122,18 @@
   }
   if(doc?.body&&typeof doc.createElement==='function'){
    const box=doc.createElement('aside'),title=doc.createElement('strong'),
-    status=doc.createElement('span'),select=doc.createElement('select'),
+    status=doc.createElement('span'),stats=doc.createElement('small'),select=doc.createElement('select'),
     button=doc.createElement('button'),help=doc.createElement('small');
    const t=globalThis.FH_DND_TEXT||{};
    box.setAttribute('aria-label',t.title||'Combate DnD');
-   box.style.cssText='position:fixed;right:12px;bottom:92px;z-index:201;background:#15181de8;color:#fff;border:1px solid #ccc;padding:10px;display:grid;gap:5px;max-width:245px;font:13px system-ui';
+   box.style.cssText='position:fixed;right:12px;top:12px;z-index:201;background:#15181de8;color:#fff;border:1px solid #ccc;padding:10px;display:grid;gap:5px;max-width:245px;max-height:50vh;overflow:auto;font:13px system-ui';
+   stats.style.cssText='white-space:pre-line;line-height:1.45;color:#d8dce2;font-variant-numeric:tabular-nums';
    title.textContent=t.title||'Combate DnD';button.type='button';button.textContent=t.attack||'Atacar';
    help.textContent=t.hint||'';select.setAttribute('aria-label',t.selectTarget||'Seleccionar blanco');
-   box.append(title,status,select,button,help);doc.body.append(box);
+   box.append(title,status,stats,select,button,help);doc.body.append(box);
    button.addEventListener('click',()=>playerAttack(select.value||undefined));
    doc.addEventListener('keydown',onKey);
-   hud={box,status,select,button,targetsKey:null};updateHud();
+   hud={box,status,stats,select,button,targetsKey:null};updateHud();
   }
   return Object.freeze({
    tick(){if(!closed)updateHud();},
@@ -130,5 +143,5 @@
     if(hud){hud.box.remove();doc.removeEventListener('keydown',onKey);}}
   });
  }
- return Object.freeze({create});
+ return Object.freeze({create,readStats});
 });
