@@ -39,14 +39,14 @@
     Number.isSafeInteger(a.maxHp)&&a.maxHp>=a.hp);
  }
  const validateRulesetState=data=>combat.validState(data)||legacyState(data);
- function migrate(state){
+ function migrate(state,character=null){
   if(combat.validState(state)){
    const next=copy(state);
    for(const id of Object.keys(next.actors))if(id.startsWith('fh-shadow-'))delete next.actors[id];
    return next;
   }
   if(!legacyState(state))throw Error('DND_SAVE_INVALID');
-  const migrated=combat.initialState();
+  const migrated=combat.initialState(character);
   migrated.revision=state.revision;
   migrated.actionSequence=state.actionSequence;
   migrated.lastPlayerMinute=state.lastPlayerMinute;
@@ -62,13 +62,21 @@
   }
   return migrated;
  }
+ function configuredPlayer(map){
+  const selected=map?.__dndCharacter?.sheet||map?.initialGameState?.dnd?.player||null;
+  if(selected===null)return null;
+  // La ficha viene del selector DnD, nunca de GameState.character (Legacy).
+  const base=combat.initialState(selected);
+  return base.player;
+ }
  function initial(map){
   return {...worldRuntime(plain(map?.initialGameState)?map.initialGameState:{}),
-   dnd:combat.initialState()};
+   dnd:combat.initialState(configuredPlayer(map))};
  }
  function restore(world,rules,map){
   if(!validateWorldState(world)||!validateRulesetState(rules))throw Error('DND_SAVE_INVALID');
-  return {...initial(map),...worldRuntime(world.runtime),dnd:migrate(rules)};
+  return {...initial(map),...worldRuntime(world.runtime),
+   dnd:migrate(rules,configuredPlayer(map))};
  }
  function capture(gameState){
   if(!plain(gameState)||!combat.validState(gameState.dnd))throw Error('DND_SAVE_INVALID');
