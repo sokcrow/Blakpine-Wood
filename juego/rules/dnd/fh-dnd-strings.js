@@ -12,13 +12,14 @@
  });
  const signed=n=>(n>=0?'+':'')+n;
  root.FH_DND_TEXT=Object.freeze({
-  title:'D&D 2024 · Partida piloto',attack:'Atacar (F)',
+  title:'D&D 2024 · Partida',attack:'Atacar (F)',
   empty:'Acércate al blanco de entrenamiento.',
   hint:'D&D 2024: F ataca al blanco; las salvaciones y habilidades utilizan d20 y CD.',
   status:(hp,max)=>'PG '+hp+'/'+max,
   saveName:id=>ability[id]||id,skillName:id=>skills[id]||id,
   sheet:s=>[
-   'Guerrero nivel '+s.level+' · Soldado · Humano',
+   (s.name||'Personaje')+' · '+(root.FH_DND_CHARACTER_TEXT?.classes?.[s.classId]||s.classId)+' · Nivel '+s.level,
+   'Trasfondo: '+s.backgroundId,
    'PG '+s.hp+'/'+s.maxHp+' · CA '+s.armorClass+
     ' · Iniciativa '+signed(s.initiative)+' · Velocidad '+s.speedFt+' pies',
    'Competencia '+signed(s.proficiency)+' · Dados de golpe '+
@@ -29,9 +30,9 @@
    'Percepción pasiva '+s.passivePerception,
    'Ataques: '+s.attacks.map(a=>a.weaponName+' '+signed(a.attackBonus)+
     ' · '+a.damageCount+'d'+a.damageDie+signed(a.damageBonus)).join(' | '),
-   'Segundo aliento '+s.features.secondWind.current+'/'+s.features.secondWind.max+
-    ' · Estilo: Defensa',
-   s.spellcasting?'Conjuros disponibles según clase':'Sin lanzamiento de conjuros'
+   ...(s.features?.secondWind?['Segundo aliento '+s.features.secondWind.current+'/'+s.features.secondWind.max]:[]),
+   ...(s.features?.fightingStyle?['Estilo: '+s.features.fightingStyle]:[]),
+   s.spellcasting?'Ficha de conjuros configurada':'Sin lanzamiento de conjuros'
   ].join('\n'),
   rollSave:'Lanzar salvación',rollSkill:'Probar habilidad',
   saveSelect:'Seleccionar salvación',skillSelect:'Seleccionar habilidad',dc:'Dificultad (CD)',
