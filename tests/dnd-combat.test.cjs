@@ -19,6 +19,7 @@ const memory=()=>{const data=new Map();return {
 test('Ficha SRD 5.2.1: seis características, PG, CA, salvaciones, 18 habilidades; SIN PE',()=>{
  const player=sheet.createPilot(),s=sheet.overview(player);
  assert.equal(combat.validState(combat.initialState()),true);
+ assert.equal(combat.initialState().player.classId,'unassigned','no hay clase predeterminada');
  assert.equal(player.classId,'fighter');assert.equal(player.level,1);
  assert.deepEqual(player.abilities,{str:17,dex:14,con:14,int:8,wis:10,cha:12});
  assert.equal(player.hp,12);assert.equal(s.armorClass,17);
@@ -51,7 +52,7 @@ test('d20: competencias, pruebas, salvaciones, 1/20 no son autofallo/autoéxito 
 });
 
 test('D&D ataque: contra CA, 1 siempre falla, 20 siempre acierta y duplica dados',()=>{
- const state=combat.initialState(),actor=state.player;
+ const state=combat.initialState(sheet.createPilot()),actor=state.player;
  const enemy=combat.combatant({hp:50,armorClass:19});
  const intent={rulesetId:'dnd',action:'attack',actionId:'uno',
   actor:{kind:'player',id:'hero'},target:{kind:'creature',id:'enemy'}};
@@ -68,7 +69,7 @@ test('D&D ataque: contra CA, 1 siempre falla, 20 siempre acierta y duplica dados
 });
 
 test('Daño D&D: resistencia divide entre dos, vulnerabilidad duplica, inmunidad anula',()=>{
- const state=combat.initialState();
+ const state=combat.initialState(sheet.createPilot());
  const intent={rulesetId:'dnd',action:'attack',actionId:'damage',
   actor:{kind:'player',id:'hero'},target:{kind:'creature',id:'enemy'},
   dice:{hit:15,damage:[8],criticalDamage:[]}};
@@ -82,7 +83,7 @@ test('Daño D&D: resistencia divide entre dos, vulnerabilidad duplica, inmunidad
 });
 
 test('Coordinador: una aplicación por acción, protección contra repetición y sesión cerrada',()=>{
- const state=combat.initialState(),enemy=combat.combatant({hp:35,armorClass:10});
+ const state=combat.initialState(sheet.createPilot()),enemy=combat.combatant({hp:35,armorClass:10});
  let writes=0,revision=0,rolls=0;
  const port=coordinator().bindDndCombat({sessionId:'session',playerId:'hero',rulesAdapter:combat,
   readContext:()=>({sessionId:'session',playerId:'hero',rulesetId:'dnd',revision,minute:30,state}),
@@ -124,7 +125,8 @@ test('Migración segura: antiguos guardados con PE se limpian y Sombras se desca
    'enemy-1':{hp:3,maxHp:6,defense:13,damageDie:6}
   }};
  assert.equal(saveAdapter.validateRulesetState(old),true);
- const cleaned=saveAdapter.restore({runtime:{clock:{minutes:85},horror:{active:true}}},old,{initialGameState:{}});
+ const cleaned=saveAdapter.restore({runtime:{clock:{minutes:85},horror:{active:true}}},old,
+  {initialGameState:{},__dndCharacter:{id:'hero',sheet:sheet.createPilot()}});
  assert.equal(cleaned.horror,undefined);
  assert.equal(cleaned.dnd.player.hp,12); // No importar la vida ficticia 20/20.
  assert.equal(cleaned.dnd.player.energy,undefined);
@@ -163,7 +165,8 @@ function trainingScene(){
  return {runtime,port,physics};
 }
 function trainingEngine({random=()=>.99}={}){
- const scene=trainingScene(),game=saveAdapter.initial({initialGameState:{
+ const scene=trainingScene(),game=saveAdapter.initial({__dndCharacter:{
+  id:'hero',sheet:sheet.createPilot()},initialGameState:{
   clock:{minutes:1320},horror:{nightSpawns:{firstNight:1}},stats:{hit:99}}});
  const actor={floor:0,x:3.1,z:3.048};let writes=0;
  const session=dndEngine({targetPort:scene.port,gameState:game,identity:id,sessionId:'train',
@@ -209,7 +212,7 @@ test('Un Dummy no se convierte en enemigo ni se destruye con muchos ataques',()=
  t.session.close();
 });
 test('HUD: objetivo, ataques y habilidades y salvaciones DnD funcionan por botón',()=>{
- const t=trainingScene(),game={dnd:combat.initialState()},nodes=[];
+ const t=trainingScene(),game={dnd:combat.initialState(sheet.createPilot())},nodes=[];
  function element(tag){
   const e={tagName:tag.toUpperCase(),style:{},value:'',disabled:false,textContent:'',
    children:[],listeners:{},setAttribute(){},append(...kids){this.children.push(...kids);},
@@ -229,7 +232,7 @@ test('HUD: objetivo, ataques y habilidades y salvaciones DnD funcionan por botó
  session.close();
 });
 test('Coordinador deduplica el mismo actionId y aplica una vez',()=>{
- const t=trainingScene(),state=combat.initialState();let revision=0,rolls=0;
+ const t=trainingScene(),state=combat.initialState(sheet.createPilot());let revision=0,rolls=0;
  const port=coordinator().bindDndCombat({sessionId:'dedup',playerId:'hero',rulesAdapter:combat,
   readContext:()=>({sessionId:'dedup',playerId:'hero',rulesetId:'dnd',revision,minute:50,state}),
   readWorld:()=>({actor:state.player,target:{type:'training_dummy',hp:1,maxHp:1,
@@ -248,7 +251,7 @@ test('Coordinador deduplica el mismo actionId y aplica una vez',()=>{
 test('DnD rechaza Sombras y la ruta Legacy no se activa como combate DnD',()=>{
  const t=trainingScene();
  assert.equal(t.port.read('shadow-1'),null);
- assert.throws(()=>dndEngine({shadowRuntime:{read(){}},gameState:{dnd:combat.initialState()},
+ assert.throws(()=>dndEngine({shadowRuntime:{read(){}},gameState:{dnd:combat.initialState(sheet.createPilot())},
   identity:id,sessionId:'invalid',readPlayer:()=>({floor:0,x:3,z:3}),
   readMinute:()=>0,save:()=>{},notice:()=>{}}),/DND_ENGINE_INVALID/);
 });
@@ -269,5 +272,6 @@ test('Selección DnD conserva aislamiento frente a Legacy y Moon',()=>{
  assert.equal(JSON.parse(read('contratos/multimodo/ejemplos/reglas/moon-system.json')).status,'planned');
  const index=read('index.html');
  assert.match(index,/fh-dnd-sheet\.js/);
- assert.match(index,/isDndPilot\?window\.FHDndSheet\?\.pilotIdentity/);
+ assert.match(index,/isDnd\?await window\.FHDndCharacterManager\.ensureCharacter/);
+ assert.match(index,/__dndCharacter:/);
 });
