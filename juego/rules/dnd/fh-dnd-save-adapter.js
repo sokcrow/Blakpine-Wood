@@ -43,6 +43,16 @@
   if(combat.validState(state)){
    const next=copy(state);
    for(const id of Object.keys(next.actors))if(id.startsWith('fh-shadow-'))delete next.actors[id];
+   if(character){
+    // La ficha editada por su dueño es la fuente de clase, atributos y ataques.
+    // La partida guardada conserva PG actuales y condiciones del personaje.
+    const old=next.player;
+    next.player={...copy(character),
+     hp:Math.min(character.maxHp,old.hp),temporaryHp:old.temporaryHp,
+     deathSaves:copy(old.deathSaves),conditions:copy(old.conditions),
+     exhaustion:old.exhaustion};
+    if(!combat.validState(next))throw Error('DND_SAVE_INVALID');
+   }
    return next;
   }
   if(!legacyState(state))throw Error('DND_SAVE_INVALID');
