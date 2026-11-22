@@ -100,9 +100,23 @@ async function openSelector(page){
   assert.equal(await page.locator('#fhModesStart').isDisabled(),false);
   await page.evaluate(()=>{window.__testedModeMap=null;});
   await page.locator('#fhModesStart').click();
+  const dndForm=page.locator('#fh-dnd-character-dialog');
+  await dndForm.waitFor({state:'visible'});
+  await dndForm.locator('input[type="text"]').first().fill('Ada');
+  await dndForm.locator('select').nth(1).selectOption('wizard');
+  await dndForm.locator('input[type="number"]').nth(1).fill('7');
+  await dndForm.locator('input[type="number"]').nth(2).fill('7');
+  await dndForm.locator('input[type="number"]').nth(3).fill('12');
+  await dndForm.locator('button[type="submit"]').click();
+  await dndForm.waitFor({state:'hidden'});
+  const selectedDnd=await page.evaluate(()=>window.FHDndCharacterManager.current());
+  assert.equal(selectedDnd.sheet.classId,'wizard');
+  assert.equal(selectedDnd.sheet.name,'Ada');
   await page.waitForFunction(()=>!!window.__testedModeMap,{timeout:65000});
   const medieval=await page.evaluate(()=>window.__testedModeMap);
   assert.equal(medieval.title,'DnD · Sala de pruebas de iluminación medieval');
+  assert.equal(medieval.__dndCharacter.sheet.classId,'wizard');
+  assert.equal(medieval.__dndCharacter.sheet.name,'Ada');
   assert.equal(medieval.floors[0].items.filter(i=>i.type==='light_fixture').length,9);
   await page.locator('#play3dBack').click();
 
