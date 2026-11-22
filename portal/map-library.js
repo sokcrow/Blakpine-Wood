@@ -52,6 +52,8 @@ class MapLibrary {
   });
   if(!this.alive)return;
   this.api=api;this.frame.contentWindow.LUMEN_CARTRIDGE_TEXT=C;
+   // El modo procede de la campaña verificada por Firebase, no de la URL.
+   api.setRuleset(this.context.rulesetId);
   this.root.querySelector('#editor-loading').hidden=true;
   this.root.querySelector('#map-save').onclick=()=>this.run(async()=>{this.capture();this.say(C.working);this.api.saved();});
   this.root.querySelector('#map-close').onclick=()=>this.run(async()=>{this.capture();this.hideEditor();this.paint();});

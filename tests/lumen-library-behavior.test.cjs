@@ -5,7 +5,10 @@ test('Autorización usa lectura externa y vuelve a comprobar sesión, dueño, re
  let current='dm',data={ownerId:'dm',ruleset:'legacy',status:'active'},calls=0;
  const args={uid:'dm',campaignId:context.campaignId,currentUid:()=>current,readCampaign:async()=>{calls++;return {exists:()=>true,data:()=>data};}};
  assert.equal((await campaignAccess(args)).ownerUid,'dm');assert.equal(calls,1);
- for(const patch of [{ownerId:'player'},{ruleset:'dnd'},{status:'archived'}]){
+ data={...data,ruleset:'dnd'};
+ assert.equal((await campaignAccess(args)).rulesetId,'dnd');
+ data={...data,ruleset:'legacy'};
+ for(const patch of [{ownerId:'player'},{ruleset:'moon-system'},{status:'archived'}]){
   data={ownerId:'dm',ruleset:'legacy',status:'active',...patch};await assert.rejects(()=>campaignAccess(args),/ACCESS/);
  }
  data={ownerId:'dm',ruleset:'legacy',status:'active'};

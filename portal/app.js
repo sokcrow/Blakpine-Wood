@@ -476,7 +476,7 @@ async function campaign(ticket,id,dmRequested) {
     '<p>'+esc(names[c.ruleset])+' · '+(c.status==='active'?S.active:S.archived)+'</p>'+
     '<p>'+(dm?S.dmNotice:S.waiting)+'</p>'+
     button(S.refresh,'refresh')+'<small>'+S.refreshNotice+'</small>'+
-    (dm&&c.ruleset==='legacy'&&c.status==='active'?'<p>'+actionLink(C.title,'#mapas/'+id,'map',true)+'</p>':'')+
+    (dm&&['legacy','dnd'].includes(c.ruleset)&&c.status==='active'?'<p>'+actionLink(C.title,'#mapas/'+id,'map',true)+'</p>':'')+
     (dm?'<div class="grid"><section class="panel"><h2>'+S.members+'</h2><ul class="list">'+
       members.map((m,i)=>'<li><span class="account">'+esc(memberNames.get(m.userId)||S.unnamed)+(m.role==='dm'?' (DM)':'')+
       '</span><small>'+S.joinedAt+': '+date(m.joinedAt)+'</small>'+
@@ -538,10 +538,10 @@ async function mapLibrary(ticket,id,workspaceId) {
     if(ticket!==epoch)return;
     app.innerHTML=link(S.back,'#dm/'+id)+'<section class="map-library"></section>';
     const cleanup=await mountMapLibrary({element:app.querySelector('.map-library'),context,campaignName:context.name,verify,onError:()=>{},workspaceId,
-      publish:async(doc,mapId,validate)=>{
+      publish:context.rulesetId==='legacy'?async(doc,mapId,validate)=>{
         await verify();await gameStore().publish(doc,context,mapId,validate);await verify();
         location.hash='jugar/'+id;
-      }});
+      }:null});
     if(ticket!==epoch)cleanup();else{
       stopMapLibrary=cleanup;
       if(workspaceId){history.replaceState(null,'','#mapas/'+id);activeMapHash=location.hash;}
