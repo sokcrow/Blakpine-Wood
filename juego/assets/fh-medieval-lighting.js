@@ -38,6 +38,7 @@
   if(!Array.isArray(floors)||!state||typeof state!=='object')throw TypeError('MEDIEVAL_LIGHTING_INPUT');
   state.medievalLighting ||= {};
   const store=state.medievalLighting,fixtures=new Map();
+  const cell=Math.max(.001,finite(arguments[0]?.cell,1.524));
   floors.forEach((floor,index)=>{for(const item of floor.items||[]){
    if(item?.type!=='light_fixture'||!isMedieval(item.lightKind)||typeof item.id!=='string'||!item.id)continue;
    if(fixtures.has(item.id))throw Error('MEDIEVAL_LIGHT_ID_DUPLICATE');
@@ -79,7 +80,7 @@
    const ref=fixtures.get(item?.id);if(!ref||ref.floor!==floor)return {ok:false,reason:'missing'};
    const slot=store[item.id],spec=preset(item.lightKind);
    if(spec.mount==='hand'){
-    if(isCarried(item.id)){drop();return {ok:true,action:'dropped'};}
+    if(isCarried(item.id)){return drop()?{ok:true,action:'dropped'}:{ok:false,reason:'wrongFloor'};}
     if(heldId)return {ok:false,reason:'handsFull'};
     if(slot.remaining===0)return refuel(item.id);
     slot.carried=true;heldId=item.id;slot.on=true;slot.lastMinute=now();
@@ -89,7 +90,16 @@
    if(slot.remaining===0)return refuel(item.id);
    slot.on=true;slot.lastMinute=now();return {ok:true,action:'on'};
   }
-  function drop(){if(!heldId)return false;store[heldId].carried=false;heldId=null;lights?.removeDynamicSource?.('dnd:hand-torch');return true;}
+  function drop(){
+   if(!heldId)return false;
+   const p=player?.(),ref=fixtures.get(heldId);
+   if(!p||p.floor!==ref.floor||!Number.isFinite(p.x)||!Number.isFinite(p.z))return false;
+   // Cambia sólo la copia del mapa de la partida; el JSON del creador permanece intacto.
+   ref.item.x=p.x/cell;ref.item.y=p.z/cell;
+   store[heldId].carried=false;heldId=null;
+   lights?.removeDynamicSource?.('dnd:hand-torch');
+   return true;
+  }
   let lastNow=null;
   function tick(){
    const minute=now();
@@ -101,7 +111,7 @@
      if(slot.lastMinute===null){slot.lastMinute=minute;continue;}
      const delta=Math.max(0,Math.min(1440,minute-slot.lastMinute));
      if(delta>0){slot.remaining=Math.max(0,slot.remaining-delta);slot.lastMinute=minute;changed=true;
-      if(slot.remaining===0){slot.on=false;if(isCarried(id))drop();}}
+      if(slot.remaining===0){slot.on=false;}}
     }
     lastNow=minute;
    }
