@@ -32,7 +32,11 @@
   inject("if(wall)box(root,MAT.edge,0,y+.06,-depth*.48,.18,.22,.065);",
     "if(wall&&!window.FHMedievalLighting.isMedieval(entry.lamp?.lightKind))box(root,MAT.edge,0,y+.06,-depth*.48,.18,.22,.065);");
   const script=(file)=>'<script src="'+new URL('./juego/assets/'+file,baseURI).href+'"></'+'script>';
-  inject('</head>',script('fh-medieval-lighting.js')+script('fh-medieval-light-strings.js')+'</head>');
+  // El HTML embebido puede contener otros </head> dentro de scripts: modificar sólo la cabecera inicial.
+  const headEnd=doc.indexOf('</head>');
+  if(headEnd<0)throw Error('MEDIEVAL_LIGHTING_HEAD_MISSING');
+  doc=doc.slice(0,headEnd)+script('fh-medieval-lighting.js')+
+   script('fh-medieval-light-strings.js')+doc.slice(headEnd);
   return doc;
  }
  return Object.freeze({patchEngineDoc});
