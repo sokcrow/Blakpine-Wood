@@ -26,6 +26,6 @@
   if(category==='lighting'&&id.startsWith('light_medieval_')&&rulesetId!=='dnd')return false;
   return rulesetId!=='dnd'||Boolean(tools[category]?.has(id));
  }
- function entries(items,rulesetId){return items.filter(item=>compatible(item,rulesetId));}
+ function entries(items,rulesetId){return items.filter(item=>compatible(item,rulesetId)&&!(rulesetId==='dnd'&&item.lightKind));}
  return Object.freeze({compatible,toolAllowed,entries});
 });
