@@ -45,7 +45,8 @@
   return plain(state)&&integer(state.revision,0,Number.MAX_SAFE_INTEGER)&&
    integer(state.actionSequence,0,Number.MAX_SAFE_INTEGER)&&
    Number.isFinite(state.lastPlayerMinute)&&sheet.valid(state.player)&&
-   plain(state.actors)&&Object.entries(state.actors).every(([id,actor])=>nonempty(id)&&validCombatant(actor));
+   plain(state.actors)&&Object.entries(state.actors).every(([id,actor])=>nonempty(id)&&
+    (validCombatant(actor)||sheet.valid(actor)));
  }
  function validTrainingTarget(v){
   return plain(v)&&v.type==='training_dummy'&&v.hp===1&&v.maxHp===1&&
