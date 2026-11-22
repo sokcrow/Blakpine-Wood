@@ -85,12 +85,14 @@
   }
   return Object.freeze({load,world,rule,canStart,prepare});
  }
- function mount({validateMap,launchLegacyWorld,launchLegacyCurrent,launchDndWorld}={}){
+ function mount({validateMap,launchLegacyWorld,launchLegacyCurrent,launchDndWorld,
+  launchDndCurrent}={}){
   const d=document,t=globalThis.FH_MULTIMODE_TEXT;
   const trigger=d.getElementById('fhModesBtn'),overlay=d.getElementById('fhModesOverlay'),
    closeButton=d.getElementById('fhModesClose'),status=d.getElementById('fhModesStatus'),
    worldBox=d.getElementById('fhWorldOptions'),rulesBox=d.getElementById('fhRulesOptions'),
-   start=d.getElementById('fhModesStart'),local=d.getElementById('fhModesLegacyLocal');
+   start=d.getElementById('fhModesStart'),local=d.getElementById('fhModesLegacyLocal'),
+   dndLocal=d.getElementById('fhModesDndLocal');
   if(!trigger||!overlay||!t||typeof launchLegacyWorld!=='function'||
    typeof launchLegacyCurrent!=='function'||typeof validateMap!=='function')return null;
   const registry=globalThis.FHModeAdapterRegistry.create();
@@ -136,6 +138,12 @@
    renderChoices(rulesBox,rules,'rule');
    start.disabled=busy||!runtime?.canStart(selectedWorld,selectedRule);
    local.disabled=busy;
+   if(dndLocal){
+    dndLocal.disabled=busy||typeof launchDndCurrent!=='function'||
+     globalThis.FHDndCombat?.status!=='implemented'||
+     globalThis.FHDndSaveAdapter?.status!=='implemented';
+    dndLocal.textContent=t.dndCurrent;
+   }
   }
   async function load(){
    if(loaded)return;
@@ -190,6 +198,11 @@
    if(busy)return;
    overlay.hidden=true;trigger.setAttribute('aria-expanded','false');
    launchLegacyCurrent();
+  });
+  dndLocal?.addEventListener('click',()=>{
+   if(busy||dndLocal.disabled)return;
+   overlay.hidden=true;trigger.setAttribute('aria-expanded','false');
+   launchDndCurrent();
   });
   overlay.addEventListener('pointerdown',event=>{if(event.target===overlay)close();});
   overlay.addEventListener('keydown',event=>{
