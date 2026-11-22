@@ -11,6 +11,7 @@ const world=JSON.parse(fromRoot('contratos/multimodo/ejemplos/mundos/villa-medie
 const selector=require('../juego/assets/fh-multimode-selector.js');
 const combat=require('../juego/rules/dnd/fh-dnd-combat.js');
 const sheetCore=require('../juego/rules/dnd/fh-dnd-sheet.js');
+const manager=require('../juego/assets/fh-dnd-character-manager.js');
 const sheet=require('../juego/rules/dnd/fh-dnd-engine.js');
 const save=require('../juego/rules/dnd/fh-dnd-save-adapter.js');
 const lights=require('../juego/assets/fh-medieval-lighting.js');
@@ -75,38 +76,62 @@ test('La partida DnD arranca sin energía eléctrica y el combustible usa el inv
  assert.equal(runtime.lit(0,wall),true);
 });
 
-test('La partida usa guerrero DnD 2024, no PE ni puntuaciones Legacy',()=>{
- const state=save.initial(map);
- const initial=combat.initialState();
+function wizard(){
+ return sheetCore.createCharacter({
+  name:'Ada',classId:'wizard',level:1,backgroundId:'sage',speciesId:'human',
+  abilities:{str:8,dex:14,con:12,int:17,wis:13,cha:10},
+  hp:7,maxHp:7,armorClass:12,
+  saveProficiencies:['int','wis'],skillProficiencies:['arcana','history'],
+  hitDice:{sides:6,total:1,available:1},
+  attacks:[{id:'dagger',name:'Daga',ability:'dex',damageCount:1,damageDie:4,
+   damageType:'piercing',rangeFt:5,proficient:true}],
+  spellcasting:{ability:'int',slots:{1:2}}
+ });
+}
+test('La partida recibe la ficha elegida: maga con ataques y salvaciones DnD, sin PE',()=>{
+ const character=wizard(),selected={...map,__dndCharacter:{id:'dnd_ada12345',sheet:character}};
+ const state=save.initial(selected),initial=combat.initialState(character);
  assert.deepEqual(state.dnd,initial);
  const stats=sheet.readStats(state.dnd.player);
- assert.equal(stats.hp,12);assert.equal(stats.armorClass,17);
- assert.equal(stats.abilities.str.score,17);assert.equal(stats.saves.str,5);
- assert.equal(stats.skills.athletics,5);assert.equal(Object.keys(stats.skills).length,18);
- assert.equal(Object.keys(stats.saves).length,6);assert.equal(stats.attacks[0].attackBonus,5);
+ assert.equal(stats.name,'Ada');assert.equal(stats.classId,'wizard');
+ assert.equal(stats.hp,7);assert.equal(stats.armorClass,12);
+ assert.equal(stats.abilities.int.score,17);assert.equal(stats.saves.int,5);
+ assert.equal(stats.skills.arcana,5);assert.equal(Object.keys(stats.skills).length,18);
+ assert.equal(Object.keys(stats.saves).length,6);assert.equal(stats.attacks[0].attackBonus,4);
  assert.equal(Object.hasOwn(state,'character'),false);
  assert.equal(Object.hasOwn(state.dnd.player,'energy'),false);
- assert.equal(state.dnd.player.spellcasting,null);
+ assert.equal(state.dnd.player.spellcasting.slots[1],2);
  state.dnd.player.hp-=3;
- assert.equal(sheet.readStats(state.dnd.player).hp,initial.player.hp-3);
+ assert.equal(sheet.readStats(state.dnd.player).hp,4);
  const runtime=lights.createRuntime({floors:map.floors,state,clock:()=>100});
  const torch=map.floors[0].items.find(i=>i.lightKind==='torch_hand');
  runtime.interact(0,torch);
  const saved=save.capture(state);
  assert.equal(saved.rules.rulesetId,'dnd');
- assert.equal(saved.rules.data.player.hp,initial.player.hp-3);
+ assert.equal(saved.rules.data.player.hp,4);
  assert.equal(saved.world.runtime.medievalLighting[torch.id].carried,true);
  assert.equal(Object.hasOwn(saved.world.runtime,'character'),false);
  assert.equal(Object.hasOwn(saved.rules.data.player,'energy'),false);
- const restored=save.restore(saved.world,saved.rules.data,map);
- assert.equal(restored.dnd.player.hp,initial.player.hp-3);
+ const restored=save.restore(saved.world,saved.rules.data,selected);
+ assert.equal(restored.dnd.player.hp,4);
+ assert.equal(restored.dnd.player.classId,'wizard');
  assert.equal(restored.medievalLighting[torch.id].carried,true);
 });
-test('Identidad piloto DnD independiente del creador de personajes Legacy',()=>{
- const values=new Map();
- const storage={getItem:key=>values.get(key),setItem:(key,value)=>values.set(key,value)};
- const a=sheetCore.pilotIdentity(storage),b=sheetCore.pilotIdentity(storage);
- assert.equal(a.id,b.id);
- assert.match(a.id,/^dnd_/);
- assert.equal(Object.hasOwn(a,'resources'),false);
+test('Biblioteca DnD permite varios personajes sin tocar perfiles Legacy',()=>{
+ const values=new Map([['blakpine_character_active_v1','legacy_untouched']]);
+ const storage={getItem:key=>values.get(key)||null,setItem:(key,value)=>values.set(key,value)};
+ const lib=manager.registry(storage);
+ const first=lib.upsert({name:'Ada',character:wizard()});
+ const rogue=sheetCore.createCharacter({name:'Bram',classId:'rogue',level:1,
+  abilities:{str:10,dex:17,con:12,int:12,wis:12,cha:10},hp:9,armorClass:14,
+  saveProficiencies:['dex','int'],skillProficiencies:['stealth','acrobatics'],
+  hitDice:{sides:8,total:1,available:1},
+  attacks:[{id:'rapier',name:'Estoque',ability:'dex',damageCount:1,
+   damageDie:8,damageType:'piercing',rangeFt:5,proficient:true}]});
+ const second=lib.upsert({name:'Bram',character:rogue});
+ assert.notEqual(first.id,second.id);assert.equal(lib.list().length,2);
+ assert.equal(lib.current().name,'Bram');
+ assert.equal(lib.select(first.id).sheet.classId,'wizard');
+ assert.equal(lib.select(second.id).sheet.classId,'rogue');
+ assert.equal(values.get('blakpine_character_active_v1'),'legacy_untouched');
 });
