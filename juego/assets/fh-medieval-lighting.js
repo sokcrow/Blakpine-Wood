@@ -34,11 +34,11 @@
   const c=clock||{},year=Math.floor(finite(c.year,2016)),month=Math.floor(finite(c.month,1)),day=Math.floor(finite(c.day,1));
   return Math.floor(Date.UTC(year,month-1,day)/60000)+Math.floor(finite(c.minutes,0));
  }
- function createRuntime({floors,state,clock,player,lights}={}){
+ function createRuntime({floors,state,clock,player,lights,cell=1.524}={}){
   if(!Array.isArray(floors)||!state||typeof state!=='object')throw TypeError('MEDIEVAL_LIGHTING_INPUT');
   state.medievalLighting ||= {};
   const store=state.medievalLighting,fixtures=new Map();
-  const cell=Math.max(.001,finite(arguments[0]?.cell,1.524));
+  const cellMeters=Math.max(.001,finite(cell,1.524));
   floors.forEach((floor,index)=>{for(const item of floor.items||[]){
    if(item?.type!=='light_fixture'||!isMedieval(item.lightKind)||typeof item.id!=='string'||!item.id)continue;
    if(fixtures.has(item.id))throw Error('MEDIEVAL_LIGHT_ID_DUPLICATE');
@@ -95,7 +95,7 @@
    const p=player?.(),ref=fixtures.get(heldId);
    if(!p||p.floor!==ref.floor||!Number.isFinite(p.x)||!Number.isFinite(p.z))return false;
    // Cambia sólo la copia del mapa de la partida; el JSON del creador permanece intacto.
-   ref.item.x=p.x/cell;ref.item.y=p.z/cell;
+   ref.item.x=p.x/cellMeters;ref.item.y=p.z/cellMeters;
    store[heldId].carried=false;heldId=null;
    lights?.removeDynamicSource?.('dnd:hand-torch');
    return true;
