@@ -2256,7 +2256,7 @@ function createObject(type,p){
 if(type==='light_fixture'){
  const kind=fixtureKind||'bulb';
  if(!window.FHLights?.isWall(kind)&&!room&&!window.FHMedievalLighting?.isMedieval(kind)){toast(window.FH_LIGHT_TEXT.outside);return null;}
- Object.assign(it,window.FHLights.presetFields(kind));
+ Object.assign(it,window.FHLights.presetFields(kind,Number(project.units?.feetPerCell)||5));
  if(window.FHMedievalLighting?.isMedieval(kind))
   it.interact={id:'medieval_light_'+it.id,verb:'use',label:'Encender / apagar '+it.label,effects:[]};
  if(window.FHLights.isWall(kind)){
@@ -2825,7 +2825,7 @@ function setItemField(id,key,val){const it=current().items.find(v=>v.id===id);if
  }
  if(it.type==='parking_decal'){it.blocksMovement=false;if(key==='w')it.widthFt=window.FHParking.toFeet(it.w,project.units.feetPerCell);if(key==='h')it.lengthFt=window.FHParking.toFeet(it.h,project.units.feetPerCell);}
 if(it.type==='light_fixture'&&key==='lightKind'){
-  const p=window.FHLights.presetFields(String(val));
+  const p=window.FHLights.presetFields(String(val),Number(project.units?.feetPerCell)||5);
   if(!window.FHLights.isWall(p.lightKind)&&!window.FHMedievalLighting?.isMedieval(p.lightKind)&&!current().items.some(r=>r.type==='room'&&roomHasPosition(r,{x:it.x,y:it.y}))){Object.assign(it,before);toast(window.FH_LIGHT_TEXT.outside);openInspector();return;}
   const custom={lightRadiusFt:Number.isFinite(Number(before.lightRadiusFt))?Number(before.lightRadiusFt):p.lightRadiusFt,lightDimFalloffFt:window.FHLights.dimFalloffFt(before),beamAngleDeg:Number.isFinite(Number(before.beamAngleDeg))?Number(before.beamAngleDeg):p.beamAngleDeg,heightFt:Number.isFinite(Number(before.heightFt))?Number(before.heightFt):p.heightFt};
   Object.assign(it,p,custom);delete it.lightDimRadiusFt;
