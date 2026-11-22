@@ -16,14 +16,6 @@
   performance:'cha',persuasion:'cha',religion:'int',sleightOfHand:'dex',
   stealth:'dex',survival:'wis'
  });
- const SKILL_NAMES=Object.freeze({
-  acrobatics:'Acrobacias',animalHandling:'Trato con animales',arcana:'Arcanos',
-  athletics:'Atletismo',deception:'Engaño',history:'Historia',insight:'Perspicacia',
-  intimidation:'Intimidación',investigation:'Investigación',medicine:'Medicina',
-  nature:'Naturaleza',perception:'Percepción',performance:'Interpretación',
-  persuasion:'Persuasión',religion:'Religión',sleightOfHand:'Juego de manos',
-  stealth:'Sigilo',survival:'Supervivencia'
- });
  const int=(n,lo,hi)=>Number.isSafeInteger(n)&&n>=lo&&n<=hi;
  const modifier=score=>{if(!int(score,1,30))throw Error('DND_ABILITY_INVALID');return Math.floor((score-10)/2);};
  const proficiency=level=>{if(!int(level,1,20))throw Error('DND_LEVEL_INVALID');return 2+Math.floor((level-1)/4);};
@@ -118,6 +110,18 @@
    attacks:sheet.attacks.map(w=>attack(sheet,w.id)),
    features:sheet.features,spellcasting:sheet.spellcasting});
  }
- return Object.freeze({ABILITIES,SKILLS,SKILL_NAMES,modifier,proficiency,bonus,rollD20,testD20,
-  createPilot,valid,attack,overview});
+ const PILOT_ID_KEY='blakpine_dnd_pilot_identity_v1';
+ function pilotIdentity(storage){
+  let value=null;
+  try{value=storage?.getItem(PILOT_ID_KEY)||null;}catch{}
+  if(typeof value!=='string'||!/^dnd_[A-Za-z0-9_-]{8,80}$/.test(value)){
+   const token=typeof globalThis.crypto?.randomUUID==='function'?globalThis.crypto.randomUUID():
+    Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,12);
+   value='dnd_'+token;
+   try{storage?.setItem(PILOT_ID_KEY,value);}catch{}
+  }
+  return Object.freeze({id:value,life:'alive',name:'Personaje D&D de prueba'});
+ }
+ return Object.freeze({ABILITIES,SKILLS,modifier,proficiency,bonus,rollD20,testD20,
+  createPilot,valid,attack,overview,pilotIdentity});
 });
