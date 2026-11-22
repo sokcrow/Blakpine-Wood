@@ -9,15 +9,15 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
  'use strict';
  const definitions=Object.freeze({
-  torch_wall:Object.freeze({modelId:'antorcha_pared_medieval',label:'Antorcha de pared',fuelMinutes:60,fuelItem:'resina_antorcha',radiusFt:20,dimFt:10,mount:'wall',heightFt:6}),
-  torch_hand:Object.freeze({modelId:'antorcha_mano_medieval',label:'Antorcha de mano',fuelMinutes:60,fuelItem:'resina_antorcha',radiusFt:20,dimFt:10,mount:'hand',heightFt:4}),
-  candle:Object.freeze({modelId:'vela_medieval',label:'Vela',fuelMinutes:120,fuelItem:'cera_vela',radiusFt:5,dimFt:5,mount:'surface',heightFt:3}),
-  candelabrum:Object.freeze({modelId:'candelabro_medieval',label:'Candelabro',fuelMinutes:180,fuelItem:'cera_vela',radiusFt:10,dimFt:5,mount:'floor',heightFt:4}),
-  oil_lantern:Object.freeze({modelId:'farol_aceite_medieval',label:'Farol de aceite',fuelMinutes:240,fuelItem:'aceite_lampara',radiusFt:15,dimFt:10,mount:'floor',heightFt:3}),
-  brazier:Object.freeze({modelId:'brasero_medieval',label:'Brasero',fuelMinutes:180,fuelItem:'lena',radiusFt:20,dimFt:10,mount:'floor',heightFt:2.5,blocksMovement:true}),
-  campfire:Object.freeze({modelId:'fogata_medieval',label:'Fogata',fuelMinutes:120,fuelItem:'lena',radiusFt:25,dimFt:15,mount:'floor',heightFt:1.5,blocksMovement:true}),
-  fireplace:Object.freeze({modelId:'chimenea_medieval',label:'Chimenea',fuelMinutes:240,fuelItem:'lena',radiusFt:20,dimFt:10,mount:'floor',heightFt:3.5,blocksMovement:true}),
-  magic_crystal:Object.freeze({modelId:'cristal_magico_medieval',label:'Cristal mágico',fuelMinutes:null,fuelItem:null,radiusFt:30,dimFt:15,mount:'floor',heightFt:3})
+  torch_wall:Object.freeze({modelId:'antorcha_pared_medieval',label:'Antorcha de pared',fuelMinutes:60,fuelItem:'resina_antorcha',radiusFt:20,dimFt:10,mount:'wall',heightFt:6,widthFt:1.1,depthFt:1.0,mountHeightFt:4.5}),
+  torch_hand:Object.freeze({modelId:'antorcha_mano_medieval',label:'Antorcha de mano',fuelMinutes:60,fuelItem:'resina_antorcha',radiusFt:20,dimFt:10,mount:'hand',heightFt:2.9,widthFt:.7,depthFt:.7}),
+  candle:Object.freeze({modelId:'vela_medieval',label:'Vela',fuelMinutes:120,fuelItem:'cera_vela',radiusFt:5,dimFt:5,mount:'surface',heightFt:.95,widthFt:.55,depthFt:.55}),
+  candelabrum:Object.freeze({modelId:'candelabro_medieval',label:'Candelabro',fuelMinutes:180,fuelItem:'cera_vela',radiusFt:10,dimFt:5,mount:'floor',heightFt:3.9,widthFt:2.2,depthFt:1.4}),
+  oil_lantern:Object.freeze({modelId:'farol_aceite_medieval',label:'Farol de aceite',fuelMinutes:240,fuelItem:'aceite_lampara',radiusFt:15,dimFt:10,mount:'floor',heightFt:1.5,widthFt:1.2,depthFt:1.2}),
+  brazier:Object.freeze({modelId:'brasero_medieval',label:'Brasero',fuelMinutes:180,fuelItem:'lena',radiusFt:20,dimFt:10,mount:'floor',heightFt:2.25,widthFt:2.5,depthFt:2.5,blocksMovement:true}),
+  campfire:Object.freeze({modelId:'fogata_medieval',label:'Fogata',fuelMinutes:120,fuelItem:'lena',radiusFt:25,dimFt:15,mount:'floor',heightFt:.85,widthFt:4,depthFt:4,blocksMovement:true}),
+  fireplace:Object.freeze({modelId:'chimenea_medieval',label:'Chimenea',fuelMinutes:240,fuelItem:'lena',radiusFt:20,dimFt:10,mount:'floor',heightFt:1.8,widthFt:4.2,depthFt:2.1,blocksMovement:true}),
+  magic_crystal:Object.freeze({modelId:'cristal_magico_medieval',label:'Cristal mágico',fuelMinutes:null,fuelItem:null,radiusFt:30,dimFt:15,mount:'floor',heightFt:2.8,widthFt:2.1,depthFt:2.1})
  });
  const tools=Object.freeze({
   light_medieval_wall_torch:'torch_wall',light_medieval_hand_torch:'torch_hand',
