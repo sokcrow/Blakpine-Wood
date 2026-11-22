@@ -52,3 +52,9 @@ test('Cartucho DnD conserva el modelId al guardar y no acepta mezclas de identid
  assert.throws(()=>m.validateCartridge(updated.cartridge,{...context,rulesetId:'legacy'},()=>true),/IDENTITY/);
  assert.throws(()=>m.authorize({...context,rulesetId:'moon-system'}),/ACCESS/);
 });
+
+test('Selector independiente notifica el modo y respeta el contexto de cartucho',()=>{
+ const selector=fs.readFileSync(path.join(root,'juego/assets/fh-multimode-selector.js'),'utf8');
+ assert.match(selector,/globalThis\.FHEditorCatalog\?\.setRuleset\?\.\(selectedRule\)/);
+ assert.match(selector,/get\('lumenCartridge'\)!=='1'/);
+});
