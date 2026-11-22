@@ -39,6 +39,7 @@
   invalidTest:'Tirada no válida. Comprueba la CD.',
   testResult:(name,r)=>name+': d20 '+r.roll+' '+signed(r.modifier)+' = '+r.total+
     ' contra CD '+r.dc+' · '+(r.success?'Éxito':'Fallo'),
+  selectAttack:'Ataque del personaje',
   selectTarget:'Seleccionar blanco de entrenamiento',
   target:id=>'Blanco: '+id,
   hit:(roll,total,damage,critical)=>'D20 '+roll+' (total '+total+'): '+
