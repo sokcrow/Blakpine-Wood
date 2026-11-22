@@ -30,6 +30,10 @@ test('Ficha SRD 5.2.1: seis características, PG, CA, salvaciones, 18 habilidade
  assert.equal(s.attacks[0].attackBonus,5);assert.equal(s.attacks[0].damageDie,8);
  for(const key of ['pe','energy','energyCost','maxEnergy'])assert.equal(Object.hasOwn(player,key),false);
  assert.equal(player.spellcasting,null);assert.equal(player.features.secondWind.current,2);
+ assert.equal(player.skillProficiencies.length,8);
+ assert.equal(player.features.humanOriginFeat,'skilled');
+ assert.equal(player.features.humanSkillful,'medicine');
+ assert.equal(player.languages.length,3);
 });
 
 test('d20: competencias, pruebas, salvaciones, 1/20 no son autofallo/autoéxito fuera del ataque',()=>{
