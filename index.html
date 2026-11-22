@@ -5357,6 +5357,7 @@ function launchDndCurrentMap(){
  if(!ForestShared.validate(project).ok){
   toast(window.FH_MULTIMODE_TEXT.currentMapInvalid);return false;
  }
+ window.FHEditorCatalog?.setRuleset?.('dnd');
  window.FHMultimodeSaveSelection={mapId:project.createdAt,rulesetId:'dnd',
   rulesetVersion:1,saveId:'principal'};
  preview3DSelectedMap=null;
@@ -5530,6 +5531,7 @@ window.FHMultimodeSelector?.mount({
   launch3DPreview();
  },
  launchLegacyCurrent:()=>{
+  if(!lumenCartridgeMode)window.FHEditorCatalog?.setRuleset?.('legacy');
   window.FHMultimodeSaveSelection=null;
   preview3DSelectedMap=null;
   launch3DPreview();
