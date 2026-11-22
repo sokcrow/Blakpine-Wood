@@ -12,8 +12,11 @@
   "statsNamespace": "dnd",
   "extensions": {
     "blakpine.combat-scope.v1": {
-      "combatResolution": "d20-configurable",
-      "generalSkills": "legacy-existing-unchanged"
+      "combatResolution": "srd-5.2.1-d20",
+      "generalSkills": "dnd-2024-18-proficiencies",
+      "playerSheet": "srd-5.2.1",
+      "pilotClass": "fighter-level-1",
+      "universalEnergy": false
     }
   }
 }
