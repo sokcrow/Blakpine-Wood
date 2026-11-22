@@ -11,7 +11,7 @@
    'Daño: d'+s.damageDie+(s.damageBonus>=0?' + ':' − ')+Math.abs(s.damageBonus),
    'Defensa '+s.defense+' · Resistencia '+s.resistance,
    'Ficha de combate DnD (prueba)'
-  ].join('\\n'),
+  ].join('\n'),
    selectTarget:'Seleccionar blanco de entrenamiento',
    target:id=>'Training Dummy: '+id,
   hit:(roll,total,damage)=>'D20 '+roll+' (total '+total+'): golpe acertado. Daño '+damage+'.',
