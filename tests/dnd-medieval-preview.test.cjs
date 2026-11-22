@@ -3,6 +3,7 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
+const vm=require('node:vm');
 const root=path.resolve(__dirname,'..');
 const fromRoot=relative=>fs.readFileSync(path.join(root,relative),'utf8');
 const map=JSON.parse(fromRoot('forest-horror/maps/DEMO_DnD_Iluminacion.json'));
@@ -12,6 +13,17 @@ const combat=require('../juego/rules/dnd/fh-dnd-combat.js');
 const sheet=require('../juego/rules/dnd/fh-dnd-engine.js');
 const save=require('../juego/rules/dnd/fh-dnd-save-adapter.js');
 const lights=require('../juego/assets/fh-medieval-lighting.js');
+
+test('El mapa es válido para ForestShared.validate del editor real',()=>{
+ const html=fromRoot('index.html');
+ const start=html.indexOf('const ForestShared=(()=>{');
+ const end=html.indexOf('})();',html.indexOf('return {DOOR_VARIANTS',start));
+ assert.ok(start>=0&&end>start);
+ const source=html.slice(start,end+5)+'\\nForestShared';
+ const shared=vm.runInNewContext(source);
+ const result=shared.validate(map);
+ assert.equal(result.ok,true,JSON.stringify(result.errors));
+});
 
 test('La villa medieval declara y permite cargar un mapa real v1',()=>{
  assert.equal(world.map?.schema,'forest-horror-map-v1');
