@@ -2895,6 +2895,7 @@ function renderObjectFrontControls(it,fields){
  hint.textContent=T.hint;hint.style.color='#e5d3ad';
  section.append(heading,row,hint);
  const fixedWall=it.type==='light_fixture'&&window.FHLights?.isWall?.(it.lightKind);
+ const wallSwitch=it.type==='light_switch';
  if(fixedWall){
   const note=document.createElement('small');
   note.textContent=T.wallHint;note.style.color='#ffd39a';
@@ -2902,7 +2903,12 @@ function renderObjectFrontControls(it,fields){
  }else{
   const controls=document.createElement('div');
   controls.style.cssText='display:flex;flex-wrap:wrap;gap:6px';
-  const items=[[-90,T.negative90],[-45,T.negative45],[45,T.positive45],[90,T.positive90],[null,T.reset]];
+  if(wallSwitch){
+   const note=document.createElement('small');
+   note.textContent=T.switchHint;note.style.color='#ffd39a';section.append(note);
+  }
+  const items=wallSwitch?[[180,T.flip]]:
+   [[-90,T.negative90],[-45,T.negative45],[45,T.positive45],[90,T.positive90],[null,T.reset]];
   for(const [delta,label] of items){
    const button=document.createElement('button');
    button.type='button';button.textContent=label;
