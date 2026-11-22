@@ -1,0 +1,38 @@
+/* Adaptador del documento 3D existente. Inserta el comportamiento sin reescribir el motor. */
+(function(root,factory){
+ 'use strict';
+ const api=factory();
+ if(typeof module==='object'&&module.exports)module.exports=api;
+ if(root)root.FHMedievalLightEngine=api;
+})(typeof globalThis!=='undefined'?globalThis:this,function(){
+ 'use strict';
+ function patchEngineDoc(source,baseURI){
+  if(typeof source!=='string')throw TypeError('MEDIEVAL_ENGINE_DOCUMENT_REQUIRED');
+  let doc=source;
+  function inject(before,after){
+   const count=doc.split(before).length-1;
+   if(count!==1)throw Error('MEDIEVAL_LIGHTING_HOOK_MISSING: '+before.slice(0,70)+' count '+count);
+   doc=doc.replace(before,after);
+  }
+  inject("function fixtureLit(floor,room,fixture){",
+    "function fixtureLit(floor,room,fixture){\n  if(window.FHMedievalLighting?.isMedieval(fixture?.lightKind))return window.FHMedievalRuntime?.lit(floor,fixture)===true;");
+  inject("const GameState=createGameState(restored||DATA.initialGameState);",
+    "const GameState=createGameState(restored||DATA.initialGameState);\nGameState.medievalLighting=structuredClone(restored?.medievalLighting||DATA.initialGameState?.medievalLighting||{});");
+  inject("const lighting=ForestShared.createLightingSystem(DATA.floors,GameState);",
+    "const lighting=ForestShared.createLightingSystem(DATA.floors,GameState);\nconst fhMedievalRuntime=window.FHMedievalLighting.createRuntime({floors:DATA.floors,state:GameState,\n  clock:()=>window.FHMedievalLighting.absoluteMinute(GameState.clock),\n  player:()=>({floor:currentFloor,x:user.x,z:user.z}),lights:window.FHLights});\nwindow.FHMedievalRuntime=fhMedievalRuntime;");
+  inject("function useFurniture(item,selectedSeat=null){",
+    "function useFurniture(item,selectedSeat=null){\n if(item.type==='light_fixture'&&window.FHMedievalLighting.isMedieval(item.lightKind)){\n  const result=fhMedievalRuntime.interact(currentFloor,item);\n  const t=window.FH_MEDIEVAL_LIGHT_TEXT;notice(t[result.action||result.reason]||t.missing);\n  roomLightsDirty=true;visibilityDirty=true;if(result.ok)saveProgress();return result;\n }");
+  inject("lighting.tick(dt);",
+    "lighting.tick(dt);\nif(fhMedievalRuntime.tick()){roomLightsDirty=true;visibilityDirty=true;saveProgress();}\nfor(const e of roomLampEntries)if(window.FHMedievalLighting.isMedieval(e.lamp?.lightKind))e.root.visible=!fhMedievalRuntime.isCarried(e.lamp?.id);");
+  // Procedural light geometry stays as a fallback; only medieval fixtures load their GLB.
+  inject("box(root,MAT.metal,0,y,0,width,.09,depth);",
+    "if(!window.FHMedievalLighting.isMedieval(entry.lamp?.lightKind))box(root,MAT.metal,0,y,0,width,.09,depth);\n else {const model=new THREE.Group();root.add(model);window.FHAssets?.attach(model,entry.lamp);}");
+  // Wall-mounted antiques use the real model; no false electrical wall sconce behind it.
+  inject("if(wall)box(root,MAT.edge,0,y+.06,-depth*.48,.18,.22,.065);",
+    "if(wall&&!window.FHMedievalLighting.isMedieval(entry.lamp?.lightKind))box(root,MAT.edge,0,y+.06,-depth*.48,.18,.22,.065);");
+  const script=(file)=>'<script src="'+new URL('./juego/assets/'+file,baseURI).href+'"></'+'script>';
+  inject('</head>',script('fh-medieval-lighting.js')+script('fh-medieval-light-strings.js')+'</head>');
+  return doc;
+ }
+ return Object.freeze({patchEngineDoc});
+});
