@@ -24,7 +24,7 @@
   return result;
  }
  const validateWorldState=world=>plain(world)&&Object.keys(world).length===1&&
-  plain(world.runtime)&&Object.keys(world.runtime).every(k=>!excluded.has(k)&&k!=='__proto__');
+  plain(world.runtime)&&Object.keys(world.runtime).every(k=>(k==='horror'||!excluded.has(k))&&k!=='__proto__');
  // Lectura de v1: nunca se interpretan "energy"/"energyCost" como regla de DnD.
  function legacyState(state){
   const p=state?.player;
