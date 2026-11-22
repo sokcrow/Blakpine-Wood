@@ -43,7 +43,7 @@
    const kind=lamp.lightKind||'bulb',defaultPreset=BUILTIN[kind]||BUILTIN.bulb;
    const preset=typeof presetFor==='function'?presetFor(kind)||defaultPreset:defaultPreset;
    const rotation=Number(lamp.rotation)||0,angle=rotation*Math.PI/180;
-   const wall=kind==='wall_sconce'||kind==='wall_flood';
+   const wall=kind==='wall_sconce'||kind==='wall_flood'||preset.mount==='wall';
    const explicitDim=Number(lamp.lightDimFalloffFt),legacyOuter=Number(lamp.lightDimRadiusFt);
    const brightFt=clamp(Number(lamp.lightRadiusFt)||preset.radiusFt||16,5,Number.isFinite(explicitDim)?MAX_LIGHT_RADIUS_FT:80);
    const dimFalloffFt=Number.isFinite(explicitDim)?clamp(explicitDim,0,MAX_DIM_FALLOFF_FT):
