@@ -55,7 +55,12 @@
    const signed=n=>(n>=0?'+':'')+n;
    const card=(icon,name,value,small)=>{
     const node=el('div','dnd-stat-card');
-    node.append(el('span','dnd-stat-icon',icon),el('span','dnd-stat-label',name),
+    const pict=icon.startsWith('stat:')?doc.createElement('img'):el('span','dnd-stat-icon',icon);
+    if(icon.startsWith('stat:')){
+     pict.className='dnd-stat-icon dnd-stat-icon-image';pict.alt='';
+     pict.src=new URL('./juego/assets/dnd-icons/'+icon.slice(5)+'.png',doc.baseURI).href;
+    }
+    node.append(pict,el('span','dnd-stat-label',name),
      el('strong','dnd-stat-value',value));
     if(small!==undefined)node.append(el('small','dnd-stat-detail',small));
     return node;
@@ -70,7 +75,7 @@
     card('✦',U.proficiency,signed(stats.proficiency)));
    const attrs=el('div','dnd-sheet-abilities');
    for(const [id,entry]of Object.entries(stats.abilities)){
-    attrs.append(card(U.abilityIcons?.[id]||'◆',T.saveName?.(id)||id,
+    attrs.append(card('stat:'+id,T.saveName?.(id)||id,
      entry.score,signed(entry.modifier)));
    }
    const group=(title,values,format)=>{
