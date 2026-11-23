@@ -129,6 +129,7 @@ test('El editor y el adaptador registran nueve herramientas antes de construir l
   'if(wall)box(root,MAT.edge,0,y+.06,-depth*.48,.18,.22,.065);',
   'roomLampEntries.push({...entry,root,lit,dark});',
   'entry.lit.visible=lit;entry.dark.visible=!lit;',
+  'function refreshLampGlow(){entry.lit.visible=lit;entry.dark.visible=!lit;}',
   'const exteriorLayers=DATA.floors.map(()=>new THREE.Group());scene.add(...exteriorLayers);',
   "const nested='</head>';","</script></body></html>"].join('\n');
  const doc=adapter.patchEngineDoc(example,'https://example.org/index.html');
@@ -139,5 +140,15 @@ test('El editor y el adaptador registran nueve herramientas antes de construir l
  assert.ok(doc.includes('FHMedievalFireVisual?.attach(THREE,root,entry.lamp,fi)'));
  assert.ok(doc.includes('FHMedievalFireVisual?.buildChimneys'));
  assert.ok(doc.includes('FHMedievalFireVisual?.tick(dt,fhMedievalRuntime)'));
+ const corrected='entry.lit.visible=lit&&!window.FHMedievalLighting.isMedieval(entry.lamp?.lightKind);';
+ assert.equal(doc.split(corrected).length-1,2,'ambas rutas de visibilidad se corrigen');
+ assert.ok(!doc.includes('entry.lit.visible=lit;entry.dark.visible=!lit;'));
+ const once=adapter.patchEngineDoc(example.replace(
+  'function refreshLampGlow(){entry.lit.visible=lit;entry.dark.visible=!lit;}', ''),
+  'https://example.org/index.html');
+ assert.equal(once.split(corrected).length-1,1,'retrocompatibilidad con motor de una ruta');
+ assert.throws(()=>adapter.patchEngineDoc(
+  example.replace('</script>','function duplicateLamp(){entry.lit.visible=lit;entry.dark.visible=!lit;}</script>'),
+  'https://example.org/index.html'),/lamp visibility count 3/,'rechazar más de dos coincidencias');
  assert.ok(doc.indexOf('fh-medieval-lighting.js')<doc.indexOf('</head>'));
 });
