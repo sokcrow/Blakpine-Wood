@@ -21,7 +21,9 @@
   'lampara_escritorio','monitor_crt','gabinete_pc','teclado_pc','mouse_pc','impresora_matricial','telefono_fijo',
   'telefono_pared','contestadora','fax','televisor_crt','videocasetera_vhs','radio_portatil','grabadora_boombox',
   'reloj_digital','camara_seguridad','escritorio_pc']);
- const needsElectricity=it=>!!it&&(POWER_NEEDS.has(it.type)||ELECTRIC_MODELS.has(it.modelId)||it.pcTerminal===true||it.requiresPower===true||it.service?.requiresPower===true);
+ // La fuente de energía pertenece al catálogo medieval, no al tipo genérico light_fixture.
+ const isNonElectricLight=it=>it?.type==='light_fixture'&&root.FHMedievalLighting?.isMedieval?.(it.lightKind)===true;
+ const needsElectricity=it=>!!it&&!isNonElectricLight(it)&&(POWER_NEEDS.has(it.type)||ELECTRIC_MODELS.has(it.modelId)||it.pcTerminal===true||it.requiresPower===true||it.service?.requiresPower===true);
  const WATER_NEEDS=new Set(['bath','toilet','kitchen']);
  const LIMITS={small:{rangeFt:90,capacityWatts:1200},medium:{rangeFt:180,capacityWatts:2400},large:{rangeFt:360,capacityWatts:4800}};
  const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
@@ -238,6 +240,7 @@
   const powerRouteCache=floors.map(()=>new Map());
   const cableDistance=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
   const zoneFor=(f,it)=>{
+   if(isNonElectricLight(it))return '';
    const room=(elements[f]||[]).find(r=>r.type==='room'&&(r.roomId||r.id)===it.roomId)||roomOn(f,it);
    const zone=String(it.zoneId||'');
    // Older elevator inspectors used "main" as a placeholder, not a real assignment.
@@ -686,7 +689,7 @@
    return generated&&!configured?200:Math.max(0,number(it.watts,it.service?.watts??rayos(it)*200));
   }
   function drawingPower(it){
-   if(!active(it))return false;
+   if(isNonElectricLight(it)||!active(it))return false;
    if(generators.length&&it.type==='light_fixture'){
     const f=elements.findIndex(items=>items.includes(it)),room=roomIdFor(f,it);
     if(room&&state.flags?.['light_room:'+floors[f]?.id+':'+room]===false)return false;
@@ -694,7 +697,7 @@
    if(it.type==='phone_charger'&&(state.phone.placedAt!==id(it)||state.phone.battery>=100))return false;
    return it.service?.onDemand!==true||s.usage[id(it)]===true;
   }
-  function requiresPower(it){return needsElectricity(it)||pcStations.has(id(it));}
+  function requiresPower(it){return !isNonElectricLight(it)&&(needsElectricity(it)||pcStations.has(id(it)));}
   function requiresWater(it){return it?.service?.requiresWater===true||waterNetwork?.enabled===true&&waterNetwork.isFixture(it);}
   function candidates(f,it,types){
    const electrical=types.includes('power_outlet')||types.includes('power_strip');
@@ -810,6 +813,7 @@
      reason:source||socketPowered?null:!wired&&!outlet?'sinCircuito':'sinElectricidad',
      direct:!!source||!outlet,socket:socketPowered};
    }
+   if(isNonElectricLight(it))return {connected:false,powered:false,required:false};
    if(['light_fixture','elevator'].includes(it.type)){
     const source=it.type==='elevator'&&(!active(it)||number(s.damage[id(it)])>=100)?null:sourceFor(f,it);
     return {connected:!!source,powered:!!source,via:source?.panel.id||'',generated:!!source?.feed,feet:source?.feet??null};
