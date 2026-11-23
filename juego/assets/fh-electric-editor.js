@@ -73,6 +73,7 @@
   hide();toast((T.selected||'Seleccionado: ')+meta.name);
  }
  function open(){
+  if(!electricAllowed())return;
   opener=document.activeElement;overlay.hidden=false;choices.replaceChildren();
   for(const m of models){
    const b=document.createElement('button');b.type='button';b.setAttribute('aria-pressed',String(active[m.type]?.id===m.id));
@@ -84,9 +85,11 @@
   }
   choices.querySelector('button')?.focus();
  }
+ const electricAllowed=()=>window.FHEditorCatalog?.ruleset?.()!=='dnd'||window.FHDndMapModules?.options(project).electricity===true;
  function launcher(){
-  const container=document.querySelector('#tools');if(!container||activeCategory!=='lighting')return;
-  let b=document.getElementById('fhElectricLauncher');if(b)return;
+  const container=document.querySelector('#tools'),existing=document.getElementById('fhElectricLauncher');
+  if(!container||activeCategory!=='lighting'||!electricAllowed()){existing?.remove();return;}
+  let b=existing;if(b)return;
   b=document.createElement('button');b.id='fhElectricLauncher';b.type='button';b.title=T.title||'Electricidad';
   const sym=document.createElement('span');sym.className='sym';sym.textContent='⚡';
   const txt=document.createElement('span');txt.textContent=T.pickDecor||'Aparatos eléctricos';
