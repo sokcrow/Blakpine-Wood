@@ -29,7 +29,8 @@ test('Portal transmite modo del contexto y no publica campañas DnD como Legacy'
  const workspace=fs.readFileSync(path.join(root,'portal/editor-workspace.js'),'utf8');
  const library=fs.readFileSync(path.join(root,'portal/map-library.js'),'utf8');
  const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
- assert.match(app,/context\.rulesetId==='legacy'\?async/);
+ const room=fs.readFileSync(path.join(root,'portal/game-room.js'),'utf8');
+ assert.match(room,/api\.setRuleset\(fresh\.context\.rulesetId\)/);
  assert.match(app,/\['legacy','dnd'\]\.includes\(c\.ruleset\)/);
  assert.match(workspace,/api\.setRuleset\(context\.rulesetId\)/);
  assert.match(library,/api\.setRuleset\(this\.context\.rulesetId\)/);
