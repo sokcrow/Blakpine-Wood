@@ -28,6 +28,21 @@
   inject("const py=Math.min(Math.max(1.9,(Number(DATA.floors[fi].ceilingHeightFt)||11.5)*.3048-.19),\n   Math.max(1.6,entry.heightFt*.3048));","const py=window.FHMedievalLighting.isMedieval(entry.lamp?.lightKind)?\n Math.max(.15,entry.heightFt*.3048):\n Math.min(Math.max(1.9,(Number(DATA.floors[fi].ceilingHeightFt)||11.5)*.3048-.19),\n   Math.max(1.6,entry.heightFt*.3048));");
   inject("box(root,MAT.metal,0,y,0,width,.09,depth);",
     "if(!window.FHMedievalLighting.isMedieval(entry.lamp?.lightKind))box(root,MAT.metal,0,y,0,width,.09,depth);\n else {const model=new THREE.Group();root.add(model);window.FHAssets?.attach(model,entry.lamp);}");
+  // Las llamas sólo aparecen sobre luminarias medievales encendidas.
+  inject("roomLampEntries.push({...entry,root,lit,dark});",
+    "if(window.FHMedievalLighting.isMedieval(entry.lamp?.lightKind))"+
+    "window.FHMedievalFireVisual?.attach(THREE,root,entry.lamp,fi);\n"+
+    "roomLampEntries.push({...entry,root,lit,dark});");
+  // La placa rectangular de las luces modernas no representa fuego.
+  inject("entry.lit.visible=lit;entry.dark.visible=!lit;",
+    "const medieval=window.FHMedievalLighting.isMedieval(entry.lamp?.lightKind);"+
+    "entry.lit.visible=!medieval&&lit;entry.dark.visible=!medieval&&!lit;");
+  inject("fhDropButton.hidden=!fhMedievalRuntime.hasCarried();",
+    "fhDropButton.hidden=!fhMedievalRuntime.hasCarried();\n"+
+    "window.FHMedievalFireVisual?.tick(dt,fhMedievalRuntime);");
+  inject("const exteriorLayers=DATA.floors.map(()=>new THREE.Group());scene.add(...exteriorLayers);",
+    "const exteriorLayers=DATA.floors.map(()=>new THREE.Group());scene.add(...exteriorLayers);\n"+
+    "window.FHMedievalFireVisual?.buildChimneys(THREE,DATA,CELL,floorElev,exteriorLayers);");
   // Wall-mounted antiques use the real model; no false electrical wall sconce behind it.
   inject("if(wall)box(root,MAT.edge,0,y+.06,-depth*.48,.18,.22,.065);",
     "if(wall&&!window.FHMedievalLighting.isMedieval(entry.lamp?.lightKind))box(root,MAT.edge,0,y+.06,-depth*.48,.18,.22,.065);");
@@ -36,7 +51,7 @@
   const headEnd=doc.indexOf('</head>');
   if(headEnd<0)throw Error('MEDIEVAL_LIGHTING_HEAD_MISSING');
   doc=doc.slice(0,headEnd)+script('fh-medieval-lighting.js')+
-   script('fh-medieval-light-strings.js')+doc.slice(headEnd);
+   script('fh-medieval-light-strings.js')+script('fh-medieval-fire-vfx.js')+doc.slice(headEnd);
   return doc;
  }
  return Object.freeze({patchEngineDoc});
