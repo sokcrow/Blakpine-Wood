@@ -139,8 +139,11 @@
    full.append(abilityGrid);
    const abilities={};
    for(const id of sheet.ABILITIES){
-    const score=input('number',10,1,30);field((T.abilityIcons?.[id]||'◆')+' '+(T.abilitiesMap?.[id]||id),score,abilityGrid);
+    const score=input('number',10,1,30);field(T.abilitiesMap?.[id]||id,score,abilityGrid);
     const tile=abilityGrid.lastElementChild;tile.className='dnd-ability-card';
+    const icon=doc.createElement('img');icon.alt='';icon.className='dnd-ability-icon';
+    icon.src=new URL('./juego/assets/dnd-icons/'+id+'.png',doc.baseURI).href;
+    tile.querySelector('span')?.prepend(icon);
     const mod=doc.createElement('small');mod.className='dnd-ability-mod';
     score.addEventListener('input',()=>{
      const value=Number(score.value);mod.textContent=Number.isFinite(value)?
