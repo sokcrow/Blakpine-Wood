@@ -57,7 +57,7 @@
     const node=el('div','dnd-stat-card');
     const pict=icon.startsWith('stat:')?doc.createElement('img'):el('span','dnd-stat-icon',icon);
     if(icon.startsWith('stat:')){
-     pict.className='dnd-stat-icon dnd-stat-icon-image';pict.alt='';
+     pict.className='dnd-stat-icon dnd-stat-icon-image';pict.alt='';pict.loading='lazy';pict.decoding='async';
      pict.src=new URL('./juego/assets/dnd-icons/'+icon.slice(5)+'.png',doc.baseURI).href;
     }
     node.append(pict,el('span','dnd-stat-label',name),
