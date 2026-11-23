@@ -39,7 +39,7 @@
   const chosen=player===null?sheet.createUnassigned():player;
   if(!sheet.valid(chosen))throw Error('DND_CHARACTER_INVALID');
   return {revision:0,actionSequence:0,lastPlayerMinute:-1,
-   player:JSON.parse(JSON.stringify(chosen)),actors:{}};
+   player:sheet.ensureUnarmed(JSON.parse(JSON.stringify(chosen))),actors:{}};
  }
  function validState(state){
   return plain(state)&&integer(state.revision,0,Number.MAX_SAFE_INTEGER)&&

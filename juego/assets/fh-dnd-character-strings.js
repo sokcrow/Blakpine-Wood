@@ -3,6 +3,7 @@
  'use strict';
  root.FH_DND_CHARACTER_TEXT=Object.freeze({
   title:'Personajes de D&D',intro:'Elige una ficha guardada o crea una nueva. Cada personaje tiene sus propias características y guardado. No se asignan clases automáticamente.',
+  villager:'Probar mapa como aldeano',villagerName:'Aldeano de prueba',
   chooseClass:'Elige tu clase', identity:'Tu personaje', advanced:'Personalizar ficha de campaña',
   changeClass:'Cambiar clase',create:'Crear otro personaje',enter:'Entrar en partida',
   classThemes:{barbarian:'Furia y resistencia',bard:'Música e inspiración',cleric:'Fe y protección',druid:'Naturaleza y transformación',fighter:'Armas y disciplina',monk:'Agilidad y concentración',paladin:'Juramento y defensa',ranger:'Rastreo y supervivencia',rogue:'Sigilo y precisión',sorcerer:'Magia innata',warlock:'Pactos y secretos',wizard:'Estudio y conjuros'},

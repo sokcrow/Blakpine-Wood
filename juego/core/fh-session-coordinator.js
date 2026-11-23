@@ -192,7 +192,7 @@
          rulesAdapter.attackProfile(world.actor):null;
         if(!profile||!Number.isSafeInteger(profile.hitDie)||profile.hitDie!==20||
          !Number.isSafeInteger(profile.damageDie)||profile.damageDie<2||
-         !Number.isSafeInteger(profile.damageCount)||profile.damageCount<1||profile.damageCount>20)
+         !Number.isSafeInteger(profile.damageCount)||profile.damageCount<(profile.id==='unarmed'?0:1)||profile.damageCount>20)
          fail('DND_ACTION_UNAVAILABLE');
         // Los 20 naturales duplican los dados de daño, nunca el modificador.
         const hit=roll(20);

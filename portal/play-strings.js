@@ -1,4 +1,5 @@
 export const P=Object.freeze({
+  clock:'Tiempo de campaña',closeClock:'Volver',activity:'Actividad',activities:{travel:'Viaje',work:'Trabajo',rest:'Descanso'},pace:'Ritmo de viaje',paces:{2:'Lento · 2 millas/h',3:'Normal · 3 millas/h',4:'Rápido · 4 millas/h'},miles:'Distancia recorrida (millas)',elapsed:'Duración (minutos)',advance:'Avanzar el tiempo',advanced:'Tiempo de campaña actualizado.',timeError:'No se pudo avanzar el tiempo.',
   title:'Partida del cartucho',preview:'Probar mapa en 3D',publish:'Abrir partida con este mapa',
   publishing:'Preparando la versión del mapa para la partida…',
   publishHelp:'Se compartirá el mapa seleccionado completo con los miembros inscritos en la sala.',

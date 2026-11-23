@@ -73,7 +73,7 @@
   return 'lluvia';
  }
  function intensity(type){return type==='llovizna'?.23:type==='lluvia'?.58:type==='tormenta'?1:0}
- function createRuntime({gameState,config={}}={}){
+ function createRuntime({gameState,config={},ruleset,readTime}={}){
   if(!gameState||typeof gameState!=='object')return null;
   const clock=ensureClock(gameState);
   let data=gameState.weather&&typeof gameState.weather==='object'?gameState.weather:{};
@@ -91,13 +91,23 @@
    const elapsed=clamp(finite(dt,0),0,.25);
    seconds+=elapsed;
    // El reloj visible del juego es la única fuente temporal; se conserva en GameState.
-   if(config.advanceClock!==false&&clock.paused!==true){
+   if(ruleset==='dnd'){
+    const campaign=readTime?.();
+    if(campaign&&Number.isSafeInteger(campaign.minutes)&&campaign.minutes>=0){
+     const previous=clock.campaignId===campaign.campaignId?clock.campaignMinutes||0:0;
+     clock.minutes+=Math.max(0,campaign.minutes-previous);
+     clock.campaignNonWork=Math.max(0,campaign.minutes-(campaign.workMinutes||0));
+     clock.campaignMinutes=Math.max(previous,campaign.minutes);clock.campaignId=campaign.campaignId;
+    }
+    clock.minutesPerSecond=1/60;
+   }
+   if((ruleset==='dnd'||config.advanceClock!==false)&&clock.paused!==true){
     const speed=clamp(finite(clock.minutesPerSecond,finite(config.clockSpeed,1)),0,120);
     clock.minutes+=elapsed*speed;
-    if(clock.minutes>=MINUTES_DAY){
+   }
+   if(clock.minutes>=MINUTES_DAY){
      const days=Math.floor(clock.minutes/MINUTES_DAY);
      clock.minutes-=days*MINUTES_DAY;advanceDate(clock,days);
-    }
    }
    const minute=absoluteMinute(clock),season=seasonFor(clock,config);
    if(!Number.isFinite(data.nextAt)||!TYPES.includes(data.type)){

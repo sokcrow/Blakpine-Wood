@@ -104,7 +104,7 @@ test('el reloj cruza medianoche sin perder minutos incluso con clima apagado',()
 test('integración: el adaptador no condiciona el reloj a activar meteorología',()=>{
  const html=fs.readFileSync(path.join(__dirname,'../../index.html'),'utf8');
  assert.ok(html.includes('"const fhWeatherEnabled=DATA.weather?.enabled===true;"'));
- assert.ok(html.includes('"const fhWeather=window.FHWeatherCore?.createRuntime({gameState:GameState,config:DATA.weather||{}});"'));
+ assert.ok(html.includes('"const fhWeather=window.FHWeatherCore?.createRuntime({gameState:GameState,config:DATA.weather||{},ruleset:DATA.__multimodeSave?.identity.rulesetId,readTime:()=>window.parent.LumenEditor?.campaignTime?.()});"'));
  assert.ok(html.includes('"window.FHWeatherRuntime=fhWeatherEnabled?fhWeather:null;"'));
  for(const symbol of ['fhWeatherExposure','fhWeatherRenderer','fhWeatherAudio']){
   assert.ok(html.includes('const '+symbol+'=fhWeatherEnabled&&fhWeather?'),symbol+' debe mantenerse desactivado');

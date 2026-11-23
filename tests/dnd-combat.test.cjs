@@ -276,3 +276,15 @@ test('Selección DnD conserva aislamiento frente a Legacy y Moon',()=>{
  assert.match(index,/isDnd\?await window\.FHDndCharacterManager\.ensureCharacter/);
  assert.match(index,/__dndCharacter:/);
 });
+
+test('Golpe sin armas con y sin equipo: un crítico no añade dados al daño fijo',()=>{
+ const state=combat.initialState(sheet.createPilot()),actor=state.player;
+ assert.equal(actor.activeAttackId,'flail');
+ actor.activeAttackId='unarmed';
+ const target=combat.combatant({hp:20});
+ const intent={rulesetId:'dnd',action:'attack',actionId:'s:1',actor:{kind:'player',id:'a'},
+  target:{kind:'creature',id:'b'},dice:{hit:20,damage:[],criticalDamage:[]}};
+ assert.equal(combat.evaluate(intent,{actor,target},state).damage,4);
+ assert.equal(combat.attackProfile(actor).attackBonus,5);
+ assert.equal(combat.initialState().player.activeAttackId,'unarmed');
+});

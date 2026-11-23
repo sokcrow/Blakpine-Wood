@@ -55,6 +55,7 @@
      exhaustion:old.exhaustion};
     if(!combat.validState(next))throw Error('DND_SAVE_INVALID');
    }
+   next.player=combat.initialState(next.player).player;
    return next;
   }
   if(!legacyState(state))throw Error('DND_SAVE_INVALID');

@@ -35,6 +35,7 @@
    s.spellcasting?'Ficha de conjuros configurada':'Sin lanzamiento de conjuros'
   ].join('\n'),
   rollSave:'Lanzar salvación',rollSkill:'Probar habilidad',
+  campaignTime:'Tiempo de campaña',abilityTest:'Prueba de característica',
   saveSelect:'Seleccionar salvación',skillSelect:'Seleccionar habilidad',dc:'Dificultad (CD)',
   invalidTest:'Tirada no válida. Comprueba la CD.',
   testResult:(name,r)=>name+': d20 '+r.roll+' '+signed(r.modifier)+' = '+r.total+

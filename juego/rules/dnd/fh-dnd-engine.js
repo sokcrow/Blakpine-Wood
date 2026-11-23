@@ -15,7 +15,7 @@
  // La ficha activa DnD pertenece al reglamento, nunca a recursos/scores Legacy.
  function readStats(player){return sheet.overview(player);}
  function create({targetPort,gameState,identity,sessionId,readPlayer,readMinute,
-  save,notice,setStatusView,document:doc=typeof document!=='undefined'?document:null,
+  save,notice,setStatusView,openClock,document:doc=typeof document!=='undefined'?document:null,
   random=Math.random}={}){
   if(!targetPort||typeof targetPort.read!=='function'||
    typeof targetPort.list!=='function'||typeof targetPort.canAttack!=='function'||
@@ -122,7 +122,7 @@
    if(closed||!sheet.valid(state.player))return null;
    try{
     const result=sheet.testD20(state.player,kind,id,{dc,random,...options});
-    const label=kind==='save'?(globalThis.FH_DND_TEXT?.saveName?.(id)||id):
+    const label=kind!=='skill'?(globalThis.FH_DND_TEXT?.saveName?.(id)||id):
      (globalThis.FH_DND_TEXT?.skillName?.(id)||id);
     notice(globalThis.FH_DND_TEXT?.testResult?.(label,result)||'',2700);
     return result;
@@ -166,8 +166,20 @@
    saveSelect.value='dex';skillSelect.value='perception';
    saveButton.type='button';saveButton.textContent=t.rollSave||'Tirar salvación';
    skillButton.type='button';skillButton.textContent=t.rollSkill||'Tirar habilidad';
+   const abilitySelect=doc.createElement('select'),abilityButton=doc.createElement('button');
+   abilitySelect.setAttribute('aria-label','Característica');
+   for(const ability of sheet.ABILITIES){
+    const option=doc.createElement('option');option.value=ability;option.textContent=t.saveName?.(ability)||ability;
+    abilitySelect.append(option);
+   }
+   abilityButton.type='button';abilityButton.textContent=t.abilityTest||'Prueba de característica';
+   abilityButton.addEventListener('click',()=>rollTest('ability',abilitySelect.value,Number(dc.value)));
    box.append(title,status,stats,weapon,select,button,dc,saveSelect,saveButton,
-    skillSelect,skillButton,help);
+    skillSelect,skillButton,abilitySelect,abilityButton,help);
+   if(typeof openClock==='function'){
+    const clockButton=doc.createElement('button');clockButton.type='button';
+    clockButton.textContent=t.campaignTime;clockButton.addEventListener('click',openClock);box.append(clockButton);
+   }
    weapon.addEventListener('change',()=>{
     if(closed||!state.player.attacks.some(a=>a.id===weapon.value))return;
     state.player.activeAttackId=weapon.value;

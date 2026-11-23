@@ -98,3 +98,17 @@ test('Escuchas cierran el motor al perder permisos y se retiran todas al salir',
  m.data.get(`campaigns/${cid}/members/player`).status='removed';m.emit(`campaigns/${cid}/members/player`);
  assert.equal(invalid,2);assert.equal(m.countListeners(),0);stop2();
 });
+
+test('La campaña determina D&D y sólo el DM confirma los minutos de viaje y trabajo',async()=>{
+ const f=await fixture(),m=memoryStore(f),campaign=m.data.get('campaigns/'+cid);
+ campaign.ruleset='dnd';f.doc.rulesetId='dnd';
+ await m.store.publish(f.doc,{...context,rulesetId:'dnd'},f.mapId,f.validate);
+ const host=await m.store.load(cid,f.validate);
+ await m.store.advanceTime(cid,host.session,120,'travel');
+ await m.store.advanceTime(cid,host.session,30,'work');
+ m.member();m.setUid('player');
+ const guest=await m.store.load(cid,f.validate);
+ assert.equal(guest.context.rulesetId,'dnd');assert.equal(guest.session.elapsedMinutes,150);
+ assert.equal(guest.session.workMinutes,30);
+ await assert.rejects(()=>m.store.advanceTime(cid,guest.session,1,'work'),/PLAY_ACCESS/);
+});

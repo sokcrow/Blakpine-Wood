@@ -50,6 +50,14 @@
  }
  function prepareMap(map){
   const modules=options(map);
+  map.itemDefs||=[];
+  for(const [id,name,kind] of [
+   ['yesquero','Yesquero','tool'],['resina_antorcha','Carga para antorcha','consumable'],
+   ['cera_vela','Cera','consumable'],['aceite_lampara','Aceite de lámpara','consumable'],
+   ['lena','Leña','consumable'],['piedra','Piedra','consumable']
+  ]){
+   if(!map.itemDefs.some(item=>item.id===id))map.itemDefs.push({id,name,kind,description:name,stackable:kind==='consumable'});
+  }
   for(const floor of map.floors){
    floor.items=(floor.items||[]).filter(item=>allowsItem(item,modules));
    for(const item of floor.items){

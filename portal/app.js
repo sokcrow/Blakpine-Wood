@@ -538,10 +538,10 @@ async function mapLibrary(ticket,id,workspaceId) {
     if(ticket!==epoch)return;
     app.innerHTML=link(S.back,'#dm/'+id)+'<section class="map-library"></section>';
     const cleanup=await mountMapLibrary({element:app.querySelector('.map-library'),context,campaignName:context.name,verify,onError:()=>{},workspaceId,
-      publish:context.rulesetId==='legacy'?async(doc,mapId,validate)=>{
+      publish:async(doc,mapId,validate)=>{
         await verify();await gameStore().publish(doc,context,mapId,validate);await verify();
         location.hash='jugar/'+id;
-      }:null});
+      }});
     if(ticket!==epoch)cleanup();else{
       stopMapLibrary=cleanup;
       if(workspaceId){history.replaceState(null,'','#mapas/'+id);activeMapHash=location.hash;}

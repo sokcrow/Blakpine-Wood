@@ -134,3 +134,23 @@ test('El editor y el adaptador registran nueve herramientas antes de construir l
  assert.ok(doc.includes('fhMedievalRuntime.tick()'));
  assert.ok(doc.indexOf('fh-medieval-lighting.js')<doc.indexOf('</head>'));
 });
+
+test('Construcción, viaje, combustible y encargado con inventario propio',()=>{
+ const fire={id:'f',type:'light_fixture',lightKind:'fireplace',x:1,y:1,
+  workMaterial:'piedra',workUnits:2,workMinutes:10,homeKeeper:true,homeFuel:1,homeTinderbox:true};
+ const torch={id:'t',type:'light_fixture',lightKind:'torch_hand',x:1,y:1,lightOn:false};
+ let minute=1080;
+ const state={inventory:['piedra'],clock:{}},actor={x:1,z:1,floor:0};
+ const runtime=mod.createRuntime({floors:[{items:[fire,torch]}],state,clock:()=>minute,player:()=>actor,cell:1,ruleset:'dnd'});
+ runtime.tick();assert.equal(runtime.relight('t').reason,'noIgnition');
+ assert.equal(runtime.interact(0,fire).reason,'workMaterial');assert.equal(state.inventory.length,1);
+ state.inventory.push('piedra');assert.equal(runtime.interact(0,fire).action,'working');
+ minute+=120;state.clock.campaignNonWork=120;runtime.tick();assert.equal(runtime.view('f').workLeft,10);
+ minute+=10;runtime.tick();assert.equal(runtime.lit(0,fire),true);assert.deepEqual(state.inventory,[]);
+ assert.equal(runtime.interact(0,torch).action,'carried');assert.equal(runtime.lit(0,torch),true);
+ minute+=59;runtime.tick();assert.equal(runtime.view('t').remaining,1);
+ minute++;runtime.tick();assert.equal(runtime.view('t').remaining,0);
+ assert.equal(runtime.interact(0,fire).reason,'noFuelItem');
+ state.inventory.push('resina_antorcha');assert.equal(runtime.interact(0,fire).action,'refueled');
+ assert.equal(runtime.view('t').remaining,60);assert.deepEqual(state.inventory,[]);
+});
