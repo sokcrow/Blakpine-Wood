@@ -45,3 +45,11 @@ test('editor: iluminación general, fuentes medievales fuera de conexiones eléc
  assert.match(html,/it\.type==='light_fixture'&&!isMedievalLight\(it\)\)put\('Conectado al circuito'/);
  assert.match(html,/magicSource:window\.FH_MEDIEVAL_LIGHT_TEXT\.fuelSource|magicSource:window\.FH_MEDIEVAL_LIGHT_TEXT\.magicSource/);
 });
+
+test('D&D sin módulo eléctrico oculta panel de circuitos y selector eléctrico',()=>{
+ const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
+ const picker=fs.readFileSync(path.join(__dirname,'../juego/assets/fh-electric-editor.js'),'utf8');
+ assert.equal(html.includes("const circuitsEnabled=lumenEditorRuleset!=='dnd'||window.FHDndMapModules?.options(project).electricity===true"),true);
+ assert.equal(picker.includes('const electricAllowed='),true);
+ assert.equal(picker.includes('if(!electricAllowed())return;'),true);
+});
