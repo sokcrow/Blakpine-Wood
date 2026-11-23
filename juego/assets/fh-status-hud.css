@@ -246,3 +246,5 @@ body.fh-sleeping #fhStatusHUD {
 .fh-dnd-stats .dnd-sheet-detail-line{display:flex;gap:8px;justify-content:space-between;border-bottom:1px solid #293945;padding:3px}
 .fh-dnd-stats .dnd-sheet-attacks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
 .fh-dnd-stats .dnd-sheet-attacks .dnd-group-title{grid-column:1/-1}
+
+.fh-dnd-stats .dnd-stat-icon-image{width:28px;height:28px;object-fit:contain;align-self:center}
