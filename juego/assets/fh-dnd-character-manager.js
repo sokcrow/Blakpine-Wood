@@ -139,8 +139,14 @@
    full.append(abilityGrid);
    const abilities={};
    for(const id of sheet.ABILITIES){
-    const score=input('number',10,1,30);field(T.abilitiesMap?.[id]||id,score,abilityGrid);
-    abilities[id]=score;
+    const score=input('number',10,1,30);field((T.abilityIcons?.[id]||'◆')+' '+(T.abilitiesMap?.[id]||id),score,abilityGrid);
+    const tile=abilityGrid.lastElementChild;tile.className='dnd-ability-card';
+    const mod=doc.createElement('small');mod.className='dnd-ability-mod';
+    score.addEventListener('input',()=>{
+     const value=Number(score.value);mod.textContent=Number.isFinite(value)?
+      ((Math.floor((value-10)/2)>=0?'+':'')+Math.floor((value-10)/2)):'';
+    });
+    tile.append(mod);abilities[id]=score;
    }
    function checks(labelText,ids,labels){
     section(labelText);
@@ -157,10 +163,68 @@
    }
    const saves=checks(T.saves||'Salvaciones',sheet.ABILITIES,T.abilitiesMap||{});
    const skills=checks(T.skills||'Habilidades',Object.keys(sheet.SKILLS),T.skillsMap||{});
-   section(T.manual||'Ficha manual');
-   const attacks=jsonField(T.attacks||'Ataques (JSON)',[]);
+   section(T.attacks||'Ataques');
+   const attackList=doc.createElement('div');attackList.className='dnd-attack-list';full.append(attackList);
+   const attackAdd=doc.createElement('button');attackAdd.type='button';
+   attackAdd.className='dnd-add-attack';attackAdd.textContent=T.attackAdd;full.append(attackAdd);
+   const raw=doc.createElement('details');raw.className='dnd-technical';
+   const rawCaption=doc.createElement('summary');rawCaption.textContent=T.technical;
+   raw.append(rawCaption);full.append(raw);
+   const attacks=jsonField(T.attackJson||'Ataques (JSON)',[]);
    const features=jsonField(T.features||'Rasgos de clase (JSON)',{});
    const spellcasting=jsonField(T.spells||'Conjuros (JSON)',null);
+   // Mover los controles JSON a la sección técnica, sin perder campos adicionales.
+   for(const label of Array.from(full.children).slice(-3))raw.append(label);
+   let attackCounter=0;
+   function syncAttacks(){
+    const data=Array.from(attackList.children,row=>{
+     const a={...row._original};
+     for(const key of ['name','ability','damageType'])a[key]=row._fields[key].value;
+     for(const key of ['damageCount','damageDie','rangeFt'])a[key]=Number(row._fields[key].value);
+     a.proficient=row._fields.proficient.checked;return a;
+    });
+    attacks.value=JSON.stringify(data,null,2);
+   }
+   function attackRow(data){
+    const row=doc.createElement('fieldset');row.className='dnd-attack-card';
+    row._original={...data};row._fields={};
+    const line=doc.createElement('div');line.className='dnd-attack-fields';row.append(line);
+    function add(key,control){
+     const label=doc.createElement('label');label.textContent=T.attackFields?.[key]||key;
+     label.append(control);line.append(label);row._fields[key]=control;
+     control.addEventListener('input',syncAttacks);
+    }
+    add('name',input('text',data.name||''));
+    add('ability',select(sheet.ABILITIES.map(id=>[id,T.abilitiesMap?.[id]||id])));
+    row._fields.ability.value=data.ability||'str';
+    for(const key of ['damageCount','damageDie','rangeFt'])
+     add(key,input('number',data[key]??(key==='rangeFt'?5:1),key==='rangeFt'?0:1,1000));
+    add('damageType',select([
+     ['bludgeoning','Contundente'],['piercing','Perforante'],['slashing','Cortante'],
+     ['fire','Fuego'],['cold','Frío'],['lightning','Relámpago'],['necrotic','Necrótico'],
+     ['radiant','Radiante'],['force','Fuerza'],['psychic','Psíquico'],['poison','Veneno'],
+     ['acid','Ácido'],['thunder','Trueno']]));
+    row._fields.damageType.value=data.damageType||'bludgeoning';
+    const proficient=doc.createElement('input');proficient.type='checkbox';
+    proficient.checked=!!data.proficient;add('proficient',proficient);
+    const remove=doc.createElement('button');remove.type='button';
+    remove.className='dnd-remove-attack';remove.textContent=T.attackRemove;
+    remove.addEventListener('click',()=>{
+     if(attackList.children.length<=1)return;row.remove();syncAttacks();
+    });row.append(remove);attackList.append(row);
+   }
+   function loadAttacks(list){
+    attackList.replaceChildren();for(const attack of list)attackRow(attack);syncAttacks();
+   }
+   attackAdd.addEventListener('click',()=>{
+    let id;do{id='custom_'+(++attackCounter)}while(Array.from(attackList.children).some(row=>row._original.id===id));
+    attackRow({id,name:'Ataque',ability:'str',damageCount:1,damageDie:4,
+     damageType:'bludgeoning',rangeFt:5,proficient:false});syncAttacks();
+   });
+   attacks.addEventListener('change',()=>{
+    try{const list=JSON.parse(attacks.value);if(Array.isArray(list)&&list.length)loadAttacks(list);}
+    catch{/* El error de JSON se informa al guardar. */}
+   });
    const error=doc.createElement('p');
    error.style.cssText='color:#fca5a5;min-height:18px;margin:0';error.setAttribute('role','alert');
    const footer=doc.createElement('div');footer.style.cssText='display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap';
@@ -223,10 +287,13 @@
     die.value=String(s?.hitDice?.sides||8);
     diceTotal.value=String(s?.hitDice?.total||1);
     diceAvail.value=String(s?.hitDice?.available??1);
-    for(const id of sheet.ABILITIES)abilities[id].value=String(s?.abilities?.[id]??10);
+    for(const id of sheet.ABILITIES){
+     abilities[id].value=String(s?.abilities?.[id]??10);
+     abilities[id].dispatchEvent(new Event('input'));
+    }
     for(const [id,e] of Object.entries(saves))e.checked=!!s?.saveProficiencies?.includes(id);
     for(const [id,e] of Object.entries(skills))e.checked=!!s?.skillProficiencies?.includes(id);
-    attacks.value=JSON.stringify(s?.attacks||defaultAttack(),null,2);
+    loadAttacks(s?.attacks||defaultAttack());
     features.value=JSON.stringify(s?.features||{},null,2);
     spellcasting.value=JSON.stringify(s?.spellcasting??null,null,2);
     error.textContent='';
