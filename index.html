@@ -5381,7 +5381,17 @@ async function start3DPreview(){
    preview3DArchitectureError=window.FH_ARCHITECTURE_TEXT.patchFailure;
   }
   if(window.FHTrainingDummy?.patchEngineDoc)engineDoc=window.FHTrainingDummy.patchEngineDoc(engineDoc);
-  if(window.FHMedievalLightEngine?.patchEngineDoc)engineDoc=window.FHMedievalLightEngine.patchEngineDoc(engineDoc,document.baseURI);
+  // El fuego medieval es una integración opcional: un hook roto nunca debe
+  // impedir entrar a Probar 3D ni dejar al editor cubierto por la pantalla de error.
+  try{
+   if(window.FHMedievalLightEngine?.patchEngineDoc)
+    engineDoc=window.FHMedievalLightEngine.patchEngineDoc(engineDoc,document.baseURI);
+  }catch(medievalError){
+   console.error('[Blakpine iluminación medieval] Adaptador omitido:',medievalError);
+   preview3DDiagnostics?.record({kind:'resource',stage:'adapter',
+    message:medievalError.message,stack:medievalError.stack});
+   // engineDoc sigue apuntando al último documento válido; el motor común arranca.
+  }
   if(previewSaveSession)engineDoc=window.FHMultimodeSaveHook.patch(engineDoc,document.baseURI);
   // Lumen usa el almacenamiento del padre mediante los mensajes de la sesión.
   if(lumenLaunch){
@@ -5659,7 +5669,7 @@ window.FHMultimodeSelector?.mount({
 <script src="./juego/assets/fh-medieval-lighting.js?v=20261121-medievallight1"></script>
 <script src="./juego/assets/fh-medieval-light-strings.js?v=20261121-medievallight1"></script>
 <script src="./juego/assets/fh-lights.js?v=20261105-light-ui2"></script>
-<script src="./juego/assets/fh-medieval-light-engine.js?v=20261123-hook-multi-239"></script>
+<script src="./juego/assets/fh-medieval-light-engine.js?v=20261123-restore-3d-safe"></script>
 <script src="./juego/assets/fh-light-editor-overlay.js?v=20261105-light-ui2"></script>
 <script src="./juego/assets/fh-object-front.js?v=20261122-front-controls"></script>
 <script src="./juego/assets/fh-object-front-strings.js?v=20261122-front-controls"></script>
