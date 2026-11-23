@@ -116,7 +116,7 @@ test('El editor y el adaptador registran nueve herramientas antes de construir l
  const group=html.slice(html.indexOf("lighting:[['select'"),html.indexOf('  water:[',html.indexOf("lighting:[['select'")));
  for(const tool of Object.keys(mod.tools))assert.ok(group.includes(tool),tool);
  assert.match(html,/FHMedievalLightEngine\.patchEngineDoc\(engineDoc,document\.baseURI\)/);
- assert.match(html,/fh-medieval-light-engine\.js\?v=20261123-hook-multi-239/,
+ assert.match(html,/fh-medieval-light-engine\.js\?v=20261123-restore-3d-safe/,
   'el editor debe invalidar la versión anterior del adaptador al publicar la corrección');
  assert.doesNotMatch(html,/fh-medieval-light-engine\.js\?v=20261122-preview-boot/,
   'no volver a solicitar el adaptador que produce MEDIEVAL_LIGHTING_HOOK_MISSING');
@@ -140,19 +140,13 @@ test('El editor y el adaptador registran nueve herramientas antes de construir l
  assert.ok(doc.includes('fhMedievalRuntime.interact(currentFloor,item)'));
  assert.ok(doc.includes('FHAssets?.attach(model,entry.lamp)'));
  assert.ok(doc.includes('fhMedievalRuntime.tick()'));
- assert.ok(doc.includes('fh-medieval-fire-vfx.js'));
- assert.ok(doc.includes('FHMedievalFireVisual?.attach(THREE,root,entry.lamp,fi)'));
- assert.ok(doc.includes('FHMedievalFireVisual?.buildChimneys'));
- assert.ok(doc.includes('FHMedievalFireVisual?.tick(dt,fhMedievalRuntime)'));
- const corrected='entry.lit.visible=lit&&!window.FHMedievalLighting.isMedieval(entry.lamp?.lightKind);';
- assert.equal(doc.split(corrected).length-1,2,'ambas rutas de visibilidad se corrigen');
- assert.ok(!doc.includes('entry.lit.visible=lit;entry.dark.visible=!lit;'));
+ assert.ok(!doc.includes('fh-medieval-fire-vfx.js'),'se suspende el VFX experimental durante la recuperación');
+ assert.ok(doc.includes('fhMedievalRuntime.tick()'),'la lógica de combustible y encendido sigue disponible');
+ const corrected='entry.lit.visible=lit;entry.dark.visible=!lit;';
+ assert.equal(doc.split(corrected).length-1,2,'la integración estable conserva ambas rutas de lámparas');
  const once=adapter.patchEngineDoc(example.replace(
   'function refreshLampGlow(){entry.lit.visible=lit;entry.dark.visible=!lit;}', ''),
   'https://example.org/index.html');
- assert.equal(once.split(corrected).length-1,1,'retrocompatibilidad con motor de una ruta');
- assert.throws(()=>adapter.patchEngineDoc(
-  example.replace('</script>','function duplicateLamp(){entry.lit.visible=lit;entry.dark.visible=!lit;}</script>'),
-  'https://example.org/index.html'),/lamp visibility count 3/,'rechazar más de dos coincidencias');
+ assert.equal(once.split(corrected).length-1,1,'retrocompatibilidad con la única ruta');
  assert.ok(doc.indexOf('fh-medieval-lighting.js')<doc.indexOf('</head>'));
 });
