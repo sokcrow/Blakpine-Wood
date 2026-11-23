@@ -15,7 +15,7 @@ test('ficha D&D utiliza los seis PNG originales de Luminos',()=>{
   const bytes=fs.readFileSync(path.join(root,'juego/assets/dnd-icons',id+'.png'));
   assert.equal(bytes.toString('hex',0,8),'89504e470d0a1a0a',id);
   const gitHash=crypto.createHash('sha1')
-   .update(Buffer.from('blob '+bytes.length+'\\0')).update(bytes).digest('hex');
+   .update(Buffer.from('blob '+bytes.length+String.fromCharCode(0))).update(bytes).digest('hex');
   assert.equal(gitHash,sha,id+' no coincide con el icono original');
  }
 });
