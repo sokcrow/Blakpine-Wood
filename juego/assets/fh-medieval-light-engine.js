@@ -10,16 +10,16 @@
   if(typeof source!=='string')throw TypeError('MEDIEVAL_ENGINE_DOCUMENT_REQUIRED');
   let doc=source;
   function inject(before,after){
-   const count=doc.split(before).length-1;
-   if(count!==1)throw Error('MEDIEVAL_LIGHTING_HOOK_MISSING: '+before.slice(0,70)+' count '+count);
+   const count=typeof before==='string'?doc.split(before).length-1:[...doc.matchAll(before)].length;
+   if(count!==1)throw Error('MEDIEVAL_LIGHTING_HOOK_MISSING: '+String(before).slice(0,70)+' count '+count);
    doc=doc.replace(before,after);
   }
   inject("function fixtureLit(floor,room,fixture){",
     "function fixtureLit(floor,room,fixture){\n  if(window.FHMedievalLighting?.isMedieval(fixture?.lightKind))return window.FHMedievalRuntime?.lit(floor,fixture)===true;");
   inject("const GameState=createGameState(restored||DATA.initialGameState);",
     "const GameState=createGameState(restored||DATA.initialGameState);\nGameState.medievalLighting=structuredClone(restored?.medievalLighting||DATA.initialGameState?.medievalLighting||{});");
-  inject("const lighting=ForestShared.createLightingSystem(DATA.floors,GameState);",
-    "const lighting=ForestShared.createLightingSystem(DATA.floors,GameState);\nconst fhMedievalRuntime=window.FHMedievalLighting.createRuntime({floors:DATA.floors,state:GameState,\n  clock:()=>window.FHMedievalLighting.absoluteMinute(GameState.clock),\n  player:()=>({floor:currentFloor,x:user.x,z:user.z}),lights:window.FHLights,cell:CELL});\nwindow.FHMedievalRuntime=fhMedievalRuntime;");
+  inject(/const lighting=ForestShared\.createLightingSystem\(DATA\.floors,GameState(?:,\{[^\r\n]*\})?\);/g,
+    declaration=>declaration+"\nconst fhMedievalRuntime=window.FHMedievalLighting.createRuntime({floors:DATA.floors,state:GameState,\n  clock:()=>window.FHMedievalLighting.absoluteMinute(GameState.clock),\n  player:()=>({floor:currentFloor,x:user.x,z:user.z}),lights:window.FHLights,cell:CELL});\nwindow.FHMedievalRuntime=fhMedievalRuntime;");
   inject("const GameEvents=createEventBus();","const GameEvents=createEventBus();\n"+"const fhDropButton=document.createElement('button');\nfhDropButton.type='button';fhDropButton.id='fhMedievalDropTorch';\nfhDropButton.textContent=window.FH_MEDIEVAL_LIGHT_TEXT.drop;fhDropButton.hidden=true;\nfhDropButton.style.cssText='position:fixed;right:12px;bottom:88px;z-index:14;min-height:44px;padding:8px 14px;background:#32251c;color:#ffe3ad;border:1px solid #b99961;cursor:pointer';\ndocument.body.append(fhDropButton);\nfhDropButton.onclick=()=>{if(fhMedievalRuntime.drop()){notice(window.FH_MEDIEVAL_LIGHT_TEXT.dropped);roomLightsDirty=true;visibilityDirty=true;saveProgress();}else notice(window.FH_MEDIEVAL_LIGHT_TEXT.wrongFloor);};");
   inject("function useFurniture(item,selectedSeat=null){",
     "function useFurniture(item,selectedSeat=null){\n if(item.type==='light_fixture'&&window.FHMedievalLighting.isMedieval(item.lightKind)){\n  const result=fhMedievalRuntime.interact(currentFloor,item);\n  const t=window.FH_MEDIEVAL_LIGHT_TEXT;notice(t[result.action||result.reason]||t.missing);\n  roomLightsDirty=true;visibilityDirty=true;if(result.ok)saveProgress();return result;\n }");

@@ -115,7 +115,7 @@ test('El editor y el adaptador registran nueve herramientas antes de construir l
  const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
  const group=html.slice(html.indexOf("lighting:[['select'"),html.indexOf('  water:[',html.indexOf("lighting:[['select'")));
  for(const tool of Object.keys(mod.tools))assert.ok(group.includes(tool),tool);
- assert.match(html,/FHMedievalLightEngine\.patchEngineDoc\(architectureDoc,document\.baseURI\)/);
+ assert.match(html,/FHMedievalLightEngine\.patchEngineDoc\(engineDoc,document\.baseURI\)/);
  assert.match(html,/window\.FHLights\.presetFields\(kind,Number\(project\.units\?\.feetPerCell\)\|\|5\)/);
  const example=['<!DOCTYPE html><html><head></head><body><script>',
   'function fixtureLit(floor,room,fixture){}',

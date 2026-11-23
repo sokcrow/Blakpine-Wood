@@ -15,12 +15,9 @@ test('El motor recibe la copia íntegra del cartucho sin cargar progreso Legacy 
  sent.floors[0].items[0].future='runtime';assert.equal(JSON.stringify(project),before);
 });
 test('La ruta real de arranque aísla el almacenamiento del motor y conserva sintaxis',()=>{
- const c=vm.createContext({window:{}});
- for(let i=0;i<13;i++)vm.runInContext(fs.readFileSync('juego/assets/engine-'+String(i).padStart(2,'0')+'.js','utf8'),c);
- const source=Buffer.from(c.window.__FOREST_EMBEDDED_ENGINE__,'base64').toString('utf8');
- const code=extract('  let originalEngineDoc=decodeEmbedded3DEngine(PREVIEW_ENGINE_DOC_B64);','  const preparedEngineDoc=');
- const patch=lumenLaunch=>{const context=vm.createContext({lumenLaunch,PREVIEW_ENGINE_DOC_B64:'source',decodeEmbedded3DEngine:()=>source});
-  return vm.runInContext(code+';originalEngineDoc',context);};
+ const {html:source}=require('./helpers/forest-engine.cjs')();
+ const code=extract('  if(lumenLaunch){\n   const saveHook=', '  play3DFrame.srcdoc=engineDoc;');
+ const patch=lumenLaunch=>vm.runInNewContext(code+';engineDoc',{lumenLaunch,engineDoc:source});
  const isolated=patch({});assert.equal(patch(null),source);
  assert.ok(isolated.includes('const localSave=null;'));assert.ok(!isolated.includes('localSave=window.localStorage'));
  assert.doesNotThrow(()=>new vm.Script(isolated.slice(isolated.lastIndexOf('<script>')+8,isolated.lastIndexOf('</script>'))));
