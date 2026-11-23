@@ -83,3 +83,6 @@
 #fh-dnd-character-dialog .dnd-technical{border-top:1px solid #54616a;padding-top:8px}
 #fh-dnd-character-dialog .dnd-technical>label{display:grid;gap:7px;margin:8px 0}
 @media(max-width:480px){#fh-dnd-character-dialog .dnd-ability-card{padding:7px}}
+
+#fh-dnd-character-dialog .dnd-ability-card>span{display:flex;align-items:center;gap:8px;min-height:32px}
+#fh-dnd-character-dialog .dnd-ability-icon{width:30px;height:30px;object-fit:contain;flex:none}
