@@ -28,7 +28,6 @@
   intelligence:'Inteligencia',wisdom:'Sabiduría',charisma:'Carisma',
   unknown:'Ficha sin nombre',selectName:'Seleccionar personaje',
   abilitiesMap:Object.freeze({str:'FUE',dex:'DES',con:'CON',int:'INT',wis:'SAB',cha:'CAR'}),
-  abilityIcons:Object.freeze({str:'⚔',dex:'➶',con:'♥',int:'✦',wis:'◉',cha:'♛'}),
   skillsMap:Object.freeze({
    acrobatics:'Acrobacias',animalHandling:'Trato con animales',arcana:'Arcanos',
    athletics:'Atletismo',deception:'Engaño',history:'Historia',insight:'Perspicacia',
