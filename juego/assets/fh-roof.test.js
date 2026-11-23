@@ -249,3 +249,34 @@ test('el panel muestra la azotea activa por defecto para un mapa existente',()=>
  vm.runInNewContext(fs.readFileSync(__dirname+'/fh-roof-editor.js','utf8'),env);
  env.window.FHRoofEditor.open();assert.match(env.html,/id="roof-enabled" checked/);
 });
+
+test('tejado medieval mantiene forma, orientación y cumbrera al serializar',()=>{
+ const roof=R.settings({shape:'gable',ridgeAxis:'x',riseFt:6,coverColor:'#A45B46'});
+ assert.equal(roof.shape,'gable');assert.equal(roof.ridgeAxis,'x');assert.equal(roof.riseFt,6);
+ assert.equal(R.settings(JSON.parse(JSON.stringify(roof))).coverColor,'#A45B46');
+ assert.equal(R.settings({shape:'desconocido'}).shape,'flat');
+ assert.equal(R.settings({shape:'gable',riseFt:99}).riseFt,30);
+ assert.equal(R.settings({shape:'gable',riseFt:-4}).riseFt,1);
+ const mesh=R.gableTriangles(box(0,0,8,4),roof,1.524,.021);
+ assert.equal(mesh.axis,'x');
+ assert.equal(mesh.groups.length,6,'dos faldones, dos frontones');
+ assert.equal(mesh.positions.length,54);
+ assert.ok(Math.abs(mesh.peak-(.021+6*.3048))<1e-9);
+ const xs=[],ys=[];
+ for(let i=0;i<mesh.positions.length;i+=3){xs.push(mesh.positions[i]);ys.push(mesh.positions[i+1]);}
+ assert.ok(Math.min(...xs)<0,'alero se extiende fuera de la planta');
+ assert.ok(Math.max(...ys)>1.8);
+ // Los cuatro triángulos de cubierta tienen normal orientada hacia arriba.
+ for(let t=0;t<4;t++){
+  const a=mesh.positions.slice(t*9,t*9+3),b=mesh.positions.slice(t*9+3,t*9+6),
+   c=mesh.positions.slice(t*9+6,t*9+9);
+  const ux=b[0]-a[0],uz=b[2]-a[2],vx=c[0]-a[0],vz=c[2]-a[2];
+  assert.ok(uz*vx-ux*vz>0,'tejado con normal positiva en Y');
+ }
+});
+test('dirección automática sigue lado más largo sin cerrar patios ni alterar azoteas',()=>{
+ assert.equal(R.gableTriangles(box(0,0,4,9),{shape:'gable'},1.524).axis,'z');
+ const p=R.plan(slab([box(0,0,10,10)]),slab([box(4,4,2,2)]),{shape:'gable'});
+ assert.equal(p.shape,'gable');assert.equal(area(p.spans),96);
+ assert.equal(R.settings().shape,'flat');
+});
