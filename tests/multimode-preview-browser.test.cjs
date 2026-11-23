@@ -11,7 +11,7 @@ const mime = {
  '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json',
 };
 
-test('Chromium: arranque real Lumen + D&D, guardado aislado y vista 3D Legacy', {
+test('Chromium: arranque real, guardado, muros de D&D y vista 3D Legacy', {
  skip: process.env.LUMEN_BROWSER_TEST !== '1', timeout: 120000,
 }, async () => {
  const { chromium } = require('playwright');
@@ -19,7 +19,20 @@ test('Chromium: arranque real Lumen + D&D, guardado aislado y vista 3D Legacy', 
   const file = path.resolve(root, '.' + decodeURIComponent(new URL(req.url, 'http://localhost').pathname));
   if (!file.startsWith(root + path.sep)) return res.writeHead(403).end();
   try {
-   const data = await fs.readFile(file);
+   let data = await fs.readFile(file);
+   if (path.basename(file) === 'fh-style-renderer.js') {
+    data += `\nif (window.parent !== window) {
+     const runtime = window.FHStyleRuntime;
+     window.previewWallMeshes = new Map();
+     window.FHStyleRuntime = {
+      ...runtime,
+      decorateWall(three, mesh, wall, ...rest) {
+       runtime.decorateWall(three, mesh, wall, ...rest);
+       window.previewWallMeshes.set(wall.id, mesh);
+      },
+     };
+    }`;
+   }
    res.writeHead(200, { 'Content-Type': mime[path.extname(file)] || 'application/octet-stream' }).end(data);
   } catch {
    res.writeHead(404).end();
@@ -56,7 +69,7 @@ test('Chromium: arranque real Lumen + D&D, guardado aislado y vista 3D Legacy', 
    });
   });
 
-  async function running() {
+  async function running(expectedMap = map) {
    await page.waitForFunction(() => preview3DRunning || preview3DDiagnosticFailed, { }, { timeout: 35000 });
    assert.equal(await page.evaluate(() => preview3DRunning && !preview3DDiagnosticFailed), true,
     JSON.stringify(await page.evaluate(() => document.getElementById('play3dState')?.textContent)) + '\n' + errors.join('\n'));
@@ -64,9 +77,20 @@ test('Chromium: arranque real Lumen + D&D, guardado aislado y vista 3D Legacy', 
     packet.type === 'FOREST_PREVIEW_RUNNING' && !packet.unverified)));
    const frame = page.frames().find(candidate => candidate.url() === 'about:srcdoc');
    assert.ok(frame);
-   assert.equal(await frame.evaluate(() => window.ForestHorrorLoadedMap?.createdAt), map.createdAt);
+   assert.equal(await frame.evaluate(() => window.ForestHorrorLoadedMap?.createdAt), expectedMap.createdAt);
    return frame;
   }
+
+  const wallColors = (frame, id) => frame.evaluate(id => {
+   const wall = window.previewWallMeshes.get(id);
+   if (!wall) throw Error('Muro ausente: ' + id);
+   return Object.fromEntries(wall.children.filter(face => face.userData.fhFinishSide).map(face => {
+    const texture = face.material.map.image.getContext('2d');
+    const pixel = y => [...texture.getImageData(5, y, 1, 1).data];
+    return [face.userData.fhFinishSide, [pixel(0), pixel(2), pixel(4)]];
+   }));
+  }, id);
+  const wood = [[102, 82, 63, 255], [153, 132, 111, 255], [132, 107, 82, 255]];
 
   await page.goto(origin + '/index.html?editor=1&lumenCartridge=1');
   const { legacyKey, legacyRaw, characterId } = await page.evaluate(map => {
@@ -101,6 +125,7 @@ test('Chromium: arranque real Lumen + D&D, guardado aislado y vista 3D Legacy', 
 
   let frame = await startDnd();
   assert.equal(await page.evaluate(() => preview3DArchitectureError), '');
+  assert.deepEqual(await wallColors(frame, 'muro_norte'), { A: wood, B: wood });
   const status = await frame.evaluate(() => ({
    combat: window.FHDndCombatSession?.getStatus(), shadow: window.FHShadowRuntime,
    legacySave: window.ForestHorrorLoadedMap.__runtimeSave,
@@ -149,7 +174,9 @@ test('Chromium: arranque real Lumen + D&D, guardado aislado y vista 3D Legacy', 
   }, map);
   frame = await running();
   assert.equal(await frame.evaluate(() => !!window.FHLegacyCombatSession && !!window.FHShadowRuntime), true);
+  assert.deepEqual(await wallColors(frame, 'muro_norte'), {});
   assert.equal(await frame.evaluate(() => typeof window.FHDndCombatSession), 'undefined');
+
   assert.equal(await page.evaluate(key => localStorage.getItem(key), legacyKey), legacyRaw);
 
   await page.goto(origin + '/index.html?editor=1');
@@ -161,6 +188,27 @@ test('Chromium: arranque real Lumen + D&D, guardado aislado y vista 3D Legacy', 
    window.previewPackets.some(packet => packet.type === 'FOREST_GAMESTATE_SAVE' && packet.key === legacyKey) &&
    localStorage.getItem(legacyKey) !== legacyRaw, { legacyKey, legacyRaw });
   assert.equal(await frame.evaluate(() => typeof window.FHDndCombatSession), 'undefined');
+
+  const editedMap = structuredClone(map);
+  editedMap.createdAt = '2026-11-22T20:00:00.000Z';
+  editedMap.floors[0].items.find(item => item.id === 'muro_norte').finish = {
+   A: { preset: 'pintura-lisa', color: '#667788' },
+  };
+  await page.evaluate(map => {
+   close3DPreview();
+   window.previewPackets.length = 0;
+   importProject(map);
+   FHEditorCatalog.setRuleset('dnd');
+   const wall = project.floors[0].items.find(item => item.id === 'muro_norte');
+   FHStyleEditor.paintWall(wall, 'B');
+  }, editedMap);
+  assert.equal(await page.locator('#fhStylePreset').inputValue(), 'madera');
+  await page.locator('#fhStyleBack').click();
+  await page.locator('#testBtn').click();
+  await page.locator('#fh-dnd-character-dialog button[type="submit"]').click();
+  frame = await running(editedMap);
+  const paint = [102, 119, 136, 255];
+  assert.deepEqual(await wallColors(frame, 'muro_norte'), { A: [paint, paint, paint], B: wood });
  } finally {
   if (browser) await browser.close();
   await new Promise(resolve => server.close(resolve));

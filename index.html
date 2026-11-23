@@ -199,7 +199,7 @@ window.FHMultimodeSaveAdapters=Object.freeze({dnd:window.FHDndSaveAdapter});</sc
 <script src="./juego/assets/engine-10.js"></script>
 <script src="./juego/assets/engine-11.js"></script>
 <script src="./juego/assets/engine-12.js"></script>
-<script src="./juego/assets/fh-style-property.js?v=20261115-apartments03"></script>
+<script src="./juego/assets/fh-style-property.js?v=20261122-dnd-wood"></script>
 <script src="./juego/assets/fh-property-zones.js?v=20261115-apartments03"></script>
 <script src="./juego/assets/fh-construction-strings.js?v=20261113-construction1"></script>
 <script src="./juego/assets/fh-construction.js?v=20261113-construction1"></script>
@@ -207,9 +207,9 @@ window.FHMultimodeSaveAdapters=Object.freeze({dnd:window.FHDndSaveAdapter});</sc
 <script src="./juego/assets/fh-construction-rooms.js?v=20261113-rooms02"></script>
 <script src="./juego/assets/fh-construction-prefabs-strings.js?v=20261115-apartments03"></script>
 <script src="./juego/assets/fh-construction-prefabs.js?v=20261115-plano02"></script>
-<script src="./juego/assets/fh-style-renderer.js"></script>
-<script src="./juego/assets/fh-style-strings.js"></script>
-<script src="./juego/assets/fh-style-editor.js"></script>
+<script src="./juego/assets/fh-style-renderer.js?v=20261122-dnd-wood"></script>
+<script src="./juego/assets/fh-style-strings.js?v=20261122-dnd-wood"></script>
+<script src="./juego/assets/fh-style-editor.js?v=20261122-dnd-wood"></script>
 <script src="./juego/assets/fh-roof-strings.js?v=20261110-roof3"></script>
 <script src="./juego/assets/fh-roof.js?v=20261110-roof3"></script>
 <script src="./juego/assets/fh-roof-engine-hook.js?v=20261110-roof3"></script>
@@ -3865,8 +3865,8 @@ function prepareGLBEngineDoc(source){
  ].join('\n');
  if(source.split(furnitureVisibilityHook).length!==2)throw Error('Hook de renderizado de muebles incompatible');
  // Acabados y propiedad: hooks acotados al motor HTML en memoria.
- const styleCore='<script src="'+new URL('./juego/assets/fh-style-property.js',document.baseURI).href+'"></'+'script>';
- const styleRender='<script src="'+new URL('./juego/assets/fh-style-renderer.js',document.baseURI).href+'"></'+'script>';
+ const styleCore='<script src="'+new URL('./juego/assets/fh-style-property.js?v=20261122-dnd-wood',document.baseURI).href+'"></'+'script>';
+ const styleRender='<script src="'+new URL('./juego/assets/fh-style-renderer.js?v=20261122-dnd-wood',document.baseURI).href+'"></'+'script>';
  function addStylesToEngine(doc){
   const changes=[
    ["mesh.rotation.y=-Math.atan2(dz,dx);trackSegmentSight(f,mesh,a,b);",

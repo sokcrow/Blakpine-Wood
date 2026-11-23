@@ -98,11 +98,12 @@
   m.userData.fhTileSize=e.size;materialCache.set(e.key,m);return m;
  }
  function decorateWall(THREE,mesh,wall,map,{widthMeters,heightMeters}){
-  if(!wall.finish&&!map.styleSystem)return;
   const shared=P();if(!shared)return;
+  const rulesetId=map.__multimodeSave?.identity?.rulesetId;
+  if(!wall.finish&&!map.styleSystem&&!shared.usesWoodWallDefault(wall,rulesetId))return;
   const floorId=map.floors[mesh.userData.fhFloor||0]?.id||wall.floorId||map.floors[0]?.id;
   for(const side of ['A','B']){
-   const finish=shared.wallStyle(map,floorId,wall,side);
+   const finish=shared.wallStyle(map,floorId,wall,side,rulesetId);
    if(finish.preset==='legacy')continue;
    const mat=material(THREE,map,finish),span=mat.userData.fhTileSize;
    const geom=new THREE.PlaneGeometry(widthMeters,heightMeters);
