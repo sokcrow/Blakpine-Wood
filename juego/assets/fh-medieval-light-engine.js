@@ -31,14 +31,14 @@
   // Las llamas sólo aparecen sobre luminarias medievales encendidas.
   inject("roomLampEntries.push({...entry,root,lit,dark});",
     "if(window.FHMedievalLighting.isMedieval(entry.lamp?.lightKind))"+
-    "window.FHMedievalFireVisual?.attach(THREE,root,entry.lamp,fi);\\n"+
+    "window.FHMedievalFireVisual?.attach(THREE,root,entry.lamp,fi);\n"+
     "roomLampEntries.push({...entry,root,lit,dark});");
   // La placa rectangular de las luces modernas no representa fuego.
   inject("entry.lit.visible=lit;entry.dark.visible=!lit;",
     "const medieval=window.FHMedievalLighting.isMedieval(entry.lamp?.lightKind);"+
     "entry.lit.visible=!medieval&&lit;entry.dark.visible=!medieval&&!lit;");
   inject("fhDropButton.hidden=!fhMedievalRuntime.hasCarried();",
-    "fhDropButton.hidden=!fhMedievalRuntime.hasCarried();\\n"+
+    "fhDropButton.hidden=!fhMedievalRuntime.hasCarried();\n"+
     "window.FHMedievalFireVisual?.tick(dt,fhMedievalRuntime);");
   inject("const exteriorLayers=DATA.floors.map(()=>new THREE.Group());scene.add(...exteriorLayers);",
     "const exteriorLayers=DATA.floors.map(()=>new THREE.Group());scene.add(...exteriorLayers);\\n"+
