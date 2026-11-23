@@ -351,10 +351,12 @@ async function previewWithFailure(failingAdapter){
   project:{floors:[{items:[{type:'spawn'}]}]},
   document:{activeElement:null,getElementById:()=>null},console:{error(){},warn(){}},
   preview3DActive:false,preview3DSent:false,preview3DRunning:false,preview3DArchitectureError:'',
+  preview3DSelectedMap:null,preview3DTimer:null,previewSaveSession:null,
   preview3DDiagnostics:null,preview3DDiagnosticFailed:false,
   play3DFrame:frame,play3DLayer:{classList:{add(){}},setAttribute(){}},
   PREVIEW_ENGINE_DOC_B64:'base64',PREVIEW_TEXT:{preparing:'preparando'},
   decodeEmbedded3DEngine:()=>'',prepareGLBEngineDoc:()=>'motor-base',
+  prepare3DSaveSession:()=>null,
   closeInspector(){},closeModal(){},show3DStatus(){},
   preview3DError(message){messages.push(message);},setTimeout:()=>1
  });
