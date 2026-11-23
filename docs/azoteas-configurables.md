@@ -10,6 +10,14 @@ En el nivel que contiene el perímetro rojo del edificio, abrir **⚙ Niveles �
 - Los pisos interiores conservan su acabado. Los rellenos de habitaciones, pasillos u otros suelos se recortan al llegar a la azotea y no pueden tapar su concreto. Un retranqueo sólo recibe concreto en su terraza expuesta.
 - Si la última planta tiene un contorno rojo cerrado, el motor crea su tapa final a la altura de `ceilingHeightFt`. Esa tapa es derivada: no añade pisos al editor ni al JSON del creador.
 
+## Tejados medievales (villas)
+
+En **Configurar azotea**, el creador puede elegir **Tejado a dos aguas (villa)** en lugar de **Azotea o balcón plano**. El tejado dibuja dos faldones inclinados, cumbrera, tímpanos triangulares y aleros de 0.14 celdas; utiliza una textura de tejas pixeladas procedimental y no genera el pretil de la azotea.
+
+La elevación de la cumbrera se configura en pies (`riseFt`, 1–30 ft; predeterminado 4 ft). La orientación puede seguir el lado más largo o fijarse en el eje X/Z. Los patios se siguen recortando con `surfaceRectsMinusVoids`. En plantas con varios rectángulos de cubierta se genera un tejado por rectángulo; las intersecciones arquitectónicas complejas en L siguen pendientes de remates especiales.
+
+Esta opción se elige **por planta**. El esquema actual no incluye una clasificación comprobable de cada edificio individual como «villa» o «balcón», por lo que la selección todavía **no es automática por tipo de edificio**; no se deben convertir todas las cubiertas D&D indiscriminadamente en dos aguas. Los mapas que ya existían y no especifican forma mantienen su techo plano.
+
 ## Compatibilidad y datos
 
 Se conserva `forest-horror-map-v1`. `floors[].roof` es opcional; los mapas anteriores sin ese campo usan concreto y pretil de 0.25 tile automáticamente. No hace falta volver a dibujar ni guardar la configuración. Sólo `roof.enabled: false` desactiva expresamente estos acabados y el pretil.
