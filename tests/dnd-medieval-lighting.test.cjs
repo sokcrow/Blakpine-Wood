@@ -116,6 +116,10 @@ test('El editor y el adaptador registran nueve herramientas antes de construir l
  const group=html.slice(html.indexOf("lighting:[['select'"),html.indexOf('  water:[',html.indexOf("lighting:[['select'")));
  for(const tool of Object.keys(mod.tools))assert.ok(group.includes(tool),tool);
  assert.match(html,/FHMedievalLightEngine\.patchEngineDoc\(engineDoc,document\.baseURI\)/);
+ assert.match(html,/fh-medieval-light-engine\\.js\\?v=20261123-hook-multi-239/,
+  'el editor debe invalidar la versión anterior del adaptador al publicar la corrección');
+ assert.doesNotMatch(html,/fh-medieval-light-engine\\.js\\?v=20261122-preview-boot/,
+  'no volver a solicitar el adaptador que produce MEDIEVAL_LIGHTING_HOOK_MISSING');
  assert.match(html,/window\.FHLights\.presetFields\(kind,Number\(project\.units\?\.feetPerCell\)\|\|5\)/);
  const example=['<!DOCTYPE html><html><head></head><body><script>',
   'function fixtureLit(floor,room,fixture){}',
