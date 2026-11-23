@@ -1956,7 +1956,7 @@ function refreshCircuits(focusZone){
   }
  }
 }
-function setLayer(layer){activeLayer=layer;document.body.classList.toggle('layer-lighting',layer==='lighting');$$('#layerSwitch button').forEach(b=>b.classList.toggle('active',b.dataset.layer===layer));$('#circuitTools').hidden=layer!=='lighting';if(layer==='lighting')refreshCircuits();selection=null;anchor=null;preview=null;closeInspector();render()}
+function setLayer(layer){activeLayer=layer;document.body.classList.toggle('layer-lighting',layer==='lighting');$('#layerSwitch button').forEach(b=>b.classList.toggle('active',b.dataset.layer===layer));const circuitsEnabled=lumenEditorRuleset!=='dnd'||window.FHDndMapModules?.options(project).electricity===true;$('#circuitTools').hidden=layer!=='lighting'||!circuitsEnabled;if(layer==='lighting'&&circuitsEnabled)refreshCircuits();selection=null;anchor=null;preview=null;closeInspector();render()}
 // Grafo común: los cables se ven sobre las paredes, nunca cruzan habitaciones.
 const utilityVisualCache={signature:'',graph:null,runtime:null};
 function utilityVisual(){
