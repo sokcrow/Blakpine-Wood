@@ -49,6 +49,14 @@ test('multiconector: ocupa un slot y propaga toda la carga al enchufe',()=>{
  assert.equal(sys.statusFor(0,items.find(it=>it.id==='plug')).loadingRayos,2); // El cargador vacío no consume carga
  assert.equal(sys.statusFor(0,items.find(it=>it.id==='strip')).usedSlots,2);
 });
+test('el módulo de electricidad puede bloquear el suministro sin apagar el agua',()=>{
+ const {sys,items,project,state}=fixture();
+ const plug=items.find(it=>it.id==='plug'),sink=items.find(it=>it.id==='sink');
+ assert.equal(sys.statusFor(0,plug).power.powered,true);
+ const disabled=FH.createRuntime(project,structuredClone(state),{electricityEnabled:false});
+ assert.equal(disabled.statusFor(0,plug).power.powered,false);
+ assert.deepEqual(disabled.statusFor(0,sink).water,sys.statusFor(0,sink).water);
+});
 test('sobrecarga gradual: el daño se acumula, no se rompe inmediatamente',()=>{
  const {sys,items}=fixture();
  items.push({id:'heavy',type:'misc',x:3,y:3.1,outletId:'strip',service:{requiresPower:true,rayos:10,watts:3000}});

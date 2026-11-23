@@ -55,7 +55,8 @@ function structuredStyle(s){return {preset:String(s.preset),color:String(s.color
 function paintWall(wall,side){
  if(!wall?.a||!wall?.b||!['A','B'].includes(side))return;
  if(!canWall(wall,side))return env.toast(T().denied);
- const room=findRoomBeside(wall,side),initial=P().wallStyle(doc(),floor().id,wall,side);
+ const room=findRoomBeside(wall,side);
+ const initial=P().wallStyle(doc(),floor().id,wall,side,root.FHEditorCatalog?.ruleset?.());
  styleDialog('wall',initial,s=>P().paintWall(doc(),floor().id,byId(wall.id),side,s,actor,admin()),
  {description:(side==='A'?T().sideA:T().sideB)+' · '+h(room?.label||'fachada/exterior'),
  room:room?(s)=>P().paintRoomWalls(doc(),floor().id,room,s,actor,admin()):null});

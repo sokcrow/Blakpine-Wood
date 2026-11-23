@@ -406,6 +406,20 @@ body.fh-player-menu-ready #fhPlayerMenuDetail .fh-status-grid {
   gap:clamp(14px,2.7vw,42px);
   align-items:start;
 }
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-dnd-status {
+  display: grid;
+  gap: 8px;
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-dnd-stats {
+  white-space: pre-line;
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
+}
+body.fh-player-menu-ready #fhPlayerMenuDetail .fh-dnd-status :is(select,input,button) {
+  min-height: 44px;
+  max-width: 100%;
+  font: inherit;
+}
 body.fh-player-menu-ready #fhPlayerMenuDetail .fh-status-column {
   min-width:0;
   padding:clamp(13px,2vw,24px);

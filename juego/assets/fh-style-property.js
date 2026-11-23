@@ -8,8 +8,9 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   'use strict';
   const TEXEL_PER_FOOT=8, MAX_PATTERNS=24, MAX_PNG_BYTES=12*1024, MAX_COLORS=16;
-  const WALL_PRESETS=['ladrillo','concreto','estuco','metal-corrugado','pintura-lisa','tapiz','lambrin','azulejo'];
+  const WALL_PRESETS=['ladrillo','concreto','estuco','metal-corrugado','pintura-lisa','tapiz','lambrin','azulejo','madera'];
   const FLOOR_PRESETS=['madera','baldosa','concreto','alfombra','azulejo','asfalto','callejon','banqueta','grava','adoquin','pasto','tierra'];
+  const WOOD_WALL={preset:'madera',color:'#846B52',pattern:null};
   const FACES=['A','B'], COLOR=/^#[0-9a-fA-F]{6}$/;
   const xy=p=>({x:Number(p.x),y:Number(p.y??p.z)});
   const signed=(wall,p)=>{const a=xy(wall.a),b=xy(wall.b),v=xy(p);return (b.x-a.x)*(v.y-a.y)-(b.y-a.y)*(v.x-a.x);};
@@ -100,13 +101,17 @@
     return {preset:ok.includes(x.preset)?x.preset:fallback.preset,color:typeof x.color==='string'&&COLOR.test(x.color)?x.color.toUpperCase():fallback.color,
       pattern:typeof x.pattern==='string'&&/^[\w-]{1,48}$/.test(x.pattern)?x.pattern:null};
   }
-  function wallStyle(map,floorId,wall,side){
+  function usesWoodWallDefault(wall,rulesetId,map){
+    return rulesetId==='dnd'&&map?.dndModules?.modernity!==true&&['wall','red_wall','half_wall'].includes(wall.type);
+  }
+  function wallStyle(map,floorId,wall,side,rulesetId){
     if(!FACES.includes(side))throw Error('Cara de muro inválida');
     const kind=wall.sideClass?.[side],point=sample(wall,side),floor=(map.floors||[]).find(f=>f.id===floorId);
     const isRoom=(floor?.items||[]).some(it=>it.type==='room'&&roomContains(it,point));
     const isOutdoor=(floor?.items||[]).some(it=>['outside','pavement','parking','grass','dirt'].includes(it.type)&&roomContains(it,point));
     const interior=kind==='interior'||(kind!=='exterior'&&(isRoom||!isOutdoor&&!!buildingAt(map,floorId,point)));
-    const fallback=interior?{preset:'pintura-lisa',color:'#A49E91',pattern:null}:{preset:'ladrillo',color:'#96564C',pattern:null};
+    const fallback=usesWoodWallDefault(wall,rulesetId,map)?{...WOOD_WALL}:
+      interior?{preset:'pintura-lisa',color:'#A49E91',pattern:null}:{preset:'ladrillo',color:'#96564C',pattern:null};
     if(wall.finish?.[side])return style(wall.finish[side],fallback);
     return wall.material!=null?{preset:'legacy',legacyMaterial:wall.material}:fallback;
   }
@@ -228,7 +233,7 @@
   }
   function validateMap(map){if(map?.patterns)validatePatterns(map.patterns);return map;}
   return Object.freeze({TEXEL_PER_FOOT,MAX_PATTERNS,MAX_PNG_BYTES,MAX_COLORS,WALL_PRESETS,FLOOR_PRESETS,
-    sideAt,sample,inside,closedLoops,buildings,properties,propertyAt,entrancePropertyAt,buildingAt,reconcileProperties,style,wallStyle,floorStyle,
+    sideAt,sample,inside,closedLoops,buildings,properties,propertyAt,entrancePropertyAt,buildingAt,reconcileProperties,style,usesWoodWallDefault,wallStyle,floorStyle,
     canPaintWall,canPaintRoom,canEditAt,canEditItem,paintWall,paintRoomWalls,paintFloor,roomContains,roomInProperty,splitAtPropertyLimits,
     pngInfo,validatePatterns,validateMap});
 });

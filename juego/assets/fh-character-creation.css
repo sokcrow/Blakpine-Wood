@@ -57,3 +57,15 @@
  #fhcc-root .fhcc-score-choice{grid-template-columns:minmax(0,1fr) 44px}
  #fhcc-root .fhcc-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+
+#fh-dnd-character-dialog{position:fixed;inset:0;z-index:99999;display:grid;place-items:center;padding:8px;background:rgba(5,9,13,.96);color:#eee9d9;font:14px system-ui}
+#fh-dnd-character-dialog>section{box-sizing:border-box;width:min(720px,100%);max-height:95dvh;overflow:auto;padding:clamp(14px,3vw,28px);background:#111b20;border:1px solid #647276;box-shadow:0 16px 90px #000b;touch-action:pan-y}
+#fh-dnd-character-dialog h2,#fh-dnd-character-dialog h3{font-family:Georgia,serif;margin:0 0 .3em}
+#fh-dnd-character-dialog h2{color:#e3c48b;font-size:clamp(22px,4vw,34px)}
+#fh-dnd-character-dialog .dnd-class-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px}
+#fh-dnd-character-dialog .dnd-class-grid button{border:1px solid #58696c;background:#1a272d;color:#efe5cd;text-align:left;padding:12px;font:600 18px Georgia,serif;cursor:pointer}
+#fh-dnd-character-dialog .dnd-class-grid small{display:block;color:#bbc6c3;font:12px/1.5 system-ui;margin-top:4px}
+#fh-dnd-character-dialog button:focus-visible,#fh-dnd-character-dialog summary:focus-visible{outline:3px solid #e8c58c;outline-offset:1px}
+#fh-dnd-character-dialog .dnd-summary{color:#dfc393;font-weight:600}
+#fh-dnd-character-dialog details>summary{min-height:44px;align-content:center;cursor:pointer}
+#fh-dnd-character-dialog [hidden]{display:none!important}

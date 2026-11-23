@@ -4,7 +4,18 @@
  const T=window.FH_CATALOG_TEXT;
  const base=new URL('./forest-horror/biblioteca/',document.baseURI);
  let items=[],chosen=null,loadOnce=null,launch=null,categoryValue='',rulesetId='legacy';
- const compatible=item=>!item.lightKind&&window.FHMedievalCatalog.compatible(item,rulesetId);
+ const modules=()=>window.FHDndMapModules.options(project);
+ function compatible(item){
+  if(item.lightKind)return false;
+  if(rulesetId!=='dnd')return window.FHMedievalCatalog.compatible(item,rulesetId);
+  const enabled=modules();
+  return window.FHDndMapModules.allowsItem(item,enabled)&&
+   (enabled.modernity||window.FHDndMapModules.electricItem(item)||
+    window.FHMedievalCatalog.compatible(item,rulesetId));
+ }
+ const toolAllowed=(category,id)=>rulesetId==='dnd'?
+  window.FHDndMapModules.allowsTool(category,id,modules()):
+  window.FHMedievalCatalog.toolAllowed(category,id,rulesetId);
  const visibleItems=()=>items.filter(compatible);
  const style=document.createElement('style');
  style.textContent='#fhCatModal[hidden]{display:none!important}#fhCatModal{position:fixed;inset:0;z-index:90;display:flex;align-items:center;justify-content:center;padding:12px;background:#03070cda}#fhCatModal .fhCatPanel{width:min(770px,100%);max-height:92dvh;padding:12px;display:flex;flex-direction:column;gap:9px;background:#121b2b;border:2px solid #8e9eb7;color:#f3f7ff;box-shadow:0 15px 55px #000c}#fhCatModal .fhCatTop,#fhCatModal .fhCatFilters{display:flex;align-items:center;justify-content:space-between;gap:8px}#fhCatModal h2{font:700 18px system-ui;margin:0}#fhCatModal p{font:12px/1.5 system-ui;color:#b7c7dc;margin:0}#fhCatModal input,#fhCatModal select{flex:1;min-width:0;padding:10px;border:1px solid #7084a2;background:#0b1421;color:white;font:14px system-ui}#fhCatModal .fhCatList{overflow:auto;max-height:66vh;display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:7px}#fhCatModal .fhCatCard{display:flex;flex-direction:column;gap:5px;text-align:left;padding:6px;border-radius:3px;border:1px solid #526885;background:#213149;color:white;min-height:148px}#fhCatModal .fhCatCard img{width:100%;height:93px;object-fit:contain;image-rendering:pixelated;background:#08121d}#fhCatModal .fhCatCard strong{font:700 11px/1.3 system-ui}#fhCatModal .fhCatCard small{font:10px system-ui;color:#b8c9df}#fhCatModal button:focus-visible{outline:2px solid #ffce83;outline-offset:2px}@media(max-width:480px){#fhCatModal .fhCatList{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}#fhCatModal .fhCatCard{min-height:128px;padding:4px}#fhCatModal .fhCatCard img{height:74px}}';
@@ -94,9 +105,9 @@
   oldCategory(cat);
   if(rulesetId==='dnd'||cat==='lighting'){
    for(const button of document.querySelectorAll('#tools button[data-tool]')){
-    if(!window.FHMedievalCatalog.toolAllowed(cat,button.dataset.tool,rulesetId))button.remove();
+    if(!toolAllowed(cat,button.dataset.tool))button.remove();
    }
-   if(!window.FHMedievalCatalog.toolAllowed(cat,activeTool,rulesetId))chooseTool('select');
+   if(!toolAllowed(cat,activeTool))chooseTool('select');
   }
   installLauncher();
  };
@@ -118,5 +129,6 @@
   setCategory(activeCategory);
   if(!modal.hidden){renderCategories();render();}
  }
- window.FHEditorCatalog=Object.freeze({selectedPlacement:()=>chosen?.placement||'floor',setRuleset,ruleset:()=>rulesetId});
+ window.FHEditorCatalog=Object.freeze({selectedPlacement:()=>chosen?.placement||'floor',
+  setRuleset,ruleset:()=>rulesetId,refresh:()=>setRuleset(rulesetId)});
 })();

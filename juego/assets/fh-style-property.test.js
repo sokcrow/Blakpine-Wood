@@ -30,6 +30,16 @@
   check('Herencia espacial',P.propertyAt(map,'floor1',{x:4,y:4}).ownerId==='inquilino');
   check('Interior/exterior automático: ladrillo',P.wallStyle(map,'floor1',outer[0],'B').preset==='ladrillo');
   check('Interior/exterior automático: pintura',P.wallStyle(map,'floor1',outer[0],'A').preset==='pintura-lisa');
+  check('D&D usa tablones en las dos caras de la casa',
+   ['A','B'].every(side=>P.wallStyle(map,'floor1',outer[0],side,'dnd').preset==='madera'));
+  const finished={...outer[0],finish:{A:{preset:'ladrillo',color:'#857E79'}}};
+  check('D&D respeta una cara pintada y aplica madera a la otra',
+   P.wallStyle(map,'floor1',finished,'A','dnd').preset==='ladrillo'&&
+   P.wallStyle(map,'floor1',finished,'B','dnd').preset==='madera');
+  check('D&D conserva el material de muros antiguos si ya está definido',
+   P.wallStyle(map,'floor1',{...outer[0],material:'stone'},'A','dnd').preset==='legacy');
+  check('D&D conserva el acabado por defecto de las paredes de propiedad',
+   P.wallStyle(map,'floor1',border[0],'A','dnd').preset===P.wallStyle(map,'floor1',border[0],'A').preset);
   check('Cara del arrendatario',P.canPaintWall(map,'floor1',border[0],'A','inquilino'));
   check('Cara del dueño principal',P.canPaintWall(map,'floor1',border[0],'B','principal'));
   check('Cara del arrendatario restringida al otro dueño',!P.canPaintWall(map,'floor1',border[0],'A','principal'));

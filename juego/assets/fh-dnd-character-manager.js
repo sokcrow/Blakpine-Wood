@@ -75,13 +75,8 @@
    const root=doc.createElement('div');
    root.id='fh-dnd-character-dialog';root.setAttribute('role','dialog');
    root.setAttribute('aria-modal','true');root.setAttribute('aria-label',T.title||'D&D');
-   root.style.cssText='position:fixed;inset:0;background:#06080bdc;z-index:99999;display:flex;align-items:center;justify-content:center;padding:10px;font:14px system-ui;color:#f3f4f6';
    const panel=doc.createElement('section');
-   panel.style.cssText='background:#1a1f27;border:1px solid #7e8798;border-radius:10px;max-width:850px;width:100%;max-height:93vh;overflow-y:auto;padding:18px;box-sizing:border-box;box-shadow:0 12px 45px #000b';
-   const title=doc.createElement('h2');title.textContent=T.title||'Personajes D&D';
-   title.style.cssText='margin:0 0 8px;font-size:21px';
-   const intro=doc.createElement('p');intro.textContent=T.intro||'Elige una ficha D&D.';
-   intro.style.cssText='color:#cbd5e1;margin:4px 0 12px';
+   const title=doc.createElement('h2');
    const form=doc.createElement('form');
    form.style.cssText='display:grid;gap:12px';
    const fields=doc.createElement('div');
@@ -118,12 +113,14 @@
    const saved=library.list(),selected=library.current();
    const choices=select([['',T.newCharacter||'Nuevo'],...saved.map(p=>[p.id,p.name])]);
    choices.value=selected?.id||'';
-   field(T.choose||'Personaje guardado',choices,full);
+   const roster=doc.createElement('div');
+   if(saved.length)field(T.choose,choices,roster);
    const name=input('text','');name.required=true;name.maxLength=100;
-   field(T.name||'Nombre',name);
+   const identity=doc.createElement('div');
+   field(T.name,name,identity);
    const klass=select([['',T.classPlaceholder||'Selecciona una clase'],
     ...Object.entries(T.classes||{}).map(([id,label])=>[id,label])]);
-   klass.required=true;field(T.classId||'Clase',klass);
+   klass.required=true;
    const level=input('number',1,1,20);field(T.level||'Nivel',level);
    const background=input('text','custom');field(T.background||'Trasfondo',background);
    const species=input('text','custom');field(T.species||'Especie',species);
@@ -172,8 +169,44 @@
    for(const el of [cancel,play])el.style.cssText='min-height:44px;padding:8px 16px;border:1px solid #9ca3af;border-radius:5px;cursor:pointer';
    play.style.background='#23446e';play.style.color='white';
    footer.append(cancel,play);
-   form.append(fields,full,error,footer);
-   panel.append(title,intro,form);root.append(panel);doc.body.append(root);
+   const classGrid=doc.createElement('div');classGrid.className='dnd-class-grid';
+   const heading=doc.createElement('h3');
+   const summary=doc.createElement('output');summary.className='dnd-summary';
+   function button(label,action){
+    const b=doc.createElement('button');b.type='button';b.textContent=label;
+    b.addEventListener('click',action);return b;
+   }
+   const advanced=doc.createElement('details');
+   const caption=doc.createElement('summary');caption.textContent=T.advanced;
+   advanced.append(caption,fields,full);
+   const change=button(T.changeClass,()=>showClasses());
+   function showClasses(){
+    heading.textContent=T.chooseClass;classGrid.hidden=false;identity.hidden=true;
+    advanced.hidden=true;play.hidden=true;change.hidden=true;summary.hidden=true;
+    classGrid.querySelector('button')?.focus();
+   }
+   function showCharacter(){
+    heading.textContent=T.identity;classGrid.hidden=true;identity.hidden=false;
+    advanced.hidden=false;play.hidden=false;change.hidden=false;summary.hidden=false;
+    summary.textContent=[klass.selectedOptions[0]?.textContent,T.level+' '+level.value,
+     'PG '+hp.value+'/'+maxHp.value,'CA '+ac.value].join(' · ');
+   }
+   for(const [id,label] of Object.entries(T.classes)){
+    const card=button(label,()=>{
+     klass.value=id;
+     if(!choices.value){
+      die.value=dieByClass[id];hp.value=maxHp.value=dieByClass[id];
+     }
+     showCharacter();name.focus();
+    });
+    const hint=doc.createElement('small');hint.textContent=T.classThemes[id];
+    card.append(hint);classGrid.append(card);
+   }
+   advanced.addEventListener('input',showCharacter);
+   play.textContent=T.enter;footer.prepend(change);
+   form.append(roster,heading,classGrid,summary,identity,advanced,error,footer);
+   title.textContent=T.title;
+   panel.append(title,form);root.append(panel);doc.body.append(root);
    const defaultAttack=()=>[{id:'primary',name:'Ataque configurado',ability:'str',
     damageCount:1,damageDie:4,damageType:'bludgeoning',rangeFt:5,proficient:false}];
    function fill(record){
@@ -205,7 +238,10 @@
     if(event.key==='Escape'){event.preventDefault();close(null);}
    }
    doc.addEventListener('keydown',onKey);
-   choices.addEventListener('change',()=>fill(library.list().find(p=>p.id===choices.value)));
+   choices.addEventListener('change',()=>{
+    fill(library.list().find(p=>p.id===choices.value));advanced.open=false;
+    if(choices.value)showCharacter();else showClasses();
+   });
    klass.addEventListener('change',()=>{if(!choices.value&&dieByClass[klass.value])die.value=String(dieByClass[klass.value]);});
    level.addEventListener('change',()=>{if(!choices.value){
     diceTotal.value=level.value;diceAvail.value=level.value;
@@ -242,7 +278,7 @@
       T.invalid||'Ficha no válida';}
    });
    fill(selected);
-   name.focus();
+   if(selected){showCharacter();play.focus();}else showClasses();
   });
  }
  return Object.freeze({KEY,ACTIVE,registry,current,ensureCharacter});

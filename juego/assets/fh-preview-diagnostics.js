@@ -129,7 +129,7 @@
    for(const key of ['message','url','stack'])if(entry[key])safe[key]=String(entry[key]).slice(0,4000);
    safe.line=Number(entry.line)||0;safe.column=Number(entry.column)||0;
    entries.push(safe);if(entries.length>LIMIT)entries.splice(entries.findIndex(e=>e.kind!=='fatal'),1);
-   if(safe.kind==='resource'){warnings++;summary.textContent=T.diagnosticTitle+' · '+BUILD+' · '+T.diagnosticWarnings+': '+warnings;panel.hidden=false;panel.open=true;}
+   if(safe.kind==='resource'){warnings++;summary.textContent=T.diagnosticTitle+' · '+BUILD+' · '+T.diagnosticWarnings+': '+warnings;}
    pre.textContent=history();
    if(entry.kind==='fatal'&&!failed){failed=true;panel.hidden=false;panel.open=true;onFailure?.(safe.message||T.unknown);}
   }

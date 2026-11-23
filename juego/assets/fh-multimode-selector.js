@@ -134,7 +134,7 @@
    }
   }
   function render(){
-   renderChoices(worldBox,worlds,'world');
+   renderChoices(worldBox,worlds.filter(world=>world.id!=='villa-medieval'),'world');
    renderChoices(rulesBox,rules,'rule');
    start.disabled=busy||!runtime?.canStart(selectedWorld,selectedRule);
    local.disabled=busy;

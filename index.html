@@ -102,7 +102,7 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
 .wifi-coverage-bands i{width:9px;height:9px;border:1px solid #e9f4ed8c;flex:none}
 @media(orientation:landscape) and (max-height:480px){#wifiCoverageLegend{bottom:5px;right:55px;padding:4px 6px;max-width:200px;font-size:9px}}
 </style>
-<link rel="stylesheet" href="./juego/assets/fh-character-creation.css?v=20261107-help">
+<link rel="stylesheet" href="./juego/assets/fh-character-creation.css?v=20261123-dnd-menu">
 <link rel="stylesheet" href="./juego/assets/fh-game-ui.css?v=20261113-single-item-frame-1">
 <link rel="stylesheet" href="./juego/assets/fh-mobile-menus.css?v=20261107-mobile-ui-75">
 <link rel="stylesheet" href="./juego/assets/fh-editor-layout.css?v=20261113-layout1">
@@ -171,19 +171,21 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
 <script src="./juego/assets/fh-multimode-strings.js?v=20261122-current-map"></script>
 <script src="./juego/units/fh-training-dummy.js?v=20261117-training1"></script>
 <script src="./juego/rules/dnd/fh-dnd-sheet.js?v=20261122-dnd-characters"></script>
-<script src="./juego/assets/fh-dnd-character-strings.js?v=20261122-dnd-characters"></script>
-<script src="./juego/assets/fh-dnd-character-manager.js?v=20261122-dnd-characters"></script>
+<script src="./juego/assets/fh-dnd-character-strings.js?v=20261123-dnd-menu"></script>
+<script src="./juego/assets/fh-dnd-character-manager.js?v=20261123-dnd-menu"></script>
 <script src="./juego/rules/dnd/fh-dnd-combat.js?v=20261122-dnd-sheet"></script>
-<script src="./juego/rules/dnd/fh-dnd-save-adapter.js?v=20261117-dnd34"></script>
+<script src="./juego/rules/dnd/fh-dnd-map-modules.js?v=20261122-modules1"></script>
+<script src="./juego/rules/dnd/fh-dnd-module-strings.js?v=20261122-modules1"></script>
+<script src="./juego/rules/dnd/fh-dnd-save-adapter.js?v=20261122-modules1"></script>
 <script>window.FHMultimodeCombatAdapters=Object.freeze({dnd:window.FHDndCombat});
 window.FHMultimodeSaveAdapters=Object.freeze({dnd:window.FHDndSaveAdapter});</script>
-<script src="./juego/assets/fh-multimode-selector.js?v=20261122-current-map"></script>
+<script src="./juego/assets/fh-multimode-selector.js?v=20261123-dnd-menu"></script>
 <script src="./juego/core/fh-multimode-save-identity.js?v=20261117-persist32"></script>
 <script src="./juego/core/fh-multimode-persistence.js?v=20261117-persist32"></script>
-<script src="./juego/core/fh-multimode-save-hook.js?v=20261122-preview-boot"></script>
+<script src="./juego/core/fh-multimode-save-hook.js?v=20261122-modules1"></script>
 <script src="./juego/core/fh-multimode-save-strings.js?v=20261117-persist32"></script>
 <script src="./juego/assets/fh-preview-strings.js?v=20261113-door-safety"></script>
-<script src="./juego/assets/fh-preview-diagnostics.js?v=20261109-diag2"></script>
+<script src="./juego/assets/fh-preview-diagnostics.js?v=20261123-dnd-menu"></script>
 <script src="./juego/assets/fh-mobile-camera.js?v=20261108-landscape20"></script>
 <script src="./juego/assets/images.js"></script>
 <script src="./juego/assets/engine-00.js"></script>
@@ -199,7 +201,7 @@ window.FHMultimodeSaveAdapters=Object.freeze({dnd:window.FHDndSaveAdapter});</sc
 <script src="./juego/assets/engine-10.js"></script>
 <script src="./juego/assets/engine-11.js"></script>
 <script src="./juego/assets/engine-12.js"></script>
-<script src="./juego/assets/fh-style-property.js?v=20261115-apartments03"></script>
+<script src="./juego/assets/fh-style-property.js?v=20261122-modules1"></script>
 <script src="./juego/assets/fh-property-zones.js?v=20261115-apartments03"></script>
 <script src="./juego/assets/fh-construction-strings.js?v=20261113-construction1"></script>
 <script src="./juego/assets/fh-construction.js?v=20261113-construction1"></script>
@@ -207,9 +209,9 @@ window.FHMultimodeSaveAdapters=Object.freeze({dnd:window.FHDndSaveAdapter});</sc
 <script src="./juego/assets/fh-construction-rooms.js?v=20261113-rooms02"></script>
 <script src="./juego/assets/fh-construction-prefabs-strings.js?v=20261115-apartments03"></script>
 <script src="./juego/assets/fh-construction-prefabs.js?v=20261115-plano02"></script>
-<script src="./juego/assets/fh-style-renderer.js"></script>
-<script src="./juego/assets/fh-style-strings.js"></script>
-<script src="./juego/assets/fh-style-editor.js"></script>
+<script src="./juego/assets/fh-style-renderer.js?v=20261122-modules1"></script>
+<script src="./juego/assets/fh-style-strings.js?v=20261122-dnd-wood"></script>
+<script src="./juego/assets/fh-style-editor.js?v=20261122-dnd-wood"></script>
 <script src="./juego/assets/fh-roof-strings.js?v=20261110-roof3"></script>
 <script src="./juego/assets/fh-roof.js?v=20261110-roof3"></script>
 <script src="./juego/assets/fh-roof-engine-hook.js?v=20261110-roof3"></script>
@@ -3342,6 +3344,25 @@ function modalElevatorEvents(){
 function projectAction(id,icon,label,className=''){
  return `<button type="button" id="${id}" class="fh-project-action ${className}"><svg class="fh-action-icon" aria-hidden="true" focusable="false"><use href="./juego/assets/fh-action-icons.svg#${icon}"></use></svg><span>${label}</span></button>`;
 }
+function modalDndModules(){
+ const t=window.FH_DND_MODULE_TEXT, modules=window.FHDndMapModules.options(project);
+ modal(`<h2>${t.options}</h2><fieldset><legend>${t.title}</legend>
+ <label class="ck"><input type="checkbox" id="dndElectricity" ${modules.electricity?'checked':''}>${t.electricity}</label>
+ <label class="ck"><input type="checkbox" id="dndModernity" ${modules.modernity?'checked':''}>${t.modernity}</label></fieldset>
+ <div class="actions"><button type="button" class="primary" id="saveDndModules">${t.save}</button>
+ <button type="button" id="closeDndModules">${t.close}</button></div>`,()=>{
+  $('#closeDndModules').onclick=modalProject;
+  $('#saveDndModules').onclick=()=>{
+   const next={electricity:$('#dndElectricity').checked,modernity:$('#dndModernity').checked};
+   if(next.electricity!==modules.electricity||next.modernity!==modules.modernity){
+    project.dndModules=next;
+    window.FHEditorCatalog?.refresh?.();
+    saveSoon();
+   }
+   closeModal();
+  };
+ });
+}
 function modalProject(){
  const t=window.FH_PROJECT_TEXT, c=window.LUMEN_CARTRIDGE_TEXT;
  const row=projectAction;
@@ -3357,6 +3378,7 @@ function modalProject(){
   <section><h3>${t.tools}</h3><div class="fh-project-grid">
    ${row('projectRoomsBtn','grid',t.rooms)}${row('itemCatalogBtn','box',t.items)}${row('elevatorConfigBtn','settings',t.elevator)}
    ${row('propertyManagerBtn','map',t.properties)}${row('wallpaperEditorBtn','image',t.wallpaper)}
+   ${row('projectMapOptions','settings',window.FH_DND_MODULE_TEXT.options)}
   </div></section>
   <details><summary>${t.examples}</summary><div class="fh-project-grid">
    ${row('loadDemo','map',t.building)}${row('parkingDemoBtn','grid',t.parking)}
@@ -3368,6 +3390,7 @@ function modalProject(){
   const button=$('#'+id);
   if(button)button.onclick=()=>{closeModal();void lumenEditorActions[action]();};
  }
+ $('#projectMapOptions').onclick=modalDndModules;
  $('#closeProject').onclick=closeModal;$('#fullExport').onclick=()=>exportJSON(true);$('#liteExport').onclick=()=>exportJSON(false);$('#importJSON').onclick=()=>{$('#jsonInput').click()};$('#previewPNG').onclick=exportPNG;$('#loadDemo').onclick=loadArchitectureExample;$('#projectRoomsBtn').onclick=modalRoomList;$('#itemCatalogBtn').onclick=modalItemCatalog;$('#elevatorConfigBtn').onclick=modalElevatorEvents;$('#propertyManagerBtn').onclick=()=>window.FHStyleEditor?.propertyManager();$('#wallpaperEditorBtn').onclick=()=>window.FHStyleEditor?.wallpaperEditor();$('#parkingDemoBtn').onclick=()=>{closeModal();window.FHParkingEditor?.demo()};$('#applyName').onclick=()=>{project.title=$('#projectName').value||'Mapa sin título';saveSoon();toast('Nombre guardado')};$('#newMap').onclick=()=>{if(confirm('¿Borrar TODOS los elementos dibujados en los dos pisos? Se conservan las imágenes.')){if(!lumenCartridgeMode){try{localStorage.removeItem(ForestShared.gameSaveKey(project))}catch{}};project.createdAt=new Date().toISOString();project.floors.forEach(f=>{f.items=[];f.apartments=[]});project.properties=[];project.locationZones=[];project.buildingNames={};project.patterns=[];recalcAllSpaces();selection=null;history=[];historyIndex=-1;record();closeModal();toast('Mapa de dibujos vaciado')}}})}
 function escapeAttr(v){return String(v).replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;')}
 function emptySlab(){return {enabled:false,spans:[],regions:[],micro:1}}
@@ -3638,7 +3661,7 @@ function makeCurrent3DProject(){
  return {schema:SCHEMA,version:project.version||1,mainFloorId:project.mainFloorId||undefined,styleSystem:project.styleSystem||0,buildingOwnerId:project.buildingOwnerId||'',buildingOwners:clone(project.buildingOwners||{}),buildingNames:clone(project.buildingNames||{}),properties:clone(project.properties||[]),locationZones:clone(project.locationZones||[]),patterns:clone(project.patterns||[]),title:project.title||'Forest Horror',createdAt:project.createdAt,itemDefs:clone(project.itemDefs||[]),initialGameState:clone(project.initialGameState||{}),weather:clone(project.weather||{enabled:false}),...(project.environment?{environment:clone(project.environment)}:{}),elevatorEvents:clone(project.elevatorEvents||{}),__runtimeSave:session?null:fhMapSave,
   __runtimeCharacter:session?null:(fhProfile?clone(fhProfile):null),
   ...(dndProfile?{__dndCharacter:{id:dndProfile.id,sheet:clone(dndProfile.sheet)}}:{}),
-  ...(session?{__multimodeSave:session}:{}),units,buildingSlabs:clone(buildingSlabs(mainIndex)),slabsByLevel,basementSlabs,roofSlabsByFloor:project.floors.map((_,i)=>clone(buildingSlabs(i))),
+  ...(session?{__multimodeSave:session}:{}),...(project.dndModules?{dndModules:clone(project.dndModules)}:{}),units,buildingSlabs:clone(buildingSlabs(mainIndex)),slabsByLevel,basementSlabs,roofSlabsByFloor:project.floors.map((_,i)=>clone(buildingSlabs(i))),
   floors:project.floors.map(f=>({id:f.id,name:f.name,elevationFt:f.elevationFt,
    ceilingHeightFt:f.ceilingHeightFt,roof:f.roof?clone(f.roof):undefined,lightingManual:!!f.lightingManual,items:clone(courtyardFloorItems(window.FHAreaMerge?.forEngine(f.items)||f.items,project.floors.indexOf(f))),apartments:clone(f.apartments||[])}))};
 }
@@ -3865,8 +3888,8 @@ function prepareGLBEngineDoc(source){
  ].join('\n');
  if(source.split(furnitureVisibilityHook).length!==2)throw Error('Hook de renderizado de muebles incompatible');
  // Acabados y propiedad: hooks acotados al motor HTML en memoria.
- const styleCore='<script src="'+new URL('./juego/assets/fh-style-property.js',document.baseURI).href+'"></'+'script>';
- const styleRender='<script src="'+new URL('./juego/assets/fh-style-renderer.js',document.baseURI).href+'"></'+'script>';
+ const styleCore='<script src="'+new URL('./juego/assets/fh-style-property.js?v=20261122-modules1',document.baseURI).href+'"></'+'script>';
+ const styleRender='<script src="'+new URL('./juego/assets/fh-style-renderer.js?v=20261122-modules1',document.baseURI).href+'"></'+'script>';
  function addStylesToEngine(doc){
   const changes=[
    ["mesh.rotation.y=-Math.atan2(dz,dx);trackSegmentSight(f,mesh,a,b);",
@@ -3890,14 +3913,14 @@ function prepareGLBEngineDoc(source){
  const drainageScript='<script src="'+new URL('./juego/assets/fh-drainage-strings.js?v=20261112-drain3',document.baseURI).href+'"></'+'script><script src="'+new URL('./juego/assets/fh-drainage.js?v=20261112-drain3',document.baseURI).href+'"></'+'script>'+'<script src="'+new URL('./juego/assets/fh-drainage-access.js?v=20261112-drain5',document.baseURI).href+'"></'+'script>';
  const basementScript='<script src="'+new URL('./juego/assets/fh-basement-structure.js?v=20261112-basement-native-1',document.baseURI).href+'"></'+'script>';
  const parkingScript='<script src="'+new URL('./juego/assets/fh-parking.js',document.baseURI).href+'"></'+'script>';
- const playerMenuCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-player-menu.css?v=20261107-help',document.baseURI).href+'">';
+ const playerMenuCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-player-menu.css?v=20261122-modules1',document.baseURI).href+'">';
  const playerMenuStrings='<script src="'+new URL('./juego/assets/fh-player-menu-strings.js?v=20261113-pocket-items-1',document.baseURI).href+'"></'+'script>';
  const skillsModule='<script src="'+new URL('./juego/assets/fh-skills.js?v=20261106-skills',document.baseURI).href+'"></'+'script>';
  const skillsStrings='<script src="'+new URL('./juego/assets/fh-skill-strings.js?v=20261106-skills',document.baseURI).href+'"></'+'script>';
  const helpCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-character-help.css?v=20261107-help',document.baseURI).href+'">';
  const helpStrings='<script src="'+new URL('./juego/assets/fh-character-help-strings.js?v=20261107-help',document.baseURI).href+'"></'+'script>';
  const helpScript='<script src="'+new URL('./juego/assets/fh-character-help.js?v=20261107-help',document.baseURI).href+'"></'+'script>';
- const playerMenuScript='<script src="'+new URL('./juego/assets/fh-player-menu.js?v=20261113-pocket-items-1',document.baseURI).href+'"></'+'script>';
+ const playerMenuScript='<script src="'+new URL('./juego/assets/fh-player-menu.js?v=20261122-modules1',document.baseURI).href+'"></'+'script>';
  const locationCss='<link rel="stylesheet" href="'+new URL('./juego/assets/fh-location-hud.css?v=20261111-location-divider-1',document.baseURI).href+'">';
  const locationStrings='<script src="'+new URL('./juego/assets/fh-location-strings.js?v=20261111-roof-outside1',document.baseURI).href+'"></'+'script>';
  const locationScript='<script src="'+new URL('./juego/assets/fh-location-hud.js?v=20261111-roof-outside1',document.baseURI).href+'"></'+'script>';
@@ -5468,7 +5491,11 @@ window.addEventListener('message',e=>{
  if(e.data.type==='FOREST_PREVIEW_READY'&&!preview3DSent){
   preview3DSent=true;
   show3DStatus(PREVIEW_TEXT.loading);
-  try{play3DFrame.contentWindow.postMessage({type:'FOREST_PREVIEW_MAP',project:makeCurrent3DProject()},'*')}
+  try{
+   const map=makeCurrent3DProject();
+   if(map.__multimodeSave?.identity.rulesetId==='dnd')window.FHDndMapModules.prepareMap(map);
+   play3DFrame.contentWindow.postMessage({type:'FOREST_PREVIEW_MAP',project:map},'*');
+  }
   catch(err){console.error('[Forest Horror 3D]',err);preview3DError(err.message)}
  } else if(e.data.type==='FOREST_PREVIEW_RUNNING'){
   if(preview3DDiagnosticFailed)return;
@@ -5631,7 +5658,7 @@ window.FHMultimodeSelector?.mount({
 <link rel="stylesheet" href="./juego/assets/fh-storage-editor.css?v=20261108-storage-editor-1">
 <script src="./juego/assets/fh-storage-editor.js?v=20261108-storage-editor-1"></script>
 <script src="./juego/assets/fh-medieval-catalog.js"></script>
-<script src="./juego/assets/fh-editor-catalog.js?v=20261121-medieval1"></script>
+<script src="./juego/assets/fh-editor-catalog.js?v=20261122-modules1"></script>
 <script src="./juego/assets/fh-surface-editor.js"></script>
 <script src="./juego/assets/fh-property-editor.js?v=20261115-seleccion"></script>
 <script src="./juego/assets/fh-architecture-strings.js"></script>
@@ -5643,7 +5670,7 @@ window.FHMultimodeSelector?.mount({
 <script src="./juego/assets/fh-structure-engine-hook.js?v=20261108-architecture-load"></script>
 <script src="./juego/assets/fh-comic-action-engine-hook.js?v=20261107-comic-actions-1"></script>
 <script src="./juego/assets/fh-context-engine-hook.js?v=20261112-hud-foot-hold-1"></script>
-<script src="./juego/assets/fh-services-engine-hook.js?v=20261113-single-item-frame-1"></script>
+<script src="./juego/assets/fh-services-engine-hook.js?v=20261122-modules1"></script>
 <script src="./juego/assets/fh-electric-catalog.js?v=20261112-duplex-uv-1"></script>
 <script src="./juego/assets/fh-electric-strings.js?v=20261109-servicios-24"></script>
 <script src="./juego/assets/fh-electric-visuals.js?v=20261112-no-overlay-1"></script>

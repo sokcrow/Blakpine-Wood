@@ -85,7 +85,7 @@ test('el lector acepta solo su iframe, conserva el error y ofrece copiar y volve
  reader.dispose();assert.equal(container.panel.removed,true);assert.equal(e.window.listeners.get('message').size,0);
 });
 
-test('el panel permanece oculto con cargas normales y aparece si falla un recurso',()=>{
+test('un aviso recuperable se registra sin tapar el juego',()=>{
  const e=environment(),container={ownerDocument:e.document,appendChild(node){this.panel=node;}};
  const reader=e.api.mount({container,frame:{contentWindow:{}},onFailure(){assert.fail('Un recurso recuperable no debe detener el juego');}});
  assert.equal(container.panel.hidden,true);
@@ -93,7 +93,8 @@ test('el panel permanece oculto con cargas normales y aparece si falla un recurs
  reader.record({kind:'resource-start',url:'https://game.test/puerta.glb'});
  assert.equal(container.panel.hidden,true,'Una carga en progreso no es un fallo');
  reader.record({kind:'resource',url:'https://game.test/puerta.glb',message:'HTTP 404'});
- assert.equal(container.panel.hidden,false);assert.equal(container.panel.open,true);
+ assert.equal(container.panel.hidden,true);assert.equal(container.panel.open,false);
+ assert.match(container.panel.children[2].textContent,/HTTP 404/);
 });
 
 test('se puede mostrar manualmente el diagnóstico durante una prueba sin fallos',()=>{
