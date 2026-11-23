@@ -38,7 +38,7 @@
   }
   return roof+10;
  }
- function attach(THREE,root,lamp){
+ function attach(THREE,root,lamp,floor){
   const sites=flameSites[lamp?.lightKind];
   if(!sites||!root||!THREE)return null;
   const group=new THREE.Group();root.add(group);
@@ -55,7 +55,7 @@
    const ember=new THREE.Mesh(new THREE.IcosahedronGeometry(r*.13,0),emberMat);
    ember.position.set(x,y+r,z);group.add(ember);embers.push({mesh:ember,originY:y,r});
   }
-  const entry={root,group,lamp,tongues,embers,phase:flames.length*1.71};flames.push(entry);
+  const entry={root,group,lamp,floor,tongues,embers,phase:flames.length*1.71};flames.push(entry);
   group.visible=false;return entry;
  }
  function buildChimneys(THREE,data,cell,floorElev,layers){
@@ -105,8 +105,7 @@
  function tick(dt,runtime){
   clock+=Math.max(0,Math.min(.05,Number(dt)||0));
   for(const flame of flames){
-   const on=runtime?.lit?.(flame.lamp.floorIndex??flame.lamp.__floorIndex??flame.floor??0,flame.lamp);
-   // La planta está guardada en attach para las luminarias multiarea.
+   const on=runtime?.lit?.(flame.floor,flame.lamp);
    flame.group.visible=!!on;
    if(!on)continue;
    const t=clock*9+flame.phase;
