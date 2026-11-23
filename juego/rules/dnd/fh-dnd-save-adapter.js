@@ -6,10 +6,12 @@
  'use strict';
  const combat=typeof module==='object'&&module.exports
   ?require('./fh-dnd-combat.js'):root.FHDndCombat;
- const api=factory(combat);
+ const modules=typeof module==='object'&&module.exports
+  ?require('./fh-dnd-map-modules.js'):root.FHDndMapModules;
+ const api=factory(combat,modules);
  if(typeof module==='object'&&module.exports)module.exports=api;
  else root.FHDndSaveAdapter=api;
-})(typeof globalThis!=='undefined'?globalThis:this,function(combat){
+})(typeof globalThis!=='undefined'?globalThis:this,function(combat,modules){
  'use strict';
  const plain=v=>!!v&&typeof v==='object'&&!Array.isArray(v)&&Object.getPrototypeOf(v)===Object.prototype;
  const excluded=new Set(['dnd','character','characterId','stats','resources','skills','scores','horror']);
@@ -80,17 +82,20 @@
   return base.player;
  }
  function initial(map){
-  return {...worldRuntime(plain(map?.initialGameState)?map.initialGameState:{}),
-   dnd:combat.initialState(configuredPlayer(map))};
+  const state=worldRuntime(plain(map?.initialGameState)?map.initialGameState:{});
+  // El borrador genérico trae equipo Legacy; las partidas D&D no lo heredan.
+  modules.applyState(state,map,{starting:true});
+  state.dnd=combat.initialState(configuredPlayer(map));
+  return state;
  }
  function restore(world,rules,map){
   if(!validateWorldState(world)||!validateRulesetState(rules))throw Error('DND_SAVE_INVALID');
-  return {...initial(map),...worldRuntime(world.runtime),
-   dnd:migrate(rules,configuredPlayer(map))};
+  return modules.applyState({...initial(map),...worldRuntime(world.runtime),
+   dnd:migrate(rules,configuredPlayer(map))},map);
  }
- function capture(gameState){
+ function capture(gameState,map){
   if(!plain(gameState)||!combat.validState(gameState.dnd))throw Error('DND_SAVE_INVALID');
-  return {world:{runtime:worldRuntime(gameState)},
+  return {world:{runtime:modules.applyState(worldRuntime(gameState),map)},
    rules:{rulesetId:'dnd',rulesetVersion:1,data:migrate(gameState.dnd)}};
  }
  return Object.freeze({status:'implemented',contract:'blakpine-save-adapter-v1',

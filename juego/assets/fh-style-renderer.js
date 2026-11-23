@@ -100,7 +100,8 @@
  function decorateWall(THREE,mesh,wall,map,{widthMeters,heightMeters}){
   const shared=P();if(!shared)return;
   const rulesetId=map.__multimodeSave?.identity?.rulesetId;
-  if(!wall.finish&&!map.styleSystem&&!shared.usesWoodWallDefault(wall,rulesetId))return;
+  if(!wall.finish&&!map.styleSystem&&!shared.usesWoodWallDefault(wall,rulesetId,map)&&
+   !(rulesetId==='dnd'&&map.dndModules?.modernity===true))return;
   const floorId=map.floors[mesh.userData.fhFloor||0]?.id||wall.floorId||map.floors[0]?.id;
   for(const side of ['A','B']){
    const finish=shared.wallStyle(map,floorId,wall,side,rulesetId);

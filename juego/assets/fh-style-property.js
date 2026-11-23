@@ -101,8 +101,8 @@
     return {preset:ok.includes(x.preset)?x.preset:fallback.preset,color:typeof x.color==='string'&&COLOR.test(x.color)?x.color.toUpperCase():fallback.color,
       pattern:typeof x.pattern==='string'&&/^[\w-]{1,48}$/.test(x.pattern)?x.pattern:null};
   }
-  function usesWoodWallDefault(wall,rulesetId){
-    return rulesetId==='dnd'&&['wall','red_wall','half_wall'].includes(wall.type);
+  function usesWoodWallDefault(wall,rulesetId,map){
+    return rulesetId==='dnd'&&map?.dndModules?.modernity!==true&&['wall','red_wall','half_wall'].includes(wall.type);
   }
   function wallStyle(map,floorId,wall,side,rulesetId){
     if(!FACES.includes(side))throw Error('Cara de muro inválida');
@@ -110,7 +110,7 @@
     const isRoom=(floor?.items||[]).some(it=>it.type==='room'&&roomContains(it,point));
     const isOutdoor=(floor?.items||[]).some(it=>['outside','pavement','parking','grass','dirt'].includes(it.type)&&roomContains(it,point));
     const interior=kind==='interior'||(kind!=='exterior'&&(isRoom||!isOutdoor&&!!buildingAt(map,floorId,point)));
-    const fallback=usesWoodWallDefault(wall,rulesetId)?{...WOOD_WALL}:
+    const fallback=usesWoodWallDefault(wall,rulesetId,map)?{...WOOD_WALL}:
       interior?{preset:'pintura-lisa',color:'#A49E91',pattern:null}:{preset:'ladrillo',color:'#96564C',pattern:null};
     if(wall.finish?.[side])return style(wall.finish[side],fallback);
     return wall.material!=null?{preset:'legacy',legacyMaterial:wall.material}:fallback;

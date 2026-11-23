@@ -7,6 +7,8 @@
   return doc.replace(before,after);
  };
  function patch(doc){
+  const dnd="DATA.__multimodeSave?.identity.rulesetId==='dnd'";
+  const modern="(!("+dnd+")||DATA.dndModules?.modernity===true)";
   // El motor embebido conserva una lista de frentes anterior al editor.
   // Sincronizarla antes del selector: evita que éste apunte hacia la pared
   // mientras Agua/Electricidad exigen interactuar desde el frente del GLB.
@@ -19,7 +21,7 @@
   const hot='<script src="'+base+'fh-water-hot.js?v=20261113-sotano-bombeo"></'+'script>';
   const boilerCatalog='<script src="'+base+'fh-boilers-catalog.js?v=20261112-boilers-04"></'+'script>';
   const boilerStrings='<script src="'+base+'fh-boilers-strings.js?v=20261113-sotano-bombeo"></'+'script>';
-  const core='<script src="'+base+'fh-services-core.js?v=20261113-utility-front-1"></'+'script>';
+  const core='<script src="'+base+'fh-services-core.js?v=20261122-modules1"></'+'script>';
   const equipment='<script src="'+base+'fh-equipment-core.js?v=20261113-pocket-items-1"></'+'script>';
   const exteriorCore='<script src="'+base+'fh-exterior-grid.js?v=20261111-pole-collision-1"></'+'script>';
    const exteriorVisual='<script src="'+base+'fh-exterior-visuals.js?v=20261111-exterior-03"></'+'script>';
@@ -50,7 +52,7 @@
    // Recuperar la instancia seleccionada por readGameSave ANTES de crear runtime.
    'const fhServicesSaved=(restored||DATA.initialGameState)?.services;',
    'if(fhServicesSaved&&typeof fhServicesSaved==="object"&&!Array.isArray(fhServicesSaved))GameState.services=structuredClone(fhServicesSaved);',
-   'window.FHServicesRuntime=window.FHServices?.createRuntime(DATA,GameState,{phoneOpen:()=>window.FHPhoneRuntime?.isOpen===true,torchActive:()=>lighting.state.enabled===true,isPc:(it,f)=>window.FHComputer?.isPc(it,DATA.floors[f]?.items||[],Number(DATA.units.feetPerCell)||5)});',
+   'window.FHServicesRuntime=window.FHServices?.createRuntime(DATA,GameState,{electricityEnabled:!('+dnd+')||DATA.dndModules?.electricity===true,phoneOpen:()=>window.FHPhoneRuntime?.isOpen===true,torchActive:()=>lighting.state.enabled===true,isPc:(it,f)=>window.FHComputer?.isPc(it,DATA.floors[f]?.items||[],Number(DATA.units.feetPerCell)||5)});',
    'let fhServicesSaveAccum=0;',
    'let fhServicesATSRevision=window.FHServicesRuntime?.state.atsRevision;',
    'if(DATA.floors.some(f=>(f.items||[]).some(it=>it.type==="generator_ats")))saveProgress();',
@@ -213,7 +215,7 @@
    ' if(result.target.kind==="mobile")window.FHPhoneRuntime?.receiveCall?.({from:GameState.phone?.phoneNumber||"celular"});',
    ' saveProgress();return true;},'
   ].join('\n');
-  doc=once(doc,phone,start+'\n'+phone+'\n'+phoneOptions,'inicialización');
+  doc=once(doc,phone,start+'\nwindow.FHPhoneRuntime=('+modern+'?window.FHPhone:null)?.createRuntime({\n'+phoneOptions,'inicialización');
 
   doc=once(doc,'window.FHPhoneRuntime?.update(dt);',
    'window.FHServicesRuntime?.tick(dt,Number(GameState.clock?.minutesPerSecond)||1);fhServicesSyncVisuals();if(fhServicesATSRevision!==window.FHServicesRuntime?.state.atsRevision){fhServicesATSRevision=window.FHServicesRuntime?.state.atsRevision;saveProgress();}'+
@@ -266,11 +268,11 @@
   doc=once(doc,"flashlight:initial.flashlight&&typeof initial.flashlight==='object'?{...initial.flashlight}:null,hidden:",
    "flashlight:initial.flashlight&&typeof initial.flashlight==='object'?{...initial.flashlight}:null,phone:initial.phone&&typeof initial.phone==='object'?{...initial.phone}:null,equipment:initial.equipment&&typeof initial.equipment==='object'?structuredClone(initial.equipment):null,hidden:",'persistencia del celular');
   doc=once(doc,"const itemDefs=[...(DATA.itemDefs||[])];",
-   "const itemDefs=window.FHEquipmentCore.itemDefinitions(DATA.itemDefs||[]);",'catálogo de equipamiento');
+   "const itemDefs=window.FHEquipmentCore.itemDefinitions(DATA.itemDefs||[]).filter(def=>!("+dnd+")||window.FHDndMapModules.allowsInventory(def.id,window.FHDndMapModules.options(DATA)));",'catálogo de equipamiento');
   doc=once(doc,"const GameState=createGameState(restored||DATA.initialGameState);",
-   "const GameState=createGameState(restored||DATA.initialGameState);\nwindow.FHEquipmentCore.ensure(GameState);",'equipamiento inicial');
+   "const GameState=createGameState(restored||DATA.initialGameState);\nif("+dnd+")GameState.equipment??={};\nwindow.FHEquipmentCore.ensure(GameState);",'equipamiento inicial');
   doc=once(doc,"const GameEvents=createEventBus();",
-   "if(window.FHEquipmentCore.grantStarterChargers(GameState).changed)saveProgress();\nwindow.FHEquipmentGame={state:GameState,itemDefs,save:saveProgress,refresh:()=>{renderInventory();window.FHPhoneRuntime?.syncAvailability?.()}};\nconst GameEvents=createEventBus();",'API de equipamiento');
+   "if(!("+dnd+")&&window.FHEquipmentCore.grantStarterChargers(GameState).changed)saveProgress();\nwindow.FHEquipmentGame={state:GameState,itemDefs,save:saveProgress,refresh:()=>{renderInventory();window.FHPhoneRuntime?.syncAvailability?.()}};\nconst GameEvents=createEventBus();",'API de equipamiento');
   const oldLight=" state.flashlight={enabled:!!f.enabled,charge:clampLight(Number.isFinite(Number(f.charge))?Number(f.charge):100,0,100)};\n const light=state.flashlight;";
   const newLight=[
    " const oldCharge=Number.isFinite(Number(f.charge))?Number(f.charge):100;",
@@ -328,7 +330,13 @@
    "  b.onclick=()=>{const result=core.moveFromWallet(GameState,id);if(!result.ok){notice('Inventario lleno.');return;}renderInventory();saveProgress()};section.append(b)}",
    "}"
   ].join("\n");
-  doc=once(doc,"function renderInventory(){",equipmentUI+"\nfunction renderInventory(){\nif(window.FHEquipmentCore.grantStarterChargers(GameState).changed)saveProgress();",'interfaz de bolsillos');
+  doc=once(doc,"function renderInventory(){",equipmentUI+"\nfunction renderInventory(){\nif(!("+dnd+")&&window.FHEquipmentCore.grantStarterChargers(GameState).changed)saveProgress();",'interfaz de bolsillos');
+  const torch='function toggleFlashlight(){const out=lighting.toggleFlashlight();';
+  if(doc.includes(torch)){
+   doc=once(doc,torch,'function toggleFlashlight(){if(!'+modern+')return;const out=lighting.toggleFlashlight();','acción de linterna');
+   doc=once(doc,"button.textContent=LIGHTING_TEXT.torchLabel(state.charge,state.enabled);",
+    "button.hidden=!"+modern+";button.textContent=LIGHTING_TEXT.torchLabel(state.charge,state.enabled);",'control de linterna');
+  }
   doc=once(doc," updateInventoryActions(def,selectedInventoryId);\n}",
    " updateInventoryActions(def,selectedInventoryId);\n fhRearPockets();\n}",'render de equipamiento');
   doc=once(doc," if(def.kind==='note'){",

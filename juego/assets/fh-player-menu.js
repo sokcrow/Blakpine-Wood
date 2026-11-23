@@ -21,6 +21,7 @@
   const textOf = id => String(el(id)?.textContent || '').trim() || label('notAvailable','—');
   let open=false,current=null,toggle=null,layer=null,panel=null;
   let navigation=null,detail=null,scroll=null,previousFocus=null,onOpen=null,counter=null,exitButton=null;
+  let statusView=null;
   let inventoryHome=null,inventoryNext=null,inventoryUI=null,filter='all',inventoryWatcher=null;
   const isInventoryTab = key => key==='inventory'||key==='notes';
 
@@ -499,7 +500,8 @@
           renderEquipment(detail);
           break;
         case 'status':
-          renderStatus(detail);
+          if(statusView)statusView(detail);
+          else renderStatus(detail);
           break;
         case 'money':
           renderMoney(detail);
@@ -679,6 +681,10 @@
   }
   const api=Object.freeze({
     isOpen:()=>open,close:closeMenu,openSection,
+    setStatusView(view){
+      statusView=typeof view==='function'?view:null;
+      if(open&&current==='status')renderDetail('status');
+    },
     configure(options={}){onOpen=typeof options.onOpen==='function'?options.onOpen:null;},
     init
   });

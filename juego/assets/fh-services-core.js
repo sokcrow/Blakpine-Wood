@@ -189,6 +189,7 @@
   return s;
  }
  function createRuntime(project,state={},options={}){
+  const electricityEnabled=options.electricityEnabled!==false;
   (options.electricCatalog||root?.FHElectricCatalog)?.upgradeMap?.(project);
   const s=ensureState(state),floors=Array.isArray(project?.floors)?project.floors:[];
    const exteriorGrid=(typeof globalThis!=='undefined'?globalThis.FHExteriorGrid:null)?.createRuntime(project,state)||null;
@@ -509,13 +510,14 @@
   const feedMatches=(feed,f,c,it)=>feed.f===f&&feed.circuit===c&&
    (!feed.target.roomId||roomIdFor(f,it)===String(feed.target.roomId));
   const generatorReady=g=>{
-   if(!baseReady(g))return false;
+   if(!electricityEnabled||!baseReady(g))return false;
    if(g.it.generatorKind!=='emergency')return true;
    const ats=linked(g,'generator_ats');
    return ats!==false&&(!ats||number(s.damage[id(ats.it)])<100&&['automatic','manual'].includes(s.ats[ats.key].mode));
   };
   function mainAvailable(f){
-   return s.contracts.electricity==='active'&&flagOn('power_global')&&flagOn('power_floor:'+String(floors[f]?.id||f));
+   return electricityEnabled&&s.contracts.electricity==='active'&&
+    flagOn('power_global')&&flagOn('power_floor:'+String(floors[f]?.id||f));
   }
   function utilityAvailable(f,c){
    if(!mainAvailable(f)||!mainAvailable(c.ownerFloor))return false;

@@ -126,6 +126,19 @@ test('Chromium: arranque real, guardado, muros de D&D y vista 3D Legacy', {
   let frame = await startDnd();
   assert.equal(await page.evaluate(() => preview3DArchitectureError), '');
   assert.deepEqual(await wallColors(frame, 'muro_norte'), { A: wood, B: wood });
+  assert.equal(await frame.evaluate(() => {
+   const { state } = FHEquipmentGame;
+   return !window.FHPhoneRuntime && !window.FHComputerRuntime &&
+    !Object.values(state.equipment).includes('cell_phone') &&
+    !state.inventory.some(id => id.startsWith('cell_phone'));
+  }), true);
+  assert.equal(await frame.locator('body > .fh-dnd-status').count(), 0);
+  assert.equal(await frame.evaluate(() => FHPlayerMenu.openSection('status')), true);
+  const dndStatus = frame.locator('#fhPlayerMenuDetail .fh-dnd-status');
+  assert.match(await dndStatus.innerText(), /PG 7\/7 · CA 12/);
+  assert.doesNotMatch(await dndStatus.innerText(), /Sanidad|Puntos de energía|\bSP\b|\bPE\b/);
+  assert.equal(await dndStatus.getByRole('button', { name: 'Lanzar salvación' }).count(), 1);
+  await frame.evaluate(() => FHPlayerMenu.close());
   const status = await frame.evaluate(() => ({
    combat: window.FHDndCombatSession?.getStatus(), shadow: window.FHShadowRuntime,
    legacySave: window.ForestHorrorLoadedMap.__runtimeSave,
@@ -194,6 +207,10 @@ test('Chromium: arranque real, guardado, muros de D&D y vista 3D Legacy', {
   editedMap.floors[0].items.find(item => item.id === 'muro_norte').finish = {
    A: { preset: 'pintura-lisa', color: '#667788' },
   };
+  editedMap.floors[0].items.push(
+   { id: 'electric_test', type: 'light_fixture', x: 4, y: 6, w: 1, h: 1 },
+   { id: 'computer_test', type: 'misc', modelId: 'escritorio_pc', x: 5, y: 6, w: 1, h: 1 },
+  );
   await page.evaluate(map => {
    close3DPreview();
    window.previewPackets.length = 0;
@@ -209,6 +226,31 @@ test('Chromium: arranque real, guardado, muros de D&D y vista 3D Legacy', {
   frame = await running(editedMap);
   const paint = [102, 119, 136, 255];
   assert.deepEqual(await wallColors(frame, 'muro_norte'), { A: [paint, paint, paint], B: wood });
+  const moduleDevices = frame => frame.evaluate(() => Object.fromEntries(
+   ['electric_test', 'computer_test'].map(id => [id, ForestHorrorLoadedMap.floors[0].items.some(item => item.id === id)])));
+  assert.deepEqual(await moduleDevices(frame), { electric_test: false, computer_test: false });
+
+  for (const modernity of [false, true]) {
+   await page.evaluate(() => {
+    close3DPreview();
+    window.previewPackets.length = 0;
+   });
+   await page.locator('#menuBtn').click();
+   await page.locator('#projectMapOptions').click();
+   await page.locator('#dndElectricity').setChecked(!modernity);
+   await page.locator('#dndModernity').setChecked(modernity);
+   await page.locator('#saveDndModules').click();
+   assert.deepEqual(await page.evaluate(() => exportProject(false).dndModules),
+    { electricity: !modernity, modernity });
+   await page.locator('#testBtn').click();
+   await page.locator('#fh-dnd-character-dialog button[type="submit"]').click();
+   frame = await running(editedMap);
+   assert.deepEqual(await moduleDevices(frame), { electric_test: !modernity, computer_test: modernity });
+   const finish = await wallColors(frame, 'muro_norte');
+   assert.deepEqual(finish.A, [paint, paint, paint]);
+   if (modernity) assert.notDeepEqual(finish.B, wood);
+   else assert.deepEqual(finish.B, wood);
+  }
  } finally {
   if (browser) await browser.close();
   await new Promise(resolve => server.close(resolve));

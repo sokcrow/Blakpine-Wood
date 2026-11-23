@@ -15,7 +15,7 @@
  // La ficha activa DnD pertenece al reglamento, nunca a recursos/scores Legacy.
  function readStats(player){return sheet.overview(player);}
  function create({targetPort,gameState,identity,sessionId,readPlayer,readMinute,
-  save,notice,document:doc=typeof document!=='undefined'?document:null,
+  save,notice,setStatusView,document:doc=typeof document!=='undefined'?document:null,
   random=Math.random}={}){
   if(!targetPort||typeof targetPort.read!=='function'||
    typeof targetPort.list!=='function'||typeof targetPort.canAttack!=='function'||
@@ -135,7 +135,7 @@
    event.preventDefault();playerAttack(hud?.select.value||undefined);
   }
   if(doc?.body&&typeof doc.createElement==='function'){
-   const box=doc.createElement('aside'),title=doc.createElement('strong'),
+   const box=doc.createElement('section'),title=doc.createElement('h4'),
     status=doc.createElement('span'),stats=doc.createElement('small'),select=doc.createElement('select'),
     weapon=doc.createElement('select'),button=doc.createElement('button'),help=doc.createElement('small'),
     dc=doc.createElement('input'),saveSelect=doc.createElement('select'),
@@ -143,8 +143,9 @@
     skillButton=doc.createElement('button');
    const t=globalThis.FH_DND_TEXT||{};
    box.setAttribute('aria-label',t.title||'Combate DnD');
-   box.style.cssText='position:fixed;right:12px;top:12px;z-index:201;background:#15181de8;color:#fff;border:1px solid #ccc;padding:10px;display:grid;gap:5px;max-width:290px;max-height:65vh;overflow:auto;font:13px system-ui';
-   stats.style.cssText='white-space:pre-line;line-height:1.45;color:#d8dce2;font-variant-numeric:tabular-nums';
+   box.className='fh-status-column fh-dnd-status';
+   title.className='fh-status-column-heading';
+   stats.className='fh-dnd-stats';
    title.textContent=t.title||'Combate DnD';button.type='button';button.textContent=t.attack||'Atacar';
    help.textContent=t.hint||'';select.setAttribute('aria-label',t.selectTarget||'Seleccionar blanco');
    weapon.setAttribute('aria-label',t.selectAttack||'Ataque o arma DnD');
@@ -166,7 +167,7 @@
    saveButton.type='button';saveButton.textContent=t.rollSave||'Tirar salvación';
    skillButton.type='button';skillButton.textContent=t.rollSkill||'Tirar habilidad';
    box.append(title,status,stats,weapon,select,button,dc,saveSelect,saveButton,
-    skillSelect,skillButton,help);doc.body.append(box);
+    skillSelect,skillButton,help);
    weapon.addEventListener('change',()=>{
     if(closed||!state.player.attacks.some(a=>a.id===weapon.value))return;
     state.player.activeAttackId=weapon.value;
@@ -178,6 +179,7 @@
    skillButton.addEventListener('click',()=>rollTest('skill',skillSelect.value,Number(dc.value)));
    doc.addEventListener('keydown',onKey);
    hud={box,status,stats,select,weapon,button,targetsKey:null,weaponKey:null};updateHud();
+   setStatusView?.(host=>host.append(box));
   }
   return Object.freeze({
    tick(){if(!closed)updateHud();},
@@ -185,7 +187,7 @@
    rollSkill:(id,dc,options)=>rollTest('skill',id,dc,options),
    getStatus:()=>Object.freeze({connected:!closed,closed,rulesetId:'dnd',characterId:playerId}),
    close(){if(closed)return;closed=true;session.close();
-    if(hud){hud.box.remove();doc.removeEventListener('keydown',onKey);}}
+    if(hud){setStatusView?.(null);hud.box.remove();doc.removeEventListener('keydown',onKey);}}
   });
  }
  return Object.freeze({create,readStats});

@@ -49,12 +49,18 @@ return restored;
       'if(fhMultimode){fhMultimode.write(GameState,DATA);return;}const result=writeGameSave(localSave,SAVE_KEY,GameState);');
     once("if(window.parent!==window)window.parent.postMessage({type:'FOREST_CHARACTER_DEATH',characterId:GameState.characterId},'*');",
       "if(fhMultimode){fhMultimode.write(GameState,DATA);if(window.parent!==window)window.parent.postMessage({type:'FOREST_MULTIMODE_DEATH',sessionId:fhMultimode.sessionId},'*');}\n  else if(window.parent!==window)window.parent.postMessage({type:'FOREST_CHARACTER_DEATH',characterId:GameState.characterId},'*');");
+    // CCTV y servicios deben completar sus parches antes de aplicar esta política.
+    for(const [runtime,module] of [['FHComputerRuntime','FHComputer'],['FHDeliveryRuntime','FHDelivery']]){
+      const anchor='window.'+runtime+'=window.'+module+'?.createRuntime({';
+      if(doc.includes(anchor))once(anchor,'window.'+runtime+
+        "=(DATA.__multimodeSave?.identity.rulesetId!=='dnd'||DATA.dndModules?.modernity===true?window."+module+':null)?.createRuntime({');
+    }
     const scripts = ['core/fh-multimode-save-identity.js', 'core/fh-multimode-persistence.js',
        'core/fh-combat-target-port.js',
-      'rules/dnd/fh-dnd-sheet.js','rules/dnd/fh-dnd-combat.js','rules/dnd/fh-dnd-save-adapter.js',
+       'rules/dnd/fh-dnd-sheet.js','rules/dnd/fh-dnd-combat.js','rules/dnd/fh-dnd-map-modules.js','rules/dnd/fh-dnd-save-adapter.js',
       'assets/fh-dnd-character-strings.js',
       'rules/dnd/fh-dnd-strings.js','rules/dnd/fh-dnd-engine.js']
-      .map(file => '<script src="' + new URL('./juego/' + file + '?v=20261117-persist32', baseURL).href + '"></' + 'script>').join('');
+      .map(file => '<script src="' + new URL('./juego/' + file + '?v=20261122-modules1', baseURL).href + '"></' + 'script>').join('');
     const adapters = '<script>window.FHMultimodeCombatAdapters=Object.freeze({dnd:window.FHDndCombat});\n' +
       'window.FHMultimodeSaveAdapters=Object.freeze({dnd:window.FHDndSaveAdapter});</' + 'script>';
     if(doc.includes('GameState.horror=structuredClone(restored?.horror||DATA.initialGameState?.horror||{});')){
@@ -82,6 +88,7 @@ return restored;
          "const fhLegacySession=DATA.__multimodeSave?.identity.rulesetId==='dnd'?\n"+
         "window.FHDndEngine.create({\n"+
         " targetPort:fhDndTargetPort,gameState:GameState,\n"+
+        " setStatusView:view=>window.FHPlayerMenu?.setStatusView(view),\n"+
         " identity:DATA.__multimodeSave.identity,sessionId:DATA.__multimodeSave.sessionId,\n"+
         " readMinute:()=>window.FHWeatherCore?.absoluteMinute(GameState.clock)??GameState.clock?.minutes,\n"+
         " readPlayer:()=>({floor:currentFloor,x:user.x,z:user.z,\n"+
