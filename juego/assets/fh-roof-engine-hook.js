@@ -29,13 +29,23 @@
   for(const sp of interiorSpans)for(const r of surfaceRectsMinusVoids(f,sp.x,sp.y,sp.w,sp.h))surfaceGrid(f,r.x,r.y,r.w,r.h,ART_FLOOR_MAT,.018);
  }
  if(roof&&roof.spans.length){
-  const roofMat=window.FHStyleRuntime.roomMaterial(THREE,{type:'concrete',surfaceStyle:roof.floor},DATA);
+  const roofMat=roof.shape==='gable'?null:
+   window.FHStyleRuntime.roomMaterial(THREE,{type:'concrete',surfaceStyle:roof.floor},DATA);
+  const gableMats=roof.shape==='gable'?window.FHRoof.gableMaterials(THREE,roof,document):null;
   for(const sp of roof.spans)for(const r of surfaceRectsMinusVoids(f,sp.x,sp.y,sp.w,sp.h)){
-   const mesh=surfaceGrid(f,r.x,r.y,r.w,r.h,roofMat,.021);
-   mesh.userData.fhRoofSurface=true;mesh.userData.fhStructuralSlab=true;registerCutaway(f,mesh);
+   let mesh;
+   if(roof.shape==='gable'){
+    mesh=new THREE.Mesh(window.FHRoof.gableGeometry(THREE,r,roof,CELL,.021),gableMats);
+    stories[f].add(mesh);mesh.userData.fhRoofGable=true;
+   }else{
+    mesh=surfaceGrid(f,r.x,r.y,r.w,r.h,roofMat,.021);
+    mesh.userData.fhStructuralSlab=true;
+   }
+   mesh.userData.fhRoofSurface=true;registerCutaway(f,mesh);
    fhRoofObjects[f].push({source:mesh,item:{...r,type:'roof_surface'}});
   }
-  const height=roof.parapetHeightTiles*CELL;
+  // El pretil sólo corresponde a azoteas y balcones.
+  const height=roof.shape==='gable'?0:roof.parapetHeightTiles*CELL;
   if(height>0){
    const mat=new THREE.MeshLambertMaterial({color:roof.wall.color});
    for(const edge of roof.edges){
