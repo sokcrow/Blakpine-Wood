@@ -43,10 +43,19 @@
  }
  // Un usuario o director crea cada ficha. Nada asigna Guerrero ni estadísticas por defecto
  // a una partida: el formulario debe solicitar clase, atributos y recursos.
+ function unarmed(){
+  return {id:'unarmed',name:'Golpe sin armas',ability:'str',damageCount:0,damageDie:2,
+   damageType:'bludgeoning',rangeFt:5,proficient:true};
+ }
+ function ensureUnarmed(player){
+  player.attacks=player.attacks.filter(a=>a.id!=='unarmed').concat(unarmed());
+  if(!player.activeAttackId)player.activeAttackId='unarmed';
+  return player;
+ }
  function createCharacter(input={}){
   const {name,classId,level,abilities,hp,maxHp=hp,armorClass,
    speedFt=30,hitDice,saveProficiencies=[],skillProficiencies=[],
-   expertise=[],attacks,activeAttackId=attacks?.[0]?.id,
+   expertise=[],attacks=[],activeAttackId=attacks?.[0]?.id||'unarmed',
    backgroundId='custom',speciesId='custom',temporaryHp=0,
    spellcasting=null,features={},tools=[],languages=[],
    deathSaves={successes:0,failures:0},conditions=[],exhaustion=0,
@@ -57,7 +66,7 @@
    !int(hp,1,100000)||!int(maxHp,hp,100000)||!int(armorClass,1,100)||
    !int(speedFt,0,1000)||!hitDice||!int(hitDice.sides,2,100)||
    !int(hitDice.total,1,20)||!int(hitDice.available,0,hitDice.total)||
-   !Array.isArray(attacks)||!attacks.length||
+   !Array.isArray(attacks)||
    !Array.isArray(saveProficiencies)||!Array.isArray(skillProficiencies)||
    !Array.isArray(expertise))throw Error('DND_CHARACTER_INPUT_INVALID');
   const clone=v=>JSON.parse(JSON.stringify(v));
@@ -69,6 +78,7 @@
    attacks:clone(attacks),activeAttackId,features:clone(features),
    spellcasting:clone(spellcasting),deathSaves:clone(deathSaves),
    conditions:clone(conditions),exhaustion,senses:clone(senses),heroicInspiration};
+  ensureUnarmed(p);
   if(!valid(p))throw Error('DND_CHARACTER_INPUT_INVALID');
   return p;
  }
@@ -118,7 +128,7 @@
    int(p.temporaryHp,0,100000)&&int(p.armorClass,1,100)&&
    int(p.speedFt,0,1000)&&Array.isArray(p.attacks)&&
    p.attacks.length>0&&p.attacks.every(a=>typeof a.id==='string'&&
-    ABILITIES.includes(a.ability)&&int(a.damageCount,1,20)&&int(a.damageDie,2,100)&&
+    ABILITIES.includes(a.ability)&&int(a.damageCount,a.id==='unarmed'?0:1,20)&&int(a.damageDie,2,100)&&
     typeof a.damageType==='string'&&int(a.rangeFt,1,1000))&&
    p.attacks.some(a=>a.id===p.activeAttackId)&&
    p.hitDice&&int(p.hitDice.sides,2,100)&&int(p.hitDice.total,1,20)&&
@@ -129,12 +139,12 @@
  }
  function attack(sheet,id=sheet.activeAttackId){
   if(!valid(sheet))throw Error('DND_SHEET_INVALID');
-  const weapon=sheet.attacks.find(x=>x.id===id);
+  const weapon=id==='unarmed'?unarmed():sheet.attacks.find(x=>x.id===id);
   if(!weapon)throw Error('DND_WEAPON_UNKNOWN');
   const m=modifier(sheet.abilities[weapon.ability]);
   return Object.freeze({id,weaponName:weapon.name,hitDie:20,
    attackBonus:m+(weapon.proficient?proficiency(sheet.level):0),
-   damageBonus:m,damageCount:weapon.damageCount,damageDie:weapon.damageDie,
+   damageBonus:m+(id==='unarmed'?1:0),damageCount:weapon.damageCount,damageDie:weapon.damageDie,
    damageType:weapon.damageType,rangeFt:weapon.rangeFt,longRangeFt:weapon.longRangeFt||null});
  }
  function overview(sheet){
@@ -152,5 +162,5 @@
    features:sheet.features,spellcasting:sheet.spellcasting});
  }
  return Object.freeze({ABILITIES,SKILLS,modifier,proficiency,bonus,rollD20,testD20,
-  createCharacter,createUnassigned,createPilot,valid,attack,overview});
+  unarmed,ensureUnarmed,createCharacter,createUnassigned,createPilot,valid,attack,overview});
 });

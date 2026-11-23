@@ -108,7 +108,8 @@ test('Chromium: arranque real, guardado, muros de D&D y vista 3D Legacy', {
    await page.evaluate(map => {
     window.previewPackets.length = 0;
     LumenEditor.setRuleset('dnd');
-    LumenEditor.play(map, () => {});
+    window.dmMinutes ||= 0;
+    LumenEditor.play(map, () => {},()=>({campaignId:'test',minutes:window.dmMinutes,workMinutes:0}));
    }, map);
    const dialog = page.locator('#fh-dnd-character-dialog');
    await dialog.waitFor();
@@ -138,6 +139,9 @@ test('Chromium: arranque real, guardado, muros de D&D y vista 3D Legacy', {
   await frame.locator('#fhMenuToggle').tap();
   await frame.locator('[role=tab][data-section=status]').tap();
   assert.equal(await title.isVisible(),true);
+  assert.equal(await frame.getByRole('button',{name:'Prueba de característica'}).isVisible(),true);
+  assert.equal(await frame.locator('option[value="unarmed"]').count(),1);
+  assert.equal(await frame.evaluate(()=>ForestHorrorGame.gameState.clock.minutesPerSecond),1/60);
   const dndStatus = frame.locator('#fhPlayerMenuDetail .fh-dnd-status');
   assert.match(await dndStatus.innerText(), /PG 6\/6 · CA 10/);
   assert.doesNotMatch(await dndStatus.innerText(), /Sanidad|Puntos de energía|\bSP\b|\bPE\b/);
@@ -158,6 +162,10 @@ test('Chromium: arranque real, guardado, muros de D&D y vista 3D Legacy', {
   assert.equal(status.selection.mapId, map.createdAt);
 
   const torch = map.floors[0].items.find(item => item.lightKind === 'torch_hand');
+  await page.evaluate(()=>{window.dmMinutes=59;});
+  await frame.waitForFunction(id=>FHMedievalRuntime.view(id).remaining===1,torch.id);
+  await page.evaluate(()=>{window.dmMinutes=60;});
+  await frame.waitForFunction(id=>FHMedievalRuntime.view(id).remaining===0,torch.id);
   await frame.evaluate(id => {
    const item = window.ForestHorrorLoadedMap.floors[0].items.find(item => item.id === id);
    if (!window.FHMedievalRuntime.interact(0, item).ok) throw Error('No se pudo recoger la antorcha');
@@ -189,7 +197,7 @@ test('Chromium: arranque real, guardado, muros de D&D y vista 3D Legacy', {
   await page.evaluate(map => {
    window.previewPackets.length = 0;
    LumenEditor.setRuleset('legacy');
-   LumenEditor.play(map, () => {});
+   LumenEditor.play({...map,__multimodeSave:{identity:{rulesetId:'dnd'}}}, () => {});
   }, map);
   frame = await running();
   assert.equal(await frame.evaluate(() => !!window.FHLegacyCombatSession && !!window.FHShadowRuntime), true);
@@ -257,6 +265,50 @@ test('Chromium: arranque real, guardado, muros de D&D y vista 3D Legacy', {
    if (modernity) assert.notDeepEqual(finish.B, wood);
    else assert.deepEqual(finish.B, wood);
   }
+  await page.evaluate(()=>{close3DPreview();window.previewPackets.length=0;});
+  await page.locator('#testBtn').click();
+  await page.getByRole('button',{name:'Probar mapa como aldeano'}).click();
+  frame=await running(editedMap);
+  assert.deepEqual(await frame.evaluate(()=>{
+   const p=ForestHorrorGame.gameState.dnd.player;
+   return [p.classId,p.hp,p.attacks.map(a=>a.id)];
+  }),['commoner',4,['unarmed']]);
+  const room=await browser.newPage({viewport:{width:1100,height:680}});
+  await room.goto(origin+'/tests/');
+  await room.addStyleTag({url:origin+'/portal/portal.css'});
+  await room.evaluate(async map=>{
+   const {mountGameRoom}=await import('/portal/game-room.js');
+   const host=document.createElement('main');document.body.replaceChildren(host);
+   const session={status:'open',releaseId:'test',elapsedMinutes:0,workMinutes:0};
+   const context={rulesetId:'dnd',uid:'dm',ownerUid:'dm'};
+   let onTime;
+   const store={
+    load:async()=>({context,session,payload:{project:map,mapName:map.title,revision:1}}),
+    watch:(_cid,_context,_session,_invalid,notify)=>{onTime=notify;return ()=>{};},
+    advanceTime:async(_cid,_session,minutes,kind)=>{
+     session.elapsedMinutes+=minutes;
+     if(kind==='work')session.workMinutes+=minutes;
+     onTime(session.elapsedMinutes,session.workMinutes);
+    }
+   };
+   await mountGameRoom({element:host,store,campaignId:'test-campaign'});
+  },map);
+  await room.getByRole('button',{name:'Entrar al mapa'}).click();
+  const editor=room.frameLocator('iframe').first();
+  await editor.getByRole('button',{name:/^Guerrero/}).click();
+  await editor.getByLabel('Nombre',{exact:true}).fill('Prueba de campaña');
+  await editor.locator('#fh-dnd-character-dialog button[type=submit]').click();
+  const game=editor.frameLocator('#play3dFrame');
+  await game.locator('#fhMenuToggle').click();
+  await game.locator('[role=tab][data-section=status]').click();
+  await game.getByRole('button',{name:'Tiempo de campaña'}).click();
+  await room.getByLabel('Actividad',{exact:true}).selectOption('travel');
+  await room.getByLabel('Distancia recorrida (millas)').fill('3');
+  await room.getByRole('button',{name:'Avanzar el tiempo'}).click();
+  await room.getByText('Tiempo de campaña actualizado.').waitFor();
+  assert.equal(await room.frames().find(frame=>frame.url()==='about:srcdoc').evaluate(
+   ()=>window.parent.LumenEditor.campaignTime().minutes),60);
+  await room.close();
  } finally {
   if (browser) await browser.close();
   await new Promise(resolve => server.close(resolve));

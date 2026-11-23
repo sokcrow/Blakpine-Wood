@@ -58,7 +58,7 @@ export function playStore(fs,db,currentUid) {
   async function access(cid,expectedUid=currentUid()) {
     if(!expectedUid||currentUid()!==expectedUid||!/^[A-Za-z0-9]{20}$/.test(cid))throw Error('PLAY_ACCESS');
     const campaign=await server(ref(cid));
-    if(!campaign||campaign.status!=='active'||campaign.ruleset!=='legacy')throw Error('PLAY_ACCESS');
+    if(!campaign||campaign.status!=='active'||!['legacy','dnd'].includes(campaign.ruleset))throw Error('PLAY_ACCESS');
     const context={uid:expectedUid,ownerUid:campaign.ownerId,campaignId:cid,rulesetId:campaign.ruleset,status:campaign.status,name:campaign.name};
     if(context.uid!==context.ownerUid){
       const [member,room,participant]=await Promise.all([
@@ -96,13 +96,25 @@ export function playStore(fs,db,currentUid) {
     await fs.runTransaction(db,async tx=>{
       const roomRef=ref(cid,'lobby','current'),roomSnap=await tx.get(roomRef);
       if(currentUid()!==expectedUid)throw Error('PLAY_ACCESS');
+      const previousSession=await tx.get(ref(cid,'playSession','current'));
       const room=roomSnap.exists()?roomSnap.data():null;
       const roomId=isWaitingLobby(room)?room.roomId:makeLobbyId();
       if(!isWaitingLobby(room))tx.set(roomRef,{hostId:expectedUid,roomId,status:'waiting',openedAt:fs.serverTimestamp(),updatedAt:fs.serverTimestamp()});
       tx.set(release,{...packed.manifest,createdAt:fs.serverTimestamp()});
-      tx.set(ref(cid,'playSession','current'),{releaseId:rid,roomId,status:'open',updatedAt:fs.serverTimestamp()});
+      tx.set(ref(cid,'playSession','current'),{releaseId:rid,roomId,status:'open',...(fresh.rulesetId==='dnd'?{elapsedMinutes:previousSession.data()?.elapsedMinutes||0,workMinutes:previousSession.data()?.workMinutes||0}:{}),updatedAt:fs.serverTimestamp()});
     });
     return rid;
+  }
+  async function advanceTime(cid,session,minutes,kind){
+    const context=await access(cid);
+    if(context.rulesetId!=='dnd'||context.uid!==context.ownerUid||
+       !['travel','work','rest'].includes(kind)||!Number.isSafeInteger(minutes)||minutes<1||minutes>1440)throw Error('PLAY_ACCESS');
+    const target=ref(cid,'playSession','current');
+    await fs.runTransaction(db,async tx=>{
+      const snap=await tx.get(target),data=snap.data();
+      if(currentUid()!==context.uid||!sameSession(data,session))throw Error('PLAY_CHANGED');
+      tx.set(target,{...data,elapsedMinutes:(data.elapsedMinutes||0)+minutes,workMinutes:(data.workMinutes||0)+(kind==='work'?minutes:0),updatedAt:fs.serverTimestamp()});
+    });
   }
   async function load(cid,validate) {
     const expectedUid=currentUid(),context=await access(cid,expectedUid);
@@ -127,7 +139,7 @@ export function playStore(fs,db,currentUid) {
         (latestContext.roomId&&latestContext.roomId!==session.roomId)||currentUid()!==expectedUid)throw Error('PLAY_CHANGED');
     return {context,session,payload,manifest};
   }
-  function watch(cid,context,session,onInvalid) {
+  function watch(cid,context,session,onInvalid,onTime) {
     let live=true;const stops=[];
     const stop=()=>{live=false;stops.splice(0).forEach(fn=>fn());};
     function observe(r,valid){if(!live)return;let confirmed=false;stops.push(fs.onSnapshot(r,{includeMetadataChanges:true},s=>{
@@ -136,8 +148,8 @@ export function playStore(fs,db,currentUid) {
       if(!s.metadata?.fromCache)confirmed=true;
       if(s.metadata?.fromCache||currentUid()!==context.uid||!s.exists()||!valid(s.data())){stop();onInvalid();}
     },()=>{if(live){stop();onInvalid();}}));}
-    observe(ref(cid),c=>c.status==='active'&&c.ownerId===context.ownerUid&&c.ruleset==='legacy');
-    observe(ref(cid,'playSession','current'),s=>sameSession(s,session));
+    observe(ref(cid),c=>c.status==='active'&&c.ownerId===context.ownerUid&&c.ruleset===context.rulesetId);
+    observe(ref(cid,'playSession','current'),s=>{if(!sameSession(s,session))return false;onTime?.(s.elapsedMinutes||0,s.workMinutes||0);return true;});
     observe(ref(cid,'lobby','current'),r=>isWaitingLobby(r)&&r.roomId===session.roomId);
     if(context.uid!==context.ownerUid){
       observe(ref(cid,'members',context.uid),m=>m.status==='active'&&m.userId===context.uid);
@@ -145,5 +157,5 @@ export function playStore(fs,db,currentUid) {
     }
     return stop;
   }
-  return {access,publish,load,watch};
+  return {access,publish,load,watch,advanceTime};
 }

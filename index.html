@@ -166,23 +166,23 @@ body.layer-lighting #stageBadge{border-color:#aa8951;color:#f1d59f}
 <script src="./juego/core/fh-multimode-resource-reader.js?v=20261117-33"></script>
 <script src="./juego/core/fh-mode-selection.js?v=20261117-33"></script>
 <script src="./juego/worlds/fh-world-profile-loader.js?v=20261117-33"></script>
-<script src="./juego/core/fh-session-coordinator.js?v=20261117-33"></script>
+<script src="./juego/core/fh-session-coordinator.js?v=20261123-campaign"></script>
 <script src="./juego/core/fh-mode-adapter-registry.js?v=20261117-33"></script>
 <script src="./juego/assets/fh-multimode-strings.js?v=20261122-current-map"></script>
 <script src="./juego/units/fh-training-dummy.js?v=20261117-training1"></script>
-<script src="./juego/rules/dnd/fh-dnd-sheet.js?v=20261122-dnd-characters"></script>
-<script src="./juego/assets/fh-dnd-character-strings.js?v=20261123-dnd-menu"></script>
-<script src="./juego/assets/fh-dnd-character-manager.js?v=20261123-dnd-menu"></script>
-<script src="./juego/rules/dnd/fh-dnd-combat.js?v=20261122-dnd-sheet"></script>
-<script src="./juego/rules/dnd/fh-dnd-map-modules.js?v=20261122-modules1"></script>
+<script src="./juego/rules/dnd/fh-dnd-sheet.js?v=20261123-campaign"></script>
+<script src="./juego/assets/fh-dnd-character-strings.js?v=20261123-campaign"></script>
+<script src="./juego/assets/fh-dnd-character-manager.js?v=20261123-campaign"></script>
+<script src="./juego/rules/dnd/fh-dnd-combat.js?v=20261123-campaign"></script>
+<script src="./juego/rules/dnd/fh-dnd-map-modules.js?v=20261123-campaign"></script>
 <script src="./juego/rules/dnd/fh-dnd-module-strings.js?v=20261122-modules1"></script>
-<script src="./juego/rules/dnd/fh-dnd-save-adapter.js?v=20261122-modules1"></script>
+<script src="./juego/rules/dnd/fh-dnd-save-adapter.js?v=20261123-campaign"></script>
 <script>window.FHMultimodeCombatAdapters=Object.freeze({dnd:window.FHDndCombat});
 window.FHMultimodeSaveAdapters=Object.freeze({dnd:window.FHDndSaveAdapter});</script>
 <script src="./juego/assets/fh-multimode-selector.js?v=20261123-dnd-menu"></script>
 <script src="./juego/core/fh-multimode-save-identity.js?v=20261117-persist32"></script>
 <script src="./juego/core/fh-multimode-persistence.js?v=20261117-persist32"></script>
-<script src="./juego/core/fh-multimode-save-hook.js?v=20261122-modules1"></script>
+<script src="./juego/core/fh-multimode-save-hook.js?v=20261123-campaign"></script>
 <script src="./juego/core/fh-multimode-save-strings.js?v=20261117-persist32"></script>
 <script src="./juego/assets/fh-preview-strings.js?v=20261113-door-safety"></script>
 <script src="./juego/assets/fh-preview-diagnostics.js?v=20261123-dnd-menu"></script>
@@ -3236,6 +3236,18 @@ if(it.type==='peephole_door'){put('La mirilla apunta hacia','peekSide',it.peekSi
    Object.entries(window.FHMedievalLighting.definitions).map(([id,spec])=>[id,spec.label]):
    window.FH_LIGHT_TEXT.presets);
  if(window.FHMedievalLighting?.isMedieval(it.lightKind)){
+  if(window.FHEditorCatalog?.ruleset()==='dnd'){
+   if(['fireplace','campfire'].includes(it.lightKind)){
+    put('Material de obra (ID del inventario)','workMaterial',it.workMaterial||'lena');
+    put('Unidades de material','workUnits',it.workUnits||1,'number');
+    put('Minutos de trabajo para construir (0 = ya construido)','workMinutes',it.workMinutes||0,'number');
+   }
+   if(it.lightKind!=='magic_crystal'&&it.lightKind!=='torch_hand'){
+    put('Encargado del hogar al anochecer','homeKeeper',it.homeKeeper===true,'checkbox');
+    put('Cargas de combustible del encargado','homeFuel',it.homeFuel||0,'number');
+    put('El encargado tiene yesquero','homeTinderbox',it.homeTinderbox===true,'checkbox');
+   }
+  }
   put('Encendida al empezar','lightOn',it.lightOn!==false,'checkbox');
   if(window.FHMedievalLighting.preset(it.lightKind).fuelMinutes!==null)
    put('Combustible inicial (minutos de juego)','lightFuelMinutes',it.lightFuelMinutes??window.FHMedievalLighting.preset(it.lightKind).fuelMinutes,'number');
@@ -3614,6 +3626,7 @@ function makeCurrent3DProject(){
  if(preview3DSelectedMap){
   // Solo la copia de sesión: el JSON del mundo y el borrador del editor no se alteran.
   const loaded=clone(preview3DSelectedMap);
+  delete loaded.__multimodeSave;delete loaded.__dndCharacter;
   if(!loaded.floors.some(f=>f.items?.some(it=>it.type==='spawn'))){
    const floor=loaded.floors.find(f=>f.id===loaded.mainFloorId)||loaded.floors[0];
    const items=floor.items||[],width=loaded.units.columns,height=loaded.units.rows;
@@ -4811,7 +4824,7 @@ function fhRefreshActorVisibility(){
    doc=doc.replace(bareState,withClock);
   }else throw Error('Hook de estado meteorológico incompatible con los adaptadores actuales');
   const scripts=[
-   '<script src="'+new URL('./juego/assets/fh-weather-core.js?v=20261108-clima1',document.baseURI).href+'"></'+'script>',
+   '<script src="'+new URL('./juego/assets/fh-weather-core.js?v=20261123-campaign',document.baseURI).href+'"></'+'script>',
    '<script src="'+new URL('./juego/assets/fh-weather-renderer.js?v=20261111-no-mist-points2',document.baseURI).href+'"></'+'script>',
     '<script src="'+new URL('./juego/assets/fh-ground-fog.js?v=20261111-weather-gated-fog3',document.baseURI).href+'"></'+'script>',
    '<script src="'+new URL('./juego/assets/fh-weather-audio.js?v=20261109-ambient1',document.baseURI).href+'"></'+'script>'
@@ -4825,7 +4838,7 @@ function fhRefreshActorVisibility(){
   const before='installVisibility();window.FHAssets?.setSightMaskInstaller(installVisibility);';
   const after=[
    "const fhWeatherEnabled=DATA.weather?.enabled===true;",
-   "const fhWeather=window.FHWeatherCore?.createRuntime({gameState:GameState,config:DATA.weather||{}});",
+   "const fhWeather=window.FHWeatherCore?.createRuntime({gameState:GameState,config:DATA.weather||{},ruleset:DATA.__multimodeSave?.identity.rulesetId,readTime:()=>window.parent.LumenEditor?.campaignTime?.()});",
    "window.FHWeatherRuntime=fhWeatherEnabled?fhWeather:null;",
    "const fhWeatherExposure=fhWeatherEnabled&&fhWeather?window.FHWeatherRenderer?.createExteriorExposure({floors:DATA.floors,units:DATA.units,cell:CELL,slabs:SLABS,roofPlans:FH_ROOF_PLANS,natural:window.FHNaturalLight}):null;",
     "const fhGroundExposure=fhWeatherExposure||window.FHWeatherRenderer?.createExteriorExposure({floors:DATA.floors,units:DATA.units,cell:CELL,slabs:SLABS,roofPlans:FH_ROOF_PLANS,natural:window.FHNaturalLight});",
@@ -5592,13 +5605,15 @@ if(typeof lumenCartridgeMode!=='undefined'&&lumenCartridgeMode){
   changed:()=>lumenEditorChanged,
   saved(){dirty=false;status(window.LUMEN_CARTRIDGE_TEXT?.working||'LUMEN');},
   setActions(actions){lumenEditorActions=actions;},
-  play(raw,onClose){
+  campaignTime:()=>lumenPlaySession?.readTime?.(),
+  get campaignClockAction(){return lumenPlaySession?.openClock;},
+  play(raw,onClose,readTime,openClock){
    validate(raw);
    if(lumenEditorRuleset==='dnd'&&(typeof raw.createdAt!=='string'||!raw.createdAt)){
     toast(window.FH_MULTIMODE_TEXT.mapIdMissing);return;
    }
    this.stop();
-   lumenPlaySession={onClose};
+   lumenPlaySession={onClose,readTime,openClock};
    window.FHMultimodeSaveSelection=lumenEditorRuleset==='dnd'?
     {mapId:raw.createdAt,rulesetId:'dnd',rulesetVersion:1,saveId:'principal'}:null;
    preview3DSelectedMap=clone(raw);
@@ -5645,10 +5660,10 @@ window.FHMultimodeSelector?.mount({
 <script src="./juego/assets/fh-character-creation.js?v=20261107-help"></script>
 <script src="./juego/assets/fh-strings.js"></script>
 <script src="./juego/assets/fh-light-coverage.js?v=20261105-light-ui2"></script>
-<script src="./juego/assets/fh-medieval-lighting.js?v=20261121-medievallight1"></script>
+<script src="./juego/assets/fh-medieval-lighting.js?v=20261123-campaign"></script>
 <script src="./juego/assets/fh-medieval-light-strings.js?v=20261121-medievallight1"></script>
 <script src="./juego/assets/fh-lights.js?v=20261105-light-ui2"></script>
-<script src="./juego/assets/fh-medieval-light-engine.js?v=20261122-preview-boot"></script>
+<script src="./juego/assets/fh-medieval-light-engine.js?v=20261123-campaign"></script>
 <script src="./juego/assets/fh-light-editor-overlay.js?v=20261105-light-ui2"></script>
 <script src="./juego/assets/fh-object-front.js?v=20261122-front-controls"></script>
 <script src="./juego/assets/fh-object-front-strings.js?v=20261122-front-controls"></script>

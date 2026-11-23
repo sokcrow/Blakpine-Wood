@@ -80,3 +80,30 @@ test('Protocolo real en Firestore: DM e invitado reciben el mapa de 7 MiB idént
   await assert.rejects(()=>guestStore.load(cid,validate),/PLAY_ACCESS|permission/i);
  }finally{stop();await env.cleanup();}
 });
+
+test('Firestore D&D: sólo el DM confirma tiempo; un invitado inscrito recibe el mismo total',{
+ skip:!process.env.FIRESTORE_EMULATOR_HOST,timeout:90000
+},async()=>{
+ const {initializeTestEnvironment,assertFails}=require('@firebase/rules-unit-testing'),sdk=require('firebase/firestore');
+ const {playStore}=await import('../portal/play-session.js'),cart=await import('../portal/cartridge.js');
+ const env=await initializeTestEnvironment({projectId:'demo-lumen-dnd',firestore:{rules:fs.readFileSync('firestore.rules','utf8')}});
+ const cid='d'.repeat(20),dm=env.authenticatedContext('dm').firestore(),guest=env.authenticatedContext('guest').firestore();
+ const context={uid:'dm',ownerUid:'dm',campaignId:cid,rulesetId:'dnd',status:'active'};
+ const ref=(db,...p)=>sdk.doc(db,'campaigns',cid,...p);
+ try{
+  await env.withSecurityRulesDisabled(async c=>sdk.setDoc(ref(c.firestore()),{ownerId:'dm',ruleset:'dnd',status:'active'}));
+  const project=JSON.parse(fs.readFileSync('forest-horror/maps/DEMO_DnD_Iluminacion.json')),validate=p=>assert.ok(p.floors.length);
+  const doc=cart.changeMap(cart.createCartridge(context),context,validate,{name:'Casa',project,expectedRevision:1});
+  const store=playStore(sdk,dm,()=> 'dm');await store.publish(doc.cartridge,context,doc.mapId,validate);
+  const host=await store.load(cid,validate);
+  await env.withSecurityRulesDisabled(async c=>{
+   const db=c.firestore();await sdk.setDoc(ref(db,'members','guest'),{userId:'guest',status:'active'});
+   await sdk.setDoc(ref(db,'lobbyParticipants','guest'),{roomId:host.session.roomId,state:'joined'});
+  });
+  await store.advanceTime(cid,host.session,120,'travel');await store.advanceTime(cid,host.session,30,'work');
+  const loaded=await playStore(sdk,guest,()=> 'guest').load(cid,validate);
+  assert.equal(loaded.context.rulesetId,'dnd');assert.equal(loaded.session.elapsedMinutes,150);
+  assert.equal(loaded.session.workMinutes,30);
+  await assertFails(sdk.updateDoc(ref(guest,'playSession','current'),{elapsedMinutes:250,updatedAt:sdk.serverTimestamp()}));
+ }finally{await env.cleanup();}
+});

@@ -35,12 +35,12 @@ service cloud.firestore {
     function releasePath(cid, rid) {
       return /databases/$(database)/documents/campaigns/$(cid)/worldReleases/$(rid);
     }
-    function activeLegacy(cid) {
+    function activePlayable(cid) {
       return get(campaignPath(cid)).data.status == 'active' &&
-        get(campaignPath(cid)).data.ruleset == 'legacy';
+        get(campaignPath(cid)).data.ruleset in ['legacy','dnd'];
     }
     function releaseReader(cid, rid) {
-      return owner(cid) || (member(cid) && activeLegacy(cid) &&
+      return owner(cid) || (member(cid) && activePlayable(cid) &&
         get(playPath(cid)).data.status == 'open' &&
         get(playPath(cid)).data.releaseId == rid &&
         get(lobbyPath(cid)).data.status == 'waiting' &&
@@ -114,13 +114,13 @@ service cloud.firestore {
       match /worldReleases/{rid} {
         allow get: if releaseReader(cid,rid);
         allow list: if false;
-        allow create: if owner(cid) && activeLegacy(cid) && rid.matches('^[a-f0-9-]{36}$') &&
+        allow create: if owner(cid) && activePlayable(cid) && rid.matches('^[a-f0-9-]{36}$') &&
           validRelease(request.resource.data);
         allow update, delete: if false;
         match /chunks/{part} {
           allow get: if releaseReader(cid,rid);
           allow list: if false;
-          allow create: if owner(cid) && activeLegacy(cid) && rid.matches('^[a-f0-9-]{36}$') &&
+          allow create: if owner(cid) && activePlayable(cid) && rid.matches('^[a-f0-9-]{36}$') &&
             part.matches('^(0|[1-9][0-9]{0,2})$') && int(part) < 256 &&
             !exists(releasePath(cid,rid)) &&
             request.resource.data.keys().hasAll(['data']) &&
@@ -134,9 +134,11 @@ service cloud.firestore {
       match /playSession/{docId} {
         allow get: if docId == 'current' && (owner(cid) || member(cid));
         allow list: if false;
-        allow create, update: if docId == 'current' && owner(cid) && activeLegacy(cid) &&
+        allow create, update: if docId == 'current' && owner(cid) && activePlayable(cid) &&
           request.resource.data.keys().hasAll(['releaseId','roomId','status','updatedAt']) &&
-          request.resource.data.keys().hasOnly(['releaseId','roomId','status','updatedAt']) &&
+          request.resource.data.keys().hasOnly(['releaseId','roomId','status','updatedAt','elapsedMinutes','workMinutes']) &&
+          (!('elapsedMinutes' in request.resource.data) || (get(campaignPath(cid)).data.ruleset == 'dnd' && request.resource.data.elapsedMinutes is int && request.resource.data.elapsedMinutes >= 0 && request.resource.data.elapsedMinutes <= 52560000)) &&
+          (!('workMinutes' in request.resource.data) || (request.resource.data.workMinutes is int && request.resource.data.workMinutes >= 0 && request.resource.data.workMinutes <= request.resource.data.elapsedMinutes)) &&
           request.resource.data.releaseId is string && request.resource.data.releaseId.matches('^[a-f0-9-]{36}$') &&
           request.resource.data.roomId is string && request.resource.data.roomId.matches('^[A-F0-9]{32}$') &&
           request.resource.data.status == 'open' && request.resource.data.updatedAt == request.time &&

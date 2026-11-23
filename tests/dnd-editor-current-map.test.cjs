@@ -49,7 +49,7 @@ test('El mapa de edición lleva ficha DnD propia al iframe y no usa creador Lega
  assert.match(source,/__runtimeCharacter:session\?null/);
 });
 test('La entrada Lumen.play acepta DnD, usa el JSON recibido y no muestra pendiente',()=>{
- const start=html.indexOf('  play(raw,onClose){');
+ const start=html.indexOf('  play(raw,onClose');
  const end=html.indexOf('  stop(){',start);
  const source=html.slice(start,end);
  assert.ok(start>=0&&end>start);
@@ -60,7 +60,7 @@ test('La entrada Lumen.play acepta DnD, usa el JSON recibido y no muestra pendie
  assert.match(source,/preview3DSelectedMap=clone\(raw\)/);
 });
 test('Lumen.play invoca el lanzamiento DnD con el JSON editado y callback',()=>{
- const start=html.indexOf('  play(raw,onClose){');
+ const start=html.indexOf('  play(raw,onClose');
  const end=html.indexOf('  stop(){',start);
  const method=html.slice(start,end);
  let launch=0,close=0,errors=[];

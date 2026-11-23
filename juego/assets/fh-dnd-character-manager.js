@@ -202,13 +202,21 @@
     const hint=doc.createElement('small');hint.textContent=T.classThemes[id];
     card.append(hint);classGrid.append(card);
    }
+   const villager=button(T.villager,()=>{
+    const character=sheet.createCharacter({name:T.villagerName,classId:'commoner',level:1,
+     abilities:Object.fromEntries(sheet.ABILITIES.map(id=>[id,10])),hp:4,armorClass:10,
+     hitDice:{sides:8,total:1,available:1}});
+    const existing=library.list().find(p=>p.sheet.classId==='commoner'&&p.name===T.villagerName);
+    try{close(existing?library.select(existing.id):library.upsert({name:character.name,character}));}
+    catch{error.textContent=T.storageError;}
+   });
    advanced.addEventListener('input',showCharacter);
    play.textContent=T.enter;footer.prepend(change);
+   if(!new URLSearchParams(globalThis.location?.search).has('lumenPlayer'))roster.append(villager);
    form.append(roster,heading,classGrid,summary,identity,advanced,error,footer);
    title.textContent=T.title;
    panel.append(title,form);root.append(panel);doc.body.append(root);
-   const defaultAttack=()=>[{id:'primary',name:'Ataque configurado',ability:'str',
-    damageCount:1,damageDie:4,damageType:'bludgeoning',rangeFt:5,proficient:false}];
+   const defaultAttack=()=>[sheet.unarmed()];
    function fill(record){
     const s=record?.sheet||null;
     name.value=s?.name||'';klass.value=s?.classId||'';
