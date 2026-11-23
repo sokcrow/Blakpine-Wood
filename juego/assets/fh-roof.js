@@ -110,15 +110,15 @@
   }
   function quad(a,b,c,d,width,depth){
    const u=width/.42,v=depth/.36;
-   tri(a,b,c,[[0,0],[u,0],[u,v]],0);
-   tri(a,c,d,[[0,0],[u,v],[0,v]],0);
+   tri(a,c,b,[[0,0],[u,v],[u,0]],0);
+   tri(a,d,c,[[0,0],[0,v],[u,v]],0);
   }
   if(axis==='x'){
    const slope=Math.hypot((z1-z0)/2,rise),length=x1-x0;
    quad([x0,base,z0],[x1,base,z0],[x1,peak,zm],[x0,peak,zm],length,slope);
    quad([x1,base,z1],[x0,base,z1],[x0,peak,zm],[x1,peak,zm],length,slope);
-   tri([x0,base,z0],[x0,peak,zm],[x0,base,z1],[[0,0],[.5,1],[1,0]],1);
-   tri([x1,base,z1],[x1,peak,zm],[x1,base,z0],[[0,0],[.5,1],[1,0]],1);
+   tri([x0,base,z1],[x0,peak,zm],[x0,base,z0],[[0,0],[.5,1],[1,0]],1);
+   tri([x1,base,z0],[x1,peak,zm],[x1,base,z1],[[0,0],[.5,1],[1,0]],1);
   }else{
    const slope=Math.hypot((x1-x0)/2,rise),length=z1-z0;
    quad([x0,base,z1],[x0,base,z0],[xm,peak,z0],[xm,peak,z1],length,slope);
