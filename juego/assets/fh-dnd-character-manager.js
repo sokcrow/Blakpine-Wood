@@ -141,7 +141,7 @@
    for(const id of sheet.ABILITIES){
     const score=input('number',10,1,30);field(T.abilitiesMap?.[id]||id,score,abilityGrid);
     const tile=abilityGrid.lastElementChild;tile.className='dnd-ability-card';
-    const icon=doc.createElement('img');icon.alt='';icon.className='dnd-ability-icon';
+    const icon=doc.createElement('img');icon.alt='';icon.className='dnd-ability-icon';icon.loading='lazy';icon.decoding='async';
     icon.src=new URL('./juego/assets/dnd-icons/'+id+'.png',doc.baseURI).href;
     tile.querySelector('span')?.prepend(icon);
     const mod=doc.createElement('small');mod.className='dnd-ability-mod';
