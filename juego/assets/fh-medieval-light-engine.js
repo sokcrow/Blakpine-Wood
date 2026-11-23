@@ -41,7 +41,7 @@
     "fhDropButton.hidden=!fhMedievalRuntime.hasCarried();\n"+
     "window.FHMedievalFireVisual?.tick(dt,fhMedievalRuntime);");
   inject("const exteriorLayers=DATA.floors.map(()=>new THREE.Group());scene.add(...exteriorLayers);",
-    "const exteriorLayers=DATA.floors.map(()=>new THREE.Group());scene.add(...exteriorLayers);\\n"+
+    "const exteriorLayers=DATA.floors.map(()=>new THREE.Group());scene.add(...exteriorLayers);\n"+
     "window.FHMedievalFireVisual?.buildChimneys(THREE,DATA,CELL,floorElev,exteriorLayers);");
   // Wall-mounted antiques use the real model; no false electrical wall sconce behind it.
   inject("if(wall)box(root,MAT.edge,0,y+.06,-depth*.48,.18,.22,.065);",
