@@ -341,6 +341,10 @@ async function previewWithFailure(failingAdapter){
    FHPreviewDiagnostics:{mount(){if(failingAdapter==='diagnostics')throw Error('diagnostics');return null;}},
    FHArchitectureSkins:{patchEngineDoc(){if(failingAdapter==='architecture')throw Error('architecture');return 'motor-con-glb';}},
    FHStructureHealthEngine:{patch(){throw Error('structure');}},
+   FHMedievalLightEngine:{patchEngineDoc(doc){
+    if(failingAdapter==='medieval')throw Error('MEDIEVAL_LIGHTING_HOOK_MISSING: count 2');
+    return doc;
+   }},
    FH_ARCHITECTURE_TEXT:{patchFailure:'error de arquitectura'},
    FH_STRUCTURE_TEXT:{integrationFailure:'error de PG'}
   },
@@ -369,6 +373,13 @@ test('si falla arquitectura, el arranque conserva el motor base y su aviso',asyn
  assert.equal(frame.srcdoc,'motor-base');
  assert.equal(context.preview3DArchitectureError,'error de arquitectura');
  assert.deepEqual(messages,[]);
+});
+
+test('un hook medieval defectuoso no bloquea ni la prueba 3D ni el editor',async()=>{
+ const {frame,messages,context}=await previewWithFailure('medieval');
+ assert.equal(frame.srcdoc,'motor-con-glb','se conserva el motor anterior al hook');
+ assert.deepEqual(messages,[],'ninguna pantalla fatal tapa el editor');
+ assert.equal(context.preview3DActive,true,'la prueba continúa sin VFX opcional');
 });
 
 test('si el panel de diagnóstico falla al montarse, el motor sigue construyéndose',async()=>{
