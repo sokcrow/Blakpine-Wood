@@ -229,3 +229,22 @@ body.fh-sleeping #fhStatusHUD {
   transition:none;
  }
 }
+
+/* Ficha de juego D&D; no afecta al HUD de Legacy ni Moon. */
+.fh-dnd-status .fh-dnd-stats{display:block;font-size:12px;white-space:normal;line-height:1.35}
+.fh-dnd-stats .dnd-sheet-header{display:flex;justify-content:space-between;flex-wrap:wrap;gap:5px;margin-bottom:8px;color:#f3ddb1}
+.fh-dnd-stats .dnd-sheet-vitals,.fh-dnd-stats .dnd-sheet-abilities{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:6px 0}
+.fh-dnd-stats .dnd-stat-card{display:grid;grid-template-columns:26px minmax(0,1fr);gap:0 6px;align-items:center;min-width:0;border:1px solid #3c5360;background:#182831;border-radius:7px;padding:7px}
+.fh-dnd-stats .dnd-stat-icon{grid-row:span 2;font-size:21px;color:#ecc98a;text-align:center}
+.fh-dnd-stats .dnd-stat-label{color:#c2cdd3;font-size:11px;overflow-wrap:anywhere}
+.fh-dnd-stats .dnd-stat-value{font-size:17px;color:#fff3d8;font-variant-numeric:tabular-nums}
+.fh-dnd-stats .dnd-stat-detail{grid-column:2;font-size:11px;color:#e4c184}
+.fh-dnd-stats .dnd-group-title{display:block;margin-top:9px;color:#efdbb8}
+.fh-dnd-stats .dnd-sheet-details{border-top:1px solid #44535a;padding:5px 0}
+.fh-dnd-stats .dnd-sheet-details summary{cursor:pointer;min-height:30px;align-content:center;color:#f5e1b8}
+.fh-dnd-stats .dnd-sheet-detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:4px}
+.fh-dnd-stats .dnd-sheet-detail-line{display:flex;gap:8px;justify-content:space-between;border-bottom:1px solid #293945;padding:3px}
+.fh-dnd-stats .dnd-sheet-attacks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.fh-dnd-stats .dnd-sheet-attacks .dnd-group-title{grid-column:1/-1}
+
+.fh-dnd-stats .dnd-stat-icon-image{width:28px;height:28px;object-fit:contain;align-self:center}

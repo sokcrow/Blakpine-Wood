@@ -13,6 +13,10 @@
  const signed=n=>(n>=0?'+':'')+n;
  root.FH_DND_TEXT=Object.freeze({
   title:'D&D 2024 · Partida',attack:'Atacar (F)',
+  ui:Object.freeze({character:'Personaje',level:'Nivel',hp:'PG',ac:'CA',
+   speed:'Movimiento',proficiency:'Competencia',abilities:'Características',
+   saves:'Salvaciones',skills:'Habilidades',attacks:'Ataques'
+  }),
   empty:'Acércate al blanco de entrenamiento.',
   hint:'D&D 2024: F ataca al blanco; las salvaciones y habilidades utilizan d20 y CD.',
   status:(hp,max)=>'PG '+hp+'/'+max,

@@ -45,11 +45,69 @@
    return {actor:state.player,target:{type:'training_dummy',hp:1,maxHp:1,
     armorClass:combat.defaults.trainingAc,resistances:[],vulnerabilities:[],immunities:[]}};
   }
+  // Presentación D&D separada del cálculo de hoja: sólo trabaja con readStats().
+  function renderDndSheet(host,stats){
+   const T=globalThis.FH_DND_TEXT||{},U=T.ui||{};
+   const el=(tag,cls,txt)=>{
+    const node=doc.createElement(tag);if(cls)node.className=cls;
+    if(txt!==undefined)node.textContent=String(txt);return node;
+   };
+   const signed=n=>(n>=0?'+':'')+n;
+   const card=(icon,name,value,small)=>{
+    const node=el('div','dnd-stat-card');
+    const pict=icon.startsWith('stat:')?doc.createElement('img'):el('span','dnd-stat-icon',icon);
+    if(icon.startsWith('stat:')){
+     pict.className='dnd-stat-icon dnd-stat-icon-image';pict.alt='';pict.loading='lazy';pict.decoding='async';
+     pict.src=new URL('./juego/assets/dnd-icons/'+icon.slice(5)+'.png',doc.baseURI).href;
+    }
+    node.append(pict,el('span','dnd-stat-label',name),
+     el('strong','dnd-stat-value',value));
+    if(small!==undefined)node.append(el('small','dnd-stat-detail',small));
+    return node;
+   };
+   const header=el('div','dnd-sheet-header');
+   header.append(el('strong','',stats.name||U.character),el('span','',
+    (globalThis.FH_DND_CHARACTER_TEXT?.classes?.[stats.classId]||stats.classId)+' · '+U.level+' '+stats.level));
+   const vital=el('div','dnd-sheet-vitals');
+   vital.append(card('♥',U.hp,stats.hp+'/'+stats.maxHp),
+    card('⬡',U.ac,stats.armorClass),
+    card('➤',U.speed,stats.speedFt+' ft'),
+    card('✦',U.proficiency,signed(stats.proficiency)));
+   const attrs=el('div','dnd-sheet-abilities');
+   for(const [id,entry]of Object.entries(stats.abilities)){
+    attrs.append(card('stat:'+id,T.saveName?.(id)||id,
+     entry.score,signed(entry.modifier)));
+   }
+   const group=(title,values,format)=>{
+    const details=el('details','dnd-sheet-details');
+    const summary=el('summary','',title);
+    const grid=el('div','dnd-sheet-detail-grid');
+    for(const [id,value] of Object.entries(values)){
+     const row=el('div','dnd-sheet-detail-line');
+     row.append(el('span','',format(id)),el('strong','',signed(value)));grid.append(row);
+    }
+    details.append(summary,grid);return details;
+   };
+   const details=el('div','dnd-sheet-breakdown');
+   details.append(group(U.saves,stats.saves,id=>T.saveName?.(id)||id),
+    group(U.skills,stats.skills,id=>T.skillName?.(id)||id));
+   const attacks=el('div','dnd-sheet-attacks');
+   attacks.append(el('strong','dnd-group-title',U.attacks));
+   for(const attack of stats.attacks){
+    attacks.append(card('⚔',attack.weaponName,signed(attack.attackBonus),
+     attack.damageCount+'d'+attack.damageDie+signed(attack.damageBonus)));
+   }
+   const open=Array.from(host.querySelectorAll('details'),node=>node.open);
+   host.replaceChildren(header,vital,el('strong','dnd-group-title',U.abilities),attrs,
+    details,attacks);
+   host.querySelectorAll('details').forEach((node,index)=>{node.open=!!open[index]});
+  }
   function updateHud(){
    if(!hud)return;
    const t=globalThis.FH_DND_TEXT;
    hud.status.textContent=t?.status(state.player.hp,state.player.maxHp)||'';
-   hud.stats.textContent=t?.sheet?.(readStats(state.player))||'';
+   const overview=readStats(state.player),statsKey=JSON.stringify(overview);
+   if(statsKey!==hud.statsKey){renderDndSheet(hud.stats,overview);hud.statsKey=statsKey;}
    const targets=targetPort.list(),key=targets.map(value=>value.id).join('\u0000');
    if(key!==hud.targetsKey){
     const previous=hud.select.value;
