@@ -6,7 +6,8 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
  'use strict';
  const EPS=1e-7;
- const DEFAULTS=Object.freeze({enabled:true,parapetHeightTiles:.25,
+ const DEFAULTS=Object.freeze({enabled:true,shape:'flat',ridgeAxis:'auto',riseFt:4,
+  coverColor:'#A45B46',parapetHeightTiles:.25,
   floor:Object.freeze({preset:'concreto',color:'#969995',pattern:null}),
   wall:Object.freeze({preset:'ladrillo',color:'#A34D43',pattern:null})});
  const floors=['madera','baldosa','concreto','alfombra','azulejo','asfalto','callejon','banqueta','grava','adoquin','pasto','tierra'];
@@ -19,6 +20,10 @@
  function settings(value){
   const height=value?.parapetHeightTiles;
   return {enabled:value?.enabled!==false,
+   shape:value?.shape==='gable'?'gable':'flat',
+   ridgeAxis:['x','z'].includes(value?.ridgeAxis)?value.ridgeAxis:'auto',
+   riseFt:Number.isFinite(value?.riseFt)?Math.max(1,Math.min(30,value.riseFt)):4,
+   coverColor:/^#[\da-f]{6}$/i.test(value?.coverColor)?value.coverColor.toUpperCase():DEFAULTS.coverColor,
    parapetHeightTiles:typeof height==='number'&&Number.isFinite(height)?Math.max(0,Math.min(2,height)):.25,
    floor:finish(value?.floor,DEFAULTS.floor,floors),wall:finish(value?.wall,DEFAULTS.wall,walls)};
  }
@@ -87,6 +92,72 @@
   const main=Math.max(0,data.floors.findIndex(f=>f.id===data.mainFloorId));
   return data.floors.map((f,i)=>i<=main?null:plan(slabs[i],data.roofSlabsByFloor?.[i]||slabs[i+1],data.floors[i-1]?.roof));
  }
+ // Volúmenes a dos aguas: dos planos inclinados y dos tímpanos triangulares.
+ // Pies -> metros en vertical; x/z mantienen exactamente la escala del motor.
+ function gableTriangles(rect,config,cell=1.524,base=.021){
+  if(!valid(rect)||!Number.isFinite(cell)||cell<=0)throw Error('ROOF_GABLE_DIMENSIONS');
+  const roof=settings(config),axis=roof.ridgeAxis==='auto'?(rect.w>=rect.h?'x':'z'):roof.ridgeAxis;
+  const eave=.14*cell;
+  const x0=rect.x*cell-eave,x1=(rect.x+rect.w)*cell+eave;
+  const z0=rect.y*cell-eave,z1=(rect.y+rect.h)*cell+eave;
+  const xm=(x0+x1)/2,zm=(z0+z1)/2,rise=roof.riseFt*.3048,peak=base+rise;
+  const positions=[],uvs=[],groups=[];
+  function tri(a,b,c,uv,group){
+   const start=positions.length/3;
+   for(const p of [a,b,c])positions.push(...p);
+   for(const q of uv)uvs.push(...q);
+   groups.push({start,count:3,materialIndex:group});
+  }
+  function quad(a,b,c,d,width,depth){
+   const u=width/.42,v=depth/.36;
+   tri(a,b,c,[[0,0],[u,0],[u,v]],0);
+   tri(a,c,d,[[0,0],[u,v],[0,v]],0);
+  }
+  if(axis==='x'){
+   const slope=Math.hypot((z1-z0)/2,rise),length=x1-x0;
+   quad([x0,base,z0],[x1,base,z0],[x1,peak,zm],[x0,peak,zm],length,slope);
+   quad([x1,base,z1],[x0,base,z1],[x0,peak,zm],[x1,peak,zm],length,slope);
+   tri([x0,base,z0],[x0,peak,zm],[x0,base,z1],[[0,0],[.5,1],[1,0]],1);
+   tri([x1,base,z1],[x1,peak,zm],[x1,base,z0],[[0,0],[.5,1],[1,0]],1);
+  }else{
+   const slope=Math.hypot((x1-x0)/2,rise),length=z1-z0;
+   quad([x0,base,z1],[x0,base,z0],[xm,peak,z0],[xm,peak,z1],length,slope);
+   quad([x1,base,z0],[x1,base,z1],[xm,peak,z1],[xm,peak,z0],length,slope);
+   tri([x0,base,z0],[xm,peak,z0],[x1,base,z0],[[0,0],[.5,1],[1,0]],1);
+   tri([x1,base,z1],[xm,peak,z1],[x0,base,z1],[[0,0],[.5,1],[1,0]],1);
+  }
+  return {positions,uvs,groups,axis,peak};
+ }
+ function gableGeometry(THREE,rect,config,cell,base){
+  const data=gableTriangles(rect,config,cell,base);
+  const geometry=new THREE.BufferGeometry();
+  geometry.setAttribute('position',new THREE.Float32BufferAttribute(data.positions,3));
+  geometry.setAttribute('uv',new THREE.Float32BufferAttribute(data.uvs,2));
+  for(const group of data.groups)geometry.addGroup(group.start,group.count,group.materialIndex);
+  geometry.computeVertexNormals();return geometry;
+ }
+ function gableMaterials(THREE,config,doc){
+  const roof=settings(config);
+  const wall=new THREE.MeshLambertMaterial({color:roof.wall.color,side:THREE.DoubleSide});
+  const canvas=doc?.createElement?.('canvas');
+  if(!canvas)return [new THREE.MeshLambertMaterial({color:roof.coverColor,side:THREE.DoubleSide}),wall];
+  canvas.width=32;canvas.height=32;
+  const ctx=canvas.getContext('2d');
+  if(!ctx)return [new THREE.MeshLambertMaterial({color:roof.coverColor,side:THREE.DoubleSide}),wall];
+  const base=roof.coverColor;
+  ctx.fillStyle=base;ctx.fillRect(0,0,32,32);
+  // Tejas pixeladas en hileras desplazadas. Textura compartida por toda la planta.
+  for(let row=0;row<4;row++)for(let col=-1;col<5;col++){
+   const x=col*8+(row%2)*4,y=row*8;
+   ctx.fillStyle=(row+col)%3===0?'#6F4035':(row+col)%3===1?'#B87354':base;
+   ctx.fillRect(x+1,y+1,7,6);
+   ctx.fillStyle='#3C302D';ctx.fillRect(x,y,8,1);
+  }
+  const tex=new THREE.CanvasTexture(canvas);
+  tex.magFilter=THREE.NearestFilter;tex.minFilter=THREE.NearestMipmapNearestFilter;
+  tex.wrapS=tex.wrapT=THREE.RepeatWrapping;
+  return [new THREE.MeshLambertMaterial({map:tex,side:THREE.DoubleSide}),wall];
+ }
  // Sólo el mapa recibido por el motor obtiene la tapa final. No se añaden
  // pisos al editor ni al archivo del creador. La ausencia de roof usa defaults.
  function prepareRuntime(data,label){
@@ -99,5 +170,6 @@
   data.slabsByLevel??=[];data.slabsByLevel[last]=cap;
   return data;
  }
- return Object.freeze({DEFAULTS,settings,difference,boundary,partition,plan,plans,prepareRuntime});
+ return Object.freeze({DEFAULTS,settings,difference,boundary,partition,plan,plans,
+  gableTriangles,gableGeometry,gableMaterials,prepareRuntime});
 });
