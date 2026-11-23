@@ -33,10 +33,14 @@
     "if(window.FHMedievalLighting.isMedieval(entry.lamp?.lightKind))"+
     "window.FHMedievalFireVisual?.attach(THREE,root,entry.lamp,fi);\n"+
     "roomLampEntries.push({...entry,root,lit,dark});");
-  // La placa rectangular de las luces modernas no representa fuego.
-  inject("entry.lit.visible=lit;entry.dark.visible=!lit;",
-    "const medieval=window.FHMedievalLighting.isMedieval(entry.lamp?.lightKind);"+
-    "entry.lit.visible=!medieval&&lit;entry.dark.visible=!medieval&&!lit;");
+  // Hay dos rutas de actualización de luminarias en algunos motores.
+  // Ambas son visuales; ninguna debe dibujar el plafón eléctrico sobre fuego.
+  const lampVisibility="entry.lit.visible=lit;entry.dark.visible=!lit;";
+  const matches=doc.split(lampVisibility).length-1;
+  if(matches<1||matches>2)throw Error('MEDIEVAL_LIGHTING_HOOK_MISSING: lamp visibility count '+matches);
+  doc=doc.split(lampVisibility).join(
+    "entry.lit.visible=lit&&!window.FHMedievalLighting.isMedieval(entry.lamp?.lightKind);"+
+    "entry.dark.visible=!lit&&!window.FHMedievalLighting.isMedieval(entry.lamp?.lightKind);");
   inject("fhDropButton.hidden=!fhMedievalRuntime.hasCarried();",
     "fhDropButton.hidden=!fhMedievalRuntime.hasCarried();\n"+
     "window.FHMedievalFireVisual?.tick(dt,fhMedievalRuntime);");
