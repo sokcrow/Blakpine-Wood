@@ -69,3 +69,17 @@
 #fh-dnd-character-dialog .dnd-summary{color:#dfc393;font-weight:600}
 #fh-dnd-character-dialog details>summary{min-height:44px;align-content:center;cursor:pointer}
 #fh-dnd-character-dialog [hidden]{display:none!important}
+
+/* Ficha D&D: métricas legibles, controles táctiles y editor progresivo. */
+#fh-dnd-character-dialog .dnd-ability-card{padding:10px;border:1px solid #4b5e68;border-radius:9px;background:#19262b;color:#f4e4c6}
+#fh-dnd-character-dialog .dnd-ability-card>span{font-weight:700;letter-spacing:.035em}
+#fh-dnd-character-dialog .dnd-ability-mod{font-size:16px;color:#d9bd8c;text-align:right}
+#fh-dnd-character-dialog .dnd-attack-list{display:grid;gap:9px}
+#fh-dnd-character-dialog .dnd-attack-card{min-width:0;border:1px solid #52656e;border-radius:8px;padding:12px;background:#19242c}
+#fh-dnd-character-dialog .dnd-attack-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:10px}
+#fh-dnd-character-dialog .dnd-attack-fields label{display:grid;gap:5px;color:#ded9cb}
+#fh-dnd-character-dialog .dnd-attack-fields input:not([type=checkbox]),#fh-dnd-character-dialog .dnd-attack-fields select{box-sizing:border-box;width:100%;min-height:42px;background:#101a22;color:#f2eee7;border:1px solid #7d8b95;border-radius:6px;padding:6px}
+#fh-dnd-character-dialog .dnd-add-attack,#fh-dnd-character-dialog .dnd-remove-attack{min-height:42px;border:1px solid #9a8563;background:#2c322e;color:#fff0d1;border-radius:7px;padding:8px 12px}
+#fh-dnd-character-dialog .dnd-technical{border-top:1px solid #54616a;padding-top:8px}
+#fh-dnd-character-dialog .dnd-technical>label{display:grid;gap:7px;margin:8px 0}
+@media(max-width:480px){#fh-dnd-character-dialog .dnd-ability-card{padding:7px}}
