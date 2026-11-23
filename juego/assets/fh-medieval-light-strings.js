@@ -4,6 +4,8 @@
  root.FH_MEDIEVAL_LIGHT_TEXT=Object.freeze({
   on:'Luz encendida.',off:'Luz apagada.',carried:'Llevas la antorcha.',dropped:'Antorcha colocada.',
   refueled:'Combustible repuesto.',missing:'No hay luz disponible.',
+  fuelSource:'Fuente de luz: combustible, sin conexión eléctrica.',
+  magicSource:'Fuente de luz: magia, sin conexión eléctrica.',
   noFuelItem:'Sin combustible. Necesitas el consumible correspondiente.',
   handsFull:'Ya llevas una antorcha.',permanent:'El cristal mágico no necesita combustible.',
   drop:'Soltar antorcha',wrongFloor:'Puedes dejar la antorcha en la planta donde la recogiste.'
