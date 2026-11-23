@@ -127,10 +127,17 @@ test('El editor y el adaptador registran nueve herramientas antes de construir l
   "const py=Math.min(Math.max(1.9,(Number(DATA.floors[fi].ceilingHeightFt)||11.5)*.3048-.19),\n   Math.max(1.6,entry.heightFt*.3048));",
   'box(root,MAT.metal,0,y,0,width,.09,depth);',
   'if(wall)box(root,MAT.edge,0,y+.06,-depth*.48,.18,.22,.065);',
+  'roomLampEntries.push({...entry,root,lit,dark});',
+  'entry.lit.visible=lit;entry.dark.visible=!lit;',
+  'const exteriorLayers=DATA.floors.map(()=>new THREE.Group());scene.add(...exteriorLayers);',
   "const nested='</head>';","</script></body></html>"].join('\n');
  const doc=adapter.patchEngineDoc(example,'https://example.org/index.html');
  assert.ok(doc.includes('fhMedievalRuntime.interact(currentFloor,item)'));
  assert.ok(doc.includes('FHAssets?.attach(model,entry.lamp)'));
  assert.ok(doc.includes('fhMedievalRuntime.tick()'));
+ assert.ok(doc.includes('fh-medieval-fire-vfx.js'));
+ assert.ok(doc.includes('FHMedievalFireVisual?.attach(THREE,root,entry.lamp,fi)'));
+ assert.ok(doc.includes('FHMedievalFireVisual?.buildChimneys'));
+ assert.ok(doc.includes('FHMedievalFireVisual?.tick(dt,fhMedievalRuntime)'));
  assert.ok(doc.indexOf('fh-medieval-lighting.js')<doc.indexOf('</head>'));
 });
