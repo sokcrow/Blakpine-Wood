@@ -185,6 +185,7 @@ test('UI offline: Legacy del editor, teclado, Escape, Tab, click y tacto',async 
  const backup=Object.fromEntries(['document','location','FH_MULTIMODE_TEXT',
   'FHModeAdapterRegistry','FHDndCombat','FHDndSaveAdapter'].map(k=>[k,globalThis[k]]));
  t.after(()=>{for(const [key,value]of Object.entries(backup))if(value===undefined)delete globalThis[key];else globalThis[key]=value;});
+ delete require.cache[require.resolve('../juego/assets/fh-multimode-strings.js')];
  require('../juego/assets/fh-multimode-strings.js');
  globalThis.FHModeAdapterRegistry=registryModule;
  globalThis.location={protocol:'file:'};
@@ -198,11 +199,11 @@ test('UI offline: Legacy del editor, teclado, Escape, Tab, click y tacto',async 
  assert.equal(document.activeElement,d.fhModesClose);
  assert.equal(d.fhModesStart.disabled,true);
  assert.equal(d.fhModesDndLocal.disabled,true);
- assert.equal(d.fhWorldOptions.children.length,3);
+ assert.deepEqual(d.fhWorldOptions.children.map(row=>row.dataset.world),['ciudad-moderna','distopia']);
  assert.equal(d.fhRulesOptions.children.length,3);
  assert.ok(d.fhWorldOptions.children.every(c=>c.disabled));
  assert.ok(d.fhRulesOptions.children.every(c=>c.disabled));
- assert.match(d.fhModesStatus.textContent,/Sin acceso HTTPS/);
+ assert.match(d.fhModesStatus.textContent,/requieren HTTPS/);
  d.fhModesStart.fire('click');assert.equal(worldLaunches,0);
  const backwards=d.fhModesOverlay.fire('keydown',{key:'Tab',shiftKey:true});
  assert.equal(backwards.prevented,true);
@@ -224,9 +225,10 @@ test('UI mapa actual DnD: funciona sin elegir DEMO y exige adaptadores reales',a
   'FHModeAdapterRegistry','FHDndCombat','FHDndSaveAdapter'].map(k=>[k,globalThis[k]]));
  t.after(()=>{for(const [k,v] of Object.entries(backup))
   if(v===undefined)delete globalThis[k];else globalThis[k]=v;});
+ delete require.cache[require.resolve('../juego/assets/fh-multimode-strings.js')];
  require('../juego/assets/fh-multimode-strings.js');
  globalThis.FHModeAdapterRegistry=registryModule;
- globalThis.FHDndCombat={status:'implemented'};
+ globalThis.FHDndCombat=require('../juego/rules/dnd/fh-dnd-combat.js');
  globalThis.FHDndSaveAdapter={status:'implemented'};
  globalThis.location={protocol:'file:'};
  const document=makeDOM();globalThis.document=document;

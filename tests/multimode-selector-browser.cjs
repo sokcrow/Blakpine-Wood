@@ -43,7 +43,7 @@ async function openSelector(page){
 (async()=>{
  let browser;
  try{
-  browser=await chromium.launch({headless:true,args:['--no-sandbox','--disable-gpu-sandbox',
+  browser=await chromium.launch({headless:true,executablePath:process.env.LUMEN_CHROMIUM_PATH||undefined,args:['--no-sandbox','--disable-gpu-sandbox',
    '--enable-webgl','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
   const context=await browser.newContext({viewport:{width:1440,height:900},hasTouch:true,ignoreHTTPSErrors:true});
   const page=await context.newPage();
@@ -52,34 +52,32 @@ async function openSelector(page){
   await openSelector(page);
   assert.equal(await page.locator('#fhWorldOptions [data-world="ciudad-moderna"]').isDisabled(),false);
   assert.equal(await page.locator('#fhWorldOptions [data-world="distopia"]').isDisabled(),true);
-  assert.equal(await page.locator('#fhWorldOptions [data-world="villa-medieval"]').isDisabled(),false);
-  assert.equal(await page.locator('#fhRulesOptions [data-rules="legacy"]').isDisabled(),false);
-  assert.equal(await page.locator('#fhRulesOptions [data-rules="dnd"]').isDisabled(),false);
-  assert.equal(await page.locator('#fhRulesOptions [data-rules="moon-system"]').isDisabled(),true);
+  assert.equal(await page.locator('#fhWorldOptions [data-world="villa-medieval"]').count(),0);
+  assert.equal(await page.locator('#fhRulesOptions [data-rule="legacy"]').isDisabled(),false);
+  assert.equal(await page.locator('#fhRulesOptions [data-rule="dnd"]').isDisabled(),false);
+  assert.equal(await page.locator('#fhRulesOptions [data-rule="moon-system"]').isDisabled(),true);
   assert.equal(await page.locator('#fhModesStart').isDisabled(),false);
   await page.locator('#fhModesClose').focus();
   await page.keyboard.press('Shift+Tab');
-  assert.equal(await page.evaluate(()=>document.activeElement?.id),'fhModesLegacyLocal');
+  assert.equal(await page.evaluate(()=>document.activeElement?.id),'fhModesDndLocal');
   await page.keyboard.press('Escape');
   assert.equal(await page.locator('#fhModesOverlay').isVisible(),false);
 
   await openSelector(page);
+  const draft=require('../forest-horror/maps/DEMO_DnD_Iluminacion.json');
+  draft.title='Mapa de la mesa';
+  await page.evaluate(map=>{
+   importProject(map);
+   FHCharacterCore.store(FHCharacterCore.createProfile({
+    name:'Prueba',origin:'resident',relationship:'amigo',strengths:['FOR','AGI'],
+    weaknesses:['VOL','PRU'],bonus:{FOR:1,AGI:1,ING:2}
+   }));
+  },draft);
   const initialTitle=await page.evaluate(()=>project.title);
-  await page.evaluate(()=>{
-   const original=window.FHCharacterCreation;
-   window.FHCharacterCreation={...original,ensureCharacter:async()=>({id:'smoke-test'})};
-   window.__testedModeMap=null;
-   const before=window.makeCurrent3DProject;
-   window.makeCurrent3DProject=function(){
-    const result=before();
-    window.__testedModeMap=result;
-    return result;
-   };
-  });
   await page.locator('#fhModesStart').tap();
-  await page.waitForFunction(()=>!!window.__testedModeMap,{timeout:65000});
+  await page.waitForFunction(()=>preview3DActive);
   const launched=await page.evaluate(()=>({
-   map:window.__testedModeMap,
+   map:makeCurrent3DProject(),
    editorTitle:project.title,
    layer:document.getElementById('play3dLayer').classList.contains('show'),
    originalProject:project.floors.some(f=>f.items.some(it=>it.id==='fh-mode-runtime-spawn'))
@@ -89,38 +87,24 @@ async function openSelector(page){
   assert.ok(launched.map.floors.some(f=>f.items.some(it=>it.type==='spawn')));
   assert.equal(launched.editorTitle,initialTitle);
   assert.equal(launched.originalProject,false);
-  await page.locator('#play3dBack').click();
+  await page.evaluate(()=>close3DPreview());
   assert.equal(await page.locator('#play3dLayer').isVisible(),false);
   assert.equal(await page.locator('#testBtn').isEnabled(),true);
 
-  // Segunda sesión: la villa medieval y DnD deben abrir mapa propio sin wizard Legacy.
   await openSelector(page);
-  assert.equal(await page.locator('#fhModesDndLocal').isEnabled(),true,
-   'El mapa actual debe poder abrirse en DnD sin perfil DEMO');
-  await page.locator('#fhWorldOptions [data-world="villa-medieval"]').click();
-  await page.locator('#fhRulesOptions [data-rules="dnd"]').click();
-  assert.equal(await page.locator('#fhModesStart').isDisabled(),false);
-  await page.evaluate(()=>{window.__testedModeMap=null;});
-  await page.locator('#fhModesStart').click();
+  await page.locator('#fhModesDndLocal').click();
   const dndForm=page.locator('#fh-dnd-character-dialog');
-  await dndForm.waitFor({state:'visible'});
-  await dndForm.locator('input[type="text"]').first().fill('Ada');
-  await dndForm.locator('select').nth(1).selectOption('wizard');
-  await dndForm.locator('input[type="number"]').nth(1).fill('7');
-  await dndForm.locator('input[type="number"]').nth(2).fill('7');
-  await dndForm.locator('input[type="number"]').nth(3).fill('12');
+  await dndForm.getByRole('button',{name:/^Mago/}).tap();
+  await dndForm.getByLabel('Nombre',{exact:true}).fill('Ada');
   await dndForm.locator('button[type="submit"]').click();
   await dndForm.waitFor({state:'hidden'});
   const selectedDnd=await page.evaluate(()=>window.FHDndCharacterManager.current());
   assert.equal(selectedDnd.sheet.classId,'wizard');
   assert.equal(selectedDnd.sheet.name,'Ada');
-  await page.waitForFunction(()=>!!window.__testedModeMap,{timeout:65000});
-  const medieval=await page.evaluate(()=>window.__testedModeMap);
-  assert.equal(medieval.title,'DnD · Sala de pruebas de iluminación medieval');
-  assert.equal(medieval.__dndCharacter.sheet.classId,'wizard');
-  assert.equal(medieval.__dndCharacter.sheet.name,'Ada');
-  assert.equal(medieval.floors[0].items.filter(i=>i.type==='light_fixture').length,9);
-  await page.locator('#play3dBack').click();
+  await page.waitForFunction(()=>preview3DActive);
+  const current=await page.evaluate(()=>makeCurrent3DProject());
+  assert.equal(current.title,initialTitle);
+  await page.evaluate(()=>close3DPreview());
 
   const missing=await context.newPage();
   await routeRepository(missing,true);
@@ -131,6 +115,6 @@ async function openSelector(page){
   assert.equal(await missing.locator('#fhModesLegacyLocal').isEnabled(),true);
   await missing.close();
   await context.close();
-  console.log('PASS: selección Legacy y piloto medieval DnD, mapas reales, teclado/táctil y 404');
+  console.log('PASS: selección Legacy y mapa propio D&D, teclado/táctil y 404');
  }finally{await browser?.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;});
