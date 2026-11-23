@@ -9,18 +9,16 @@
   function patch(documentHtml, baseURL) {
     if (typeof documentHtml !== 'string') throw Error('SAVE_ENGINE_DOCUMENT_MISSING');
     let doc = documentHtml;
-    // También instalar el Dummy en el fallback 3D sin capa de arquitectura.
-    if(!doc.includes('window.FHTrainingDummyRuntime=')&&
-     typeof globalThis.FHTrainingDummy?.patchEngineDoc==='function'){
-      doc=globalThis.FHTrainingDummy.patchEngineDoc(doc);
-    }
     function once(before, after) {
       const count = doc.split(before).length - 1;
       if (count !== 1) throw Error('SAVE_ENGINE_HOOK_MISMATCH:' + count + ':' + before.slice(0, 52));
       doc = doc.replace(before, after);
     }
-    once('const SAVE_KEY=ForestShared.gameSaveKey(DATA);\nlet localSave=null;try{localSave=window.localStorage}catch{}',
-      `let localSave=null;try{localSave=window.localStorage}catch{}
+    const legacyKey = doc.includes('const SAVE_KEY=fhRoofSaveKey;')
+      ? 'fhRoofSaveKey' : 'ForestShared.gameSaveKey(DATA)';
+    const storage = 'let localSave=null;try{localSave=window.localStorage}catch{}';
+    once('const SAVE_KEY='+legacyKey+';\n'+storage,
+      `${storage}
 const fhCombatAdapter=DATA.__multimodeSave?
  window.FHMultimodeCombatAdapters?.[DATA.__multimodeSave.identity.rulesetId]:null;
 if(DATA.__multimodeSave&&(fhCombatAdapter?.status!=='implemented'||
@@ -34,18 +32,21 @@ const fhMultimode=DATA.__multimodeSave?window.FHMultimodePersistence.create({
  storage:localSave,
  send:message=>{if(window.parent!==window)window.parent.postMessage(message,'*')}
 }):null;
-const SAVE_KEY=fhMultimode?fhMultimode.key:ForestShared.gameSaveKey(DATA);`);
-    once('const fhSavedState=readGameSave(localSave,SAVE_KEY,DATA.__runtimeSave);',
-      'const fhSavedState=fhMultimode?null:readGameSave(localSave,SAVE_KEY,DATA.__runtimeSave);');
-    once('const fhBackupState=readGameSave(null,SAVE_KEY,DATA.__runtimeSave);',
-      'const fhBackupState=fhMultimode?null:readGameSave(null,SAVE_KEY,DATA.__runtimeSave);');
+const SAVE_KEY=fhMultimode?fhMultimode.key:${legacyKey};`);
+    const saved = 'const fhSavedState=readGameSave(localSave,SAVE_KEY,DATA.__runtimeSave);';
+    const backup = 'const fhBackupState=readGameSave(null,SAVE_KEY,DATA.__runtimeSave);';
     const legacyRestored='const restored=DATA.__runtimeCharacter?.id?(fhSavedState?.characterId===DATA.__runtimeCharacter.id?fhSavedState:fhBackupState?.characterId===DATA.__runtimeCharacter.id?fhBackupState:null):fhSavedState;';
-    once(legacyRestored,
-      'const restored=fhMultimode?fhMultimode.restore(DATA,DATA.__multimodeSave.backupRaw):'+legacyRestored.slice('const restored='.length));
+    once([saved,backup,legacyRestored].join('\n'),
+      `const restored=fhMultimode?fhMultimode.restore(DATA,DATA.__multimodeSave.backupRaw):(()=>{
+${saved}
+${backup}
+${legacyRestored}
+return restored;
+})();`);
     once('const fhIncomingCharacter=DATA.__runtimeCharacter;',
       'const fhIncomingCharacter=fhMultimode?null:DATA.__runtimeCharacter;');
-    once('const saveProgress=()=>{const result=writeGameSave(localSave,SAVE_KEY,GameState);',
-      'const saveProgress=()=>{if(fhMultimode){fhMultimode.write(GameState,DATA);return;}const result=writeGameSave(localSave,SAVE_KEY,GameState);');
+    once('const result=writeGameSave(localSave,SAVE_KEY,GameState);',
+      'if(fhMultimode){fhMultimode.write(GameState,DATA);return;}const result=writeGameSave(localSave,SAVE_KEY,GameState);');
     once("if(window.parent!==window)window.parent.postMessage({type:'FOREST_CHARACTER_DEATH',characterId:GameState.characterId},'*');",
       "if(fhMultimode){fhMultimode.write(GameState,DATA);if(window.parent!==window)window.parent.postMessage({type:'FOREST_MULTIMODE_DEATH',sessionId:fhMultimode.sessionId},'*');}\n  else if(window.parent!==window)window.parent.postMessage({type:'FOREST_CHARACTER_DEATH',characterId:GameState.characterId},'*');");
     const scripts = ['core/fh-multimode-save-identity.js', 'core/fh-multimode-persistence.js',
@@ -54,6 +55,8 @@ const SAVE_KEY=fhMultimode?fhMultimode.key:ForestShared.gameSaveKey(DATA);`);
       'assets/fh-dnd-character-strings.js',
       'rules/dnd/fh-dnd-strings.js','rules/dnd/fh-dnd-engine.js']
       .map(file => '<script src="' + new URL('./juego/' + file + '?v=20261117-persist32', baseURL).href + '"></' + 'script>').join('');
+    const adapters = '<script>window.FHMultimodeCombatAdapters=Object.freeze({dnd:window.FHDndCombat});\n' +
+      'window.FHMultimodeSaveAdapters=Object.freeze({dnd:window.FHDndSaveAdapter});</' + 'script>';
     if(doc.includes('GameState.horror=structuredClone(restored?.horror||DATA.initialGameState?.horror||{});')){
       once('GameState.horror=structuredClone(restored?.horror||DATA.initialGameState?.horror||{});',
        "if(DATA.__multimodeSave?.identity.rulesetId!=='dnd')GameState.horror=structuredClone(restored?.horror||DATA.initialGameState?.horror||{});");
@@ -97,8 +100,9 @@ const SAVE_KEY=fhMultimode?fhMultimode.key:ForestShared.gameSaveKey(DATA);`);
         "const GameState=createGameState(restored||DATA.initialGameState);\n"+
         "if(fhMultimode?.identity.rulesetId==='dnd')GameState.dnd=structuredClone(restored.dnd);");
     }
-    once('</head>', scripts + '</head>');
-    return doc;
+    const headEnd = doc.indexOf('</head>');
+    if (headEnd < 0) throw Error('SAVE_ENGINE_HEAD_MISSING');
+    return doc.slice(0, headEnd) + scripts + adapters + doc.slice(headEnd);
   }
   return Object.freeze({ patch });
 });

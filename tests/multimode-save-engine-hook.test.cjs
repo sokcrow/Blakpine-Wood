@@ -5,15 +5,19 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const hook = require('../juego/core/fh-multimode-save-hook.js');
+const medieval = require('../juego/assets/fh-medieval-light-engine.js');
 const saves = require('../juego/core/fh-multimode-persistence.js');
 const root = path.resolve(__dirname, '..');
 
 test('el hook se instala en el documento REAL del motor ensamblado, no en un módulo aislado', () => {
-  const { html } = require('./helpers/forest-engine.cjs')();
-  const patched = hook.patch(html, 'https://example.test/');
+  const { html, beforeForest } = require('./helpers/forest-engine.cjs')();
+  const baseURL = 'https://example.test/';
+  const patched = hook.patch(medieval.patchEngineDoc(html, baseURL), baseURL);
+  assert.doesNotThrow(() => hook.patch(medieval.patchEngineDoc(beforeForest, baseURL), baseURL));
+  assert.match(patched, /const SAVE_KEY=fhMultimode\?fhMultimode\.key:fhRoofSaveKey;/);
+  assert.match(patched, /generatorCircuitPowered:[^\n]+\nconst fhMedievalRuntime=/);
+  assert.match(patched, /decoration\.editorItems=[^;]+;if\(fhMultimode\)\{fhMultimode\.write/);
   assert.ok(patched.includes('const fhMultimode=DATA.__multimodeSave?'));
-  assert.ok(patched.includes('const fhSavedState=fhMultimode?null:readGameSave('));
-  assert.ok(patched.includes('const fhBackupState=fhMultimode?null:readGameSave('));
   assert.ok(patched.includes('const restored=fhMultimode?fhMultimode.restore('));
   assert.ok(patched.includes('const fhIncomingCharacter=fhMultimode?null:'));
   assert.ok(patched.includes('if(fhMultimode){fhMultimode.write(GameState,DATA);return;}'));
@@ -27,21 +31,19 @@ test('el padre separa envío, confirmación, muerte y sincronización Legacy', (
   const index = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
   assert.ok(index.includes('previewSaveSession=prepare3DSaveSession(profile)'));
   assert.ok(index.includes("combat?.contract!=='blakpine-combat-adapter-v1'"));
-  assert.ok(index.includes('FHMultimodeSaveHook.patch(architectureDoc,document.baseURI)'));
-  assert.ok(index.includes('FHMultimodeSaveHook.patch(fhEngineDoc,document.baseURI)'));
+  assert.equal(index.split('FHMultimodeSaveHook.patch(engineDoc,document.baseURI)').length, 2);
   assert.ok(index.includes('__runtimeSave:session?null:fhMapSave'));
   assert.ok(index.includes('if(preview3DSelectedMap){'));
   assert.ok(index.includes('...(session?{__multimodeSave:session}:{})'));
   assert.ok(index.includes('backupRaw:previewSaveSession.readRaw()'));
   assert.ok(index.includes("e.data.type==='FOREST_MULTIMODE_SAVE'"));
   assert.ok(index.includes("e.data.type==='FOREST_MULTIMODE_DEATH'"));
-  assert.ok(index.includes("e.data.type==='FOREST_GAMESTATE_SAVE'){\n   if(previewSaveSession)return;"));
+  assert.match(index, /e\.data\.type==='FOREST_GAMESTATE_SAVE'\)\{\s+if\(typeof lumenCartridgeMode[^\n]+\n\s+if\(previewSaveSession\)return;/);
   assert.ok(index.includes("e.data.type==='FOREST_CHARACTER_DEATH'){\n   if(previewSaveSession)return;"));
   assert.ok(index.includes('previewSaveSession?.close();previewSaveSession=null;'));
-  assert.ok(index.includes('play3DFrame.srcdoc=previewSaveSession?window.FHMultimodeSaveHook.patch('));
   assert.ok(index.includes("throw Error('SAVE_CONTEXT_CHANGED')"));
   assert.ok(index.includes('previewSaveSession.identity.mapId===preview3DCurrentMapId()'));
-  assert.ok(index.includes('previewSaveSession.identity.characterId===window.FHCharacterCreation?.current?.()?.id'));
+  assert.match(index, /previewSaveSession\.identity\.characterId===\(previewSaveSession\.identity\.rulesetId==='dnd'\?\s+window\.FHDndCharacterManager\?\.current\?\.\(\)\?\.id:window\.FHCharacterCreation\?\.current\?\.\(\)\?\.id\)/);
 });
 
 const fixtureDoc = `<!doctype html><html><head></head><body><script>
@@ -74,7 +76,7 @@ function boot(data, adapter) {
     writeGameSave:(store,key,state)=>{const json=JSON.stringify({version:1,state});store?.setItem(key,json);return {json};},
     createGameState:state=>({...state}),structuredClone});
   const document=hook.patch(fixtureDoc,'https://example.test/');
-  const script=document.slice(document.indexOf('<script>')+8,document.lastIndexOf('</script>'));
+  const script=document.slice(document.lastIndexOf('<script>')+8,document.lastIndexOf('</script>'));
   vm.runInContext(script,context);
   return {window,store,messages};
 }
