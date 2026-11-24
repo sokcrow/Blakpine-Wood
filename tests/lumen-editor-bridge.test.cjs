@@ -10,7 +10,9 @@ function bridge(){
   window:{FHFloorLevels:{mainIndex:()=>0},FHMapGrid:{cellSize:()=>70}},STRUCTURAL_TYPES:new Set(),syncStairLinks:()=>{},recalcAllSpaces:()=>{},buildingSlabs:()=>({spans:[]}),slabsForLevels:()=>[],basementSlabs:()=>[],courtyardFloorItems:x=>x,buildArchitectureGraph:()=>({}),rounded:x=>x,clone:x=>JSON.parse(JSON.stringify(x)),lumenCartridgeMode:true,lumenEditorChanged:false,lumenEditorOriginal:null,lumenEditorNotify:null,
   project:null,saveTimer:null,dirty:false,floorRefArchive:new Map(),newProject:()=>fixture,floorDefault:()=>({reference:{data:''}})});
  const exportStart=html.indexOf('function exportProject(includeImages)'),exportEnd=html.indexOf('function downloadBlob(',exportStart);
- vm.runInContext(html.slice(start,end)+html.slice(exportStart,exportEnd)+html.slice(begin,finish),ctx);
+ const initStart=html.indexOf('let lumenEditorInitialized=false;'),initEnd=html.indexOf("\nif(typeof lumenCartridgeMode",initStart);
+ ctx.setupPlayMode=()=>{};ctx.init=()=>{};
+ vm.runInContext(html.slice(start,end)+html.slice(exportStart,exportEnd)+html.slice(initStart,initEnd)+html.slice(begin,finish),ctx);
  const s=html.indexOf('function saveSoon()'),e=html.indexOf('\nfunction toast(',s);
  vm.runInContext(html.slice(s,e),ctx);
  return {ctx,api:ctx.window.LumenEditor,fixture,writes:()=>writes};

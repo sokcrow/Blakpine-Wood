@@ -1956,7 +1956,7 @@ function refreshCircuits(focusZone){
   }
  }
 }
-function setLayer(layer){activeLayer=layer;document.body.classList.toggle('layer-lighting',layer==='lighting');$('#layerSwitch button').forEach(b=>b.classList.toggle('active',b.dataset.layer===layer));const circuitsEnabled=lumenEditorRuleset!=='dnd'||window.FHDndMapModules?.options(project).electricity===true;$('#circuitTools').hidden=layer!=='lighting'||!circuitsEnabled;if(layer==='lighting'&&circuitsEnabled)refreshCircuits();selection=null;anchor=null;preview=null;closeInspector();render()}
+function setLayer(layer){activeLayer=layer;document.body.classList.toggle('layer-lighting',layer==='lighting');$$('#layerSwitch button').forEach(b=>b.classList.toggle('active',b.dataset.layer===layer));const circuitsEnabled=lumenEditorRuleset!=='dnd'||window.FHDndMapModules?.options(project).electricity===true;$('#circuitTools').hidden=layer!=='lighting'||!circuitsEnabled;if(layer==='lighting'&&circuitsEnabled)refreshCircuits();selection=null;anchor=null;preview=null;closeInspector();render()}
 // Grafo común: los cables se ven sobre las paredes, nunca cruzan habitaciones.
 const utilityVisualCache={signature:'',graph:null,runtime:null};
 function utilityVisual(){
@@ -5738,7 +5738,7 @@ window.FHMultimodeSelector?.mount({
 <script src="./juego/assets/fh-barriers-editor.js?v=20261111-metal1"></script>
 <script src="./juego/assets/fh-editor-layout-strings.js?v=20261113-layout1"></script>
 <script src="./juego/assets/fh-editor-layout.js?v=20261113-layout1"></script>
-<script type="module" src="./portal/editor-workspace.js?v=20261124-lumen-access"></script>
+<script type="module" src="./portal/editor-workspace.js?v=20261124-layer-fix"></script>
 </body>
 </html>
 

@@ -32,11 +32,11 @@ export const C = Object.freeze({
  workspaceReady:'Mapa del cartucho abierto. Guarda y vuelve a la biblioteca desde Proyecto.',
  workspaceSaved:'Mapa guardado. Conserva también una copia exportada del cartucho.',
 });
-export function cartridgeError(error) {
+export function cartridgeError(error,fallback=C.invalid) {
  if (/^RECOVERY_/.test(error?.code || error?.message || '')) return C.noStorage+recoveryError(error);
  if (/ACCESS|IDENTITY/.test(error?.message || '')) return C.access;
  if (/MAP_VALIDATOR|EDITOR/.test(error?.message || '')) return C.editorError;
- return C.invalid;
+ return fallback;
 }
 
 export function recoveryError(error) {
