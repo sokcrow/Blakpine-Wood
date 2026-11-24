@@ -74,3 +74,31 @@ test('Lumen registra su API antes de inicializar los módulos tardíos',()=>{
  assert.equal(update({},'legacy'),'legacy');
  assert.throws(()=>update({},'invalido'),/EDITOR_RULESET_INVALID/);
 });
+
+test('un catálogo opcional defectuoso no impide cargar el cartucho validado',()=>{
+ const html=fs.readFileSync('index.html','utf8');
+ const match=html.match(/\n  load\(raw,onChange\)\{([\s\S]*?)\n  \},\n  read\(\)/);
+ assert.ok(match,'se localiza la carga real de LumenEditor');
+ const workspace={schema:'forest-horror-map-v1',units:{feetPerCell:5},
+  floors:[{id:'a',name:'Planta',elevationFt:0,items:[]}]};
+ let rendered=0,initialized=0;
+ const env={
+  validate:()=>{},ensureLumenEditorInitialized:()=>{initialized++;},
+  clearTimeout:()=>{},saveTimer:null,lumenEditorNotify:null,
+  clone:x=>structuredClone(x),newProject:()=>({units:{feetPerCell:5},floors:[]}),
+  floorDefault:()=>({items:[]}),project:{},floorIndex:0,selection:null,
+  history:[],historyIndex:0,floorRefArchive:{clear(){}},
+  rememberFloorRefs(){},closeInspector(){},closeModal(){},
+  loadedImgs:[],spaceCache:[],refreshFloorTabs(){},setupImage(){},
+  render(){rendered++;},setTimeout:()=>1,fitMap(){},lumenEditorChanged:true,
+  dirty:true,lumenEditorRuleset:'dnd',
+  window:{FHEditorCatalog:{setRuleset(){throw Error('CATALOG_TEST_FAILURE');}}},
+  console:{warn(){}}
+ };
+ const load=new Function('env','raw','onChange','with(env){'+match[1]+'}');
+ assert.doesNotThrow(()=>load(env,workspace,()=>{}));
+ assert.equal(initialized,1);
+ assert.equal(rendered,1);
+ assert.equal(env.project.floors[0].id,'a');
+ assert.equal(env.dirty,false);
+});
