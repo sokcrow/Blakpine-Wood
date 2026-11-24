@@ -42,6 +42,7 @@
   const sites=flameSites[lamp?.lightKind];
   if(!sites||!root||!THREE)return null;
   const group=new THREE.Group();root.add(group);
+  if(lamp.lightKind==='torch_wall')group.position.y=(Number.isFinite(Number(lamp.mountHeightFt))?Number(lamp.mountHeightFt):4.5)*FT;
   // Pirámides de varios lados: volumen real desde todos los ángulos, no planos.
   const amber=new THREE.MeshBasicMaterial({color:0xff882a,transparent:true,opacity:.9,depthWrite:false});
   const gold=new THREE.MeshBasicMaterial({color:0xffdc69,transparent:true,opacity:.92,depthWrite:false});
@@ -57,6 +58,24 @@
   }
   const entry={root,group,lamp,floor,tongues,embers,phase:flames.length*1.71};flames.push(entry);
   group.visible=false;return entry;
+ }
+ function attachFuel(THREE,group,item){
+  const fuel=item.medievalFuel;
+  const material=new THREE.MeshLambertMaterial({color:fuel==='cera_vela'?0xe2cba0:fuel==='resina_antorcha'?0x9b572b:fuel==='aceite_lampara'?0x99743a:0x775032});
+  if(fuel==='lena'){
+   for(let i=0;i<3;i++){
+    const log=new THREE.Mesh(new THREE.CylinderGeometry(.07,.07,.42,6),material);
+    log.rotation.z=Math.PI/2;log.position.set(0,.1+(i===2?.1:0),i===0?-.08:i===1?.08:0);group.add(log);
+   }
+  }else{
+   const mesh=new THREE.Mesh(new THREE.CylinderGeometry(fuel==='aceite_lampara'?.08:.11,.12,.26,7),material);
+   mesh.position.y=.15;group.add(mesh);
+   if(fuel==='aceite_lampara'){
+    const stopper=new THREE.Mesh(new THREE.CylinderGeometry(.045,.045,.06,6),new THREE.MeshLambertMaterial({color:0x493425}));
+    stopper.position.y=.31;group.add(stopper);
+   }
+  }
+  return group;
  }
  function buildChimneys(THREE,data,cell,floorElev,layers){
   if(!THREE||!data?.floors||!layers)return [];
@@ -131,5 +150,5 @@
   }
  }
  function reset(){flames.length=0;chimneys.length=0;clock=0;}
- return Object.freeze({burning,flameSites,chimneyTopFt,attach,buildChimneys,tick,reset});
+ return Object.freeze({burning,flameSites,chimneyTopFt,attach,attachFuel,buildChimneys,tick,reset});
 });
