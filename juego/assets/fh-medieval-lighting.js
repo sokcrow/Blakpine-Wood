@@ -26,6 +26,14 @@
   light_medieval_campfire:'campfire',light_medieval_fireplace:'fireplace',
   light_medieval_magic_crystal:'magic_crystal'
  });
+ const fuelTools=Object.freeze({fuel_resin:'resina_antorcha',fuel_wax:'cera_vela',fuel_oil:'aceite_lampara',fuel_wood:'lena'});
+ const fuelItems=Object.freeze({resina_antorcha:{icon:'◆',color:0x9b572b},cera_vela:{icon:'▥',color:0xe2cba0},
+  aceite_lampara:{icon:'◈',color:0x99743a},lena:{icon:'▰',color:0x775032}});
+ function fuelDefinition(id,text){
+  if(!Object.prototype.hasOwnProperty.call(fuelItems,id))return null;
+  return {id,kind:'consumable',name:text.fuels[id],description:text.fuelDescription,
+   stackable:true,icon:fuelItems[id].icon};
+ }
  const has=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
  const isMedieval=kind=>typeof kind==='string'&&has(definitions,kind);
  const preset=kind=>isMedieval(kind)?definitions[kind]:null;
@@ -59,6 +67,7 @@
     }
    }
   }});
+  for(const slot of Object.values(store))if(slot?.remaining===0)slot.on=false;
   let heldId=null;
   for(const [id,{item}] of fixtures){if(item.lightKind!=='torch_hand')store[id].carried=false;
    if(store[id].carried){if(heldId)store[id].carried=false;else heldId=id;}}
@@ -72,14 +81,15 @@
   function hasCarried(){return heldId!==null;}
   function itemFor(id){return fixtures.get(id)?.item||null;}
   function extinguish(id){const slot=store[id];if(!slot||!slot.on)return false;slot.on=false;return true;}
-  function refuel(id){
+  function refuel(id,{ignite=true}={}){
    const ref=fixtures.get(id);if(!ref)return {ok:false,reason:'missing'};
    const spec=preset(ref.item.lightKind),slot=store[id];
    if(spec.fuelMinutes===null)return {ok:false,reason:'permanent'};
+   if(slot.remaining>=spec.fuelMinutes)return {ok:false,reason:'full'};
    const at=state.inventory?.indexOf(spec.fuelItem)??-1;
    if(at<0)return {ok:false,reason:'noFuelItem'};
    state.inventory.splice(at,1);slot.remaining=spec.fuelMinutes;
-   slot.on=true;slot.lastMinute=now();
+   if(ignite)slot.on=true;slot.lastMinute=now();
    return {ok:true,action:'refueled',remaining:slot.remaining};
   }
   function interact(floor,item){
@@ -95,6 +105,24 @@
    if(slot.on){slot.on=false;return {ok:true,action:'off'};}
    if(slot.remaining===0)return refuel(item.id);
    slot.on=true;slot.lastMinute=now();return {ok:true,action:'on'};
+  }
+  function act(floor,item,action){
+   const ref=fixtures.get(item?.id);
+   if(!ref||ref.floor!==floor)return {ok:false,reason:'missing'};
+   tick();
+   const slot=store[item.id];
+   if(action==='refuel')return refuel(item.id,{ignite:false});
+   if(action==='off'){slot.on=false;return {ok:true,action:'off'};}
+   if(action==='on'){
+    if(slot.remaining===0)return {ok:false,reason:'empty'};
+    slot.on=true;slot.lastMinute=now();return {ok:true,action:'on'};
+   }
+   if(action==='carry'&&ref.item.lightKind==='torch_hand'){
+    if(heldId)return {ok:false,reason:'handsFull'};
+    heldId=item.id;slot.carried=true;return {ok:true,action:'carried'};
+   }
+   if(action==='drop'&&isCarried(item.id))return drop()?{ok:true,action:'dropped'}:{ok:false,reason:'wrongFloor'};
+   return {ok:false,reason:'missing'};
   }
   function drop(){
    if(!heldId)return false;
@@ -134,7 +162,7 @@
    return changed;
   }
   function view(id){const slot=store[id];return slot?{...slot}:null;}
-  return Object.freeze({lit,interact,refuel,drop,hasCarried,isCarried,itemFor,tick,view,items:()=>fixtures.size});
+  return Object.freeze({lit,interact,act,refuel,drop,hasCarried,isCarried,itemFor,tick,view,items:()=>fixtures.size});
  }
- return Object.freeze({definitions,tools,isMedieval,preset,absoluteMinute,createRuntime});
+ return Object.freeze({definitions,tools,fuelTools,fuelItems,fuelDefinition,isMedieval,preset,absoluteMinute,createRuntime});
 });

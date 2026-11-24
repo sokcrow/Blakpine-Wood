@@ -32,3 +32,17 @@ test('llama tiene volumen 3D, respeta apagado y no crea PointLights',()=>{
  fire.tick(.016,{lit:()=>true});assert.equal(visual.group.visible,true);
  assert.deepEqual(calls,[[1,'torch']]);fire.reset();
 });
+
+test('fuego y suministros usan geometrías Three reales; la llama de pared sigue su altura',()=>{
+ const THREE=require('../juego/assets/vendor/three.min.js'),root=new THREE.Group();fire.reset();
+ const visual=fire.attach(THREE,root,{id:'wall',lightKind:'torch_wall',mountHeightFt:5},0);
+ assert.equal(visual.group.position.y,5*.3048);
+ for(const part of visual.tongues){part.mesh.geometry.computeBoundingBox();
+  const box=part.mesh.geometry.boundingBox;assert.ok(box.max.x>box.min.x&&box.max.y>box.min.y&&box.max.z>box.min.z);
+ }
+ for(const medievalFuel of ['resina_antorcha','cera_vela','aceite_lampara','lena']){
+  const group=fire.attachFuel(THREE,new THREE.Group(),{medievalFuel});
+  assert.ok(group.children.length);assert.ok(group.children.every(m=>m.geometry.attributes.position.count>0));
+ }
+ fire.reset();
+});
