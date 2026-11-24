@@ -5577,8 +5577,16 @@ async function requestEditorLandscape(element){
 document.getElementById('play3dFullscreen').addEventListener('click',()=>requestEditorLandscape(play3DLayer));
 document.getElementById('play3dBack').addEventListener('click',close3DPreview);
 
-setupPlayMode();
-init();
+// En el cartucho Lumen, los adaptadores editoriales se cargan DESPUÉS
+// de este script. Inicializar antes puede abortar la declaración de LumenEditor.
+if(!lumenCartridgeMode){setupPlayMode();init();}
+let lumenEditorInitialized=false;
+function ensureLumenEditorInitialized(){
+ if(lumenEditorInitialized)return;
+ setupPlayMode();
+ init();
+ lumenEditorInitialized=true;
+}
 
 if(typeof lumenCartridgeMode!=='undefined'&&lumenCartridgeMode){
  const validate=raw=>{
@@ -5592,13 +5600,15 @@ if(typeof lumenCartridgeMode!=='undefined'&&lumenCartridgeMode){
   validate,
   setRuleset(rulesetId){
    if(!['legacy','dnd'].includes(rulesetId))throw Error('EDITOR_RULESET_INVALID');
-   if(typeof window.FHEditorCatalog?.setRuleset!=='function')throw Error('EDITOR_CATALOG_UNAVAILABLE');
-   window.FHEditorCatalog.setRuleset(rulesetId);
+   // Guardar el modo primero. El catálogo GLB es una extensión del editor,
+   // no una condición de autorización para abrir el mapa del cartucho.
    lumenEditorRuleset=rulesetId;
   },
   create:()=>clone(newProject()),
   load(raw,onChange){
-   validate(raw);clearTimeout(saveTimer);lumenEditorNotify=null;
+   validate(raw);
+   ensureLumenEditorInitialized();
+   clearTimeout(saveTimer);lumenEditorNotify=null;
    lumenEditorOriginal=clone(raw);
    const defaults=newProject();
    project={...defaults,...clone(raw),units:{...defaults.units,...clone(raw.units)},
@@ -5606,6 +5616,8 @@ if(typeof lumenCartridgeMode!=='undefined'&&lumenCartridgeMode){
    floorIndex=0;selection=null;history=[JSON.stringify(project)];historyIndex=0;floorRefArchive.clear();rememberFloorRefs();
    closeInspector();closeModal();loadedImgs=project.floors.map(()=>null);spaceCache=[];
    refreshFloorTabs();project.floors.forEach((_,i)=>setupImage(i));
+   try{window.FHEditorCatalog?.setRuleset?.(lumenEditorRuleset);}
+   catch(catalogError){console.warn('[Lumen catálogo opcional]',catalogError);}
    lumenEditorChanged=false;dirty=false;lumenEditorNotify=onChange;
    render();setTimeout(fitMap,140);
   },
