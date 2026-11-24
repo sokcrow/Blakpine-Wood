@@ -14,12 +14,19 @@ async function activate(){
  const say=text=>{document.getElementById('autosave').textContent=text;};
  say(C.workspaceLoading);
  function fail(error){
+  // Un fallo de carga no equivale a una revocación de permisos. Conservar el
+  // diagnóstico real: el mensaje genérico impedía identificar la causa.
+  console.error('[Lumen editor: arranque]',error);
   accessLost=true;clearTimeout(timer);api?.stop();app.inert=true;
   let panel=document.getElementById('workspace-error');
   if(!panel){panel=document.createElement('section');panel.id='workspace-error';panel.setAttribute('role','alert');document.body.append(panel);}
   const text=document.createElement('p');text.textContent=cartridgeError(error);
+  const detail=document.createElement('small');
+  const raw=String(error?.code||error?.message||'');
+  detail.textContent=C.editorErrorDetail+
+   (/^[A-Z][A-Z0-9_]{3,79}$/.test(raw)?raw:C.editorErrorUnknown);
   const back=document.createElement('a');back.href='./portal/';back.textContent=C.close;
-  panel.replaceChildren(text,back);
+  panel.replaceChildren(text,detail,back);
  }
  window.addEventListener('beforeunload',event=>{
   if(editor&&(editor.editorDirty||editor.pending||editor.record.needsExport||editor.record.recoveryError)){
