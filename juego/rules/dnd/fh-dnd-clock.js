@@ -46,15 +46,18 @@
  function mount({clock,host,document:doc,text}={}){
   if(!clock||!host||!doc||!text)return null;
   const box=doc.createElement('section'),title=doc.createElement('h4'),
-   status=doc.createElement('output'),help=doc.createElement('p');
+   status=doc.createElement('output'),help=doc.createElement('p'),
+   info=doc.createElement('details'),summary=doc.createElement('summary'),
+   modes=doc.createElement('div'),waits=doc.createElement('div');
   box.className='fh-dnd-clock';box.setAttribute('aria-label',text.title);
   title.textContent=text.title;help.textContent=text.help;
-  box.style.cssText='display:grid;gap:8px;padding:12px 0;border-top:1px solid #786442';
-  box.append(title,status,help);
+  summary.textContent=text.helpTitle;info.className='dnd-clock-help';info.append(summary,help);
+  modes.className='dnd-clock-modes';waits.className='dnd-clock-waits';
+  box.append(title,status,modes,waits,info);
   const buttons=[];
   const add=(label,action,kind)=>{const button=doc.createElement('button');button.type='button';
    button.textContent=label;button.style.minHeight='44px';button.addEventListener('click',()=>{action();update();});
-   box.append(button);buttons.push({button,kind});};
+   (kind==='wait'?waits:kind==='end'?box:modes).append(button);buttons.push({button,kind});};
   add(text.exploration,()=>clock.setMode('exploration'),'exploration');
   add(text.rounds,()=>clock.setMode('rounds'),'rounds');
   add(text.endRound,()=>clock.endRound(),'end');

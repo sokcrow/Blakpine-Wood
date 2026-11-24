@@ -58,6 +58,8 @@
     const pict=icon.startsWith('stat:')?doc.createElement('img'):el('span','dnd-stat-icon',icon);
     if(icon.startsWith('stat:')){
      pict.className='dnd-stat-icon dnd-stat-icon-image';pict.alt='';pict.loading='lazy';pict.decoding='async';
+     // Límites intrínsecos también cuando falla la hoja de estilos.
+     pict.setAttribute('width','32');pict.setAttribute('height','32');
      pict.src=new URL('./juego/assets/dnd-icons/'+icon.slice(5)+'.png',doc.baseURI).href;
     }
     node.append(pict,el('span','dnd-stat-label',name),
@@ -65,8 +67,8 @@
     if(small!==undefined)node.append(el('small','dnd-stat-detail',small));
     return node;
    };
-   const header=el('div','dnd-sheet-header');
-   header.append(el('strong','',stats.name||U.character),el('span','',
+   const header=el('header','dnd-sheet-header');
+   header.append(el('strong','dnd-sheet-name',stats.name||U.character),el('span','dnd-sheet-origin',
     (globalThis.FH_DND_CHARACTER_TEXT?.classes?.[stats.classId]||stats.classId)+' · '+U.level+' '+stats.level));
    const vital=el('div','dnd-sheet-vitals');
    vital.append(card('♥',U.hp,stats.hp+'/'+stats.maxHp),
@@ -98,7 +100,7 @@
      attack.damageCount+'d'+attack.damageDie+signed(attack.damageBonus)));
    }
    const open=Array.from(host.querySelectorAll('details'),node=>node.open);
-   host.replaceChildren(header,vital,el('strong','dnd-group-title',U.abilities),attrs,
+   host.replaceChildren(header,vital,el('h5','dnd-group-title',U.abilities),attrs,
     details,attacks);
    host.querySelectorAll('details').forEach((node,index)=>{node.open=!!open[index]});
   }
@@ -132,7 +134,7 @@
    }
    hud.weapon.value=state.player.activeAttackId;
    hud.weapon.disabled=closed||weapons.length<=1;
-   hud.button.disabled=closed||state.player.hp===0;
+   hud.button.disabled=closed||state.player.hp===0||targets.length===0;
   }
   function show(result){
    if(closed)return;
@@ -196,15 +198,16 @@
   }
   if(doc?.body&&typeof doc.createElement==='function'){
    const box=doc.createElement('section'),title=doc.createElement('h4'),
-    status=doc.createElement('span'),stats=doc.createElement('small'),select=doc.createElement('select'),
+    status=doc.createElement('span'),stats=doc.createElement('div'),select=doc.createElement('select'),
     weapon=doc.createElement('select'),button=doc.createElement('button'),help=doc.createElement('small'),
     dc=doc.createElement('input'),saveSelect=doc.createElement('select'),
     skillSelect=doc.createElement('select'),saveButton=doc.createElement('button'),
     skillButton=doc.createElement('button');
-   const t=globalThis.FH_DND_TEXT||{};
+   const t=globalThis.FH_DND_TEXT||{},U=t.ui||{};
    box.setAttribute('aria-label',t.title||'Combate DnD');
-   box.className='fh-status-column fh-dnd-status';
-   title.className='fh-status-column-heading';
+   box.className='fh-dnd-status';
+   title.className='dnd-sheet-kicker';
+   status.className='dnd-sr-only';
    stats.className='fh-dnd-stats';
    title.textContent=t.title||'Combate DnD';button.type='button';button.textContent=t.attack||'Atacar';
    help.textContent=t.hint||'';select.setAttribute('aria-label',t.selectTarget||'Seleccionar blanco');
@@ -226,9 +229,22 @@
    saveSelect.value='dex';skillSelect.value='perception';
    saveButton.type='button';saveButton.textContent=t.rollSave||'Tirar salvación';
    skillButton.type='button';skillButton.textContent=t.rollSkill||'Tirar habilidad';
-   box.append(title,status,stats,weapon,select,button,dc,saveSelect,saveButton,
-    skillSelect,skillButton,help);
-   clockHud=globalThis.FHDndClock?.mount({clock:time,host:box,document:doc,text:t.time});
+   const make=(tag,cls,text)=>{const node=doc.createElement(tag);node.className=cls;
+    if(text!==undefined)node.textContent=text;return node;};
+   const field=(label,control)=>{const node=make('label','dnd-field');
+    node.append(make('span','dnd-field-label',label),control);return node;};
+   const layout=make('div','dnd-sheet-layout'),sidebar=make('aside','dnd-sheet-tools');
+   const action=make('section','dnd-action-panel'),tests=make('details','dnd-test-panel');
+   action.append(make('h5','dnd-group-title',U.combat),field(t.selectAttack,weapon),
+    field(t.selectTarget,select),button);
+   button.className='dnd-attack-button';
+   const saveRow=make('div','dnd-roll-row'),skillRow=make('div','dnd-roll-row');
+   saveRow.append(field(t.saveSelect,saveSelect),saveButton);
+   skillRow.append(field(t.skillSelect,skillSelect),skillButton);
+   tests.append(make('summary','',U.tests),field(t.dc,dc),saveRow,skillRow,help);
+   sidebar.append(action,tests);
+   clockHud=globalThis.FHDndClock?.mount({clock:time,host:sidebar,document:doc,text:t.time});
+   layout.append(stats,sidebar);box.append(title,status,layout);
    weapon.addEventListener('change',()=>{
     if(closed||!state.player.attacks.some(a=>a.id===weapon.value))return;
     state.player.activeAttackId=weapon.value;
