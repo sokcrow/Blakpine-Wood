@@ -216,17 +216,24 @@ test('HUD: objetivo, ataques y habilidades y salvaciones DnD funcionan por botó
  const t=trainingScene(),game={dnd:combat.initialState(sheet.createPilot())},nodes=[];
  function element(tag){
   const e={tagName:tag.toUpperCase(),style:{},value:'',disabled:false,textContent:'',
-   children:[],listeners:{},setAttribute(){},append(...kids){this.children.push(...kids);},
+   children:[],listeners:{},attributes:{},setAttribute(key,value){this.attributes[key]=value;},append(...kids){this.children.push(...kids);},
    replaceChildren(...kids){this.children=kids;this.value=kids[0]?.value||'';},
-   addEventListener(type,fn){this.listeners[type]=fn;},remove(){}};
+   addEventListener(type,fn){this.listeners[type]=fn;},querySelectorAll(){return [];},remove(){}};
   nodes.push(e);return e;
  }
- const doc={body:{append(){}},createElement:element,addEventListener(){},removeEventListener(){}};
+ const doc={baseURI:'https://example.test/',body:{append(){}},createElement:element,addEventListener(){},removeEventListener(){}};
  const session=dndEngine({targetPort:t.port,gameState:game,identity:id,sessionId:'hud',
   readPlayer:()=>({floor:0,x:3.1,z:3.048}),readMinute:()=>1320,
   save:()=>{},notice:()=>{},random:()=>.99,document:doc});
  const select=nodes.find(e=>e.tagName==='SELECT'),button=nodes.find(e=>e.tagName==='BUTTON');
  assert.equal(select.value,'dummy-1');
+ const icons=nodes.filter(e=>e.tagName==='IMG');
+ assert.equal(icons.length,6);
+ for(const icon of icons){assert.equal(icon.attributes.width,'32');assert.equal(icon.attributes.height,'32');}
+ const box=nodes.find(e=>e.className==='fh-dnd-status');
+ assert.ok(box.children.some(e=>e.className==='dnd-sheet-layout'));
+ assert.ok(nodes.some(e=>e.className==='dnd-sheet-tools'));
+ assert.ok(nodes.some(e=>e.className==='dnd-field'));
  button.listeners.click();assert.equal(t.runtime.get('dummy-1').hitsReceived,1);
  const save=session.rollSave('str',10);assert.equal(save.success,true);
  const skill=session.rollSkill('perception',10);assert.equal(skill.success,true);

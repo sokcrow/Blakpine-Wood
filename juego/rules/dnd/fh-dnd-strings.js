@@ -15,6 +15,7 @@
   title:'D&D 2024 · Partida',attack:'Atacar (F)',
   time:Object.freeze({
    title:'Tiempo D&D',exploration:'Exploración',rounds:'Rondas',endRound:'Cerrar ronda (+6 s)',
+   helpTitle:'Cómo avanza el tiempo',
    help:'Tiempo de esta partida local. Explorar cuenta la distancia recorrida y 6 s por interacción realizada. En rondas, cierra la ronda una sola vez después de los turnos; moverte y actuar no suman tiempo adicional. Las tiradas de habilidad y salvación por sí solas no consumen tiempo. Avanzar horas no recupera PG ni recursos automáticamente.',
    wait:minutes=>minutes===480?'Avanzar 8 h (descanso)':minutes===60?'Avanzar 1 h (descanso)':'Esperar '+minutes+' min',
    status:v=>v.day+'/'+v.month+'/'+v.year+' · '+[v.hour,v.minute,v.second].map(n=>String(n).padStart(2,'0')).join(':')+
@@ -22,7 +23,7 @@
   }),
   ui:Object.freeze({character:'Personaje',level:'Nivel',hp:'PG',ac:'CA',
    speed:'Movimiento',proficiency:'Competencia',abilities:'Características',
-   saves:'Salvaciones',skills:'Habilidades',attacks:'Ataques'
+   saves:'Salvaciones',skills:'Habilidades',attacks:'Ataques',combat:'Combate',tests:'Pruebas y salvaciones'
   }),
   empty:'Acércate al blanco de entrenamiento.',
   hint:'D&D 2024: F ataca al blanco; las salvaciones y habilidades utilizan d20 y CD.',

@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<base href="../../">
+<title>Prueba visual · Ficha D&D</title>
+<link rel="stylesheet" href="juego/assets/fh-player-menu.css?v=20261122-modules1">
+<link rel="stylesheet" href="juego/rules/dnd/fh-dnd-sheet.css?v=20261124-dnd-sheet-ui">
+<style>html,body{margin:0;min-height:100%;background:#141510;color:#eee9dd}.fixture-label{position:fixed;bottom:0;margin:0;font:11px Georgia,serif;color:#b7b3a9} [hidden]{display:none!important}</style>
+</head>
+<body>
+<!-- Prueba aislada del componente REAL con datos de ejemplo. No arranca WebGL,
+     no escribe partidas ni crea un modo alternativo de juego. -->
+<div id="hud" class="fh-location-hud">Ficha de ejemplo</div>
+<button id="inventoryToggle" hidden>0/10</button><div id="hudOptions" hidden></div>
+<p class="fixture-label">Prueba visual · Datos de ejemplo</p>
+<script src="juego/assets/fh-player-menu-strings.js"></script>
+<script src="juego/assets/fh-hud-frame.js"></script>
+<script src="juego/assets/fh-player-menu.js"></script>
+<script src="juego/core/fh-session-coordinator.js"></script>
+<script src="juego/assets/fh-weather-core.js?v=20261124-dnd-time"></script>
+<script src="juego/assets/fh-dnd-character-strings.js"></script>
+<script src="juego/rules/dnd/fh-dnd-sheet.js"></script>
+<script src="juego/rules/dnd/fh-dnd-combat.js"></script>
+<script src="juego/rules/dnd/fh-dnd-strings.js?v=20261124-dnd-sheet-ui"></script>
+<script src="juego/rules/dnd/fh-dnd-clock.js?v=20261124-dnd-sheet-ui"></script>
+<script src="juego/rules/dnd/fh-dnd-engine.js?v=20261124-dnd-sheet-ui"></script>
+<script>
+window.addEventListener('DOMContentLoaded',()=>{
+ const state={dnd:FHDndCombat.initialState(FHDndSheet.createPilot()),clock:{year:2026,month:11,day:24,minutes:480}};
+ state.dnd.player.name='Eira Valebosque';
+ const time=FHDndClock.create({gameState:state});
+ const session=FHDndEngine.create({gameState:state,time,sessionId:'visual-fixture',
+  identity:{characterId:'fixture',rulesetId:'dnd'},readPlayer:()=>({floor:0,x:0,z:0}),readMinute:time.minute,
+  targetPort:{read:()=>null,list:()=>[],canAttack:()=>false,receiveHit(){}},
+  save(){},notice(message){document.querySelector('.fixture-label').textContent=message;},
+  setStatusView:view=>FHPlayerMenu.setStatusView(view)});
+ FHPlayerMenu.openSection('status');
+ window.addEventListener('pagehide',()=>session.close(),{once:true});
+});
+</script>
+</body>
+</html>
