@@ -19,7 +19,9 @@ async function boot({signedIn=true,iframe=false}={}){
  const nodes=new Map([['app',{inert:false}],['autosave',{textContent:''}]]);
  const doc={getElementById:id=>nodes.get(id),createElement:()=>({setAttribute(){},replaceChildren(...children){this.children=children;}}),
   body:{append(node){nodes.set(node.id,node);}}};
- const api={validate,load:(p,callback)=>{loaded=p;changed=callback;},read:()=>structuredClone(loaded),setActions:a=>actions=a,saved(){},stop:()=>stops++};
+ let ruleset=null;
+ const api={validate,setRuleset:id=>{ruleset=id;},
+  load:(p,callback)=>{loaded=p;changed=callback;},read:()=>structuredClone(loaded),setActions:a=>actions=a,saved(){},stop:()=>stops++};
  const win={LumenEditor:api,addEventListener:(name,fn)=>events[name]=fn};win.parent=iframe?{}:win;
  const location={search:'?editor=1&lumenCartridge=1&campaign='+context.campaignId+'&workspace='+handoff.id,href:''};
  const authSDK={getAuth:()=>auth,onAuthStateChanged:(_auth,fn)=>{
@@ -34,13 +36,14 @@ async function boot({signedIn=true,iframe=false}={}){
   .replace(/import\('https:\/\/www\.gstatic\.com\/firebasejs\/13\.3\.0\/firebase-auth\.js'\)/,"Promise.resolve(mockAuth)")
   .replace(/import\('https:\/\/www\.gstatic\.com\/firebasejs\/13\.3\.0\/firebase-firestore\.js'\)/,"Promise.resolve(mockFirestore)");
  vm.runInContext(source,sandbox);await tick();await tick();
- return {actions:()=>actions,nodes,location,auth,events,changed:()=>changed(),loaded:()=>loaded,
+ return {actions:()=>actions,nodes,location,auth,events,changed:()=>changed(),loaded:()=>loaded,ruleset:()=>ruleset,
   signOut:()=>{auth.currentUser=null;listeners.forEach(fn=>fn(null));},stops:()=>stops,
   cleanup:()=>{w.workspaceStore.backend=previous;r.recoveryStore.backend=previousRecovery;}};
 }
 test('Página independiente: autoriza, abre la copia completa y guarda antes de volver a la biblioteca',async()=>{
  const f=await boot();try{
   assert.equal(f.nodes.get('app').inert,false);assert.deepEqual(f.loaded().future,{full:'🌲'});
+  assert.equal(f.ruleset(),'legacy','el puente debe establecer modo antes de cargar el mapa');
   assert.equal(typeof f.actions().save,'function');await f.actions().close();
   assert.match(f.location.href,/^\.\/portal\/#mapas\//);
   let prevented=false;f.events.beforeunload({preventDefault:()=>prevented=true});assert.equal(prevented,false);
@@ -54,4 +57,20 @@ test('No hay acceso sin sesión y cerrar sesión bloquea la herramienta y detien
 });
 test('El arranque de página completa no se activa en los iframes del motor o de validación',async()=>{
  const f=await boot({iframe:true});try{assert.equal(f.loaded(),null);assert.equal(f.actions(),undefined);}finally{f.cleanup();}
+});
+
+test('Lumen registra su API antes de inicializar los módulos tardíos',()=>{
+ const html=fs.readFileSync('index.html','utf8');
+ const guard=html.indexOf('if(!lumenCartridgeMode){setupPlayMode();init();}');
+ const register=html.indexOf('window.LumenEditor=Object.freeze({',guard);
+ const deferred=html.indexOf('ensureLumenEditorInitialized();',register);
+ assert.ok(guard>0&&register>guard&&deferred>register,
+  'la apertura del cartucho inicializa el editor sólo al cargar su mapa');
+ const match=html.match(/setRuleset\(rulesetId\)\{([\s\S]*?)\n  \},\n  create:/);
+ assert.ok(match,'se localiza la implementación real de setRuleset');
+ const update=new Function('window','rulesetId',
+  'let lumenEditorRuleset="legacy";'+match[1]+';return lumenEditorRuleset;');
+ assert.equal(update({},'dnd'),'dnd','el catálogo opcional ausente no bloquea DnD');
+ assert.equal(update({},'legacy'),'legacy');
+ assert.throws(()=>update({},'invalido'),/EDITOR_RULESET_INVALID/);
 });
