@@ -17,10 +17,10 @@
    color:/^#[\da-f]{6}$/i.test(value?.color)?value.color.toUpperCase():fallback.color,
    pattern:typeof value?.pattern==='string'&&/^[\w-]{1,48}$/.test(value.pattern)?value.pattern:null};
  }
- function settings(value){
+ function settings(value,rulesetId='legacy'){
   const height=value?.parapetHeightTiles;
   return {enabled:value?.enabled!==false,
-   shape:value?.shape==='gable'?'gable':'flat',
+   shape:['flat','gable','auto'].includes(value?.shape)?value.shape:rulesetId==='dnd'?'auto':'flat',
    ridgeAxis:['x','z'].includes(value?.ridgeAxis)?value.ridgeAxis:'auto',
    riseFt:Number.isFinite(value?.riseFt)?Math.max(1,Math.min(30,value.riseFt)):4,
    coverColor:/^#[\da-f]{6}$/i.test(value?.coverColor)?value.coverColor.toUpperCase():DEFAULTS.coverColor,
@@ -77,20 +77,63 @@
   const spans=difference(supported,enclosed);
   return {spans,interiorSpans:difference(supported,spans)};
  }
- function plan(slab,upperOutline,value){
-  if(value?.enabled===false||!slab?.enabled)return null;
-  const config=settings(value),cover=upperOutline?.enabled?(upperOutline.spans||[]).filter(valid):[];
-  const {spans,interiorSpans}=partition(slab,upperOutline);
-  // Un encuentro con el edificio superior no necesita un segundo muro bajo.
-  const edges=boundary(spans).filter(e=>{
+ // Separar casas por contacto de arista; un contacto sólo de esquina no
+ // une dos viviendas. Sólo se consulta al resolver una cubierta automática.
+ function roofComponents(spans){
+  const pending=new Set(spans.filter(valid)),result=[];
+  const touches=(a,b)=>{
+   const x=Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x);
+   const y=Math.min(a.y+a.h,b.y+b.h)-Math.max(a.y,b.y);
+   return x>=-EPS&&y>=-EPS&&(x>EPS||y>EPS);
+  };
+  while(pending.size){
+   const first=pending.values().next().value,group=[first];pending.delete(first);
+   for(let i=0;i<group.length;i++)for(const other of pending)
+    if(touches(group[i],other)){group.push(other);pending.delete(other);}
+   result.push(group);
+  }
+  return result;
+ }
+ function roofEdges(spans,cover){
+  return boundary(spans).filter(e=>{
    const x=(e.a.x+e.b.x)/2,y=(e.a.y+e.b.y)/2,d=.0001;
    return !contains(cover,x+d,y+d)&&!contains(cover,x-d,y-d);
   });
-  return {...config,spans,interiorSpans,edges};
+ }
+ function rectangularCover(spans){
+  if(!spans.length)return spans;
+  let x=Infinity,y=Infinity,right=-Infinity,bottom=-Infinity,area=0;
+  for(const r of spans){x=Math.min(x,r.x);y=Math.min(y,r.y);
+   right=Math.max(right,r.x+r.w);bottom=Math.max(bottom,r.y+r.h);area+=r.w*r.h;}
+  const w=right-x,h=bottom-y;
+  // Las losas son rectángulos sin solapamiento. Unificar sólo si no quedan
+  // huecos: un patio o una planta en L conserva sus rectángulos originales.
+  return Math.abs(w*h-area)<=EPS?[{x,y,w,h}]:spans;
+ }
+ function plan(slab,upperOutline,value,{rulesetId='legacy'}={}){
+  if(value?.enabled===false||!slab?.enabled)return null;
+  const config=settings(value,rulesetId),cover=upperOutline?.enabled?(upperOutline.spans||[]).filter(valid):[];
+  const {spans,interiorSpans}=partition(slab,upperOutline);
+  const edges=roofEdges(spans,cover);
+  if(config.shape!=='auto')return {...config,spans,interiorSpans,edges};
+  if(rulesetId!=='dnd')return {...config,shape:'flat',spans,interiorSpans,edges};
+  const sections=roofComponents(slab.spans||[]).map(component=>{
+   const exposed=difference(component,cover);
+   // Si esta casa continúa arriba, el retranqueo es terraza/balcón plano.
+   // Una casa vecina de una sola planta conserva su propio tejado a dos aguas.
+   const upstairs=component.some(a=>cover.some(b=>
+    Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x)>EPS&&
+    Math.min(a.y+a.h,b.y+b.h)-Math.max(a.y,b.y)>EPS));
+   const surface=upstairs?exposed:rectangularCover(exposed);
+   return {...config,shape:upstairs?'flat':'gable',spans:surface,
+    edges:roofEdges(surface,cover)};
+  }).filter(part=>part.spans.length);
+  return {...config,spans,interiorSpans,edges,sections};
  }
  function plans(data,slabs){
   const main=Math.max(0,data.floors.findIndex(f=>f.id===data.mainFloorId));
-  return data.floors.map((f,i)=>i<=main?null:plan(slabs[i],data.roofSlabsByFloor?.[i]||slabs[i+1],data.floors[i-1]?.roof));
+  const rulesetId=data.__multimodeSave?.identity?.rulesetId||'legacy';
+  return data.floors.map((f,i)=>i<=main?null:plan(slabs[i],data.roofSlabsByFloor?.[i]||slabs[i+1],data.floors[i-1]?.roof,{rulesetId}));
  }
  // Volúmenes a dos aguas: dos planos inclinados y dos tímpanos triangulares.
  // Pies -> metros en vertical; x/z mantienen exactamente la escala del motor.

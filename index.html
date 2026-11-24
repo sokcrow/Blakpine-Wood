@@ -213,9 +213,9 @@ window.FHMultimodeSaveAdapters=Object.freeze({dnd:window.FHDndSaveAdapter});</sc
 <script src="./juego/assets/fh-style-renderer.js?v=20261122-modules1"></script>
 <script src="./juego/assets/fh-style-strings.js?v=20261122-dnd-wood"></script>
 <script src="./juego/assets/fh-style-editor.js?v=20261122-dnd-wood"></script>
-<script src="./juego/assets/fh-roof-strings.js?v=20261110-roof3"></script>
-<script src="./juego/assets/fh-roof.js?v=20261110-roof3"></script>
-<script src="./juego/assets/fh-roof-engine-hook.js?v=20261110-roof3"></script>
+<script src="./juego/assets/fh-roof-strings.js?v=20261124-dnd-roofs"></script>
+<script src="./juego/assets/fh-roof.js?v=20261124-dnd-roofs"></script>
+<script src="./juego/assets/fh-roof-engine-hook.js?v=20261124-dnd-roofs"></script>
 <script src="./juego/assets/fh-parking.js"></script>
 <script src="./juego/assets/fh-parking-strings.js"></script>
 <script src="./juego/assets/fh-parking-editor.js"></script>
@@ -1719,7 +1719,7 @@ const hasVisualFront=it=>window.FHObjectFront?.hasFront(it,ORIENTABLE_TYPES)||
 function normalizeFurnitureFootprints(){const eps=.001,types=Object.keys(OBJECT_SIZES);let changed=0;for(const fl of project.floors||[]){for(const it of fl.items||[]){if(!types.includes(it.type)||!('x' in it)||it.type==='spawn'||it.type==='car')continue;const old=LEGACY_OBJECT_SIZES[it.type],neu=OBJECT_SIZES[it.type];if(!old||!neu)continue;const w=Number(it.w),h=Number(it.h);if(Math.abs(w-old[0])<eps&&Math.abs(h-old[1])<eps){it.w=neu[0];it.h=neu[1];changed++;}}}return changed;}
 const $=s=>document.querySelector(s), $$=s=>Array.from(document.querySelectorAll(s));
 const clone=x=>JSON.parse(JSON.stringify(x));
-const floorDefault=(id,name,elev,index)=>({id,name,elevationFt:elev,ceilingHeightFt:11.5,roof:window.FHRoof.settings(),lightingManual:true,reference:{name:window.FH_MAP_GRID_TEXT.noReference,data:'',width:1,height:1,opacity:.73},items:[]});
+const floorDefault=(id,name,elev,index)=>({id,name,elevationFt:elev,ceilingHeightFt:11.5,roof:window.FHRoof.settings(undefined,lumenCartridgeMode?lumenEditorRuleset:window.FHEditorCatalog?.ruleset?.()||'legacy'),lightingManual:true,reference:{name:window.FH_MAP_GRID_TEXT.noReference,data:'',width:1,height:1,opacity:.73},items:[]});
 const newProject=()=>({schema:SCHEMA,version:ForestShared.CURRENT_VERSION,title:'Forest Horror · Edificio de apartamentos',createdAt:new Date().toISOString(),styleSystem:1,initialGameState:{clock:{year:2016,month:6,day:1,minutes:480},inventory:['cell_phone_charger','cell_phone_fast_charger'],equipment:{rearLeft:'cell_phone',rearRight:'wallet',wallet:{items:[]}}},weather:{enabled:true,season:'calendar',minHours:3,maxHours:8,clockSpeed:1},buildingOwnerId:'',buildingOwners:{},properties:[],patterns:[],itemDefs:[{id:'flashlight_battery',kind:'consumable',name:'Batería de linterna',description:'Recarga el 50 % de la linterna.',stackable:true,icon:'▤'},{id:'cell_phone_charger',kind:'tool',name:'Cargador de celular',description:'Conecta el celular a un enchufe libre con electricidad.',stackable:false,icon:'🔌'},{id:'cell_phone_fast_charger',kind:'tool',name:'Cargador de carga rápida',description:'Recarga 1 % cada 2 minutos.',stackable:false,icon:'⚡'},{id:'cell_phone',kind:'tool',name:'Celular',description:'Objeto del bolsillo trasero.',stackable:false,icon:'▣'},{id:'wallet',kind:'tool',name:'Cartera',description:'Almacena tarjetas y efectivo físico.',stackable:false,icon:'▤'}],units:{gridPx:70,columns:40,rows:40,fitGridToImage:false,feetPerCell:5,metersPerCell:1.524,snapCell:1,originPx:{x:0,y:0}},mainFloorId:'floor1',floors:[floorDefault('floor1','Piso 1',0,0),floorDefault('floor2','Piso 2',10,1)],notes:'Coordenadas x/y en casillas; cada casilla equivale a 5 pies. El eje Y crece hacia abajo en la referencia. Cada mirilla tiene dirección peekTo. Los muebles guardan su rotación y el frente visual. También se exportan bardas medias, rejas y rellenos exteriores.'});
 let project=newProject(),floorIndex=0,selection=null,activeTool='wall',activeCategory='structure',activeLayer='architecture',gridVisible=true,jointsVisible=true,axisLock=true,snapEnabled=true,preview=null,anchor=null,cursorGridPoint=null,view={scale:1,tx:0,ty:0},canvas=$('#map'),ctx=canvas.getContext('2d',{alpha:false}),loadedImgs=project.floors.map(()=>null),pointerStates=new Map(),gesture=null,action=null,middlePan=null,dirty=false,history=[],historyIndex=-1,saveTimer=null,toastTimer=null;
 const current=()=>project.floors[floorIndex];
@@ -5740,7 +5740,7 @@ window.FHMultimodeSelector?.mount({
 <script src="./juego/assets/fh-cctv-engine-hook.js?v=20261112-cctv-boot2"></script>
 <script src="./juego/assets/fh-generators-editor.js?v=20261111-elevator-power-1"></script>
 <script src="./juego/assets/fh-exterior-editor.js?v=20261111-pole-collision-1"></script>
-<script src="./juego/assets/fh-roof-editor.js?v=20261110-roof3"></script>
+<script src="./juego/assets/fh-roof-editor.js?v=20261124-dnd-roofs"></script>
 <script src="./juego/assets/fh-barriers-strings.js?v=20261111-metal1"></script>
 <script src="./juego/assets/fh-barriers.js?v=20261111-metal1"></script>
 <script src="./juego/assets/fh-barriers-engine-hook.js?v=20261112-barriers-hook1"></script>
