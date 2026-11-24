@@ -6,7 +6,7 @@ class Memory {
  async list(){return [...this.records].map(([key,record])=>({key,record:structuredClone(record)}));}
 }
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
-async function boot({signedIn=true,iframe=false}={}){
+async function boot({signedIn=true,iframe=false,loadError=null}={}){
  const m=await import('../portal/cartridge.js'),r=await import('../portal/cartridge-recovery.js'),w=await import('../portal/editor-workspace-model.js');
  const strings=await import('../portal/cartridge-strings.js'),{campaignAccess}=await import('../portal/cartridge-access.js');
  const previous=w.workspaceStore.backend,previousRecovery=r.recoveryStore.backend;
@@ -21,7 +21,7 @@ async function boot({signedIn=true,iframe=false}={}){
   body:{append(node){nodes.set(node.id,node);}}};
  let ruleset=null;
  const api={validate,setRuleset:id=>{ruleset=id;},
-  load:(p,callback)=>{loaded=p;changed=callback;},read:()=>structuredClone(loaded),setActions:a=>actions=a,saved(){},stop:()=>stops++};
+  load:(p,callback)=>{if(loadError)throw loadError;loaded=p;changed=callback;},read:()=>structuredClone(loaded),setActions:a=>actions=a,saved(){},stop:()=>stops++};
  const win={LumenEditor:api,addEventListener:(name,fn)=>events[name]=fn};win.parent=iframe?{}:win;
  const location={search:'?editor=1&lumenCartridge=1&campaign='+context.campaignId+'&workspace='+handoff.id,href:''};
  const authSDK={getAuth:()=>auth,onAuthStateChanged:(_auth,fn)=>{
@@ -48,6 +48,46 @@ test('Página independiente: autoriza, abre la copia completa y guarda antes de 
   assert.match(f.location.href,/^\.\/portal\/#mapas\//);
   let prevented=false;f.events.beforeunload({preventDefault:()=>prevented=true});assert.equal(prevented,false);
  }finally{f.cleanup();}
+});
+
+test('Un fallo de interfaz conserva el mensaje real y no acusa al mapa de incompatibilidad',async()=>{
+ const message='$(...).forEach is not a function';
+ const f=await boot({loadError:new TypeError(message)});
+ try{
+  const {C}=await import('../portal/cartridge-strings.js');
+  const [text,detail]=f.nodes.get('workspace-error').children;
+  assert.equal(text.textContent,C.editorError);
+  assert.ok(detail.textContent.includes(message));
+  assert.equal(f.nodes.get('app').inert,true);
+  assert.equal(f.stops(),1);
+ }finally{f.cleanup();}
+});
+
+test('setLayer real recorre todos los botones y conserva las reglas de circuitos',()=>{
+ const html=fs.readFileSync('index.html','utf8');
+ const source=html.slice(html.indexOf('function setLayer(layer){'),html.indexOf('\n// Grafo común'));
+ assert.ok(source.startsWith('function setLayer(layer){'));
+ for(const ruleset of ['legacy','dnd'])for(const electricity of [false,true]){
+  const buttons=['architecture','furniture','lighting'].map(layer=>({dataset:{layer},active:false,
+   classList:{toggle(_name,active){buttons.find(b=>b.dataset.layer===layer).active=active;}}}));
+  const circuits={hidden:false};let refreshes=0,renders=0;
+  const env={activeLayer:null,lumenEditorRuleset:ruleset,project:{},selection:'item',anchor:{},preview:{},
+   document:{body:{classList:{toggle(){}}}},
+   $:selector=>selector==='#circuitTools'?circuits:buttons[0],
+   $$:selector=>{assert.equal(selector,'#layerSwitch button');return buttons;},
+   window:{FHDndMapModules:{options:()=>({electricity})}},
+   refreshCircuits:()=>refreshes++,closeInspector(){},render:()=>renders++};
+  vm.createContext(env);vm.runInContext(source,env);
+  for(const layer of ['architecture','furniture','lighting']){
+   env.setLayer(layer);
+   assert.equal(env.activeLayer,layer);
+   assert.deepEqual(buttons.map(b=>b.active),buttons.map(b=>b.dataset.layer===layer));
+   assert.equal(circuits.hidden,layer!=='lighting'||(ruleset==='dnd'&&!electricity));
+   assert.equal(env.selection,null);
+  }
+  assert.equal(refreshes,ruleset==='legacy'||electricity?1:0);
+  assert.equal(renders,3);
+ }
 });
 test('No hay acceso sin sesión y cerrar sesión bloquea la herramienta y detiene su motor',async()=>{
  const missing=await boot({signedIn:false});try{

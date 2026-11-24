@@ -2,7 +2,7 @@ import {firebaseConfig} from './config.js';
 import {campaignAccess} from './cartridge-access.js';
 import {workspaceStore,EditorWorkspace,libraryURL} from './editor-workspace-model.js';
 import {exportCartridge,cartridgeFilename} from './cartridge.js';
-import {C,cartridgeError,recoveryError} from './cartridge-strings.js?v=20261124-lumen-access';
+import {C,cartridgeError,recoveryError} from './cartridge-strings.js?v=20261124-layer-fix';
 
 const params=new URLSearchParams(location.search);
 if(window.parent===window&&params.get('lumenCartridge')==='1'&&params.has('workspace'))void activate();
@@ -20,11 +20,11 @@ async function activate(){
   accessLost=true;clearTimeout(timer);api?.stop();app.inert=true;
   let panel=document.getElementById('workspace-error');
   if(!panel){panel=document.createElement('section');panel.id='workspace-error';panel.setAttribute('role','alert');document.body.append(panel);}
-  const text=document.createElement('p');text.textContent=cartridgeError(error);
+  const text=document.createElement('p');text.textContent=cartridgeError(error,C.editorError);
   const detail=document.createElement('small');
-  const raw=String(error?.code||error?.message||'');
+  const raw=String(error?.code||error?.message||'').trim();
   detail.textContent=C.editorErrorDetail+
-   (/^[A-Z][A-Z0-9_]{3,79}$/.test(raw)?raw:C.editorErrorUnknown);
+   (raw?raw.slice(0,300):C.editorErrorUnknown);
   const back=document.createElement('a');back.href='./portal/';back.textContent=C.close;
   panel.replaceChildren(text,detail,back);
  }
