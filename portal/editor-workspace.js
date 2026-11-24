@@ -2,7 +2,7 @@ import {firebaseConfig} from './config.js';
 import {campaignAccess} from './cartridge-access.js';
 import {workspaceStore,EditorWorkspace,libraryURL} from './editor-workspace-model.js';
 import {exportCartridge,cartridgeFilename} from './cartridge.js';
-import {C,cartridgeError,recoveryError} from './cartridge-strings.js';
+import {C,cartridgeError,recoveryError} from './cartridge-strings.js?v=20261124-lumen-access';
 
 const params=new URLSearchParams(location.search);
 if(window.parent===window&&params.get('lumenCartridge')==='1'&&params.has('workspace'))void activate();
