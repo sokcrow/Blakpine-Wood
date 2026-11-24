@@ -59,8 +59,8 @@ return restored;
        'core/fh-combat-target-port.js',
        'rules/dnd/fh-dnd-sheet.js','rules/dnd/fh-dnd-combat.js','rules/dnd/fh-dnd-map-modules.js','rules/dnd/fh-dnd-save-adapter.js',
       'assets/fh-dnd-character-strings.js',
-      'rules/dnd/fh-dnd-strings.js','rules/dnd/fh-dnd-engine.js']
-      .map(file => '<script src="' + new URL('./juego/' + file + '?v=20261122-modules1', baseURL).href + '"></' + 'script>').join('');
+      'rules/dnd/fh-dnd-strings.js','rules/dnd/fh-dnd-clock.js','rules/dnd/fh-dnd-engine.js']
+      .map(file => '<script src="' + new URL('./juego/' + file + '?v=20261124-dnd-time', baseURL).href + '"></' + 'script>').join('');
     const adapters = '<script>window.FHMultimodeCombatAdapters=Object.freeze({dnd:window.FHDndCombat});\n' +
       'window.FHMultimodeSaveAdapters=Object.freeze({dnd:window.FHDndSaveAdapter});</' + 'script>';
     if(doc.includes('GameState.horror=structuredClone(restored?.horror||DATA.initialGameState?.horror||{});')){
@@ -88,6 +88,7 @@ return restored;
          "const fhLegacySession=DATA.__multimodeSave?.identity.rulesetId==='dnd'?\n"+
         "window.FHDndEngine.create({\n"+
         " targetPort:fhDndTargetPort,gameState:GameState,\n"+
+        " time:fhDndClock,\n"+
         " setStatusView:view=>window.FHPlayerMenu?.setStatusView(view),\n"+
         " identity:DATA.__multimodeSave.identity,sessionId:DATA.__multimodeSave.sessionId,\n"+
         " readMinute:()=>window.FHWeatherCore?.absoluteMinute(GameState.clock)??GameState.clock?.minutes,\n"+
@@ -106,6 +107,38 @@ return restored;
       once('const GameState=createGameState(restored||DATA.initialGameState);',
         "const GameState=createGameState(restored||DATA.initialGameState);\n"+
         "if(fhMultimode?.identity.rulesetId==='dnd')GameState.dnd=structuredClone(restored.dnd);");
+    }
+    // Sólo el documento completo tiene clima/movimiento; las herramientas de guardado
+    // también usan este adaptador sin arrancar el motor 3D.
+    const weatherAnchor='const fhWeather=window.FHWeatherCore?.createRuntime({gameState:GameState,config:DATA.weather||{}});';
+    if(doc.includes(weatherAnchor)){
+      once("if(fhMultimode?.identity.rulesetId==='dnd')GameState.dnd=structuredClone(restored.dnd);",
+       "if(fhMultimode?.identity.rulesetId==='dnd')GameState.dnd=structuredClone(restored.dnd);\n"+
+       "const fhDndClock=fhMultimode?.identity.rulesetId==='dnd'?window.FHDndClock.create({\n"+
+       " gameState:Object.assign(GameState,{dndTime:structuredClone(restored?.dndTime||{})}),\n"+
+       " readSpeed:()=>GameState.dnd.player.speedFt,\n"+
+       " beforeAdvance:()=>window.FHMedievalRuntime?.tick(),\n"+
+       " changed:persist=>{window.FHMedievalRuntime?.tick();visibilityDirty=true;roomLightsDirty=true;if(persist)try{saveProgress();}catch(error){console.error('[DnD] Guardado del reloj:',error);}}\n"+
+       "}):null;window.FHDndTime=fhDndClock;");
+      once(weatherAnchor,"const fhWeather=window.FHWeatherCore?.createRuntime({gameState:GameState,config:fhDndClock?{...(DATA.weather||{}),advanceClock:false}:DATA.weather||{}});");
+      once('window.FHUnifiedSleep?.before(GameState);', 'if(!fhDndClock)window.FHUnifiedSleep?.before(GameState);');
+      once('window.FHUnifiedSleep?.after(GameState);', 'if(!fhDndClock)window.FHUnifiedSleep?.after(GameState);');
+      if(doc.includes('const fhMedievalRuntime=')){
+        once('clock:()=>window.FHMedievalLighting.absoluteMinute(GameState.clock),',
+         'clock:()=>fhDndClock?fhDndClock.minute():window.FHMedievalLighting.absoluteMinute(GameState.clock),');
+        once('if(result.ok)saveProgress();else notice(window.FH_MEDIEVAL_LIGHT_TEXT',
+         'if(result.ok){fhDndClock?.action();saveProgress();}else notice(window.FH_MEDIEVAL_LIGHT_TEXT');
+        once('if(fhMedievalRuntime.drop()){notice(', 'if(fhMedievalRuntime.drop()){fhDndClock?.action();notice(');
+      }
+      once(' return moved;\n}', ' if(!fhDrainCurrent)fhDndClock?.move(moved);\n return moved;\n}');
+      once("GameEvents.on('interaction:used',({item,verb})=>{\n saveProgress();",
+       "GameEvents.on('interaction:used',({item,verb})=>{\n fhDndClock?.action();\n saveProgress();");
+      once('d.open=!d.open;d.target=doorTarget(d);visibilityDirty=true;roomLightsDirty=true;rememberDoor(d);',
+       'd.open=!d.open;d.target=doorTarget(d);visibilityDirty=true;roomLightsDirty=true;fhDndClock?.action();rememberDoor(d);');
+      once('if(stairTravel){const travel=stairTravel;travel.t=Math.min(1,travel.t+dt/Math.max(.35,travel.duration));',
+       'if(stairTravel){const travel=stairTravel,fhDndPreviousStairT=travel.t;travel.t=Math.min(1,travel.t+dt/Math.max(.35,travel.duration));');
+      once('const step=Math.hypot(user.x-px,user.z-pz);user.walking=',
+       'const step=Math.hypot(user.x-px,user.z-pz);fhDndClock?.move(Math.hypot(step,(travel.vertical-travel.startHeight)*(travel.t-fhDndPreviousStairT)));user.walking=');
     }
     const headEnd = doc.indexOf('</head>');
     if (headEnd < 0) throw Error('SAVE_ENGINE_HEAD_MISSING');

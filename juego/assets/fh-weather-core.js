@@ -58,6 +58,15 @@
  function absoluteMinute(clock){
   return Date.UTC(clock.year,clock.month-1,clock.day)/60000+clock.minutes;
  }
+ // Avance explícito sobre el mismo calendario que usa el clima.
+ function advanceClock(gameState,minutes){
+  if(!Number.isFinite(minutes)||minutes<0||minutes>1440)throw Error('CLOCK_DURATION_INVALID');
+  const clock=ensureClock(gameState);
+  clock.minutes+=minutes;
+  const days=Math.floor(clock.minutes/MINUTES_DAY);
+  if(days){clock.minutes-=days*MINUTES_DAY;advanceDate(clock,days);}
+  return clock;
+ }
  function temperature(clock,season){
   const base={primavera:12,verano:23,otono:10,invierno:-2}[season];
   const hour=clock.minutes/60;
@@ -154,5 +163,5 @@
   update(0);
   return {update,view:()=>view,save:()=>data,clock:()=>clock};
  }
- return Object.freeze({TYPES,WEIGHTS,seasonFor,chooseType,precipitation,temperature,createRuntime,absoluteMinute});
+ return Object.freeze({TYPES,WEIGHTS,seasonFor,chooseType,precipitation,temperature,createRuntime,absoluteMinute,advanceClock});
 });
