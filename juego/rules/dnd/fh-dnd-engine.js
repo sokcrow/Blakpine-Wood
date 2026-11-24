@@ -16,7 +16,7 @@
  function readStats(player){return sheet.overview(player);}
  function create({targetPort,gameState,identity,sessionId,readPlayer,readMinute,
   save,notice,setStatusView,document:doc=typeof document!=='undefined'?document:null,
-  random=Math.random}={}){
+  random=Math.random,time=null}={}){
   if(!targetPort||typeof targetPort.read!=='function'||
    typeof targetPort.list!=='function'||typeof targetPort.canAttack!=='function'||
    typeof targetPort.receiveHit!=='function'||!gameState||
@@ -28,7 +28,7 @@
   if(!gameState.dnd)gameState.dnd=combat.initialState();
   if(!combat.validState(gameState.dnd))throw Error('DND_STATE_INVALID');
   const state=gameState.dnd,playerId=identity.characterId;
-  let closed=false,hud=null,sequence=0;
+  let closed=false,hud=null,clockHud=null,sequence=0;
   function player(){
    const value=readPlayer()||{};
    return {...value,inactive:state.player.hp===0||value.inactive===true};
@@ -104,6 +104,7 @@
   }
   function updateHud(){
    if(!hud)return;
+   clockHud?.update();
    const t=globalThis.FH_DND_TEXT;
    hud.status.textContent=t?.status(state.player.hp,state.player.maxHp)||'';
    const overview=readStats(state.player),statsKey=JSON.stringify(overview);
@@ -147,6 +148,7 @@
    // El puerto es el único escritor del Dummy; nunca descontar HP ni invocar defeat().
    targetPort.receiveHit(intent.target.id,result);
    state.revision++;
+   time?.action();
    try{save();}catch(error){
     // La acción ya fue aplicada: nunca reintentar por fallo de persistencia.
     console.error('[DnD] No se pudo guardar el combate:',error);
@@ -226,6 +228,7 @@
    skillButton.type='button';skillButton.textContent=t.rollSkill||'Tirar habilidad';
    box.append(title,status,stats,weapon,select,button,dc,saveSelect,saveButton,
     skillSelect,skillButton,help);
+   clockHud=globalThis.FHDndClock?.mount({clock:time,host:box,document:doc,text:t.time});
    weapon.addEventListener('change',()=>{
     if(closed||!state.player.attacks.some(a=>a.id===weapon.value))return;
     state.player.activeAttackId=weapon.value;
@@ -245,6 +248,7 @@
    rollSkill:(id,dc,options)=>rollTest('skill',id,dc,options),
    getStatus:()=>Object.freeze({connected:!closed,closed,rulesetId:'dnd',characterId:playerId}),
    close(){if(closed)return;closed=true;session.close();
+    clockHud?.close();
     if(hud){setStatusView?.(null);hud.box.remove();doc.removeEventListener('keydown',onKey);}}
   });
  }
