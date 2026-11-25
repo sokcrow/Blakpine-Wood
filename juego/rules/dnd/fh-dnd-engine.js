@@ -52,16 +52,17 @@
     const node=doc.createElement(tag);if(cls)node.className=cls;
     if(txt!==undefined)node.textContent=String(txt);return node;
    };
+   const image=(folder,id,size,className)=>{
+    const img=el('img',className);img.alt='';img.loading='lazy';img.decoding='async';
+    img.setAttribute('width',String(size));img.setAttribute('height',String(size));
+    img.src=new URL('./juego/assets/dnd-icons/'+folder+id+'.png',doc.baseURI).href;
+    return img;
+   };
    const signed=n=>(n>=0?'+':'')+n;
    const card=(icon,name,value,small)=>{
     const node=el('div','dnd-stat-card');
-    const pict=icon.startsWith('stat:')?doc.createElement('img'):el('span','dnd-stat-icon',icon);
-    if(icon.startsWith('stat:')){
-     pict.className='dnd-stat-icon dnd-stat-icon-image';pict.alt='';pict.loading='lazy';pict.decoding='async';
-     // Límites intrínsecos también cuando falla la hoja de estilos.
-     pict.setAttribute('width','32');pict.setAttribute('height','32');
-     pict.src=new URL('./juego/assets/dnd-icons/'+icon.slice(5)+'.png',doc.baseURI).href;
-    }
+    const pict=icon.startsWith('stat:')?
+     image('',icon.slice(5),32,'dnd-stat-icon dnd-stat-icon-image'):el('span','dnd-stat-icon',icon);
     node.append(pict,el('span','dnd-stat-label',name),
      el('strong','dnd-stat-value',value));
     if(small!==undefined)node.append(el('small','dnd-stat-detail',small));
@@ -80,19 +81,22 @@
     attrs.append(card('stat:'+id,T.saveName?.(id)||id,
      entry.score,signed(entry.modifier)));
    }
-   const group=(title,values,format)=>{
+   const group=(title,values,format,kind)=>{
     const details=el('details','dnd-sheet-details');
     const summary=el('summary','',title);
     const grid=el('div','dnd-sheet-detail-grid');
     for(const [id,value] of Object.entries(values)){
      const row=el('div','dnd-sheet-detail-line');
-     row.append(el('span','',format(id)),el('strong','',signed(value)));grid.append(row);
+     // El reglamento usa camelCase; los archivos originales usan snake_case.
+     const filename=id.replace(/[A-Z]/g,c=>'_'+c.toLowerCase());
+     row.append(image(kind==='skill'?'skills/':'',filename,24,'dnd-detail-icon'),
+      el('span','',format(id)),el('strong','',signed(value)));grid.append(row);
     }
     details.append(summary,grid);return details;
    };
    const details=el('div','dnd-sheet-breakdown');
-   details.append(group(U.saves,stats.saves,id=>T.saveName?.(id)||id),
-    group(U.skills,stats.skills,id=>T.skillName?.(id)||id));
+   details.append(group(U.saves,stats.saves,id=>T.saveName?.(id)||id,'save'),
+    group(U.skills,stats.skills,id=>T.skillName?.(id)||id,'skill'));
    const attacks=el('div','dnd-sheet-attacks');
    attacks.append(el('strong','dnd-group-title',U.attacks));
    for(const attack of stats.attacks){
