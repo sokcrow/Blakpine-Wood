@@ -227,9 +227,14 @@ test('HUD: objetivo, ataques y habilidades y salvaciones DnD funcionan por botó
   save:()=>{},notice:()=>{},random:()=>.99,document:doc});
  const select=nodes.find(e=>e.tagName==='SELECT'),button=nodes.find(e=>e.tagName==='BUTTON');
  assert.equal(select.value,'dummy-1');
- const icons=nodes.filter(e=>e.tagName==='IMG');
+ const icons=nodes.filter(e=>e.tagName==='IMG'&&e.className.includes('dnd-stat-icon-image'));
  assert.equal(icons.length,6);
  for(const icon of icons){assert.equal(icon.attributes.width,'32');assert.equal(icon.attributes.height,'32');}
+ const details=nodes.filter(e=>e.tagName==='IMG'&&e.className==='dnd-detail-icon');
+ assert.equal(details.length,24,'6 salvaciones y 18 habilidades');
+ for(const icon of details){assert.equal(icon.attributes.width,'24');assert.equal(icon.attributes.height,'24');}
+ assert.ok(details.some(e=>e.src.endsWith('/skills/animal_handling.png')));
+ assert.ok(details.some(e=>e.src.endsWith('/skills/sleight_of_hand.png')));
  const box=nodes.find(e=>e.className==='fh-dnd-status');
  assert.ok(box.children.some(e=>e.className==='dnd-sheet-layout'));
  assert.ok(nodes.some(e=>e.className==='dnd-sheet-tools'));
