@@ -212,7 +212,10 @@ test('Un Dummy no se convierte en enemigo ni se destruye con muchos ataques',()=
  assert.deepEqual(t.game.dnd.actors,{});assert.equal(t.game.dnd.player.energy,undefined);
  t.session.close();
 });
-test('HUD: objetivo, ataques y habilidades y salvaciones DnD funcionan por botón',()=>{
+test('HUD: objetivo, ataques y habilidades y salvaciones DnD funcionan por botón',testContext=>{
+ const textContext={};require('node:vm').runInNewContext(fs.readFileSync(path.join(root,'juego/rules/dnd/fh-dnd-strings.js'),'utf8'),textContext);
+ const previousText=globalThis.FH_DND_TEXT;globalThis.FH_DND_TEXT=textContext.FH_DND_TEXT;
+ testContext.after(()=>{globalThis.FH_DND_TEXT=previousText;});
  const t=trainingScene(),game={dnd:combat.initialState(sheet.createPilot())},nodes=[];
  function element(tag){
   const e={tagName:tag.toUpperCase(),style:{},value:'',disabled:false,textContent:'',
@@ -239,6 +242,15 @@ test('HUD: objetivo, ataques y habilidades y salvaciones DnD funcionan por botó
  assert.ok(box.children.some(e=>e.className==='dnd-sheet-layout'));
  assert.ok(nodes.some(e=>e.className==='dnd-sheet-tools'));
  assert.ok(nodes.some(e=>e.className==='dnd-field'));
+ const ability=nodes.find(e=>e.className==='dnd-stat-card dnd-ability-card');
+ assert.equal(ability.children[2].textContent,'+3');
+ assert.equal(ability.children[3].textContent,'Modificador');
+ assert.equal(ability.children[4].textContent,'Puntuación 17');
+ const weapon=nodes.find(e=>e.className==='dnd-weapon');
+ assert.equal(weapon.children[1].textContent,'Daño 1d8+3');
+ const bonus=nodes.find(e=>e.className==='dnd-attack-bonus');
+ assert.equal(bonus.children[0].textContent,'Ataque');
+ assert.equal(bonus.children[1].textContent,'+5');
  button.listeners.click();assert.equal(t.runtime.get('dummy-1').hitsReceived,1);
  const save=session.rollSave('str',10);assert.equal(save.success,true);
  const skill=session.rollSkill('perception',10);assert.equal(skill.success,true);
