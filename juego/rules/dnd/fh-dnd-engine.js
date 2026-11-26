@@ -74,12 +74,17 @@
    const vital=el('div','dnd-sheet-vitals');
    vital.append(card('♥',U.hp,stats.hp+'/'+stats.maxHp),
     card('⬡',U.ac,stats.armorClass),
-    card('➤',U.speed,stats.speedFt+' ft'),
+    card('➤',U.speed,stats.speedFt+' '+U.feet),
     card('✦',U.proficiency,signed(stats.proficiency)));
    const attrs=el('div','dnd-sheet-abilities');
    for(const [id,entry]of Object.entries(stats.abilities)){
-    attrs.append(card('stat:'+id,T.saveName?.(id)||id,
-     entry.score,signed(entry.modifier)));
+    const attribute=el('div','dnd-stat-card dnd-ability-card');
+    attribute.append(image('',id,32,'dnd-stat-icon dnd-stat-icon-image'),
+     el('span','dnd-stat-label',T.saveName?.(id)||id),
+     el('strong','dnd-stat-value',signed(entry.modifier)),
+     el('small','dnd-modifier-label',U.modifier),
+     el('small','dnd-stat-detail',U.score+' '+entry.score));
+    attrs.append(attribute);
    }
    const group=(title,values,format,kind)=>{
     const details=el('details','dnd-sheet-details');
@@ -100,8 +105,11 @@
    const attacks=el('div','dnd-sheet-attacks');
    attacks.append(el('strong','dnd-group-title',U.attacks));
    for(const attack of stats.attacks){
-    attacks.append(card('⚔',attack.weaponName,signed(attack.attackBonus),
+    const row=el('div','dnd-attack-row'),weapon=el('div','dnd-weapon'),bonus=el('div','dnd-attack-bonus');
+    weapon.append(el('strong','',attack.weaponName),el('small','',U.damage+' '+
      attack.damageCount+'d'+attack.damageDie+signed(attack.damageBonus)));
+    bonus.append(el('span','',U.attackBonus),el('strong','',signed(attack.attackBonus)));
+    row.append(el('span','dnd-stat-icon','⚔'),weapon,bonus);attacks.append(row);
    }
    const open=Array.from(host.querySelectorAll('details'),node=>node.open);
    host.replaceChildren(header,vital,el('h5','dnd-group-title',U.abilities),attrs,
@@ -260,7 +268,7 @@
    skillButton.addEventListener('click',()=>rollTest('skill',skillSelect.value,Number(dc.value)));
    doc.addEventListener('keydown',onKey);
    hud={box,status,stats,select,weapon,button,targetsKey:null,weaponKey:null};updateHud();
-   setStatusView?.(host=>host.append(box));
+   setStatusView?.(host=>{host.querySelector?.('.fh-section-title')?.remove();host.append(box);});
   }
   return Object.freeze({
    tick(){if(!closed)updateHud();},

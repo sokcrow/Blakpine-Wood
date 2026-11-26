@@ -60,9 +60,9 @@ return restored;
        'rules/dnd/fh-dnd-sheet.js','rules/dnd/fh-dnd-combat.js','rules/dnd/fh-dnd-map-modules.js','rules/dnd/fh-dnd-save-adapter.js',
       'assets/fh-dnd-character-strings.js',
       'rules/dnd/fh-dnd-strings.js','rules/dnd/fh-dnd-clock.js','rules/dnd/fh-dnd-engine.js']
-      .map(file => '<script src="' + new URL('./juego/' + file + '?v=20261125-dnd-skill-icons', baseURL).href + '"></' + 'script>').join('');
+      .map(file => '<script src="' + new URL('./juego/' + file + '?v=20261126-dnd-sheet-polish', baseURL).href + '"></' + 'script>').join('');
     // La ficha tiene estilos propios: no depender del HUD Legacy retirado.
-    const sheetStyle='<link rel="stylesheet" href="'+new URL('./juego/rules/dnd/fh-dnd-sheet.css?v=20261125-dnd-skill-icons',baseURL).href+'">';
+    const sheetStyle='<link rel="stylesheet" href="'+new URL('./juego/rules/dnd/fh-dnd-sheet.css?v=20261126-dnd-sheet-polish',baseURL).href+'">';
     const adapters = '<script>window.FHMultimodeCombatAdapters=Object.freeze({dnd:window.FHDndCombat});\n' +
       'window.FHMultimodeSaveAdapters=Object.freeze({dnd:window.FHDndSaveAdapter});</' + 'script>';
     if(doc.includes('GameState.horror=structuredClone(restored?.horror||DATA.initialGameState?.horror||{});')){
