@@ -4,22 +4,24 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Pruebas de tamaño · Ficha D&D</title>
 <style>
- body{margin:40px auto;padding:0 20px;max-width:640px;background:#171914;color:#eee9dd;font:18px/1.5 Georgia,serif}
- h1{font-size:26px}button{display:block;min-height:44px;width:100%;margin:12px 0;padding:12px;background:#24261f;border:1px solid #9e9175;color:#eee9dd;font:inherit;cursor:pointer}button:focus-visible{outline:2px solid #e7d0a1;outline-offset:3px}output{display:block;margin-top:16px}
+ body{margin:20px auto;padding:0 12px;max-width:1320px;background:#171914;color:#eee9dd;font:16px/1.5 Georgia,serif}
+ h1{font-size:24px}button{display:inline-block;min-height:44px;margin:5px 6px 5px 0;padding:10px;background:#24261f;border:1px solid #9e9175;color:#eee9dd;font:inherit;cursor:pointer}button:focus-visible{outline:2px solid #e7d0a1;outline-offset:3px}output{display:block;margin:12px 0}iframe{display:block;border:1px solid #9e9175;max-width:none}iframe[hidden]{display:none}
 </style>
 <h1>Ficha D&D · tamaños de prueba</h1>
-<p>Abre el menú y la ficha reales con datos de ejemplo en una ventana del tamaño elegido. No modifica partidas.</p>
+<p>Revisa el menú y la ficha reales con datos de ejemplo en un área del tamaño elegido. No modifica partidas ni emula un dispositivo físico.</p>
 <button data-width="1280" data-height="720">Escritorio · 1280 × 720</button>
 <button data-width="844" data-height="390">Teléfono horizontal · 844 × 390</button>
 <button data-width="667" data-height="375">Teléfono horizontal pequeño · 667 × 375</button>
 <button data-width="390" data-height="844">Teléfono vertical · 390 × 844</button>
 <output aria-live="polite"></output>
+<iframe title="Ficha D&D en el tamaño elegido" hidden></iframe>
 <script>
+const frame=document.querySelector('iframe'),output=document.querySelector('output');
+frame.addEventListener('load',()=>{if(!frame.hidden)output.textContent='Área real: '+frame.contentWindow.innerWidth+' × '+frame.contentWindow.innerHeight+' píxeles CSS.';});
 for(const button of document.querySelectorAll('button'))button.addEventListener('click',()=>{
  const width=Number(button.dataset.width),height=Number(button.dataset.height);
- const view=window.open('dnd-status-preview.html','dnd-visual-'+width,
-  'popup=yes,resizable=yes,scrollbars=yes,width='+width+',height='+height);
- document.querySelector('output').textContent=view?'Ventana abierta. Comprueba la distribución y el desplazamiento.':'El navegador bloqueó la ventana de prueba.';
+ frame.hidden=false;frame.style.width=width+'px';frame.style.height=height+'px';
+ output.textContent='Cargando '+width+' × '+height+'…';frame.src='dnd-status-preview.html';
 });
 </script>
 </html>
